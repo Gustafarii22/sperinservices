@@ -9,38 +9,181 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesTestingRouteImport } from './routes/services.testing'
+import { Route as ServicesSmartHomeRouteImport } from './routes/services.smart-home'
+import { Route as ServicesRewiresRouteImport } from './routes/services.rewires'
+import { Route as ServicesKitchensBathroomsRouteImport } from './routes/services.kitchens-bathrooms'
+import { Route as ServicesEvChargersRouteImport } from './routes/services.ev-chargers'
+import { Route as ServicesConsumerUnitsRouteImport } from './routes/services.consumer-units'
 
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesTestingRoute = ServicesTestingRouteImport.update({
+  id: '/services/testing',
+  path: '/services/testing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesSmartHomeRoute = ServicesSmartHomeRouteImport.update({
+  id: '/services/smart-home',
+  path: '/services/smart-home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRewiresRoute = ServicesRewiresRouteImport.update({
+  id: '/services/rewires',
+  path: '/services/rewires',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesKitchensBathroomsRoute =
+  ServicesKitchensBathroomsRouteImport.update({
+    id: '/services/kitchens-bathrooms',
+    path: '/services/kitchens-bathrooms',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ServicesEvChargersRoute = ServicesEvChargersRouteImport.update({
+  id: '/services/ev-chargers',
+  path: '/services/ev-chargers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesConsumerUnitsRoute = ServicesConsumerUnitsRouteImport.update({
+  id: '/services/consumer-units',
+  path: '/services/consumer-units',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/ev-chargers': typeof ServicesEvChargersRoute
+  '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
+  '/services/rewires': typeof ServicesRewiresRoute
+  '/services/smart-home': typeof ServicesSmartHomeRoute
+  '/services/testing': typeof ServicesTestingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/ev-chargers': typeof ServicesEvChargersRoute
+  '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
+  '/services/rewires': typeof ServicesRewiresRoute
+  '/services/smart-home': typeof ServicesSmartHomeRoute
+  '/services/testing': typeof ServicesTestingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/ev-chargers': typeof ServicesEvChargersRoute
+  '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
+  '/services/rewires': typeof ServicesRewiresRoute
+  '/services/smart-home': typeof ServicesSmartHomeRoute
+  '/services/testing': typeof ServicesTestingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/gallery'
+    | '/services/consumer-units'
+    | '/services/ev-chargers'
+    | '/services/kitchens-bathrooms'
+    | '/services/rewires'
+    | '/services/smart-home'
+    | '/services/testing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/gallery'
+    | '/services/consumer-units'
+    | '/services/ev-chargers'
+    | '/services/kitchens-bathrooms'
+    | '/services/rewires'
+    | '/services/smart-home'
+    | '/services/testing'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/gallery'
+    | '/services/consumer-units'
+    | '/services/ev-chargers'
+    | '/services/kitchens-bathrooms'
+    | '/services/rewires'
+    | '/services/smart-home'
+    | '/services/testing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  ContactRoute: typeof ContactRoute
+  GalleryRoute: typeof GalleryRoute
+  ServicesConsumerUnitsRoute: typeof ServicesConsumerUnitsRoute
+  ServicesEvChargersRoute: typeof ServicesEvChargersRoute
+  ServicesKitchensBathroomsRoute: typeof ServicesKitchensBathroomsRoute
+  ServicesRewiresRoute: typeof ServicesRewiresRoute
+  ServicesSmartHomeRoute: typeof ServicesSmartHomeRoute
+  ServicesTestingRoute: typeof ServicesTestingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +191,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/testing': {
+      id: '/services/testing'
+      path: '/services/testing'
+      fullPath: '/services/testing'
+      preLoaderRoute: typeof ServicesTestingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/smart-home': {
+      id: '/services/smart-home'
+      path: '/services/smart-home'
+      fullPath: '/services/smart-home'
+      preLoaderRoute: typeof ServicesSmartHomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/rewires': {
+      id: '/services/rewires'
+      path: '/services/rewires'
+      fullPath: '/services/rewires'
+      preLoaderRoute: typeof ServicesRewiresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/kitchens-bathrooms': {
+      id: '/services/kitchens-bathrooms'
+      path: '/services/kitchens-bathrooms'
+      fullPath: '/services/kitchens-bathrooms'
+      preLoaderRoute: typeof ServicesKitchensBathroomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/ev-chargers': {
+      id: '/services/ev-chargers'
+      path: '/services/ev-chargers'
+      fullPath: '/services/ev-chargers'
+      preLoaderRoute: typeof ServicesEvChargersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/consumer-units': {
+      id: '/services/consumer-units'
+      path: '/services/consumer-units'
+      fullPath: '/services/consumer-units'
+      preLoaderRoute: typeof ServicesConsumerUnitsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  ContactRoute: ContactRoute,
+  GalleryRoute: GalleryRoute,
+  ServicesConsumerUnitsRoute: ServicesConsumerUnitsRoute,
+  ServicesEvChargersRoute: ServicesEvChargersRoute,
+  ServicesKitchensBathroomsRoute: ServicesKitchensBathroomsRoute,
+  ServicesRewiresRoute: ServicesRewiresRoute,
+  ServicesSmartHomeRoute: ServicesSmartHomeRoute,
+  ServicesTestingRoute: ServicesTestingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
