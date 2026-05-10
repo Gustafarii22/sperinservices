@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { SiteLayout } from "@/components/SiteLayout";
 
 function NotFoundComponent() {
   return (
@@ -72,14 +73,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Sperin Services — Premium Electrical & Building Services in the West Midlands" },
+      { name: "description", content: "Domestic electrical and building specialists across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Rewires, consumer units, EV chargers, smart home, testing, kitchens & bathrooms." },
+      { name: "author", content: "Sperin Services" },
+      { name: "theme-color", content: "#0c0a06" },
+      { property: "og:title", content: "Sperin Services — Premium Electrical & Building" },
+      { property: "og:description", content: "Clean workmanship. Reliable domestic electrical and building services across the West Midlands." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
@@ -113,7 +114,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <SiteLayout>
+        <Outlet />
+      </SiteLayout>
     </QueryClientProvider>
   );
 }
