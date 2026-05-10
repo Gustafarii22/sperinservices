@@ -31,12 +31,12 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 lg:px-10 lg:py-4">
         <Link to="/" className="flex items-center gap-3 shrink-0 -my-1 group">
           <Logo className="h-14 w-auto sm:h-16 lg:h-20 shrink-0" />
-          <span className="hidden sm:flex flex-col leading-none">
-            <span className="text-[1.05rem] lg:text-[1.25rem] font-bold tracking-[0.18em] text-foreground uppercase">
+          <span className="hidden sm:inline-flex items-baseline gap-2 leading-none">
+            <span className="text-[1.15rem] lg:text-[1.4rem] font-bold tracking-[0.22em] text-foreground uppercase">
               Sperin
             </span>
-            <span className="mt-1 text-[0.7rem] lg:text-[0.78rem] font-semibold tracking-[0.32em] text-electric uppercase"
-              style={{ textShadow: "0 0 12px oklch(0.7 0.22 240 / 0.45)" }}>
+            <span className="text-[0.95rem] lg:text-[1.1rem] font-semibold tracking-[0.28em] text-electric uppercase"
+              style={{ textShadow: "0 0 14px oklch(0.7 0.22 240 / 0.5)" }}>
               Services
             </span>
           </span>
