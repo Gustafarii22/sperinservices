@@ -39,6 +39,7 @@ export const Route = createFileRoute("/")({
           name: "Sperin Services",
           url: SITE.url,
           telephone: SITE.phone,
+          email: SITE.email,
           areaServed: SITE.areas,
           address: { "@type": "PostalAddress", addressRegion: "West Midlands", addressCountry: "GB" },
         }),
