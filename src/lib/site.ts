@@ -1,12 +1,13 @@
 export const SITE = {
   name: "Sperin Services",
   tagline: "Premium Electrical & Building Services",
-  phone: "+447000000000",
-  phoneDisplay: "07000 000 000",
-  whatsapp: "447000000000",
-  email: "hello@sperinservices.co.uk",
+  phone: "+447817360156",
+  phoneDisplay: "07817 360156",
+  whatsapp: "447817360156",
+  email: "Gussysperin@yahoo.co.uk",
+  website: "www.sperinservices.co.uk",
   areas: ["Birmingham", "Sutton Coldfield", "Tamworth", "West Midlands"],
-  url: "https://sperinservices.co.uk",
+  url: "https://www.sperinservices.co.uk",
 };
 
 export const SERVICES = [

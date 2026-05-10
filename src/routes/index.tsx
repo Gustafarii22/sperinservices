@@ -39,6 +39,7 @@ export const Route = createFileRoute("/")({
           name: "Sperin Services",
           url: SITE.url,
           telephone: SITE.phone,
+          email: SITE.email,
           areaServed: SITE.areas,
           address: { "@type": "PostalAddress", addressRegion: "West Midlands", addressCountry: "GB" },
         }),
@@ -55,46 +56,49 @@ function Home() {
       <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-0 -z-10"
-          style={{ background: "var(--gradient-radial-gold)" }}
+          style={{ background: "var(--gradient-radial-electric)" }}
         />
-        <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-10 pb-16 lg:pt-16 lg:pb-24 grid gap-10 lg:grid-cols-2 items-center">
+        <div
+          className="pointer-events-none absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full -z-10 opacity-60 blur-3xl"
+          style={{ background: "radial-gradient(circle, oklch(0.5 0.22 250 / 0.45), transparent 65%)" }}
+        />
+        <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-28 grid gap-12 lg:grid-cols-2 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-gold/90">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold glow-gold" />
+            <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.2em] text-electric">
+              <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" />
               West Midlands · Domestic Specialists
             </div>
-            <h1 className="mt-6 text-[2.5rem] sm:text-5xl lg:text-[4.25rem] font-bold leading-[1.02] tracking-[-0.035em]">
-              Premium electrical
-              <br className="hidden sm:block" /> & building services,
-              <br className="hidden sm:block" />{" "}
-              <span className="gradient-gold-text">crafted for your home.</span>
+            <h1 className="mt-6 text-[2.5rem] sm:text-5xl lg:text-[4.5rem] font-bold leading-[1.02] tracking-[-0.035em]">
+              Premium electrical &amp; building services,{" "}
+              <span className="gradient-electric-text">powered by precision.</span>
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
-              Domestic rewires, consumer units, EV chargers, smart home, testing &amp; certification, kitchens and bathrooms — delivered with the precision of a luxury build.
+              Domestic rewires, consumer units, EV chargers, smart home, testing &amp; certification, kitchens and bathrooms — across Birmingham, Sutton Coldfield, Tamworth and the wider West Midlands.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/contact"
-                className="rounded-full gradient-gold px-6 py-3 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition"
+                className="rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition"
               >
                 Get a Free Quote
               </Link>
               <a
                 href={`tel:${SITE.phone}`}
-                className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3 text-sm font-semibold hover:bg-white/5 transition"
+                className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition"
               >
-                <Phone className="h-4 w-4 text-gold" /> Call {SITE.phoneDisplay}
+                <Phone className="h-4 w-4 text-electric" /> Call {SITE.phoneDisplay}
               </a>
               <a
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3 text-sm font-semibold hover:bg-white/5 transition"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition"
+                style={{ background: "var(--whatsapp-deep)", boxShadow: "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)" }}
               >
-                <MessageCircle className="h-4 w-4" style={{ color: "var(--whatsapp)" }} /> WhatsApp
+                <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
             </div>
-            <ul className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
+            <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
               {[
                 { i: ShieldCheck, t: "Fully qualified" },
                 { i: Sparkles, t: "Clean workmanship" },
@@ -104,17 +108,17 @@ function Home() {
                 { i: Sparkles, t: "Free quotes" },
               ].map(({ i: Icon, t }) => (
                 <li key={t} className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-gold" /> {t}
+                  <Icon className="h-4 w-4 text-electric" /> {t}
                 </li>
               ))}
             </ul>
           </div>
           <div className="relative">
-            <div className="absolute -inset-8 rounded-[2rem] opacity-60 blur-3xl gradient-gold" />
+            <div className="absolute -inset-10 rounded-[2rem] opacity-50 blur-3xl gradient-electric" />
             <img
               src={heroImg}
-              alt="Sperin Services electrician installing a modern consumer unit in a UK home"
-              className="relative w-full rounded-3xl shadow-elegant gold-border-glow object-cover aspect-[4/3]"
+              alt="Sperin Services electrician installing a modern UK consumer unit"
+              className="relative w-full rounded-3xl shadow-elegant electric-border-glow object-cover aspect-[4/3]"
               width={1920}
               height={1280}
               loading="eager"
