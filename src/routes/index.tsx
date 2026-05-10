@@ -59,15 +59,18 @@ function Home() {
         />
         <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-10 pb-16 lg:pt-16 lg:pb-24 grid gap-10 lg:grid-cols-2 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full hairline px-3 py-1 text-xs text-gold">
+            <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-gold/90">
               <span className="h-1.5 w-1.5 rounded-full bg-gold glow-gold" />
               West Midlands · Domestic Specialists
             </div>
-            <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight">
-              Premium <span className="gradient-gold-text">Electrical & Building</span> Services Across the West Midlands
+            <h1 className="mt-6 text-[2.5rem] sm:text-5xl lg:text-[4.25rem] font-bold leading-[1.02] tracking-[-0.035em]">
+              Premium electrical
+              <br className="hidden sm:block" /> & building services,
+              <br className="hidden sm:block" />{" "}
+              <span className="gradient-gold-text">crafted for your home.</span>
             </h1>
-            <p className="mt-5 text-lg text-muted-foreground max-w-xl">
-              Domestic rewires, consumer unit upgrades, EV chargers, smart home automation, testing, certification, kitchens and bathrooms — carried out with clean workmanship and attention to detail.
+            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
+              Domestic rewires, consumer units, EV chargers, smart home, testing &amp; certification, kitchens and bathrooms — delivered with the precision of a luxury build.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
