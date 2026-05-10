@@ -24,13 +24,13 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all ${
-        scrolled ? "glass-strong" : "bg-transparent"
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        scrolled ? "glass-strong py-1" : "bg-transparent py-2"
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <Logo className="h-10 w-auto sm:h-12" />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 px-5 py-4 lg:px-10 lg:py-5">
+        <Link to="/" className="flex items-center shrink-0 -my-2">
+          <Logo className="h-16 w-auto sm:h-20 lg:h-24" />
           <span className="sr-only">Sperin Services</span>
         </Link>
 
