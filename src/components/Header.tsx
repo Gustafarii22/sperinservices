@@ -29,9 +29,17 @@ export function Header() {
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 lg:px-10 lg:py-4">
-        <Link to="/" className="flex items-center shrink-0 -my-1">
-          <Logo className="h-20 w-auto sm:h-24 lg:h-28" />
-          <span className="sr-only">Sperin Services</span>
+        <Link to="/" className="flex items-center gap-3 shrink-0 -my-1 group">
+          <Logo className="h-14 w-auto sm:h-16 lg:h-20 shrink-0" />
+          <span className="hidden sm:flex flex-col leading-none">
+            <span className="text-[1.05rem] lg:text-[1.25rem] font-bold tracking-[0.18em] text-foreground uppercase">
+              Sperin
+            </span>
+            <span className="mt-1 text-[0.7rem] lg:text-[0.78rem] font-semibold tracking-[0.32em] text-electric uppercase"
+              style={{ textShadow: "0 0 12px oklch(0.7 0.22 240 / 0.45)" }}>
+              Services
+            </span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">

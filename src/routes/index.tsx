@@ -68,9 +68,9 @@ function Home() {
               <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" />
               West Midlands · Domestic Specialists
             </div>
-            <h1 className="mt-6 text-[2.5rem] sm:text-5xl lg:text-[4.5rem] font-bold leading-[1.02] tracking-[-0.035em]">
-              Premium electrical &amp; building services,{" "}
-              <span className="gradient-electric-text">powered by precision.</span>
+            <h1 className="mt-6 text-[2.5rem] sm:text-5xl lg:text-[4.25rem] font-bold leading-[1.02] tracking-[-0.035em]">
+              Premium electrical<br className="hidden sm:block" /> &amp; building services,{" "}
+              <span className="gradient-electric-text" style={{ filter: "drop-shadow(0 0 22px oklch(0.7 0.22 240 / 0.35))" }}>powered by precision.</span>
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
               Domestic rewires, consumer units, EV chargers, smart home, testing &amp; certification, kitchens and bathrooms — across Birmingham, Sutton Coldfield, Tamworth and the wider West Midlands.
