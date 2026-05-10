@@ -43,47 +43,50 @@
 :root {
   --radius: 0.875rem;
 
-  --background: oklch(0.12 0.01 60);
-  --foreground: oklch(0.97 0.01 90);
+  /* Deep matte black + graphite */
+  --background: oklch(0.07 0.004 70);
+  --foreground: oklch(0.95 0.008 85);
 
-  --card: oklch(0.16 0.012 70);
-  --card-foreground: oklch(0.97 0.01 90);
+  --card: oklch(0.11 0.005 70);
+  --card-foreground: oklch(0.95 0.008 85);
 
-  --popover: oklch(0.14 0.012 70);
-  --popover-foreground: oklch(0.97 0.01 90);
+  --popover: oklch(0.09 0.005 70);
+  --popover-foreground: oklch(0.95 0.008 85);
 
-  --primary: oklch(0.82 0.14 86);
-  --primary-foreground: oklch(0.14 0.01 60);
+  /* Muted metallic gold (champagne, not orange) */
+  --primary: oklch(0.78 0.082 90);
+  --primary-foreground: oklch(0.09 0.005 70);
 
-  --secondary: oklch(0.22 0.015 70);
-  --secondary-foreground: oklch(0.97 0.01 90);
+  --secondary: oklch(0.16 0.006 75);
+  --secondary-foreground: oklch(0.95 0.008 85);
 
-  --muted: oklch(0.2 0.01 70);
-  --muted-foreground: oklch(0.72 0.02 85);
+  --muted: oklch(0.14 0.005 75);
+  --muted-foreground: oklch(0.68 0.012 85);
 
-  --accent: oklch(0.82 0.14 86);
-  --accent-foreground: oklch(0.14 0.01 60);
+  --accent: oklch(0.78 0.082 90);
+  --accent-foreground: oklch(0.09 0.005 70);
 
-  --destructive: oklch(0.6 0.22 27);
+  --destructive: oklch(0.55 0.18 27);
   --destructive-foreground: oklch(0.98 0.01 90);
 
-  --border: oklch(0.28 0.02 80 / 0.6);
-  --input: oklch(0.25 0.02 80);
-  --ring: oklch(0.82 0.14 86);
+  --border: oklch(0.78 0.082 90 / 0.14);
+  --input: oklch(0.18 0.006 75);
+  --ring: oklch(0.78 0.082 90);
 
-  --gold: oklch(0.82 0.14 86);
-  --gold-soft: oklch(0.88 0.1 88);
-  --gold-deep: oklch(0.62 0.13 70);
-  --whatsapp: oklch(0.62 0.11 150);
+  --gold: oklch(0.78 0.082 90);
+  --gold-soft: oklch(0.86 0.06 92);
+  --gold-deep: oklch(0.58 0.07 80);
+  /* Muted premium WhatsApp green */
+  --whatsapp: oklch(0.55 0.07 155);
 
-  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.1 88), oklch(0.7 0.14 75));
-  --gradient-gold-deep: linear-gradient(135deg, oklch(0.7 0.14 75), oklch(0.5 0.11 65));
-  --gradient-radial-gold: radial-gradient(circle at 30% 20%, oklch(0.82 0.14 86 / 0.35), transparent 60%);
-  --gradient-dark: linear-gradient(180deg, oklch(0.1 0.01 60), oklch(0.14 0.012 70));
+  --gradient-gold: linear-gradient(135deg, oklch(0.86 0.06 92), oklch(0.7 0.085 85) 50%, oklch(0.58 0.07 80));
+  --gradient-gold-deep: linear-gradient(135deg, oklch(0.7 0.085 85), oklch(0.48 0.06 75));
+  --gradient-radial-gold: radial-gradient(circle at 30% 20%, oklch(0.78 0.082 90 / 0.18), transparent 65%);
+  --gradient-dark: linear-gradient(180deg, oklch(0.06 0.004 70), oklch(0.1 0.005 70));
 
-  --shadow-gold: 0 10px 40px -10px oklch(0.82 0.14 86 / 0.45), 0 0 60px -20px oklch(0.82 0.14 86 / 0.35);
-  --shadow-elegant: 0 20px 60px -20px oklch(0 0 0 / 0.7);
-  --glow-gold: 0 0 24px oklch(0.82 0.14 86 / 0.5);
+  --shadow-gold: 0 8px 30px -10px oklch(0.78 0.082 90 / 0.35), 0 0 50px -25px oklch(0.78 0.082 90 / 0.4);
+  --shadow-elegant: 0 30px 80px -25px oklch(0 0 0 / 0.85), 0 10px 30px -15px oklch(0 0 0 / 0.6);
+  --glow-gold: 0 0 18px oklch(0.78 0.082 90 / 0.35);
 }
 
 .dark { color-scheme: dark; }
