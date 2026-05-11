@@ -81,12 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Clean workmanship. Reliable domestic electrical and building services across the West Midlands." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "/sperin-logo.png" },
+      { name: "twitter:image", content: "/sperin-logo.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/sperin-logo.png" },
+      { rel: "apple-touch-icon", href: "/sperin-logo.png" },
     ],
   }),
   shellComponent: RootShell,
