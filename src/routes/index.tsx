@@ -101,12 +101,12 @@ function Home() {
             </div>
             <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
               {[
-                { i: ShieldCheck, t: "Fully qualified" },
-                { i: Sparkles, t: "Clean workmanship" },
-                { i: Wrench, t: "Domestic specialists" },
+                { i: ShieldCheck, t: "23 Years Experience" },
+                { i: Sparkles, t: "Electrical Certification" },
+                { i: ShieldCheck, t: "Part P Compliant Work" },
+                { i: ShieldCheck, t: "Fully Insured" },
+                { i: Wrench, t: "Domestic Specialists" },
                 { i: MapPin, t: "Local West Mids" },
-                { i: ShieldCheck, t: "Reliable service" },
-                { i: Sparkles, t: "Free quotes" },
               ].map(({ i: Icon, t }) => (
                 <li key={t} className="flex items-center gap-2">
                   <Icon className="h-4 w-4 text-electric" /> {t}
