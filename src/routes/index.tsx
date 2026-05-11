@@ -69,7 +69,7 @@ function Home() {
               West Midlands · Domestic Specialists
             </div>
             <h1 className="mt-6 text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
-              Quality you<br className="hidden sm:block" /> can see.
+              Quality you can see.
               <br />
               <span className="gradient-electric-text" style={{ filter: "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))" }}>Service you can trust.</span>
             </h1>
