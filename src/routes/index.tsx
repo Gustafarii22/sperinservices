@@ -69,7 +69,7 @@ function Home() {
               West Midlands · Domestic Specialists
             </div>
             <h1 className="mt-6 text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
-              Quality you<br className="hidden sm:block" /> can see.
+              Quality you can see.
               <br />
               <span className="gradient-electric-text" style={{ filter: "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))" }}>Service you can trust.</span>
             </h1>
@@ -101,12 +101,12 @@ function Home() {
             </div>
             <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
               {[
-                { i: ShieldCheck, t: "Fully qualified" },
-                { i: Sparkles, t: "Clean workmanship" },
-                { i: Wrench, t: "Domestic specialists" },
+                { i: ShieldCheck, t: "23 Years Experience" },
+                { i: Sparkles, t: "Electrical Certification" },
+                { i: ShieldCheck, t: "Part P Compliant Work" },
+                { i: ShieldCheck, t: "Fully Insured" },
+                { i: Wrench, t: "Domestic Specialists" },
                 { i: MapPin, t: "Local West Mids" },
-                { i: ShieldCheck, t: "Reliable service" },
-                { i: Sparkles, t: "Free quotes" },
               ].map(({ i: Icon, t }) => (
                 <li key={t} className="flex items-center gap-2">
                   <Icon className="h-4 w-4 text-electric" /> {t}
