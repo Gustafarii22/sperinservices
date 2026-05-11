@@ -12,7 +12,7 @@ export function Logo({ className = "h-20 w-auto" }: { className?: string }) {
         objectFit: "contain",
         imageRendering: "auto",
         filter:
-          "drop-shadow(0 2px 10px oklch(0 0 0 / 0.6)) drop-shadow(0 0 18px oklch(0.7 0.22 240 / 0.25))",
+          "drop-shadow(0 2px 10px oklch(0 0 0 / 0.7)) drop-shadow(0 0 22px oklch(0.7 0.22 240 / 0.55)) drop-shadow(0 0 44px oklch(0.55 0.24 250 / 0.4))",
       }}
     />
   );
