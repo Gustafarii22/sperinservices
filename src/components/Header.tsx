@@ -28,9 +28,9 @@ export function Header() {
         scrolled ? "glass-strong" : "bg-transparent"
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 lg:px-10 lg:py-4">
-        <Link to="/" className="flex items-center gap-3 shrink-0 -my-1 group">
-          <Logo className="h-14 w-auto sm:h-16 lg:h-20 shrink-0" />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-3 py-2 lg:px-8 lg:py-3">
+        <Link to="/" className="flex items-center gap-3 shrink-0 -my-2 group">
+          <Logo className="h-16 w-auto sm:h-20 lg:h-24 shrink-0" />
           <span className="hidden sm:inline-flex items-baseline gap-2 leading-none">
             <span className="text-[1.15rem] lg:text-[1.4rem] font-bold tracking-[0.22em] text-foreground uppercase">
               Sperin
