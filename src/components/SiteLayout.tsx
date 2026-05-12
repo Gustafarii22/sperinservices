@@ -1,6 +1,7 @@
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileBar } from "./MobileBar";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,16 +10,9 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 pb-24 md:pb-0">{children}</main>
       <Footer />
       <MobileBar />
-      <FloatingWhatsApp />
+      <div className="hidden md:block fixed bottom-5 right-5 z-40">
+        <WhatsAppButton size="sm" />
+      </div>
     </div>
   );
 }
-
-import { WhatsAppButton } from "./WhatsAppButton";
-
-function FloatingWhatsApp() {
-  return (
-    <div className="hidden md:block fixed bottom-5 right-5 z-40">
-      <WhatsAppButton size="sm" />
-    </div>
-  );
