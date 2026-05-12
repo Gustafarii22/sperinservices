@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
@@ -20,6 +21,11 @@ import { Route as ServicesKitchensBathroomsRouteImport } from './routes/services
 import { Route as ServicesEvChargersRouteImport } from './routes/services.ev-chargers'
 import { Route as ServicesConsumerUnitsRouteImport } from './routes/services.consumer-units'
 
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/gallery'
+    | '/reviews'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/gallery'
+    | '/reviews'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/gallery'
+    | '/reviews'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
+  ReviewsRoute: typeof ReviewsRoute
   ServicesConsumerUnitsRoute: typeof ServicesConsumerUnitsRoute
   ServicesEvChargersRoute: typeof ServicesEvChargersRoute
   ServicesKitchensBathroomsRoute: typeof ServicesKitchensBathroomsRoute
@@ -163,6 +176,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
+  ReviewsRoute: ReviewsRoute,
   ServicesConsumerUnitsRoute: ServicesConsumerUnitsRoute,
   ServicesEvChargersRoute: ServicesEvChargersRoute,
   ServicesKitchensBathroomsRoute: ServicesKitchensBathroomsRoute,

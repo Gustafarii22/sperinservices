@@ -8,6 +8,7 @@ const NAV = [
   { to: "/", label: "Home", exact: true },
   { to: "/gallery", label: "Our Work" },
   { to: "/about", label: "About" },
+  { to: "/reviews", label: "Reviews" },
   { to: "/contact", label: "Contact" },
 ] as const;
 
@@ -46,7 +47,7 @@ export function Header() {
             <Logo className="h-12 sm:h-14 lg:h-16 w-auto shrink-0" />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1">
             <NavItem to="/" label="Home" exact />
             <ServicesDropdown />
             {NAV.slice(1).map((n) => (
@@ -54,7 +55,7 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="hidden lg:flex items-center shrink-0">
+          <div className="hidden md:flex items-center shrink-0">
             <a
               href={`tel:${SITE.phone}`}
               className="group inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-foreground transition-all duration-300 hover:scale-[1.03]"
@@ -72,7 +73,7 @@ export function Header() {
           <button
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen(!open)}
-            className="lg:hidden rounded-full p-2.5 text-foreground transition active:scale-95"
+            className="md:hidden rounded-full p-2.5 text-foreground transition active:scale-95"
             style={{
               background: "oklch(0.08 0.01 250 / 0.7)",
               boxShadow:
@@ -86,7 +87,7 @@ export function Header() {
 
       {/* Mobile fullscreen menu */}
       <div
-        className={`lg:hidden fixed inset-0 z-40 transition-all duration-500 ${
+        className={`md:hidden fixed inset-0 z-40 transition-all duration-500 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         style={{

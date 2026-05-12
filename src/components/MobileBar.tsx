@@ -20,7 +20,7 @@ function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
 
 export function MobileBar() {
   return (
-    <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 pb-[env(safe-area-inset-bottom)]">
+    <div className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-[env(safe-area-inset-bottom)]">
       <div
         className="mx-3 mb-3 rounded-2xl grid grid-cols-3 overflow-hidden"
         style={{
