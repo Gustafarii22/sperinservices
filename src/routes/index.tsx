@@ -1,5 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Phone, MessageCircle, ArrowRight, ShieldCheck, Sparkles, MapPin, Wrench } from "lucide-react";
+import {
+  Phone,
+  MessageCircle,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  MapPin,
+  Wrench,
+  CheckCircle2,
+  Zap,
+  ClipboardCheck,
+} from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { CTA } from "@/components/CTA";
 import heroImg from "@/assets/hero-electrician.jpg";
@@ -22,20 +33,64 @@ const SERVICE_IMAGES: Record<string, string> = {
   kitchen: imgKitchen,
 };
 
+const AREAS = [
+  "Birmingham",
+  "Smethwick",
+  "Quinton",
+  "Harborne",
+  "Oldbury",
+  "Halesowen",
+  "West Bromwich",
+  "Sutton Coldfield",
+  "Solihull",
+  "Tamworth",
+  "Dudley",
+  "Walsall",
+];
+
+const FAQS = [
+  {
+    q: "Do you cover Birmingham and the West Midlands?",
+    a: "Yes. Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Sutton Coldfield, Solihull, Tamworth and nearby West Midlands areas.",
+  },
+  {
+    q: "Do you carry out EICRs for landlords?",
+    a: "Yes. We carry out Electrical Installation Condition Reports for domestic properties, landlords and rental homes, with clear advice on any remedial work required.",
+  },
+  {
+    q: "Can you quote for a house rewire?",
+    a: "Yes. We quote for full and partial rewires. Pricing depends on property size, access, number of points, finish required, consumer unit work and whether the property is occupied.",
+  },
+  {
+    q: "Do you install consumer units?",
+    a: "Yes. We install and upgrade modern consumer units, including RCD, RCBO and surge protection options where suitable.",
+  },
+  {
+    q: "Do you install EV chargers?",
+    a: "Yes. We install domestic EV chargers and can advise on cable routes, supply requirements, load considerations and suitable charger locations.",
+  },
+];
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Electrician Birmingham | Rewires, Consumer Units, EV Chargers | Sperin Services" },
+      {
+        title:
+          "Electrician Birmingham | Rewires, Consumer Units, EV Chargers & EICRs | Sperin Services",
+      },
       {
         name: "description",
         content:
-          "Sperin Services provides domestic electrical services in Birmingham and the West Midlands. Rewires, consumer unit upgrades, EV chargers, EICRs, smart home installations, kitchens and bathrooms.",
+          "Sperin Services provides domestic electrical services across Birmingham and the West Midlands. Rewires, consumer unit upgrades, EV chargers, EICRs, smart home installations, kitchens and bathrooms.",
       },
-      { property: "og:title", content: "Electrician Birmingham | Sperin Services" },
+      {
+        property: "og:title",
+        content: "Electrician Birmingham | Sperin Services",
+      },
       {
         property: "og:description",
         content:
-          "Domestic electrician in Birmingham covering rewires, consumer units, EV chargers, EICRs and smart home installations across the West Midlands.",
+          "Domestic electrician in Birmingham covering rewires, consumer units, EV chargers, EICRs, smart home installations and domestic upgrades across the West Midlands.",
       },
     ],
     scripts: [
@@ -55,19 +110,7 @@ export const Route = createFileRoute("/")({
             addressRegion: "West Midlands",
             addressCountry: "GB",
           },
-          areaServed: [
-            "Birmingham",
-            "Smethwick",
-            "Quinton",
-            "Harborne",
-            "Oldbury",
-            "Halesowen",
-            "West Bromwich",
-            "Sutton Coldfield",
-            "Solihull",
-            "Tamworth",
-            "West Midlands",
-          ],
+          areaServed: AREAS,
           serviceType: [
             "Domestic electrician",
             "House rewires",
@@ -75,6 +118,8 @@ export const Route = createFileRoute("/")({
             "EV charger installation",
             "EICR testing",
             "Smart home installation",
+            "Kitchen electrics",
+            "Bathroom electrics",
           ],
         }),
       },
@@ -83,40 +128,14 @@ export const Route = createFileRoute("/")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
-          mainEntity: [
-            {
-              "@type": "Question",
-              name: "Do you cover Birmingham?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes, Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, Sutton Coldfield, Tamworth and the wider West Midlands.",
-              },
+          mainEntity: FAQS.map((faq) => ({
+            "@type": "Question",
+            name: faq.q,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: faq.a,
             },
-            {
-              "@type": "Question",
-              name: "Do you carry out EICRs?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes, we carry out Electrical Installation Condition Reports for domestic properties, landlords and rental properties.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "Do you install consumer units?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes, we install and upgrade modern consumer units including RCD, RCBO and surge protection options where suitable.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "Can you quote for a rewire?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes, we can quote for full rewires and partial rewires after discussing the size of the property, access, number of points and the finish required.",
-              },
-            },
-          ],
+          })),
         }),
       },
     ],
@@ -127,40 +146,60 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <>
-      {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10" style={{ background: "var(--gradient-radial-electric)" }} />
+        <div
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{ background: "var(--gradient-radial-electric)" }}
+        />
         <div
           className="pointer-events-none absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full -z-10 opacity-60 blur-3xl"
-          style={{ background: "radial-gradient(circle, oklch(0.5 0.22 250 / 0.45), transparent 65%)" }}
+          style={{
+            background:
+              "radial-gradient(circle, oklch(0.5 0.22 250 / 0.45), transparent 65%)",
+          }}
         />
+
         <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-28 grid gap-12 lg:grid-cols-2 items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.2em] text-electric">
               <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" />
-              Birmingham · West Midlands · Domestic Electrician
+              Birmingham · West Midlands · Domestic Specialists
             </div>
 
-            <h1 className="mt-6 text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
-              Electrician Birmingham.
+            <h1 className="mt-6 text-[2.35rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
+              Quality you can see.
               <br />
-              <span className="gradient-electric-text" style={{ filter: "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))" }}>
-                Quality you can trust.
+              <span
+                className="gradient-electric-text"
+                style={{
+                  filter:
+                    "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))",
+                }}
+              >
+                Service you can trust.
               </span>
             </h1>
 
-            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
-              Sperin Services provides domestic electrical services across Birmingham and the West Midlands, including house rewires,
-              consumer unit upgrades, EV charger installation, EICRs, smart home installations, fault finding, kitchens and bathrooms.
+            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
+              Premium domestic electrical services across Birmingham and the
+              West Midlands. Rewires, consumer units, EV chargers, EICRs, smart
+              homes, kitchens and bathrooms.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/contact" className="rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition">
+              <Link
+                to="/contact"
+                className="rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition"
+              >
                 Get a Free Quote
               </Link>
 
-              <a href={`tel:${SITE.phone}`} className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition">
-                <Phone className="h-4 w-4 text-electric" /> Call {SITE.phoneDisplay}
+              <a
+                href={`tel:${SITE.phone}`}
+                className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition"
+              >
+                <Phone className="h-4 w-4 text-electric" /> Call{" "}
+                {SITE.phoneDisplay}
               </a>
 
               <a
@@ -168,7 +207,11 @@ function Home() {
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition"
-                style={{ background: "var(--whatsapp-deep)", boxShadow: "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)" }}
+                style={{
+                  background: "var(--whatsapp-deep)",
+                  boxShadow:
+                    "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)",
+                }}
               >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
@@ -205,31 +248,77 @@ function Home() {
         </div>
       </section>
 
-      {/* SERVICE BUTTONS */}
+      <section className="mx-auto max-w-7xl px-4 lg:px-8 -mt-4 mb-14">
+        <div className="grid gap-3 sm:grid-cols-4">
+          {[
+            { icon: CheckCircle2, text: "Clean workmanship" },
+            { icon: ShieldCheck, text: "Fully insured" },
+            { icon: Zap, text: "Modern installations" },
+            { icon: ClipboardCheck, text: "Clear quotes" },
+          ].map(({ icon: Icon, text }) => (
+            <div
+              key={text}
+              className="rounded-2xl hairline bg-card/40 px-4 py-4 flex items-center gap-3 text-sm"
+            >
+              <Icon className="h-5 w-5 text-electric" />
+              <span>{text}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold">
-              <span className="gradient-gold-text">Electrical Services in Birmingham</span>
+              <span className="gradient-gold-text">
+                Electrical Services in Birmingham
+              </span>
             </h2>
-            <p className="mt-2 text-muted-foreground">Domestic electrical work, testing, installations and upgrades across the West Midlands.</p>
+            <p className="mt-2 text-muted-foreground">
+              Domestic electrical work, testing, installations and upgrades
+              across the West Midlands.
+            </p>
           </div>
         </div>
 
         <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s) => (
-            <Link key={s.slug} to={s.path} className="group relative overflow-hidden rounded-3xl gold-border-glow bg-card hover:-translate-y-1 transition duration-500">
+            <Link
+              key={s.slug}
+              to={s.path}
+              className="group relative overflow-hidden rounded-3xl gold-border-glow bg-card hover:-translate-y-1 transition duration-500"
+            >
               <div className="aspect-[4/3] overflow-hidden">
-                <img src={SERVICE_IMAGES[s.image]} alt={`${s.title} Birmingham`} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+                <img
+                  src={SERVICE_IMAGES[s.image]}
+                  alt={`${s.title} Birmingham`}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                />
               </div>
 
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent 35%, oklch(0.08 0.01 60 / 0.85) 100%)" }} />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none" style={{ background: "var(--gradient-radial-gold)" }} />
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(180deg, transparent 35%, oklch(0.08 0.01 60 / 0.85) 100%)",
+                }}
+              />
+
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none"
+                style={{ background: "var(--gradient-radial-gold)" }}
+              />
 
               <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 flex items-end justify-between gap-2">
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground">{s.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{s.short}</p>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground">
+                    {s.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {s.short}
+                  </p>
                 </div>
                 <span className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full gradient-gold text-primary-foreground shadow-gold">
                   <ArrowRight className="h-4 w-4" />
@@ -240,63 +329,92 @@ function Home() {
         </div>
       </section>
 
-      {/* SEO CONTENT */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <div className="glass rounded-3xl p-8 sm:p-12">
           <h2 className="text-3xl sm:text-4xl font-bold">
-            <span className="gradient-gold-text">Domestic Electrician in Birmingham & the West Midlands</span>
+            <span className="gradient-gold-text">
+              Domestic Electrician in Birmingham & the West Midlands
+            </span>
           </h2>
 
           <div className="mt-6 grid gap-8 lg:grid-cols-2 text-muted-foreground leading-relaxed">
             <div>
               <p>
-                Sperin Services provides reliable domestic electrical work across Birmingham, Smethwick, Quinton, Harborne, Oldbury,
-                Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby areas. Whether you need a small electrical repair,
-                a consumer unit upgrade, a landlord EICR, a full house rewire or a smart home installation, the focus is always on
-                clean workmanship, clear communication and a safe finished job.
+                Sperin Services provides reliable domestic electrical work
+                across Birmingham, Smethwick, Quinton, Harborne, Oldbury,
+                Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull
+                and nearby areas. Whether you need a small electrical repair, a
+                consumer unit upgrade, a landlord EICR, a full house rewire or a
+                smart home installation, the focus is always on clean
+                workmanship, clear communication and a safe finished job.
               </p>
 
               <p className="mt-4">
-                With 23 years of electrical experience, Sperin Services is built around domestic work. That means understanding how
-                people actually live in their homes: keeping disruption down, planning cable routes properly, protecting finished
-                surfaces, working neatly and leaving the property tidy.
+                With 23 years of electrical experience, Sperin Services is built
+                around domestic work. That means keeping disruption down,
+                planning cable routes properly, protecting finished surfaces,
+                working neatly and leaving the property tidy.
               </p>
             </div>
 
             <div>
               <p>
-                Common electrical services include full and partial rewires, fuse board and consumer unit replacements, additional
-                sockets, lighting upgrades, EV charger installations, fault finding, smoke alarms, smart lighting, smart heating,
-                video doorbells, security wiring and electrical testing.
+                Common electrical services include full and partial rewires,
+                fuse board and consumer unit replacements, additional sockets,
+                lighting upgrades, EV charger installations, fault finding,
+                smoke alarms, smart lighting, smart heating, video doorbells,
+                security wiring and electrical testing.
               </p>
 
               <p className="mt-4">
-                If you are looking for an electrician in Birmingham for domestic electrical work, Sperin Services can provide advice,
-                clear pricing where possible and a proper quotation for larger jobs.
+                If you are looking for an electrician in Birmingham for domestic
+                electrical work, Sperin Services can provide advice, clear
+                pricing where possible and a proper quotation for larger jobs.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* WHY CHOOSE */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <div className="glass rounded-3xl p-8 sm:p-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-center">
-            <span className="gradient-gold-text">Why Choose Sperin Services</span>
+            <span className="gradient-gold-text">
+              Why Choose Sperin Services
+            </span>
           </h2>
+
           <p className="mt-3 text-center text-muted-foreground max-w-2xl mx-auto">
-            A reliable local electrician delivering domestic electrical and building work to a premium standard.
+            A reliable local electrician delivering domestic electrical and
+            building work to a premium standard.
           </p>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { t: "Fully qualified", d: "Trained, experienced and continually developing." },
-              { t: "Clean, tidy workmanship", d: "We treat your home with respect on every visit." },
-              { t: "Domestic specialists", d: "Focused expertise in homes, rewires, consumer units and domestic upgrades." },
-              { t: "Clear communication", d: "Honest updates, no jargon and no unnecessary confusion." },
-              { t: "Local West Midlands service", d: "Covering Birmingham, Smethwick, Quinton, Harborne, Sutton Coldfield and nearby areas." },
-              { t: "High attention to detail", d: "From cable routes and containment to the final finish." },
+              {
+                t: "Fully qualified",
+                d: "Experienced, trained and focused on safe domestic electrical work.",
+              },
+              {
+                t: "Clean, tidy workmanship",
+                d: "Your home is treated with care from the first visit to the final clean-up.",
+              },
+              {
+                t: "Domestic specialists",
+                d: "Focused on homes, rewires, consumer units, smart upgrades and domestic projects.",
+              },
+              {
+                t: "Clear communication",
+                d: "Straight answers, proper advice and no unnecessary jargon.",
+              },
+              {
+                t: "Local West Midlands service",
+                d: "Covering Birmingham, Smethwick, Quinton, Harborne, Sutton Coldfield and nearby areas.",
+              },
+              {
+                t: "High attention to detail",
+                d: "From cable routes and accessories to the final finish.",
+              },
             ].map((x) => (
               <div key={x.t} className="rounded-2xl hairline p-5 bg-card/40">
                 <div className="flex items-center gap-2">
@@ -310,10 +428,11 @@ function Home() {
         </div>
       </section>
 
-      {/* KEY SERVICES SEO */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <h2 className="text-3xl sm:text-4xl font-bold mb-8">
-          <span className="gradient-gold-text">Popular Electrical Services</span>
+          <span className="gradient-gold-text">
+            Popular Electrical Services
+          </span>
         </h2>
 
         <div className="grid gap-5 lg:grid-cols-2">
@@ -339,9 +458,15 @@ function Home() {
               link: "/services/smart-home",
             },
           ].map((item) => (
-            <Link key={item.title} to={item.link} className="rounded-2xl hairline p-6 bg-card/40 hover:bg-white/5 transition">
+            <Link
+              key={item.title}
+              to={item.link}
+              className="rounded-2xl hairline p-6 bg-card/40 hover:bg-white/5 transition"
+            >
               <h3 className="text-xl font-bold">{item.title}</h3>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                {item.text}
+              </p>
               <span className="mt-4 inline-flex items-center gap-2 text-sm text-gold">
                 Learn more <ArrowRight className="h-4 w-4" />
               </span>
@@ -350,19 +475,23 @@ function Home() {
         </div>
       </section>
 
-      {/* AREAS */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <div className="rounded-3xl hairline p-8 sm:p-10 bg-card/40">
           <h2 className="text-3xl font-bold">
             <span className="gradient-gold-text">Areas Covered</span>
           </h2>
+
           <p className="mt-3 text-muted-foreground">
-            Sperin Services covers Birmingham and surrounding West Midlands areas.
+            Sperin Services covers Birmingham and surrounding West Midlands
+            areas.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3 text-sm">
-            {["Birmingham", "Smethwick", "Quinton", "Harborne", "Oldbury", "Halesowen", "West Bromwich", "Sutton Coldfield", "Tamworth", "Solihull", "Dudley", "Walsall"].map((area) => (
-              <span key={area} className="rounded-full hairline px-4 py-2 bg-background/40">
+            {AREAS.map((area) => (
+              <span
+                key={area}
+                className="rounded-full hairline px-4 py-2 bg-background/40"
+              >
                 {area}
               </span>
             ))}
@@ -370,16 +499,21 @@ function Home() {
         </div>
       </section>
 
-      {/* RECENT WORK PREVIEW */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-16">
         <div className="flex items-end justify-between mb-6">
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold">
               <span className="gradient-gold-text">Recent Work</span>
             </h2>
-            <p className="mt-2 text-muted-foreground">A quick look at recent electrical and installation work.</p>
+            <p className="mt-2 text-muted-foreground">
+              A quick look at recent electrical and installation work.
+            </p>
           </div>
-          <Link to="/gallery" className="hidden sm:inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5">
+
+          <Link
+            to="/gallery"
+            className="hidden sm:inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5"
+          >
             View Full Gallery <ArrowRight className="h-4 w-4 text-gold" />
           </Link>
         </div>
@@ -387,47 +521,41 @@ function Home() {
         <div className="grid gap-4 sm:grid-cols-3">
           {[work1, work2, work3].map((src, i) => (
             <div key={i} className="overflow-hidden rounded-2xl gold-border-glow">
-              <img src={src} alt={`Recent electrical work in Birmingham ${i + 1}`} loading="lazy" className="w-full aspect-[4/3] object-cover hover:scale-105 transition duration-700" />
+              <img
+                src={src}
+                alt={`Recent electrical work in Birmingham ${i + 1}`}
+                loading="lazy"
+                className="w-full aspect-[4/3] object-cover hover:scale-105 transition duration-700"
+              />
             </div>
           ))}
         </div>
 
         <div className="mt-6 sm:hidden">
-          <Link to="/gallery" className="inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5">
+          <Link
+            to="/gallery"
+            className="inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5"
+          >
             View Full Gallery <ArrowRight className="h-4 w-4 text-gold" />
           </Link>
         </div>
       </section>
 
-      {/* FAQ */}
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <div className="glass rounded-3xl p-8 sm:p-12">
           <h2 className="text-3xl sm:text-4xl font-bold">
-            <span className="gradient-gold-text">Electrician Birmingham FAQs</span>
+            <span className="gradient-gold-text">
+              Electrician Birmingham FAQs
+            </span>
           </h2>
 
           <div className="mt-8 grid gap-5">
-            {[
-              {
-                q: "Do you cover my area?",
-                a: "Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby West Midlands areas.",
-              },
-              {
-                q: "Can you quote for a full house rewire?",
-                a: "Yes. For rewires, the price depends on property size, access, number of points, finish required, consumer unit work and whether the property is occupied.",
-              },
-              {
-                q: "Do you carry out landlord EICRs?",
-                a: "Yes. Sperin Services carries out EICRs for domestic properties, landlords and rental homes.",
-              },
-              {
-                q: "Do you install EV chargers?",
-                a: "Yes. Domestic EV charger installation is available, including advice on suitable locations, cable routes and electrical supply requirements.",
-              },
-            ].map((item) => (
+            {FAQS.map((item) => (
               <div key={item.q} className="rounded-2xl hairline p-5 bg-card/40">
                 <h3 className="font-semibold">{item.q}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  {item.a}
+                </p>
               </div>
             ))}
           </div>
@@ -437,4 +565,4 @@ function Home() {
       <CTA />
     </>
   );
-      }
+}
