@@ -64,6 +64,7 @@ export const Route = createFileRoute("/")({
             "Halesowen",
             "West Bromwich",
             "Sutton Coldfield",
+            "Solihull",
             "Tamworth",
             "West Midlands",
           ],
@@ -250,7 +251,7 @@ function Home() {
             <div>
               <p>
                 Sperin Services provides reliable domestic electrical work across Birmingham, Smethwick, Quinton, Harborne, Oldbury,
-                Halesowen, West Bromwich, Sutton Coldfield, Tamworth and nearby areas. Whether you need a small electrical repair,
+                Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby areas. Whether you need a small electrical repair,
                 a consumer unit upgrade, a landlord EICR, a full house rewire or a smart home installation, the focus is always on
                 clean workmanship, clear communication and a safe finished job.
               </p>
@@ -409,7 +410,7 @@ function Home() {
             {[
               {
                 q: "Do you cover my area?",
-                a: "Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Sutton Coldfield, Tamworth and nearby West Midlands areas.",
+                a: "Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby West Midlands areas.",
               },
               {
                 q: "Can you quote for a full house rewire?",
