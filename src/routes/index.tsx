@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   Zap,
   ClipboardCheck,
+  Building2,
+  Factory,
+  Home,
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { CTA } from "@/components/CTA";
@@ -50,24 +53,24 @@ const AREAS = [
 
 const FAQS = [
   {
-    q: "Do you cover Birmingham and the West Midlands?",
-    a: "Yes. Sperin Services covers Birmingham, Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Sutton Coldfield, Solihull, Tamworth and nearby West Midlands areas.",
+    q: "Do you cover domestic, commercial and industrial electrical work?",
+    a: "Yes. Sperin Services carries out domestic, commercial and industrial electrical work across Birmingham and the West Midlands.",
   },
   {
-    q: "Do you carry out EICRs for landlords?",
-    a: "Yes. We carry out Electrical Installation Condition Reports for domestic properties, landlords and rental homes, with clear advice on any remedial work required.",
+    q: "Do you carry out EICRs for landlords and businesses?",
+    a: "Yes. We carry out EICRs for homes, rental properties, offices, shops, commercial units and other premises.",
   },
   {
-    q: "Can you quote for a house rewire?",
-    a: "Yes. We quote for full and partial rewires. Pricing depends on property size, access, number of points, finish required, consumer unit work and whether the property is occupied.",
+    q: "Can you quote for commercial electrical work?",
+    a: "Yes. We can quote for commercial electrical work including testing, remedials, lighting, power, distribution, maintenance and upgrades.",
   },
   {
-    q: "Do you install consumer units?",
-    a: "Yes. We install and upgrade modern consumer units, including RCD, RCBO and surge protection options where suitable.",
+    q: "Do you carry out house rewires and consumer unit upgrades?",
+    a: "Yes. We carry out full and partial rewires, consumer unit upgrades, fault finding, additional sockets, lighting upgrades and domestic electrical improvements.",
   },
   {
-    q: "Do you install EV chargers?",
-    a: "Yes. We install domestic EV chargers and can advise on cable routes, supply requirements, load considerations and suitable charger locations.",
+    q: "Do you install EV chargers and smart home systems?",
+    a: "Yes. We install EV chargers, smart lighting, smart heating, video doorbells, security wiring and home automation systems.",
   },
 ];
 
@@ -76,21 +79,22 @@ export const Route = createFileRoute("/")({
     meta: [
       {
         title:
-          "Electrician Birmingham | Rewires, Consumer Units, EV Chargers & EICRs | Sperin Services",
+          "Electrician Birmingham | Domestic, Commercial & Industrial | Sperin Services",
       },
       {
         name: "description",
         content:
-          "Sperin Services provides domestic electrical services across Birmingham and the West Midlands. Rewires, consumer unit upgrades, EV chargers, EICRs, smart home installations, kitchens and bathrooms.",
+          "Sperin Services provides domestic, commercial and industrial electrical services across Birmingham and the West Midlands. Rewires, consumer units, EICRs, EV chargers, smart home, commercial testing, remedials, kitchens and bathrooms.",
       },
       {
         property: "og:title",
-        content: "Electrician Birmingham | Sperin Services",
+        content:
+          "Electrician Birmingham | Domestic, Commercial & Industrial | Sperin Services",
       },
       {
         property: "og:description",
         content:
-          "Domestic electrician in Birmingham covering rewires, consumer units, EV chargers, EICRs, smart home installations and domestic upgrades across the West Midlands.",
+          "Electrical services across Birmingham and the West Midlands. Domestic, commercial and industrial electrical work, EICRs, rewires, consumer units, EV chargers and smart installations.",
       },
     ],
     scripts: [
@@ -113,11 +117,16 @@ export const Route = createFileRoute("/")({
           areaServed: AREAS,
           serviceType: [
             "Domestic electrician",
+            "Commercial electrician",
+            "Industrial electrician",
+            "EICR testing",
             "House rewires",
             "Consumer unit upgrades",
             "EV charger installation",
-            "EICR testing",
             "Smart home installation",
+            "Emergency lighting",
+            "Fire alarm wiring",
+            "Access control",
             "Kitchen electrics",
             "Bathroom electrics",
           ],
@@ -163,7 +172,7 @@ function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.2em] text-electric">
               <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" />
-              Birmingham · West Midlands · Domestic Specialists
+              Birmingham · West Midlands · Electrical Specialists
             </div>
 
             <h1 className="mt-6 text-[2.35rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
@@ -181,9 +190,10 @@ function Home() {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Premium domestic electrical services across Birmingham and the
-              West Midlands. Rewires, consumer units, EV chargers, EICRs, smart
-              homes, kitchens and bathrooms.
+              Domestic, commercial and industrial electrical services across
+              Birmingham and the West Midlands. Rewires, consumer units, EICRs,
+              EV chargers, smart systems, maintenance, remedials, kitchens and
+              bathrooms.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -223,8 +233,8 @@ function Home() {
                 { i: Sparkles, t: "Electrical Certification" },
                 { i: ShieldCheck, t: "Part P Compliant Work" },
                 { i: ShieldCheck, t: "Fully Insured" },
-                { i: Wrench, t: "Domestic Specialists" },
-                { i: MapPin, t: "Local West Midlands" },
+                { i: Building2, t: "Commercial Work" },
+                { i: Factory, t: "Industrial Work" },
               ].map(({ i: Icon, t }) => (
                 <li key={t} className="flex items-center gap-2">
                   <Icon className="h-4 w-4 text-electric" /> {t}
@@ -272,12 +282,12 @@ function Home() {
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold">
               <span className="gradient-gold-text">
-                Electrical Services in Birmingham
+                Electrical & Building Services
               </span>
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Domestic electrical work, testing, installations and upgrades
-              across the West Midlands.
+              Domestic, commercial and industrial electrical work, plus kitchens
+              and bathrooms across the West Midlands.
             </p>
           </div>
         </div>
@@ -330,100 +340,82 @@ function Home() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
+        <div className="grid gap-5 lg:grid-cols-3">
+          {[
+            {
+              icon: Home,
+              title: "Domestic Electrical",
+              text: "Rewires, consumer units, EICRs, sockets, lighting, EV chargers, smart home systems, fault finding, kitchens and bathrooms.",
+            },
+            {
+              icon: Building2,
+              title: "Commercial Electrical",
+              text: "Office, shop, unit and landlord electrical work including EICRs, remedials, lighting, power, maintenance and upgrades.",
+            },
+            {
+              icon: Factory,
+              title: "Industrial Electrical",
+              text: "Industrial electrical support including distribution, containment, three-phase work, testing, maintenance and fault finding.",
+            },
+          ].map(({ icon: Icon, title, text }) => (
+            <div key={title} className="glass rounded-3xl p-7">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl gradient-electric shadow-electric">
+                <Icon className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h2 className="mt-5 text-2xl font-bold">
+                <span className="gradient-gold-text">{title}</span>
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                {text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <div className="glass rounded-3xl p-8 sm:p-12">
           <h2 className="text-3xl sm:text-4xl font-bold">
             <span className="gradient-gold-text">
-              Domestic Electrician in Birmingham & the West Midlands
+              Electrician in Birmingham for Homes, Businesses & Industrial Sites
             </span>
           </h2>
 
           <div className="mt-6 grid gap-8 lg:grid-cols-2 text-muted-foreground leading-relaxed">
             <div>
               <p>
-                Sperin Services provides reliable domestic electrical work
-                across Birmingham, Smethwick, Quinton, Harborne, Oldbury,
-                Halesowen, West Bromwich, Sutton Coldfield, Tamworth, Solihull
-                and nearby areas. Whether you need a small electrical repair, a
-                consumer unit upgrade, a landlord EICR, a full house rewire or a
-                smart home installation, the focus is always on clean
-                workmanship, clear communication and a safe finished job.
+                Sperin Services provides electrical work across Birmingham,
+                Smethwick, Quinton, Harborne, Oldbury, Halesowen, West
+                Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby areas.
+                The work covers domestic properties, rental homes, offices,
+                shops, commercial units and light industrial environments.
               </p>
 
               <p className="mt-4">
-                With 23 years of electrical experience, Sperin Services is built
-                around domestic work. That means keeping disruption down,
-                planning cable routes properly, protecting finished surfaces,
-                working neatly and leaving the property tidy.
+                Domestic work includes rewires, consumer unit upgrades, EICRs,
+                EV chargers, fault finding, extra sockets, lighting upgrades,
+                smart home installations, kitchens and bathrooms. Commercial
+                and industrial work includes testing, remedials, lighting,
+                power, containment, maintenance, access control and electrical
+                upgrades.
               </p>
             </div>
 
             <div>
               <p>
-                Common electrical services include full and partial rewires,
-                fuse board and consumer unit replacements, additional sockets,
-                lighting upgrades, EV charger installations, fault finding,
-                smoke alarms, smart lighting, smart heating, video doorbells,
-                security wiring and electrical testing.
+                The aim is simple: safe work, clean finishes, clear
+                communication and a reliable service. Whether it is a one-bedroom
+                flat EICR, a consumer unit upgrade, an office testing programme
+                or a larger commercial installation, the job is approached
+                properly from start to finish.
               </p>
 
               <p className="mt-4">
-                If you are looking for an electrician in Birmingham for domestic
-                electrical work, Sperin Services can provide advice, clear
-                pricing where possible and a proper quotation for larger jobs.
+                For larger projects, you can get a clear quotation based on the
+                property, access, condition of the existing installation,
+                required finish, timescale and specification.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="glass rounded-3xl p-8 sm:p-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center">
-            <span className="gradient-gold-text">
-              Why Choose Sperin Services
-            </span>
-          </h2>
-
-          <p className="mt-3 text-center text-muted-foreground max-w-2xl mx-auto">
-            A reliable local electrician delivering domestic electrical and
-            building work to a premium standard.
-          </p>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                t: "Fully qualified",
-                d: "Experienced, trained and focused on safe domestic electrical work.",
-              },
-              {
-                t: "Clean, tidy workmanship",
-                d: "Your home is treated with care from the first visit to the final clean-up.",
-              },
-              {
-                t: "Domestic specialists",
-                d: "Focused on homes, rewires, consumer units, smart upgrades and domestic projects.",
-              },
-              {
-                t: "Clear communication",
-                d: "Straight answers, proper advice and no unnecessary jargon.",
-              },
-              {
-                t: "Local West Midlands service",
-                d: "Covering Birmingham, Smethwick, Quinton, Harborne, Sutton Coldfield and nearby areas.",
-              },
-              {
-                t: "High attention to detail",
-                d: "From cable routes and accessories to the final finish.",
-              },
-            ].map((x) => (
-              <div key={x.t} className="rounded-2xl hairline p-5 bg-card/40">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-gold glow-gold" />
-                  <h3 className="font-semibold">{x.t}</h3>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{x.d}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -431,31 +423,41 @@ function Home() {
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <h2 className="text-3xl sm:text-4xl font-bold mb-8">
           <span className="gradient-gold-text">
-            Popular Electrical Services
+            High-Value Electrical Services
           </span>
         </h2>
 
         <div className="grid gap-5 lg:grid-cols-2">
           {[
             {
+              title: "Commercial EICRs & Remedial Works",
+              text: "Electrical testing for offices, shops, units, rental properties and business premises, with clear remedial advice where issues are found.",
+              link: "/services/testing",
+            },
+            {
               title: "House Rewires Birmingham",
-              text: "Full and partial rewires for homes, renovations, extensions and older properties. Ideal when wiring is outdated, damaged, unsafe or no longer suitable for modern electrical demand.",
+              text: "Full and partial rewires for homes, renovations, extensions and older properties where wiring is outdated, unsafe or unsuitable for modern use.",
               link: "/services/rewires",
             },
             {
-              title: "Consumer Unit Upgrades Birmingham",
-              text: "Modern fuse board and consumer unit upgrades including RCD, RCBO and surge protection options where suitable. A common upgrade after EICR issues or property renovation.",
+              title: "Consumer Unit Upgrades",
+              text: "Modern fuse board and consumer unit upgrades including RCD, RCBO and surge protection options where suitable.",
               link: "/services/consumer-units",
             },
             {
-              title: "EV Charger Installation Birmingham",
-              text: "Domestic EV charger installations for homeowners wanting safe and convenient charging at home, with advice on load, cable routes and suitable charger options.",
+              title: "EV Chargers & Smart Systems",
+              text: "EV charger installation, smart lighting, smart heating, security wiring, video doorbells and connected home upgrades.",
               link: "/services/ev-chargers",
             },
             {
-              title: "Smart Home Installation Birmingham",
-              text: "Smart lighting, heating, security, video doorbells and home automation upgrades designed to make your home easier to control and more convenient to live in.",
-              link: "/services/smart-home",
+              title: "Commercial & Industrial Electrical Work",
+              text: "Lighting, power, containment, three-phase distribution, fault finding, maintenance, access control and electrical upgrades.",
+              link: "/contact",
+            },
+            {
+              title: "Kitchens & Bathrooms",
+              text: "Kitchen and bathroom installation support including electrics, lighting, extraction, accessories and complete project finishing.",
+              link: "/services/kitchens-bathrooms",
             },
           ].map((item) => (
             <Link
@@ -472,6 +474,58 @@ function Home() {
               </span>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
+        <div className="glass rounded-3xl p-8 sm:p-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center">
+            <span className="gradient-gold-text">
+              Why Choose Sperin Services
+            </span>
+          </h2>
+
+          <p className="mt-3 text-center text-muted-foreground max-w-2xl mx-auto">
+            Electrical and building work carried out with clean workmanship,
+            clear communication and attention to detail.
+          </p>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                t: "23 years experience",
+                d: "Practical electrical experience across domestic, commercial and industrial work.",
+              },
+              {
+                t: "Clean, tidy workmanship",
+                d: "Properties are treated with care from the first visit to the final clean-up.",
+              },
+              {
+                t: "Domestic, commercial & industrial",
+                d: "A wider skill set for homes, businesses, landlords and larger premises.",
+              },
+              {
+                t: "Clear communication",
+                d: "Straight answers, proper advice and no unnecessary jargon.",
+              },
+              {
+                t: "West Midlands coverage",
+                d: "Covering Birmingham, Smethwick, Quinton, Harborne, Sutton Coldfield and surrounding areas.",
+              },
+              {
+                t: "High attention to detail",
+                d: "From cable routes and containment to accessories, testing and final finish.",
+              },
+            ].map((x) => (
+              <div key={x.t} className="rounded-2xl hairline p-5 bg-card/40">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-gold glow-gold" />
+                  <h3 className="font-semibold">{x.t}</h3>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{x.d}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -545,7 +599,7 @@ function Home() {
         <div className="glass rounded-3xl p-8 sm:p-12">
           <h2 className="text-3xl sm:text-4xl font-bold">
             <span className="gradient-gold-text">
-              Electrician Birmingham FAQs
+              Electrical Services FAQs
             </span>
           </h2>
 
@@ -565,4 +619,4 @@ function Home() {
       <CTA />
     </>
   );
-}
+                  }
