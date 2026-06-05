@@ -12,7 +12,7 @@ import {
   ClipboardCheck,
   Building2,
   Factory,
-  Home,
+  Home as HomeIcon,
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { CTA } from "@/components/CTA";
@@ -343,7 +343,7 @@ function Home() {
         <div className="grid gap-5 lg:grid-cols-3">
           {[
             {
-              icon: Home,
+              icon: HomeIcon,
               title: "Domestic Electrical",
               text: "Rewires, consumer units, EICRs, sockets, lighting, EV chargers, smart home systems, fault finding, kitchens and bathrooms.",
             },
