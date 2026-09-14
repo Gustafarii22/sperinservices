@@ -5,7 +5,7 @@ import { Star, Quote } from "lucide-react";
 export const Route = createFileRoute("/reviews")({
   head: () => ({
     meta: [
-      { title: "Reviews — Sperin Services Electrical & Building" },
+      { title: "Reviews — Sperin Services Electrical Contractors" },
       { name: "description", content: "Read reviews from homeowners across Birmingham, Sutton Coldfield, Tamworth and the West Midlands." },
       { property: "og:title", content: "Customer Reviews — Sperin Services" },
       { property: "og:description", content: "Trusted by homeowners across the West Midlands for premium electrical and building work." },
