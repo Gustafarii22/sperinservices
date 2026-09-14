@@ -156,17 +156,17 @@ function Home() {
               bathrooms.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 to="/contact"
-                className="rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition"
+                className="inline-flex w-full items-center justify-center rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition sm:w-auto"
               >
                 Get a Free Quote
               </Link>
 
               <a
                 href={`tel:${SITE.phone}`}
-                className="inline-flex items-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition sm:w-auto"
               >
                 <Phone className="h-4 w-4 text-electric" /> Call{" "}
                 {SITE.phoneDisplay}
@@ -176,7 +176,7 @@ function Home() {
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition sm:w-auto"
                 style={{
                   background: "#25D366",
                   boxShadow:
