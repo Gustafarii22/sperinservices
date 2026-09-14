@@ -5,7 +5,7 @@ import { ShieldCheck, Sparkles, MapPin, Wrench, Users, Star } from "lucide-react
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Sperin Services — Domestic Electrical & Building, West Midlands" },
+      { title: "About Sperin Services — Domestic, Commercial & Industrial Electrical, West Midlands" },
       { name: "description", content: "Sperin Services are domestic electrical and building specialists serving Birmingham, Sutton Coldfield, Tamworth and the West Midlands." },
       { property: "og:title", content: "About Sperin Services" },
       { property: "og:description", content: "Local, reliable, premium domestic electrical and building services." },
