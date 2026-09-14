@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Phone,
-  MessageCircle,
   ArrowRight,
   ShieldCheck,
   Sparkles,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { CTA } from "@/components/CTA";
+import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 import heroImg from "@/assets/hero-electrician.jpg";
 import imgRewires from "@/assets/svc-rewires.jpg";
 import imgCU from "@/assets/svc-consumer-unit.jpg";
@@ -186,7 +186,7 @@ function Home() {
                     "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)",
                 }}
               >
-                <MessageCircle className="h-4 w-4" /> WhatsApp
+                <WhatsAppGlyph className="h-5 w-5" /> WhatsApp
               </a>
             </div>
 
