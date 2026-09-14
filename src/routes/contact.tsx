@@ -32,12 +32,14 @@ function Contact() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   function update<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const r = schema.safeParse(form);
     if (!r.success) {
@@ -47,10 +49,33 @@ function Contact() {
       return;
     }
     setErrors({});
-    // Static-friendly: open email/WhatsApp with prefilled body
-    const body = `Name: ${form.name}%0APhone: ${form.phone}%0AEmail: ${form.email}%0APostcode: ${form.postcode}%0AService: ${form.service}%0A%0A${encodeURIComponent(form.message)}`;
-    window.location.href = `mailto:${SITE.email}?subject=Quote%20Request%20-%20${encodeURIComponent(form.service)}&body=${body}`;
-    setSent(true);
+    setSubmitError("");
+    setSending(true);
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${SITE.email}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          _subject: `New Sperin Services quote request — ${form.service}`,
+          _template: "table",
+          _honey: "",
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          postcode: form.postcode,
+          service: form.service,
+          message: form.message,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.success === false) throw new Error("Submission failed");
+      setSent(true);
+      setForm({ name: "", phone: "", email: "", postcode: "", service: "", message: "" });
+    } catch {
+      setSubmitError("Your request could not be sent. Please call, WhatsApp or email us instead.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -127,18 +152,22 @@ function Contact() {
             <Field label="Message" error={errors.message} className="sm:col-span-2">
               <textarea rows={5} className={inputCls} value={form.message} onChange={(e) => update("message", e.target.value)} maxLength={2000} placeholder="Tell us a little about the work…" />
             </Field>
-            <Field label="Photos (optional)" className="sm:col-span-2">
-              <input type="file" accept="image/*" multiple className={`${inputCls} file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-gold/20 file:text-gold`} />
-              <p className="mt-1 text-xs text-muted-foreground">Photos won't auto-upload — please attach them in the email that opens.</p>
-            </Field>
+            <div className="sm:col-span-2 rounded-xl bg-[#25D366]/10 px-4 py-3 text-sm text-muted-foreground">
+              Have photos? Send them to us on{" "}
+              <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer" className="font-semibold text-[#25D366] underline underline-offset-2">
+                WhatsApp
+              </a>
+              .
+            </div>
           </div>
           <button
             type="submit"
+            disabled={sending}
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-full gradient-gold px-6 py-3 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition"
           >
-            <Send className="h-4 w-4" /> Send Quote Request
+            <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send Quote Request"}
           </button>
-          {sent && <p className="text-sm text-gold">Opening your email app — please send the prefilled message to complete your request.</p>}
+          {sent && <p className="text-sm text-[#25D366]">Thank you — your quote request has been sent successfully.</p>}\n          {submitError && <p className="text-sm text-destructive">{submitError}</p>}
         </form>
       </section>
     </>
