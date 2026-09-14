@@ -230,8 +230,8 @@ function Home() {
             <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
               {[
                 { i: ShieldCheck, t: "23 Years Experience" },
-                { i: Sparkles, t: "Electrical Certification" },
-                { i: ShieldCheck, t: "Part P Compliant Work" },
+                { i: Sparkles, t: "Inspection & Testing" },
+                { i: ShieldCheck, t: "Work to Current Regulations" },
                 { i: ShieldCheck, t: "Fully Insured" },
                 { i: Building2, t: "Commercial Work" },
                 { i: Factory, t: "Industrial Work" },
