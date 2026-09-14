@@ -54,7 +54,12 @@ export function Footer() {
       <div className="border-t border-electric/10">
         <div className="mx-auto max-w-7xl px-4 py-5 lg:px-8 text-xs text-muted-foreground flex flex-col sm:flex-row justify-between gap-2">
           <span>© {new Date().getFullYear()} Sperin Services. All rights reserved.</span>
-          <span>Domestic electrical &amp; building specialists · West Midlands</span>
+          <span className="flex items-center gap-4">
+            <Link to="/privacy" className="hover:text-electric transition">
+              Privacy Policy
+            </Link>
+            <span>Electrical contractors · West Midlands</span>
+          </span>
         </div>
       </div>
     </footer>
