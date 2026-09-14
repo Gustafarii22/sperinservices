@@ -130,13 +130,8 @@ function Home() {
 
         <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-28 grid gap-12 lg:grid-cols-2 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full hairline px-3.5 py-1.5 text-[11px] uppercase tracking-[0.2em] text-electric">
-              <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" />
-              Birmingham · West Midlands · Electrical Specialists
-            </div>
-
-            <h1 className="mt-6 text-[2.35rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
-              Quality you can see.
+            <h1 className="text-[2.35rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
+              Electrical contractors
               <br />
               <span
                 className="text-[#38BDF8] sm:gradient-electric-text"
@@ -145,15 +140,16 @@ function Home() {
                     "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))",
                 }}
               >
-                Service you can trust.
+                for homes, businesses
+                <br />
+                &amp; industry.
               </span>
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Domestic, commercial and industrial electrical services across
-              Birmingham and the West Midlands. Rewires, consumer units, EICRs,
-              EV chargers, smart systems, maintenance, remedials, kitchens and
-              bathrooms.
+              Serving Birmingham and the West Midlands with rewires, consumer
+              unit upgrades, EICRs, EV chargers, maintenance, remedial work,
+              smart systems and three-phase installations.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
