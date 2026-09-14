@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Phone, MessageCircle, Mail, MapPin, Send } from "lucide-react";
+import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { z } from "zod";
 import { SITE, SERVICES } from "@/lib/site";
+import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -78,7 +79,7 @@ function Contact() {
               </div>
             </a>
             <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 glass rounded-2xl px-4 py-3 hover:bg-white/5">
-              <MessageCircle className="h-5 w-5" style={{ color: "var(--whatsapp)" }} />
+              <WhatsAppGlyph className="h-6 w-6" />
               <div>
                 <div className="text-xs text-muted-foreground">WhatsApp</div>
                 <div className="font-medium">Message us</div>
