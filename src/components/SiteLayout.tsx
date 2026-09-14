@@ -11,7 +11,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
       <Footer />
       <MobileBar />
       <div className="hidden md:block fixed bottom-5 right-5 z-40">
-        <WhatsAppButton size="sm" />
+        <WhatsAppButton iconOnly />
       </div>
     </div>
   );
