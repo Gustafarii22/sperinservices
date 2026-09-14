@@ -4,7 +4,7 @@ export const SITE = {
   phone: "+447817360156",
   phoneDisplay: "07817 360156",
   whatsapp: "447817360156",
-  email: "Gussysperin@yahoo.co.uk",
+  email: "info@sperinservices.co.uk",
   website: "www.sperinservices.co.uk",
   areas: ["Birmingham", "Sutton Coldfield", "Tamworth", "West Midlands"],
   url: "https://www.sperinservices.co.uk",
