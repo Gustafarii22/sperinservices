@@ -48,28 +48,6 @@ const AREAS = [
   "Walsall",
 ];
 
-const FAQS = [
-  {
-    q: "Do you cover domestic, commercial and industrial electrical work?",
-    a: "Yes. Sperin Services carries out domestic, commercial and industrial electrical work across Birmingham and the West Midlands.",
-  },
-  {
-    q: "Do you carry out EICRs for landlords and businesses?",
-    a: "Yes. We carry out EICRs for homes, rental properties, offices, shops, commercial units and other premises.",
-  },
-  {
-    q: "Can you quote for commercial electrical work?",
-    a: "Yes. We can quote for commercial electrical work including testing, remedials, lighting, power, distribution, maintenance and upgrades.",
-  },
-  {
-    q: "Do you carry out house rewires and consumer unit upgrades?",
-    a: "Yes. We carry out full and partial rewires, consumer unit upgrades, fault finding, additional sockets, lighting upgrades and domestic electrical improvements.",
-  },
-  {
-    q: "Do you install EV chargers and smart home systems?",
-    a: "Yes. We install EV chargers, smart lighting, smart heating, video doorbells, security wiring and home automation systems.",
-  },
-];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -129,18 +107,6 @@ export const Route = createFileRoute("/")({
           ],
         }),
       },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: FAQS.map((faq) => ({
-            "@type": "Question",
-            name: faq.q,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.a,
-            },
           })),
         }),
       },
@@ -498,27 +464,6 @@ function Home() {
               >
                 {area}
               </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="glass rounded-3xl p-8 sm:p-12">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            <span className="gradient-gold-text">
-              Electrical Services FAQs
-            </span>
-          </h2>
-
-          <div className="mt-8 grid gap-5">
-            {FAQS.map((item) => (
-              <div key={item.q} className="rounded-2xl hairline p-5 bg-card/40">
-                <h3 className="font-semibold">{item.q}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  {item.a}
-                </p>
-              </div>
             ))}
           </div>
         </div>
