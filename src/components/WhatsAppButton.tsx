@@ -3,9 +3,22 @@ import { SITE } from "@/lib/site";
 export function WhatsAppGlyph({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="#25D366" />
+      <circle
+        cx="16"
+        cy="15.5"
+        r="10.5"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.3"
+      />
       <path
-        fill="#25D366"
-        d="M16 .5C7.44.5.5 7.44.5 16c0 2.82.74 5.47 2.04 7.78L.5 31.5l7.92-2.07A15.43 15.43 0 0 0 16 31.5C24.56 31.5 31.5 24.56 31.5 16S24.56.5 16 .5Z"
+        d="M9.8 22.7 8.2 28l5.4-1.5"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
         fill="#fff"
