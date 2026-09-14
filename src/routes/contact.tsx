@@ -167,7 +167,8 @@ function Contact() {
           >
             <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send Quote Request"}
           </button>
-          {sent && <p className="text-sm text-[#25D366]">Thank you — your quote request has been sent successfully.</p>}\n          {submitError && <p className="text-sm text-destructive">{submitError}</p>}
+          {sent && <p className="text-sm text-[#25D366]">Thank you — your quote request has been sent successfully.</p>}
+          {submitError && <p className="text-sm text-destructive">{submitError}</p>}
         </form>
       </section>
     </>
