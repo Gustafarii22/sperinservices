@@ -32,10 +32,12 @@ export function WhatsAppButton({
   label = "Chat on WhatsApp",
   size = "md",
   className = "",
+  iconOnly = false,
 }: {
   label?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  iconOnly?: boolean;
 }) {
   const sizeCls =
     size === "lg"
@@ -48,7 +50,10 @@ export function WhatsAppButton({
       href={`https://wa.me/${SITE.whatsapp}`}
       target="_blank"
       rel="noreferrer"
-      className={`group inline-flex items-center gap-2.5 rounded-full font-semibold text-foreground transition-all duration-300 hover:scale-[1.04] active:scale-95 ${sizeCls} ${className}`}
+      aria-label={iconOnly ? "Chat on WhatsApp" : undefined}
+      className={`group inline-flex items-center justify-center gap-2.5 font-semibold text-foreground transition-all duration-300 hover:scale-[1.04] active:scale-95 ${
+        iconOnly ? "h-16 w-16 rounded-2xl p-0" : `rounded-full ${sizeCls}`
+      } ${className}`}
       style={{
         background: "oklch(0.08 0.012 250 / 0.7)",
         backdropFilter: "blur(14px) saturate(160%)",
@@ -57,8 +62,10 @@ export function WhatsAppButton({
           "inset 0 1px 0 oklch(0.95 0.1 150 / 0.15), 0 0 0 1px oklch(0.6 0.18 150 / 0.55), 0 0 22px -4px oklch(0.55 0.18 150 / 0.55), 0 8px 24px -10px oklch(0 0 0 / 0.7)",
       }}
     >
-      <WhatsAppGlyph className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-      <span className="tracking-wide">{label}</span>
+      <WhatsAppGlyph
+        className={iconOnly ? "h-14 w-14" : size === "lg" ? "h-5 w-5" : "h-4 w-4"}
+      />
+      {!iconOnly && <span className="tracking-wide">{label}</span>}
     </a>
   );
 }
