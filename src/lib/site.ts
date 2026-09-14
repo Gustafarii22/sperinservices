@@ -1,6 +1,6 @@
 export const SITE = {
   name: "Sperin Services",
-  tagline: "Premium Electrical & Building Services",
+  tagline: "Domestic, Commercial & Industrial Electrical Contractors",
   phone: "+447817360156",
   phoneDisplay: "07817 360156",
   whatsapp: "447817360156",
