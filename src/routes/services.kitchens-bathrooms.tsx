@@ -5,7 +5,7 @@ import hero from "@/assets/svc-kitchen.jpg";
 export const Route = createFileRoute("/services/kitchens-bathrooms")({
   head: () => ({
     meta: [
-      { title: "Kitchens & Bathrooms — Electrical & Building — Sperin Services" },
+      { title: "Kitchens & Bathrooms — Electrical Services — Sperin Services" },
       { name: "description", content: "Electrical and building works for kitchens and bathrooms — lighting, extractor fans, sockets, tiling and building coordination. West Midlands." },
       { property: "og:title", content: "Kitchens & Bathrooms — Sperin Services" },
       { property: "og:description", content: "Electrical and building works with a clean finish." },
