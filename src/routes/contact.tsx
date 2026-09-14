@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { z } from "zod";
@@ -167,6 +167,13 @@ function Contact() {
           >
             <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send Quote Request"}
           </button>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            We use your details only to respond to and manage your enquiry.{" "}
+            <Link to="/privacy" className="text-electric underline underline-offset-2">
+              Read our Privacy Policy
+            </Link>
+            .
+          </p>
           {sent && <p className="text-sm text-[#25D366]">Thank you — your quote request has been sent successfully.</p>}
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}
         </form>
