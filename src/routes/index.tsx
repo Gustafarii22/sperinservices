@@ -374,53 +374,6 @@ function Home() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="glass rounded-3xl p-8 sm:p-12">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            <span className="gradient-gold-text">
-              Electrician in Birmingham for Homes, Businesses & Industrial Sites
-            </span>
-          </h2>
-
-          <div className="mt-6 grid gap-8 lg:grid-cols-2 text-muted-foreground leading-relaxed">
-            <div>
-              <p>
-                Sperin Services provides electrical work across Birmingham,
-                Smethwick, Quinton, Harborne, Oldbury, Halesowen, West
-                Bromwich, Sutton Coldfield, Tamworth, Solihull and nearby areas.
-                The work covers domestic properties, rental homes, offices,
-                shops, commercial units and light industrial environments.
-              </p>
-
-              <p className="mt-4">
-                Domestic work includes rewires, consumer unit upgrades, EICRs,
-                EV chargers, fault finding, extra sockets, lighting upgrades,
-                smart home installations, kitchens and bathrooms. Commercial
-                and industrial work includes testing, remedials, lighting,
-                power, containment, maintenance, access control and electrical
-                upgrades.
-              </p>
-            </div>
-
-            <div>
-              <p>
-                The aim is simple: safe work, clean finishes, clear
-                communication and a reliable service. Whether it is a one-bedroom
-                flat EICR, a consumer unit upgrade, an office testing programme
-                or a larger commercial installation, the job is approached
-                properly from start to finish.
-              </p>
-
-              <p className="mt-4">
-                For larger projects, you can get a clear quotation based on the
-                property, access, condition of the existing installation,
-                required finish, timescale and specification.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
         <h2 className="text-3xl sm:text-4xl font-bold mb-8">
           <span className="gradient-gold-text">
             High-Value Electrical Services
