@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Phone, FileText } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 import { SITE } from "@/lib/site";
 
 import { WhatsAppGlyph } from "./WhatsAppButton";
@@ -28,19 +27,20 @@ export function MobileBar() {
           href={`https://wa.me/${SITE.whatsapp}`}
           target="_blank"
           rel="noreferrer"
-          className="flex flex-col items-center justify-center gap-1 py-3.5 text-[11px] font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#20c45a] transition active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 py-3.5 text-[11px] font-semibold tracking-wide transition active:scale-95"
+          style={{ background: "#25D366", color: "#FFFFFF" }}
         >
           <WhatsAppGlyph className="h-7 w-7" />
           WhatsApp
         </a>
-        <Link
-          to="/contact"
+        <a
+          href={`mailto:${SITE.email}`}
           className="flex flex-col items-center justify-center gap-1 py-3.5 text-[11px] font-bold tracking-wide text-primary-foreground gradient-electric"
           style={{ boxShadow: "inset 0 1px 0 oklch(0.95 0.05 240 / 0.3)" }}
         >
-          <FileText className="h-[19px] w-[19px]" />
-          Free Quote
-        </Link>
+          <Mail className="h-[21px] w-[21px]" />
+          Email
+        </a>
       </div>
     </div>
   );
