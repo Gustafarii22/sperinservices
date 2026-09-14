@@ -178,7 +178,7 @@ function Home() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition"
                 style={{
-                  background: "var(--whatsapp-deep)",
+                  background: "#25D366",
                   boxShadow:
                     "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)",
                 }}
