@@ -23,9 +23,6 @@ import imgEV from "@/assets/svc-ev.jpg";
 import imgSmart from "@/assets/svc-smart.jpg";
 import imgTesting from "@/assets/svc-testing.jpg";
 import imgKitchen from "@/assets/svc-kitchen.jpg";
-import work1 from "@/assets/work-1.jpg";
-import work2 from "@/assets/work-2.jpg";
-import work3 from "@/assets/work-3.jpg";
 
 const SERVICE_IMAGES: Record<string, string> = {
   rewires: imgRewires,
@@ -503,48 +500,6 @@ function Home() {
               </span>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-16">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              <span className="gradient-gold-text">Recent Work</span>
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              A quick look at recent electrical and installation work.
-            </p>
-          </div>
-
-          <Link
-            to="/gallery"
-            className="hidden sm:inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5"
-          >
-            View Full Gallery <ArrowRight className="h-4 w-4 text-gold" />
-          </Link>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[work1, work2, work3].map((src, i) => (
-            <div key={i} className="overflow-hidden rounded-2xl gold-border-glow">
-              <img
-                src={src}
-                alt={`Recent electrical work in Birmingham ${i + 1}`}
-                loading="lazy"
-                className="w-full aspect-[4/3] object-cover hover:scale-105 transition duration-700"
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 sm:hidden">
-          <Link
-            to="/gallery"
-            className="inline-flex items-center gap-2 rounded-full hairline px-4 py-2 text-sm hover:bg-white/5"
-          >
-            View Full Gallery <ArrowRight className="h-4 w-4 text-gold" />
-          </Link>
         </div>
       </section>
 
