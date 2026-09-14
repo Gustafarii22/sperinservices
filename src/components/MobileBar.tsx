@@ -28,9 +28,9 @@ export function MobileBar() {
           href={`https://wa.me/${SITE.whatsapp}`}
           target="_blank"
           rel="noreferrer"
-          className="flex flex-col items-center justify-center gap-1 py-3.5 text-[11px] font-semibold tracking-wide text-foreground/95 border-x border-electric/15 hover:bg-white/[0.04] transition active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 py-3.5 text-[11px] font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#20c45a] transition active:scale-95"
         >
-          <WhatsAppGlyph className="h-8 w-8" />
+          <WhatsAppGlyph className="h-7 w-7" />
           WhatsApp
         </a>
         <Link
