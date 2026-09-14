@@ -282,12 +282,12 @@ function Home() {
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold">
               <span className="gradient-gold-text">
-                Electrical & Building Services
+                Electrical Contractor Services
               </span>
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Domestic, commercial and industrial electrical work, plus kitchens
-              and bathrooms across the West Midlands.
+              Domestic, commercial and industrial electrical work across Birmingham
+              and the wider West Midlands.
             </p>
           </div>
         </div>
