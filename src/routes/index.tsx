@@ -139,7 +139,7 @@ function Home() {
               Quality you can see.
               <br />
               <span
-                className="gradient-electric-text"
+                className="text-[#38BDF8] sm:gradient-electric-text"
                 style={{
                   filter:
                     "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))",
@@ -189,12 +189,12 @@ function Home() {
 
             <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
               {[
-                { i: ShieldCheck, t: "23 Years Experience" },
-                { i: Sparkles, t: "Inspection & Testing" },
-                { i: ShieldCheck, t: "Work to Current Regulations" },
-                { i: ShieldCheck, t: "Fully Insured" },
-                { i: Building2, t: "Commercial Work" },
-                { i: Factory, t: "Industrial Work" },
+                { i: ShieldCheck, t: "23 Years Electrical Experience" },
+                { i: Sparkles, t: "City & Guilds Qualified" },
+                { i: ClipboardCheck, t: "Inspection & Testing Qualified" },
+                { i: ShieldCheck, t: "Public Liability Insured" },
+                { i: Building2, t: "Design, Installation & Testing" },
+                { i: Factory, t: "Domestic, Commercial & Industrial" },
               ].map(({ i: Icon, t }) => (
                 <li key={t} className="flex items-center gap-2">
                   <Icon className="h-4 w-4 text-electric" /> {t}
@@ -406,28 +406,28 @@ function Home() {
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                t: "23 years experience",
-                d: "Practical electrical experience across domestic, commercial and industrial work.",
+                t: "23 years electrical experience",
+                d: "Extensive practical experience across domestic, commercial and industrial electrical work.",
               },
               {
-                t: "Clean, tidy workmanship",
-                d: "Properties are treated with care from the first visit to the final clean-up.",
+                t: "City & Guilds qualified",
+                d: "Qualified through recognised City & Guilds electrical training, backed by long-term site experience.",
               },
               {
-                t: "Domestic, commercial & industrial",
-                d: "A wider skill set for homes, businesses, landlords and larger premises.",
+                t: "Inspection & testing qualified",
+                d: "Competent in electrical inspection, testing, certification, fault finding and remedial work.",
               },
               {
-                t: "Clear communication",
-                d: "Straight answers, proper advice and no unnecessary jargon.",
+                t: "Start-to-finish service",
+                d: "Requirements, solutions, design, installation, inspection, testing and maintenance handled together.",
               },
               {
-                t: "West Midlands coverage",
-                d: "Covering Birmingham, Smethwick, Quinton, Harborne, Sutton Coldfield and surrounding areas.",
+                t: "Fully insured",
+                d: "Public liability insurance is maintained for the electrical and building work undertaken.",
               },
               {
-                t: "High attention to detail",
-                d: "From cable routes and containment to accessories, testing and final finish.",
+                t: "Clean, clear workmanship",
+                d: "Careful installation, straightforward advice, clear quotes and attention to the final finish.",
               },
             ].map((x) => (
               <div key={x.t} className="rounded-2xl hairline p-5 bg-card/40">
