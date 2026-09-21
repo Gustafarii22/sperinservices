@@ -1,109 +1,72 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Phone,
   ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  MapPin,
-  Wrench,
-  CheckCircle2,
-  Zap,
-  ClipboardCheck,
   Building2,
-  Factory,
+  Check,
+  ClipboardCheck,
+  Gauge,
   Home as HomeIcon,
+  Phone,
+  ShieldCheck,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { CTA } from "@/components/CTA";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
-import heroImg from "@/assets/hero-electrician.jpg";
-import imgRewires from "@/assets/svc-rewires.jpg";
-import imgCU from "@/assets/svc-consumer-unit.jpg";
-import imgEV from "@/assets/svc-ev.jpg";
-import imgSmart from "@/assets/svc-smart.jpg";
-import imgTesting from "@/assets/svc-testing.jpg";
-import imgKitchen from "@/assets/svc-kitchen.jpg";
 
-const SERVICE_IMAGES: Record<string, string> = {
-  rewires: imgRewires,
-  "consumer-unit": imgCU,
-  ev: imgEV,
-  smart: imgSmart,
-  testing: imgTesting,
-  kitchen: imgKitchen,
-};
-
-const AREAS = [
-  "Birmingham",
-  "Smethwick",
-  "Quinton",
-  "Harborne",
-  "Oldbury",
-  "Halesowen",
-  "West Bromwich",
-  "Sutton Coldfield",
-  "Solihull",
-  "Tamworth",
-  "Dudley",
-  "Walsall",
-];
-
+const AREAS = SITE.areas;
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title:
-          "Electrician Birmingham | Domestic, Commercial & Industrial | Sperin Services",
+        title: "Electrician Birmingham & West Midlands | Sperin Services",
       },
       {
         name: "description",
         content:
-          "Sperin Services provides domestic, commercial and industrial electrical services across Birmingham and the West Midlands. Rewires, consumer units, EICRs, EV chargers, smart home, commercial testing, remedials, kitchens and bathrooms.",
+          "Sperin Services provides domestic and commercial electrical work across Birmingham and the West Midlands, including rewires, consumer units, EICRs, EV charging, access control, lighting, maintenance and remedials.",
       },
       {
         property: "og:title",
-        content:
-          "Electrician Birmingham | Domestic, Commercial & Industrial | Sperin Services",
+        content: "Sperin Services | Electrical Contractors, Birmingham & West Midlands",
       },
       {
         property: "og:description",
         content:
-          "Electrical services across Birmingham and the West Midlands. Domestic, commercial and industrial electrical work, EICRs, rewires, consumer units, EV chargers and smart installations.",
+          "Electrical work for homes, businesses and commercial premises. In the industry since 2003 and trading independently since 2010.",
       },
     ],
+    links: [{ rel: "canonical", href: SITE.url }],
     scripts: [
       {
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Electrician",
-          name: "Sperin Services",
+          name: SITE.name,
           url: SITE.url,
           telephone: SITE.phone,
           email: SITE.email,
           image: `${SITE.url}/sperin-logo.png`,
+          foundingDate: String(SITE.founded),
           address: {
             "@type": "PostalAddress",
             addressLocality: "Birmingham",
             addressRegion: "West Midlands",
             addressCountry: "GB",
           },
-          areaServed: AREAS,
-          serviceType: [
-            "Domestic electrician",
-            "Commercial electrician",
-            "Industrial electrician",
-            "EICR testing",
-            "House rewires",
-            "Consumer unit upgrades",
-            "EV charger installation",
-            "Smart home installation",
-            "Emergency lighting",
-            "Fire alarm wiring",
+          areaServed: AREAS.map((name) => ({ "@type": "City", name })),
+          knowsAbout: [
+            "Electrical installation",
+            "Electrical inspection and testing",
+            "EICR",
+            "Consumer units",
+            "EV charging",
+            "Commercial electrical work",
             "Access control",
-            "Kitchen electrics",
-            "Bathroom electrics",
+            "Emergency lighting",
           ],
         }),
       },
@@ -115,348 +78,198 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <>
-      <section className="relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{ background: "var(--gradient-radial-electric)" }}
-        />
-        <div
-          className="pointer-events-none absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full -z-10 opacity-60 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, oklch(0.5 0.22 250 / 0.45), transparent 65%)",
-          }}
-        />
-
-        <div className="mx-auto max-w-7xl px-4 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-28 grid gap-12 lg:grid-cols-2 items-center">
-          <div>
-            <h1 className="text-[2.35rem] sm:text-5xl lg:text-[4.5rem] font-extrabold leading-[0.98] tracking-[-0.04em] uppercase">
-              Electrical contractors
+      <section className="mx-auto max-w-7xl px-4 pb-14 pt-12 lg:px-8 lg:pb-22 lg:pt-20">
+        <div className="grid items-stretch gap-8 lg:grid-cols-[1.2fr_.8fr]">
+          <div className="py-3 lg:py-8">
+            <span className="eyebrow">Birmingham · West Midlands · Established 2010</span>
+            <h1 className="display-title mt-5 max-w-5xl text-[3.4rem] sm:text-7xl lg:text-[5.5rem]">
+              Electrical work,
               <br />
-              <span
-                className="text-[#38BDF8] sm:gradient-electric-text"
-                style={{
-                  filter:
-                    "drop-shadow(0 0 28px oklch(0.7 0.22 240 / 0.45))",
-                }}
-              >
-                for homes, businesses
-                <br />
-                &amp; industry.
-              </span>
+              <span className="text-electric">properly planned.</span>
             </h1>
-
-            <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Serving Birmingham and the West Midlands with rewires, consumer
-              unit upgrades, EICRs, EV chargers, maintenance, remedial work,
-              smart systems and three-phase installations.
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Sperin Services handles domestic and commercial electrical work from survey and design through installation, inspection and testing. Straight answers, sensible solutions and one point of contact from start to finish.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link
-                to="/contact"
-                className="inline-flex w-full items-center justify-center rounded-full gradient-electric px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-electric hover:brightness-110 transition sm:w-auto"
-              >
-                Get a Free Quote
+              <Link to="/contact" className="button-primary">
+                Discuss a job <ArrowRight className="h-4 w-4" />
               </Link>
-
-              <a
-                href={`tel:${SITE.phone}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full hairline px-6 py-3.5 text-sm font-semibold hover:bg-white/5 transition sm:w-auto"
-              >
-                <Phone className="h-4 w-4 text-electric" /> Call{" "}
-                {SITE.phoneDisplay}
+              <a href={`tel:${SITE.phone}`} className="button-secondary">
+                <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
               </a>
-
               <a
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white hover:brightness-110 transition sm:w-auto"
-                style={{
-                  background: "#25D366",
-                  boxShadow:
-                    "0 8px 24px -10px oklch(0.55 0.18 150 / 0.6)",
-                }}
+                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[0.7rem] bg-[#25D366] px-5 py-3 text-sm font-bold text-black transition hover:brightness-105"
               >
                 <WhatsAppGlyph className="h-5 w-5" /> WhatsApp
               </a>
             </div>
-
-            <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
-              {[
-                { i: ShieldCheck, t: "23 Years Electrical Experience" },
-                { i: Sparkles, t: "City & Guilds Qualified" },
-                { i: ClipboardCheck, t: "Inspection & Testing Qualified" },
-                { i: ShieldCheck, t: "Public Liability Insured" },
-                { i: Building2, t: "Design, Installation & Testing" },
-                { i: Factory, t: "Domestic, Commercial & Industrial" },
-              ].map(({ i: Icon, t }) => (
-                <li key={t} className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-electric" /> {t}
-                </li>
-              ))}
-            </ul>
           </div>
 
-          <div className="relative">
-            <div className="absolute -inset-10 rounded-[2rem] opacity-50 blur-3xl gradient-electric" />
-            <img
-              src={heroImg}
-              alt="Electrician in Birmingham installing a modern UK consumer unit"
-              className="relative w-full rounded-3xl shadow-elegant electric-border-glow object-cover aspect-[4/3]"
-              width={1920}
-              height={1280}
-              loading="eager"
-              fetchPriority="high"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 -mt-4 mb-14">
-        <div className="grid gap-3 sm:grid-cols-4">
-          {[
-            { icon: CheckCircle2, text: "Clean workmanship" },
-            { icon: ShieldCheck, text: "Fully insured" },
-            { icon: Zap, text: "Modern installations" },
-            { icon: ClipboardCheck, text: "Clear quotes" },
-          ].map(({ icon: Icon, text }) => (
-            <div
-              key={text}
-              className="rounded-2xl hairline bg-card/40 px-4 py-4 flex items-center gap-3 text-sm"
-            >
-              <Icon className="h-5 w-5 text-electric" />
-              <span>{text}</span>
+          <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8 lg:p-9" aria-label="Sperin Services capability summary">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Capability / 2026</div>
+                <h2 className="mt-3 text-2xl font-bold">Built around real electrical work.</h2>
+              </div>
+              <Zap className="h-7 w-7 text-electric" aria-hidden="true" />
             </div>
-          ))}
+
+            <dl className="mt-8 space-y-0">
+              {[
+                ["Industry experience", `Since ${SITE.industrySince}`],
+                ["Trading independently", `Since ${SITE.founded}`],
+                ["Inspection & testing", "City & Guilds 2391"],
+                ["Wiring regulations", "18th Edition"],
+                ["Project types", "Domestic · Commercial · Light industrial"],
+              ].map(([term, value]) => (
+                <div key={term} className="rule grid grid-cols-[1fr_auto] gap-5 py-4 first:border-t-0 first:pt-0">
+                  <dt className="text-sm text-muted-foreground">{term}</dt>
+                  <dd className="text-right text-sm font-semibold text-foreground/95">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </aside>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="flex items-end justify-between mb-8">
+      <section className="border-y border-white/10 bg-black/10">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:grid-cols-4 lg:px-8">
+          {[
+            [ShieldCheck, "Public liability insured"],
+            [ClipboardCheck, "Inspection & testing"],
+            [Wrench, "Design to handover"],
+            [Gauge, "Current BS 7671 focus"],
+          ].map(([Icon, text], index) => {
+            const IconComponent = Icon as typeof ShieldCheck;
+            return (
+              <div key={String(text)} className={`flex min-h-24 items-center gap-3 px-3 py-5 sm:px-5 ${index > 0 ? "border-l border-white/10" : ""}`}>
+                <IconComponent className="h-5 w-5 shrink-0 text-electric" />
+                <span className="text-xs font-semibold text-foreground/82 sm:text-sm">{String(text)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl section-pad px-4 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:gap-14">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              <span className="gradient-gold-text">
-                Electrical Contractor Services
-              </span>
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Domestic, commercial and industrial electrical work across Birmingham
-              and the wider West Midlands.
+            <span className="eyebrow">Choose the right route</span>
+            <h2 className="mt-4 text-4xl font-bold sm:text-5xl">Not every job needs the same process.</h2>
+            <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Domestic work needs care around the property and a clear finish. Commercial work needs scope, programme, coordination and documentation. The website now separates those journeys instead of pretending they are the same job.
             </p>
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Link to="/contact" className="surface-raised group rounded-2xl p-6 sm:p-7">
+              <HomeIcon className="h-6 w-6 text-electric" />
+              <div className="mt-10 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">For homeowners & landlords</div>
+              <h3 className="mt-2 text-3xl font-bold">Domestic electrical</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Rewires, consumer units, EICRs, faults, sockets, lighting, EV charging, kitchens, bathrooms and alterations.</p>
+              <span className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-electric">Start a domestic enquiry <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+            </Link>
+
+            <Link to="/commercial" className="surface-raised group rounded-2xl p-6 sm:p-7">
+              <Building2 className="h-6 w-6 text-electric" />
+              <div className="mt-10 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">For businesses & premises</div>
+              <h3 className="mt-2 text-3xl font-bold">Commercial electrical</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Testing, remedials, lighting, power, distribution, emergency lighting, access control, maintenance and refurbishment work.</p>
+              <span className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-electric">View commercial capability <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-14">
+        <div className="flex flex-col gap-4 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="eyebrow">Electrical services</span>
+            <h2 className="mt-4 text-4xl font-bold sm:text-5xl">What we actually do.</h2>
+          </div>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">No giant grid of look-alike cards. Pick the work you need and go straight to the relevant scope.</p>
         </div>
 
-        <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map((s) => (
+        <div>
+          {SERVICES.map((service, index) => (
             <Link
-              key={s.slug}
-              to={s.path}
-              className="group relative overflow-hidden rounded-3xl gold-border-glow bg-card hover:-translate-y-1 transition duration-500"
+              key={service.slug}
+              to={service.path}
+              className="group grid gap-3 border-b border-white/10 py-5 transition hover:bg-white/[0.018] sm:grid-cols-[4rem_1fr_1fr_auto] sm:items-center sm:px-2"
             >
-              <div className="aspect-[4/3] overflow-hidden">
-                <img
-                  src={SERVICE_IMAGES[s.image]}
-                  alt={`${s.title} Birmingham`}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                />
-              </div>
-
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(180deg, transparent 35%, oklch(0.08 0.01 60 / 0.85) 100%)",
-                }}
-              />
-
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none"
-                style={{ background: "var(--gradient-radial-gold)" }}
-              />
-
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 flex items-end justify-between gap-2">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground">
-                    {s.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {s.short}
-                  </p>
-                </div>
-                <span className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full gradient-gold text-primary-foreground shadow-gold">
-                  <ArrowRight className="h-4 w-4" />
-                </span>
-              </div>
+              <span className="font-mono text-xs text-electric">0{index + 1}</span>
+              <h3 className="text-xl font-bold sm:text-2xl">{service.title}</h3>
+              <p className="text-sm text-muted-foreground">{service.short}</p>
+              <ArrowRight className="hidden h-5 w-5 text-electric transition group-hover:translate-x-1 sm:block" />
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="grid gap-5 lg:grid-cols-3">
-          {[
-            {
-              icon: HomeIcon,
-              title: "Domestic Electrical",
-              text: "Rewires, consumer units, EICRs, sockets, lighting, EV chargers, smart home systems, fault finding, kitchens and bathrooms.",
-            },
-            {
-              icon: Building2,
-              title: "Commercial Electrical",
-              text: "Office, shop, unit and landlord electrical work including EICRs, remedials, lighting, power, maintenance and upgrades.",
-            },
-            {
-              icon: Factory,
-              title: "Industrial Electrical",
-              text: "Industrial electrical support including distribution, containment, three-phase work, testing, maintenance and fault finding.",
-            },
-          ].map(({ icon: Icon, title, text }) => (
-            <div key={title} className="glass rounded-3xl p-7">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl gradient-electric shadow-electric">
-                <Icon className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h2 className="mt-5 text-2xl font-bold">
-                <span className="gradient-gold-text">{title}</span>
-              </h2>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                {text}
+      <section className="mx-auto max-w-7xl section-pad px-4 lg:px-8">
+        <div className="surface-raised overflow-hidden rounded-2xl">
+          <div className="grid lg:grid-cols-[1.05fr_.95fr]">
+            <div className="p-7 sm:p-10 lg:p-12">
+              <span className="eyebrow">Commercial capability</span>
+              <h2 className="mt-4 text-4xl font-bold sm:text-5xl">Built for more than domestic call-outs.</h2>
+              <p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Sperin Services also takes on planned work for schools, nurseries, offices, shops, landlords and small commercial premises — including inspection and testing, lighting, power, emergency lighting, access control, remedials and upgrades.
               </p>
+              <Link to="/commercial" className="button-primary mt-7">
+                Commercial services <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="technical-grid border-t border-white/10 p-7 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
+              <div className="space-y-4">
+                {[
+                  "Commercial EICRs and remedial works",
+                  "Lighting and emergency lighting",
+                  "Access control and door-entry wiring",
+                  "Power, distribution and containment",
+                  "Refurbishment and alteration works",
+                  "Fault finding and planned maintenance",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-foreground/88">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" /> {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8 lg:py-16">
+        <span className="eyebrow">How a job runs</span>
+        <div className="mt-6 grid gap-0 border-y border-white/10 md:grid-cols-4">
+          {[
+            ["01", "Understand", "Site details, existing installation, access, finish and what you actually need."],
+            ["02", "Specify", "A clear scope and quotation rather than vague allowances wherever the job permits."],
+            ["03", "Install", "Work planned around the property or premises, with changes discussed before they become surprises."],
+            ["04", "Test & hand over", "Inspection, testing and the appropriate certification or documentation on completion."],
+          ].map(([number, title, text], index) => (
+            <div key={number} className={`p-5 sm:p-6 ${index > 0 ? "border-t border-white/10 md:border-l md:border-t-0" : ""}`}>
+              <div className="font-mono text-xs text-electric">{number}</div>
+              <h3 className="mt-8 text-2xl font-bold">{title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <h2 className="text-3xl sm:text-4xl font-bold mb-8">
-          <span className="gradient-gold-text">
-            High-Value Electrical Services
-          </span>
-        </h2>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          {[
-            {
-              title: "Commercial EICRs & Remedial Works",
-              text: "Electrical testing for offices, shops, units, rental properties and business premises, with clear remedial advice where issues are found.",
-              link: "/services/testing",
-            },
-            {
-              title: "House Rewires Birmingham",
-              text: "Full and partial rewires for homes, renovations, extensions and older properties where wiring is outdated, unsafe or unsuitable for modern use.",
-              link: "/services/rewires",
-            },
-            {
-              title: "Consumer Unit Upgrades",
-              text: "Modern fuse board and consumer unit upgrades including RCD, RCBO and surge protection options where suitable.",
-              link: "/services/consumer-units",
-            },
-            {
-              title: "EV Chargers & Smart Systems",
-              text: "EV charger installation, smart lighting, smart heating, security wiring, video doorbells and connected home upgrades.",
-              link: "/services/ev-chargers",
-            },
-            {
-              title: "Commercial & Industrial Electrical Work",
-              text: "Lighting, power, containment, three-phase distribution, fault finding, maintenance, access control and electrical upgrades.",
-              link: "/contact",
-            },
-            {
-              title: "Kitchens & Bathrooms",
-              text: "Kitchen and bathroom installation support including electrics, lighting, extraction, accessories and complete project finishing.",
-              link: "/services/kitchens-bathrooms",
-            },
-          ].map((item) => (
-            <Link
-              key={item.title}
-              to={item.link}
-              className="rounded-2xl hairline p-6 bg-card/40 hover:bg-white/5 transition"
-            >
-              <h3 className="text-xl font-bold">{item.title}</h3>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                {item.text}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm text-gold">
-                Learn more <ArrowRight className="h-4 w-4" />
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="glass rounded-3xl p-8 sm:p-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center">
-            <span className="gradient-gold-text">
-              Why Choose Sperin Services
-            </span>
-          </h2>
-
-          <p className="mt-3 text-center text-muted-foreground max-w-2xl mx-auto">
-            Electrical and building work carried out with clean workmanship,
-            clear communication and attention to detail.
-          </p>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                t: "23 years electrical experience",
-                d: "Extensive practical experience across domestic, commercial and industrial electrical work.",
-              },
-              {
-                t: "City & Guilds qualified",
-                d: "Qualified through recognised City & Guilds electrical training, backed by long-term site experience.",
-              },
-              {
-                t: "Inspection & testing qualified",
-                d: "Competent in electrical inspection, testing, certification, fault finding and remedial work.",
-              },
-              {
-                t: "Start-to-finish service",
-                d: "Requirements, solutions, design, installation, inspection, testing and maintenance handled together.",
-              },
-              {
-                t: "Fully insured",
-                d: "Public liability insurance is maintained for the electrical and building work undertaken.",
-              },
-              {
-                t: "Clean, clear workmanship",
-                d: "Careful installation, straightforward advice, clear quotes and attention to the final finish.",
-              },
-            ].map((x) => (
-              <div key={x.t} className="rounded-2xl hairline p-5 bg-card/40">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-gold glow-gold" />
-                  <h3 className="font-semibold">{x.t}</h3>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{x.d}</p>
-              </div>
-            ))}
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <div className="grid gap-7 lg:grid-cols-[.7fr_1.3fr] lg:items-start">
+          <div>
+            <span className="eyebrow">Service area</span>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Birmingham and the wider West Midlands.</h2>
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 my-20">
-        <div className="rounded-3xl hairline p-8 sm:p-10 bg-card/40">
-          <h2 className="text-3xl font-bold">
-            <span className="gradient-gold-text">Areas Covered</span>
-          </h2>
-
-          <p className="mt-3 text-muted-foreground">
-            Sperin Services covers Birmingham and surrounding West Midlands
-            areas.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+          <div className="flex flex-wrap gap-2">
             {AREAS.map((area) => (
-              <span
-                key={area}
-                className="rounded-full hairline px-4 py-2 bg-background/40"
-              >
-                {area}
-              </span>
+              <span key={area} className="rounded-md border border-white/10 bg-white/[0.018] px-3 py-2 text-sm text-foreground/78">{area}</span>
             ))}
           </div>
         </div>
@@ -465,4 +278,4 @@ function Home() {
       <CTA />
     </>
   );
-                  }
+}
