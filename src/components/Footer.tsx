@@ -63,7 +63,6 @@ export function Footer() {
           <span>© {new Date().getFullYear()} Sperin Services. All rights reserved.</span>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Link to="/faqs" className="transition hover:text-foreground">FAQs</Link>
-            <Link to="/reviews" className="transition hover:text-foreground">Customer feedback</Link>
             <Link to="/privacy" className="transition hover:text-foreground">Privacy</Link>
           </div>
         </div>
