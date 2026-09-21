@@ -7,7 +7,6 @@ import { SERVICES, SITE } from "@/lib/site";
 const NAV = [
   { to: "/", label: "Home", exact: true },
   { to: "/commercial", label: "Commercial" },
-  { to: "/gallery", label: "Projects" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
 ] as const;
