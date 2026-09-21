@@ -32,7 +32,7 @@ function About() {
             <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
               A real electrical business,
               <br />
-              <span className="text-electric">not a faceless brand.</span>
+              <span className="text-electric">built around one point of contact.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               I’m Gus, the electrician behind Sperin Services. I started in the electrical industry in {SITE.industrySince} and have traded independently since {SITE.founded}. The aim is simple: understand the job properly, give clear advice, carry out the work carefully and leave the installation documented and tested as required.
@@ -106,7 +106,7 @@ function About() {
                 "Practical advice without unnecessary jargon",
                 "Care around occupied homes and working premises",
                 "Options explained when there is more than one sensible route",
-                "No invented reviews, ratings or accreditations on this website",
+                "Qualifications and credentials stated accurately, without overclaiming",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" /> {item}
