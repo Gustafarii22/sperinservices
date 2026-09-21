@@ -1,97 +1,78 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, CheckCircle2, MessageSquareQuote, ShieldCheck } from "lucide-react";
 import { CTA } from "@/components/CTA";
-import { Star, Quote } from "lucide-react";
 
 export const Route = createFileRoute("/reviews")({
   head: () => ({
     meta: [
-      { title: "Reviews — Sperin Services Electrical Contractors" },
-      { name: "description", content: "Read reviews from homeowners across Birmingham, Sutton Coldfield, Tamworth and the West Midlands." },
-      { property: "og:title", content: "Customer Reviews — Sperin Services" },
-      { property: "og:description", content: "Trusted by homeowners across the West Midlands for premium electrical and building work." },
+      { title: "Customer Feedback | Sperin Services" },
+      {
+        name: "description",
+        content: "Customer feedback and trust information for Sperin Services electrical work across Birmingham and the West Midlands.",
+      },
+      { property: "og:title", content: "Customer Feedback | Sperin Services" },
+      { property: "og:description", content: "Sperin Services is moving this page to independently verifiable customer feedback rather than anonymous placeholder testimonials." },
     ],
   }),
   component: Reviews,
 });
 
-const REVIEWS = [
-  {
-    name: "James W.",
-    location: "Sutton Coldfield",
-    text: "Outstanding work on our full rewire. Clean, tidy and explained everything along the way. Highly recommend.",
-  },
-  {
-    name: "Priya S.",
-    location: "Birmingham",
-    text: "Installed our EV charger and a new consumer unit. Premium finish, fair price and turned up exactly when promised.",
-  },
-  {
-    name: "Mark T.",
-    location: "Tamworth",
-    text: "Smart lighting throughout the house — the result is stunning. True craftsmen with a real eye for detail.",
-  },
-  {
-    name: "Helen R.",
-    location: "Lichfield",
-    text: "Professional, polite and meticulous. The kitchen electrical work is flawless. Would not hesitate to use again.",
-  },
-  {
-    name: "David K.",
-    location: "Solihull",
-    text: "EICR and full report came back the next day. Genuine, knowledgeable and friendly — exactly what you want.",
-  },
-  {
-    name: "Sarah L.",
-    location: "Walsall",
-    text: "Bathroom rewire and downlights — the finish is luxury level. Worth every penny. Thank you Sperin Services.",
-  },
-];
-
 function Reviews() {
   return (
     <>
-      <section className="mx-auto max-w-5xl px-4 lg:px-8 pt-12 pb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full hairline px-3 py-1 text-xs text-electric">
-          <span className="h-1.5 w-1.5 rounded-full bg-electric glow-electric" /> Customer Reviews
-        </div>
-        <h1 className="mt-5 text-4xl sm:text-5xl font-bold">
-          <span className="gradient-electric-text">Trusted across the West Midlands</span>
-        </h1>
-        <p className="mt-5 text-muted-foreground text-lg">
-          Real feedback from homeowners we've worked with — clean workmanship, honest service, every time.
-        </p>
-        <div className="mt-6 flex items-center justify-center gap-1 text-electric">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className="h-5 w-5 fill-current" />
-          ))}
-          <span className="ml-2 text-sm text-muted-foreground">Rated 5/5 by our customers</span>
-        </div>
-      </section>
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pb-16 lg:pt-18">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
+          <div>
+            <span className="eyebrow">Customer feedback</span>
+            <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">No made-up stars. No filler reviews.</h1>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              This page is being rebuilt around feedback that can be traced back to a genuine customer or an independent review source. Anonymous, perfectly worded template testimonials have been removed rather than presented as proof.
+            </p>
+          </div>
 
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 pb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {REVIEWS.map((r, i) => (
-          <article
-            key={i}
-            className="relative rounded-2xl glass p-6 electric-border-glow"
-          >
-            <Quote className="h-6 w-6 text-electric/70 mb-3" />
-            <p className="text-sm text-foreground/90 leading-relaxed">"{r.text}"</p>
-            <div className="mt-5 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold">{r.name}</div>
-                <div className="text-xs text-muted-foreground">{r.location}</div>
-              </div>
-              <div className="flex gap-0.5 text-electric">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} className="h-3.5 w-3.5 fill-current" />
-                ))}
-              </div>
+          <aside className="surface-raised rounded-2xl p-6 sm:p-8">
+            <MessageSquareQuote className="h-7 w-7 text-electric" />
+            <h2 className="mt-6 text-3xl font-bold">What counts as useful proof.</h2>
+            <div className="mt-6 space-y-4">
+              {[
+                "A genuine review connected to a real customer or platform",
+                "A date and location where it is appropriate to publish them",
+                "A relevant project reference rather than generic praise",
+                "No overall rating displayed until the source is verifiable",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-electric" /> {item}
+                </div>
+              ))}
             </div>
-          </article>
-        ))}
+          </aside>
+        </div>
       </section>
 
-      <CTA title="Ready to join our happy customers?" />
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            [ShieldCheck, "Qualifications", "City & Guilds electrical training, inspection and testing qualification, and 18th Edition knowledge can be stated directly without dressing them up as reviews."],
+            [CheckCircle2, "Process", "Clear scope, appropriate testing and proper handover are stronger trust signals than six anonymous five-star quotes."],
+            [MessageSquareQuote, "Verified feedback", "When live review sources are connected, this page can show the original source and date rather than retyping praise into a website card."],
+          ].map(([Icon, title, text]) => {
+            const IconComponent = Icon as typeof ShieldCheck;
+            return (
+              <article key={String(title)} className="surface rounded-2xl p-6">
+                <IconComponent className="h-5 w-5 text-electric" />
+                <h2 className="mt-5 text-2xl font-bold">{String(title)}</h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{String(text)}</p>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 text-sm text-muted-foreground">
+          Looking for project-specific reassurance before booking? <Link to="/contact" className="inline-flex items-center gap-1 font-bold text-electric">Ask about the type of work you need <ArrowRight className="h-4 w-4" /></Link>.
+        </div>
+      </section>
+
+      <CTA title="Judge the job on the details, not a badge." subtitle="Tell us what you need done and ask anything you want to know about the process, testing, certification or previous experience with that type of work." />
     </>
   );
 }
