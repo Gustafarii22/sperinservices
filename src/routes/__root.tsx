@@ -1,33 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
-
+import { Outlet, Link, createRootRouteWithContext, useRouter, HeadContent, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { SiteLayout } from "@/components/SiteLayout";
+import { SITE } from "@/lib/site";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+        <div className="font-mono text-sm text-electric">404 / NOT FOUND</div>
+        <h1 className="mt-4 text-5xl font-bold">That page has moved.</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Use the main navigation or go back to the Sperin Services homepage.</p>
+        <Link to="/" className="button-primary mt-6">Go home</Link>
       </div>
     </div>
   );
@@ -36,32 +20,15 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
+        <div className="font-mono text-sm text-electric">SITE ERROR</div>
+        <h1 className="mt-4 text-4xl font-bold">This page did not load correctly.</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Try the page again or return to the homepage.</p>
+        <div className="mt-6 flex justify-center gap-2">
+          <button onClick={() => { router.invalidate(); reset(); }} className="button-primary">Try again</button>
+          <a href="/" className="button-secondary">Go home</a>
         </div>
       </div>
     </div>
@@ -72,19 +39,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sperin Services — Domestic, Commercial & Industrial Electrical Contractors in the West Midlands" },
-      { name: "description", content: "Domestic electrical and building specialists across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Rewires, consumer units, EV chargers, smart home, testing, kitchens & bathrooms." },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "Sperin Services | Electrical Contractors, Birmingham & West Midlands" },
+      { name: "description", content: "Domestic and commercial electrical work across Birmingham and the West Midlands. Rewires, consumer units, EICRs, EV charging, lighting, access control, maintenance and remedials." },
       { name: "author", content: "Sperin Services" },
-      { name: "theme-color", content: "#0c0a06" },
-      { property: "og:title", content: "Sperin Services — Domestic, Commercial & Industrial Electrical Contractors in the West Midlands" },
-      { property: "og:description", content: "Domestic electrical and building specialists across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Rewires, consumer units, EV chargers, smart home, testing, kitchens & bathrooms." },
+      { name: "theme-color", content: "#090d12" },
+      { property: "og:title", content: "Sperin Services | Electrical Contractors" },
+      { property: "og:description", content: "Electrical work for homes, businesses and commercial premises across Birmingham and the West Midlands." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Sz00EbQ2EmWykRSiukm3Qg4VuHF3/social-images/social-1778500281368-file_00000000314c71f4825dc493f68aed3f.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Sz00EbQ2EmWykRSiukm3Qg4VuHF3/social-images/social-1778500281368-file_00000000314c71f4825dc493f68aed3f.webp" },
-      { name: "twitter:title", content: "Sperin Services — Domestic, Commercial & Industrial Electrical Contractors in the West Midlands" },
-      { name: "twitter:description", content: "Domestic electrical and building specialists across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Rewires, consumer units, EV chargers, smart home, testing, kitchens & bathrooms." },
+      { property: "og:url", content: SITE.url },
+      { property: "og:image", content: `${SITE.url}/sperin-logo.png` },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:image", content: `${SITE.url}/sperin-logo.png` },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -99,27 +65,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
+  return <html lang="en"><head><HeadContent /></head><body>{children}<Scripts /></body></html>;
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <SiteLayout>
-        <Outlet />
-      </SiteLayout>
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}><SiteLayout><Outlet /></SiteLayout></QueryClientProvider>;
 }
