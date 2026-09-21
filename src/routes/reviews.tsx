@@ -6,6 +6,7 @@ export const Route = createFileRoute("/reviews")({
   head: () => ({
     meta: [
       { title: "Customer Feedback | Sperin Services" },
+      { name: "robots", content: "noindex,follow" },
       {
         name: "description",
         content: "Customer feedback and trust information for Sperin Services electrical work across Birmingham and the West Midlands.",
@@ -24,9 +25,9 @@ function Reviews() {
         <div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
           <div>
             <span className="eyebrow">Customer feedback</span>
-            <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">No made-up stars. No filler reviews.</h1>
+            <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">Customer feedback should be verifiable.</h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              This page is being rebuilt around feedback that can be traced back to a genuine customer or an independent review source. Anonymous, perfectly worded template testimonials have been removed rather than presented as proof.
+              Customer feedback will only be published here when it can be traced to a genuine customer or an independent review source. Until then, the site relies on stated qualifications, scope and process rather than anonymous testimonial cards.
             </p>
           </div>
 
