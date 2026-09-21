@@ -112,7 +112,7 @@ function Home() {
           <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8 lg:p-9" aria-label="Sperin Services capability summary">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Capability / 2026</div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Electrical capability</div>
                 <h2 className="mt-3 text-2xl font-bold">Built around real electrical work.</h2>
               </div>
               <Zap className="h-7 w-7 text-electric" aria-hidden="true" />
@@ -139,10 +139,10 @@ function Home() {
       <section className="border-y border-white/10 bg-black/10">
         <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:grid-cols-4 lg:px-8">
           {[
-            [ShieldCheck, "Public liability insured"],
-            [ClipboardCheck, "Inspection & testing"],
-            [Wrench, "Design to handover"],
-            [Gauge, "Current BS 7671 focus"],
+            [ShieldCheck, "Industry experience since 2003"],
+            [ClipboardCheck, "City & Guilds 2391"],
+            [Wrench, "Survey · install · test"],
+            [Gauge, "18th Edition wiring regulations"],
           ].map(([Icon, text], index) => {
             const IconComponent = Icon as typeof ShieldCheck;
             return (
@@ -161,7 +161,7 @@ function Home() {
             <span className="eyebrow">Choose the right route</span>
             <h2 className="mt-4 text-4xl font-bold sm:text-5xl">Not every job needs the same process.</h2>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Domestic work needs care around the property and a clear finish. Commercial work needs scope, programme, coordination and documentation. The website now separates those journeys instead of pretending they are the same job.
+              Domestic work needs care around the property and a clear finish. Commercial work needs scope, programme, coordination and documentation. Sperin Services approaches each around the property, programme and required handover rather than forcing every job through the same process.
             </p>
           </div>
 
@@ -191,7 +191,7 @@ function Home() {
             <span className="eyebrow">Electrical services</span>
             <h2 className="mt-4 text-4xl font-bold sm:text-5xl">What we actually do.</h2>
           </div>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">No giant grid of look-alike cards. Pick the work you need and go straight to the relevant scope.</p>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">Choose the work you need and go straight to the relevant scope, process and information.</p>
         </div>
 
         <div>
