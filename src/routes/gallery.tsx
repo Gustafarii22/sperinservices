@@ -6,6 +6,7 @@ export const Route = createFileRoute("/gallery")({
   head: () => ({
     meta: [
       { title: "Electrical Projects & Work | Sperin Services" },
+      { name: "robots", content: "noindex,follow" },
       {
         name: "description",
         content:
@@ -60,7 +61,7 @@ function Gallery() {
             <span className="eyebrow">Projects / work</span>
             <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">Proof should come from the work itself.</h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              This section is being structured around real Sperin Services projects rather than stock imagery. Until the project photography is ready, the site shows the type and scope of work without pretending generic images are evidence.
+              This project archive is reserved for real Sperin Services work. Until genuine site photography is available, the page documents capability and scope rather than using stock imagery as evidence.
             </p>
           </div>
           <div className="surface rounded-2xl p-6 sm:p-7">
