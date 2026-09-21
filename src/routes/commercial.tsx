@@ -91,7 +91,7 @@ function Commercial() {
 
           <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8">
             <Building2 className="h-7 w-7 text-electric" />
-            <h2 className="mt-6 text-3xl font-bold">Commercial without the generic contractor language.</h2>
+            <h2 className="mt-6 text-3xl font-bold">Commercial work starts with a clear scope.</h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               The useful information is the scope: what is being altered, what must remain operational, what other trades are doing, what documentation is needed and how the programme affects access. That is what a quotation should be built around.
             </p>
