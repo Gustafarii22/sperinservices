@@ -1,91 +1,107 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, Camera, Check, ClipboardCheck, DoorOpen, Lightbulb, PanelsTopLeft, Zap } from "lucide-react";
 import { CTA } from "@/components/CTA";
-import work1 from "@/assets/work-1.jpg";
-import work2 from "@/assets/work-2.jpg";
-import work3 from "@/assets/work-3.jpg";
-import imgRewires from "@/assets/svc-rewires.jpg";
-import imgCU from "@/assets/svc-consumer-unit.jpg";
-import imgEV from "@/assets/svc-ev.jpg";
-import imgSmart from "@/assets/svc-smart.jpg";
-import imgTesting from "@/assets/svc-testing.jpg";
-import imgKitchen from "@/assets/svc-kitchen.jpg";
-
-const ALL = [
-  { src: imgRewires, cat: "Rewires", alt: "Domestic rewire — sockets and cables" },
-  { src: work1, cat: "Rewires", alt: "Tidy first fix in a UK loft" },
-  { src: imgCU, cat: "Consumer Units", alt: "Modern consumer unit installation" },
-  { src: work2, cat: "Consumer Units", alt: "Labelled consumer unit" },
-  { src: imgEV, cat: "EV Chargers", alt: "Home EV charger on UK brick wall" },
-  { src: work3, cat: "EV Chargers", alt: "Tidy EV charger install" },
-  { src: imgSmart, cat: "Smart Home", alt: "Smart home control with phone app" },
-  { src: imgKitchen, cat: "Kitchens & Bathrooms", alt: "Modern kitchen with pendant lighting" },
-  { src: imgTesting, cat: "Testing", alt: "Electrical testing of a consumer unit" },
-] as const;
-
-const CATS = ["All", "Rewires", "Consumer Units", "EV Chargers", "Smart Home", "Kitchens & Bathrooms", "Testing"] as const;
 
 export const Route = createFileRoute("/gallery")({
   head: () => ({
     meta: [
-      { title: "Gallery — Recent Work — Sperin Services" },
-      { name: "description", content: "Recent work from Sperin Services across the West Midlands — rewires, consumer units, EV chargers, smart home, kitchens, bathrooms and testing." },
-      { property: "og:title", content: "Gallery — Sperin Services" },
-      { property: "og:description", content: "Recent work across the West Midlands." },
-      { property: "og:image", content: imgKitchen },
+      { title: "Electrical Projects & Work | Sperin Services" },
+      {
+        name: "description",
+        content:
+          "Project capability from Sperin Services across domestic and commercial electrical work in Birmingham and the West Midlands.",
+      },
+      { property: "og:title", content: "Projects | Sperin Services" },
+      { property: "og:description", content: "A project-led view of the electrical work Sperin Services undertakes across the West Midlands." },
     ],
   }),
   component: Gallery,
 });
 
-function Gallery() {
-  const [cat, setCat] = useState<(typeof CATS)[number]>("All");
-  const items = cat === "All" ? ALL : ALL.filter((i) => i.cat === cat);
+const PROJECT_TYPES = [
+  {
+    icon: PanelsTopLeft,
+    label: "Distribution",
+    title: "Consumer units & distribution work",
+    text: "Replacement boards, new circuits, alterations, protection upgrades, labelling, inspection and testing.",
+  },
+  {
+    icon: ClipboardCheck,
+    label: "Testing",
+    title: "EICRs, fault finding & remedials",
+    text: "Inspection and testing followed by practical remedial work where faults or non-compliances are identified.",
+  },
+  {
+    icon: Lightbulb,
+    label: "Lighting",
+    title: "Lighting & emergency lighting",
+    text: "New lighting, controls, occupancy sensors, emergency luminaires and alterations for homes and commercial premises.",
+  },
+  {
+    icon: DoorOpen,
+    label: "Access",
+    title: "Access control & door entry",
+    text: "Power, wiring and interfaces for readers, locks, intercoms and access-controlled doors where specified.",
+  },
+  {
+    icon: Zap,
+    label: "Installation",
+    title: "Rewires, alterations & refurbishment",
+    text: "First fix, second fix, new circuits and electrical work coordinated within refurbishment and change-of-use projects.",
+  },
+];
 
+function Gallery() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 lg:px-8 pt-12">
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-full hairline px-3 py-1 text-xs text-gold">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold glow-gold" /> Recent Work
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pb-16 lg:pt-18">
+        <div className="grid gap-8 lg:grid-cols-[1.12fr_.88fr] lg:items-end">
+          <div>
+            <span className="eyebrow">Projects / work</span>
+            <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">Proof should come from the work itself.</h1>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              This section is being structured around real Sperin Services projects rather than stock imagery. Until the project photography is ready, the site shows the type and scope of work without pretending generic images are evidence.
+            </p>
           </div>
-          <h1 className="mt-5 text-4xl sm:text-5xl font-bold">
-            <span className="gradient-gold-text">Gallery</span>
-          </h1>
-          <p className="mt-3 text-muted-foreground">A look at our recent installs across the West Midlands.</p>
+          <div className="surface rounded-2xl p-6 sm:p-7">
+            <Camera className="h-6 w-6 text-electric" />
+            <h2 className="mt-5 text-2xl font-bold">What will be added here</h2>
+            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+              {["Real site photographs only", "Location and project type", "What was installed or altered", "Testing / handover detail where relevant", "Before-and-after views when they add useful context"].map((item) => (
+                <li key={item} className="flex items-start gap-3"><Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" /> {item}</li>
+              ))}
+            </ul>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {CATS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCat(c)}
-              className={`rounded-full px-4 py-2 text-xs font-medium transition ${
-                cat === c
-                  ? "gradient-gold text-primary-foreground shadow-gold"
-                  : "hairline text-foreground/80 hover:bg-white/5"
-              }`}
-            >
-              {c}
-            </button>
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
+        <div className="border-b border-white/10 pb-7">
+          <span className="eyebrow">Current project disciplines</span>
+          <h2 className="mt-4 text-4xl font-bold sm:text-5xl">Work the project archive will document.</h2>
+        </div>
+        <div>
+          {PROJECT_TYPES.map(({ icon: Icon, label, title, text }, index) => (
+            <article key={title} className="grid gap-4 border-b border-white/10 py-6 sm:grid-cols-[3rem_8rem_1fr_1fr] sm:items-start">
+              <Icon className="h-5 w-5 text-electric" />
+              <span className="font-mono text-xs text-muted-foreground">0{index + 1} / {label}</span>
+              <h3 className="text-xl font-bold sm:text-2xl">{title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
+            </article>
           ))}
         </div>
+      </section>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((it, i) => (
-            <figure key={i} className="overflow-hidden rounded-2xl gold-border-glow group">
-              <img
-                src={it.src}
-                alt={it.alt}
-                loading="lazy"
-                className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition duration-700"
-              />
-              <figcaption className="px-4 py-3 text-xs text-muted-foreground bg-card/40 flex justify-between">
-                <span>{it.alt}</span>
-                <span className="text-gold">{it.cat}</span>
-              </figcaption>
-            </figure>
-          ))}
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+        <div className="surface-raised rounded-2xl p-7 sm:p-9">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <span className="eyebrow">Need evidence for a similar job?</span>
+              <h2 className="mt-4 text-3xl font-bold">Tell us the project type you are pricing.</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">A useful conversation about scope is better than a gallery full of generic pictures. Once the real archive is populated, relevant case studies will be linked directly from the service pages.</p>
+            </div>
+            <Link to="/contact" className="button-primary">Discuss a project <ArrowRight className="h-4 w-4" /></Link>
+          </div>
         </div>
       </section>
 
