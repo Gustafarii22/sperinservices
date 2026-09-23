@@ -359,8 +359,11 @@ export function QuoteAssistant() {
                     multiple
                     onChange={(e) => {
                       const chosen = Array.from(e.target.files || []);
-                      if (chosen.length > 5 || chosen.some((f) => f.size > 8_000_000)) {
-                        setError("Choose up to five files, each under 8 MB.");
+                      if (
+                        chosen.length > 5 ||
+                        chosen.reduce((total, f) => total + f.size, 0) > 9_500_000
+                      ) {
+                        setError("Choose up to five files, under 9.5 MB combined.");
                         setFiles([]);
                       } else {
                         setError("");
