@@ -88,7 +88,7 @@ function Home() {
               <span className="text-electric">properly planned.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Sperin Services handles domestic and commercial electrical work from survey and design through installation, inspection and testing. Straight answers, sensible solutions and one point of contact from start to finish.
+              Domestic and commercial electrical work across Birmingham and the West Midlands — from rewires, consumer units and EV charging to testing, smart homes, kitchens and bathrooms. 23 years of industry experience, with clear advice from first enquiry to handover.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -102,7 +102,7 @@ function Home() {
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[0.7rem] bg-[#25D366] px-5 py-3 text-sm font-bold text-black transition hover:brightness-105"
+                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[0.7rem] bg-[#128C4A] px-5 py-3 text-sm font-bold text-black transition hover:brightness-105"
               >
                 <WhatsAppGlyph className="h-5 w-5" /> WhatsApp
               </a>
