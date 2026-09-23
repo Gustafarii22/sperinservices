@@ -1,3 +1,4 @@
+import { illustrativeImages } from "@/lib/illustrative-images";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -161,6 +162,20 @@ function Commercial() {
         </div>
       </section>
 
+      <figure className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+        <img
+          src={`${illustrativeImages["Commercial electrical"].url}?auto=compress&cs=tinysrgb&w=1200`}
+          width="1200"
+          height="650"
+          loading="lazy"
+          decoding="async"
+          alt={illustrativeImages["Commercial electrical"].alt}
+          className="max-h-[500px] w-full rounded-2xl object-cover"
+        />
+        <figcaption className="mt-2 text-xs text-muted-foreground">
+          Illustrative photograph · not a Sperin Services project
+        </figcaption>
+      </figure>
       <CTA
         title="Send the commercial scope, not just a one-line enquiry."
         subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful."

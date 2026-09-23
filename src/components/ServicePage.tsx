@@ -101,6 +101,22 @@ export function ServicePage(p: ServicePageProps) {
         </figure>
       )}
 
+      {p.title === "Kitchens & Bathrooms" && (
+        <figure className="mx-auto max-w-7xl px-4 pt-8 lg:px-8">
+          <img
+            src={`${illustrativeImages["Bathroom detail"].url}?auto=format&fit=crop&w=1200&q=78`}
+            width="1200"
+            height="650"
+            loading="lazy"
+            decoding="async"
+            alt={illustrativeImages["Bathroom detail"].alt}
+            className="max-h-[500px] w-full rounded-2xl object-cover"
+          />
+          <figcaption className="mt-2 text-xs text-muted-foreground">
+            Illustrative photograph · not a Sperin Services project
+          </figcaption>
+        </figure>
+      )}
       <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8 lg:py-14">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
           <div>
