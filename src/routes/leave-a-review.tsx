@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/leave-a-review")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/leave-a-review" }],
     meta: [
       { title: "Leave a Review | Sperin Services" },
       {

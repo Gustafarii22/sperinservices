@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/about" }],
     meta: [
       { title: "About Sperin Services | Electrical Contractor, West Midlands" },
       {
@@ -15,7 +16,8 @@ export const Route = createFileRoute("/about")({
       { property: "og:title", content: "About Sperin Services" },
       {
         property: "og:description",
-        content: "A straightforward electrical business built on long-term trade experience, inspection and testing capability, and clear project delivery.",
+        content:
+          "A straightforward electrical business built on long-term trade experience, inspection and testing capability, and clear project delivery.",
       },
     ],
   }),
@@ -35,7 +37,10 @@ function About() {
               <span className="text-electric">built around one point of contact.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              I’m Gus, the electrician behind Sperin Services. I started in the electrical industry in {SITE.industrySince} and have traded independently since {SITE.founded}. The aim is simple: understand the job properly, give clear advice, carry out the work carefully and leave the installation documented and tested as required.
+              I’m Gus, the electrician behind Sperin Services. I started in the electrical industry
+              in {SITE.industrySince} and have traded independently since {SITE.founded}. The aim is
+              simple: understand the job properly, give clear advice, carry out the work carefully
+              and leave the installation documented and tested as required.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
@@ -48,7 +53,9 @@ function About() {
           </div>
 
           <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8">
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Trade record</div>
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
+              Trade record
+            </div>
             <dl className="mt-7 space-y-0">
               {[
                 ["Electrical industry", `Since ${SITE.industrySince}`],
@@ -57,7 +64,10 @@ function About() {
                 ["Electrical training", "City & Guilds 2360 Parts 1 & 2"],
                 ["Wiring regulations", "18th Edition"],
               ].map(([term, value]) => (
-                <div key={term} className="rule grid grid-cols-[1fr_auto] gap-5 py-4 first:border-t-0 first:pt-0">
+                <div
+                  key={term}
+                  className="rule grid grid-cols-[1fr_auto] gap-5 py-4 first:border-t-0 first:pt-0"
+                >
                   <dt className="text-sm text-muted-foreground">{term}</dt>
                   <dd className="text-right text-sm font-semibold text-foreground/95">{value}</dd>
                 </div>
@@ -71,20 +81,36 @@ function About() {
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
           <div>
             <span className="eyebrow">How Sperin works</span>
-            <h2 className="mt-4 text-4xl font-bold sm:text-5xl">Experience matters most when something is not straightforward.</h2>
+            <h2 className="mt-4 text-4xl font-bold sm:text-5xl">
+              Experience matters most when something is not straightforward.
+            </h2>
           </div>
           <div className="space-y-0">
             {[
-              ["Survey before assumptions", "Existing installations are not all the same. Access, supply, earthing, circuit condition and the intended finish can all change the right solution."],
-              ["Design, install and test", "The work is considered as one job rather than disconnected stages. That makes it easier to spot issues before they become expensive changes."],
-              ["Domestic and commercial", "Work ranges from homes and landlords to schools, offices, shops and small commercial premises, with the approach adjusted to suit the environment."],
-              ["Straight communication", "If the scope changes, the reason and options should be clear before additional work is simply added to the bill."],
+              [
+                "Survey before assumptions",
+                "Existing installations are not all the same. Access, supply, earthing, circuit condition and the intended finish can all change the right solution.",
+              ],
+              [
+                "Design, install and test",
+                "The work is considered as one job rather than disconnected stages. That makes it easier to spot issues before they become expensive changes.",
+              ],
+              [
+                "Domestic and commercial",
+                "Work ranges from homes and landlords to schools, offices, shops and small commercial premises, with the approach adjusted to suit the environment.",
+              ],
+              [
+                "Straight communication",
+                "If the scope changes, the reason and options should be clear before additional work is simply added to the bill.",
+              ],
             ].map(([title, text], index) => (
               <div key={title} className="rule grid gap-3 py-6 sm:grid-cols-[3rem_1fr]">
                 <div className="font-mono text-xs text-electric">0{index + 1}</div>
                 <div>
                   <h3 className="text-2xl font-bold">{title}</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{text}</p>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                    {text}
+                  </p>
                 </div>
               </div>
             ))}
@@ -97,7 +123,9 @@ function About() {
           <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
             <div>
               <span className="eyebrow">What you can expect</span>
-              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Specific standards, not generic promises.</h2>
+              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+                Specific standards, not generic promises.
+              </h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
@@ -108,7 +136,10 @@ function About() {
                 "Options explained when there is more than one sensible route",
                 "Qualifications and credentials stated accurately, without overclaiming",
               ].map((item) => (
-                <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88">
+                <div
+                  key={item}
+                  className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88"
+                >
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" /> {item}
                 </div>
               ))}
@@ -117,7 +148,10 @@ function About() {
         </div>
       </section>
 
-      <CTA title="Got a job in mind? Start with the details." subtitle="Send the postcode and a short description of the work. If photos will help, WhatsApp is usually the quickest way to give us the full picture." />
+      <CTA
+        title="Got a job in mind? Start with the details."
+        subtitle="Send the postcode and a short description of the work. If photos will help, WhatsApp is usually the quickest way to give us the full picture."
+      />
     </>
   );
 }

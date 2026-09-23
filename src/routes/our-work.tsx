@@ -4,6 +4,7 @@ import { useState } from "react";
 import { projects, projectCategories } from "@/lib/projects";
 export const Route = createFileRoute("/our-work")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/our-work" }],
     meta: [
       { title: "Our Work | Sperin Services" },
       {

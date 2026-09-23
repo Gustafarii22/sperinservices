@@ -7,6 +7,7 @@ import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/contact" }],
     meta: [
       { title: "Request an Electrical Quote | Sperin Services" },
       {
@@ -15,7 +16,10 @@ export const Route = createFileRoute("/contact")({
           "Request an electrical quote from Sperin Services for domestic or commercial work across Birmingham and the West Midlands.",
       },
       { property: "og:title", content: "Request a Quote | Sperin Services" },
-      { property: "og:description", content: "Tell us what the job actually involves and we can advise on the right next step." },
+      {
+        property: "og:description",
+        content: "Tell us what the job actually involves and we can advise on the right next step.",
+      },
     ],
   }),
   component: Contact,
@@ -112,27 +116,53 @@ function Contact() {
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
           <div>
             <span className="eyebrow">Quote / enquiry</span>
-            <h1 className="display-title mt-5 text-5xl sm:text-6xl">Start with the job, not a sales form.</h1>
+            <h1 className="display-title mt-5 text-5xl sm:text-6xl">
+              Start with the job, not a sales form.
+            </h1>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              The more useful the first details are, the quicker we can tell you what needs checking and whether a site visit is the right next step.
+              The more useful the first details are, the quicker we can tell you what needs checking
+              and whether a site visit is the right next step.
             </p>
 
             <div className="rule mt-8 space-y-0 pt-2">
-              <a href={`tel:${SITE.phone}`} className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric">
+              <a
+                href={`tel:${SITE.phone}`}
+                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric"
+              >
                 <Phone className="h-5 w-5 text-electric" />
-                <span><span className="block text-xs text-muted-foreground">Call</span><span className="font-semibold">{SITE.phoneDisplay}</span></span>
+                <span>
+                  <span className="block text-xs text-muted-foreground">Call</span>
+                  <span className="font-semibold">{SITE.phoneDisplay}</span>
+                </span>
               </a>
-              <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-[#25D366]">
+              <a
+                href={`https://wa.me/${SITE.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-[#25D366]"
+              >
                 <WhatsAppGlyph className="h-6 w-6" />
-                <span><span className="block text-xs text-muted-foreground">WhatsApp</span><span className="font-semibold">Best for photos and quick job details</span></span>
+                <span>
+                  <span className="block text-xs text-muted-foreground">WhatsApp</span>
+                  <span className="font-semibold">Best for photos and quick job details</span>
+                </span>
               </a>
-              <a href={`mailto:${SITE.email}`} className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric">
+              <a
+                href={`mailto:${SITE.email}`}
+                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric"
+              >
                 <Mail className="h-5 w-5 text-electric" />
-                <span><span className="block text-xs text-muted-foreground">Email</span><span className="font-semibold">{SITE.email}</span></span>
+                <span>
+                  <span className="block text-xs text-muted-foreground">Email</span>
+                  <span className="font-semibold">{SITE.email}</span>
+                </span>
               </a>
               <div className="flex items-start gap-4 py-4">
                 <MapPin className="mt-0.5 h-5 w-5 text-electric" />
-                <span><span className="block text-xs text-muted-foreground">Coverage</span><span className="font-semibold">Birmingham & wider West Midlands</span></span>
+                <span>
+                  <span className="block text-xs text-muted-foreground">Coverage</span>
+                  <span className="font-semibold">Birmingham & wider West Midlands</span>
+                </span>
               </div>
             </div>
           </div>
@@ -140,40 +170,90 @@ function Contact() {
           <form onSubmit={submit} className="surface-raised rounded-2xl p-6 sm:p-8" noValidate>
             <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-6">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Project details</div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
+                  Project details
+                </div>
                 <h2 className="mt-2 text-3xl font-bold">Request a quote</h2>
               </div>
-              <span className="hidden font-mono text-xs text-muted-foreground sm:block">SS / ENQUIRY</span>
+              <span className="hidden font-mono text-xs text-muted-foreground sm:block">
+                SS / ENQUIRY
+              </span>
             </div>
 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <Field label="Name" error={errors.name}>
-                <input aria-invalid={Boolean(errors.name)} autoComplete="name" className={inputCls} value={form.name} onChange={(e) => update("name", e.target.value)} maxLength={100} />
+                <input
+                  aria-invalid={Boolean(errors.name)}
+                  autoComplete="name"
+                  className={inputCls}
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  maxLength={100}
+                />
               </Field>
               <Field label="Phone" error={errors.phone}>
-                <input aria-invalid={Boolean(errors.phone)} autoComplete="tel" inputMode="tel" className={inputCls} value={form.phone} onChange={(e) => update("phone", e.target.value)} maxLength={25} />
+                <input
+                  aria-invalid={Boolean(errors.phone)}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  className={inputCls}
+                  value={form.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  maxLength={25}
+                />
               </Field>
               <Field label="Email" error={errors.email}>
-                <input aria-invalid={Boolean(errors.email)} autoComplete="email" type="email" className={inputCls} value={form.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
+                <input
+                  aria-invalid={Boolean(errors.email)}
+                  autoComplete="email"
+                  type="email"
+                  className={inputCls}
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  maxLength={255}
+                />
               </Field>
               <Field label="Postcode" error={errors.postcode}>
-                <input aria-invalid={Boolean(errors.postcode)} autoComplete="postal-code" className={inputCls} value={form.postcode} onChange={(e) => update("postcode", e.target.value.toUpperCase())} maxLength={10} />
+                <input
+                  aria-invalid={Boolean(errors.postcode)}
+                  autoComplete="postal-code"
+                  className={inputCls}
+                  value={form.postcode}
+                  onChange={(e) => update("postcode", e.target.value.toUpperCase())}
+                  maxLength={10}
+                />
               </Field>
 
               <Field label="What work do you need?" error={errors.service}>
-                <select aria-invalid={Boolean(errors.service)} className={inputCls} value={form.service} onChange={(e) => update("service", e.target.value)}>
+                <select
+                  aria-invalid={Boolean(errors.service)}
+                  className={inputCls}
+                  value={form.service}
+                  onChange={(e) => update("service", e.target.value)}
+                >
                   <option value="">Choose…</option>
-                  {SERVICES.map((service) => <option key={service.slug} value={service.title}>{service.title}</option>)}
+                  {SERVICES.map((service) => (
+                    <option key={service.slug} value={service.title}>
+                      {service.title}
+                    </option>
+                  ))}
                   <option value="Commercial electrical">Commercial electrical</option>
                   <option value="Access control / door entry">Access control / door entry</option>
-                  <option value="Lighting / emergency lighting">Lighting / emergency lighting</option>
+                  <option value="Lighting / emergency lighting">
+                    Lighting / emergency lighting
+                  </option>
                   <option value="Fault finding / remedials">Fault finding / remedials</option>
                   <option value="Other">Other</option>
                 </select>
               </Field>
 
               <Field label="Property / premises" error={errors.property}>
-                <select aria-invalid={Boolean(errors.property)} className={inputCls} value={form.property} onChange={(e) => update("property", e.target.value)}>
+                <select
+                  aria-invalid={Boolean(errors.property)}
+                  className={inputCls}
+                  value={form.property}
+                  onChange={(e) => update("property", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>House / flat</option>
                   <option>Rental / HMO</option>
@@ -185,7 +265,12 @@ function Contact() {
               </Field>
 
               <Field label="Timescale" error={errors.timescale}>
-                <select aria-invalid={Boolean(errors.timescale)} className={inputCls} value={form.timescale} onChange={(e) => update("timescale", e.target.value)}>
+                <select
+                  aria-invalid={Boolean(errors.timescale)}
+                  className={inputCls}
+                  value={form.timescale}
+                  onChange={(e) => update("timescale", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>Urgent fault / safety issue</option>
                   <option>Within 2 weeks</option>
@@ -196,7 +281,12 @@ function Contact() {
               </Field>
 
               <Field label="Preferred reply" error={errors.contactMethod}>
-                <select aria-invalid={Boolean(errors.contactMethod)} className={inputCls} value={form.contactMethod} onChange={(e) => update("contactMethod", e.target.value)}>
+                <select
+                  aria-invalid={Boolean(errors.contactMethod)}
+                  className={inputCls}
+                  value={form.contactMethod}
+                  onChange={(e) => update("contactMethod", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>Phone</option>
                   <option>WhatsApp</option>
@@ -205,29 +295,77 @@ function Contact() {
               </Field>
 
               <Field label="What needs doing?" error={errors.message} className="sm:col-span-2">
-                <textarea aria-invalid={Boolean(errors.message)} rows={6} className={inputCls} value={form.message} onChange={(e) => update("message", e.target.value)} maxLength={2500} placeholder="Tell us what is there now, what you want changed, and anything that may affect access or timing." />
+                <textarea
+                  aria-invalid={Boolean(errors.message)}
+                  rows={6}
+                  className={inputCls}
+                  value={form.message}
+                  onChange={(e) => update("message", e.target.value)}
+                  maxLength={2500}
+                  placeholder="Tell us what is there now, what you want changed, and anything that may affect access or timing."
+                />
               </Field>
 
               <div className="absolute -left-[10000px]" aria-hidden="true">
-                <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
+                <label>
+                  Website
+                  <input
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </label>
               </div>
             </div>
 
             <div className="mt-5 rounded-xl border border-[#25D366]/20 bg-[#25D366]/[0.055] p-4 text-sm leading-relaxed text-muted-foreground">
-              Photos of the consumer unit, meter position, route or affected area can save a lot of guesswork. Send them by <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer" className="font-bold text-[#25D366] underline underline-offset-2">WhatsApp</a> after submitting.
+              Photos of the consumer unit, meter position, route or affected area can save a lot of
+              guesswork. Send them by{" "}
+              <a
+                href={`https://wa.me/${SITE.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-[#25D366] underline underline-offset-2"
+              >
+                WhatsApp
+              </a>{" "}
+              after submitting.
             </div>
 
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <button type="submit" disabled={sending} className="button-primary sm:min-w-44 disabled:cursor-not-allowed disabled:opacity-60">
+              <button
+                type="submit"
+                disabled={sending}
+                className="button-primary sm:min-w-44 disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send enquiry"}
               </button>
               <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Your details are used to respond to this enquiry and manage the job. <Link to="/privacy" className="text-electric underline underline-offset-2">Privacy policy</Link>.
+                Your details are used to respond to this enquiry and manage the job.{" "}
+                <Link to="/privacy" className="text-electric underline underline-offset-2">
+                  Privacy policy
+                </Link>
+                .
               </p>
             </div>
 
-            {sent && <div role="status" className="mt-5 rounded-lg border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]">Enquiry sent. Thank you — we’ll use the details above to respond.</div>}
-            {submitError && <div role="alert" className="mt-5 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{submitError}</div>}
+            {sent && (
+              <div
+                role="status"
+                className="mt-5 rounded-lg border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]"
+              >
+                Enquiry sent. Thank you — we’ll use the details above to respond.
+              </div>
+            )}
+            {submitError && (
+              <div
+                role="alert"
+                className="mt-5 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+              >
+                {submitError}
+              </div>
+            )}
           </form>
         </div>
       </section>
@@ -235,12 +373,25 @@ function Contact() {
   );
 }
 
-const inputCls = "w-full rounded-lg border border-white/12 bg-black/20 px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
+const inputCls =
+  "w-full rounded-lg border border-white/12 bg-black/20 px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
 
-function Field({ label, children, error, className = "" }: { label: string; children: React.ReactNode; error?: string; className?: string }) {
+function Field({
+  label,
+  children,
+  error,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+  className?: string;
+}) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.09em] text-foreground/72">{label}</span>
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.09em] text-foreground/72">
+        {label}
+      </span>
       {children}
       {error && <span className="mt-1.5 block text-xs text-destructive">{error}</span>}
     </label>

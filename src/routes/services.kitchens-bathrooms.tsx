@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/kitchens-bathrooms")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/kitchens-bathrooms" }],
     meta: [
       { title: "Kitchens & Bathrooms — Electrical Services — Sperin Services" },
       {

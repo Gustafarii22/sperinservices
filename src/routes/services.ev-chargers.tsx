@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/ev-chargers")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/ev-chargers" }],
     meta: [
       { title: "Home EV Charger Installation — Sperin Services, West Midlands" },
       {

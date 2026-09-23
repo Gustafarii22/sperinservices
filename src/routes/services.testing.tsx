@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/testing")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/testing" }],
     meta: [
       { title: "Electrical Testing & Certification (EICR) — Sperin Services" },
       {

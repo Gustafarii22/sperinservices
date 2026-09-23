@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/rewires")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/rewires" }],
     meta: [
       { title: "Full & Part Rewires — Sperin Services, West Midlands" },
       {

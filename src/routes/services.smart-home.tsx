@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/smart-home")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/smart-home" }],
     meta: [
       { title: "Smart Home Automation — Sperin Services, West Midlands" },
       {

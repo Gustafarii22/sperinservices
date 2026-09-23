@@ -9,6 +9,9 @@ export const Route = createFileRoute("/our-work/$slug")({
     return project;
   },
   head: ({ loaderData: project }) => ({
+    links: [
+      { rel: "canonical", href: `https://sperinservices.co.uk/our-work/${project?.slug || ""}` },
+    ],
     meta: [
       { title: `${project?.title || "Project"} | Sperin Services` },
       { name: "description", content: project?.summary || "Sperin Services project" },

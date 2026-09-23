@@ -178,6 +178,8 @@ export function QuoteAssistant() {
     setError("");
     try {
       const body = new FormData();
+      const enquiryId = `SS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      body.set("enquiry_id", enquiryId);
       body.set("_subject", `Quick quote — ${service}`);
       body.set("_template", "table");
       body.set("summary", summary);
@@ -208,7 +210,7 @@ export function QuoteAssistant() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-4 z-40 hidden items-center gap-2 rounded-xl border border-electric/30 bg-[#0b1119]/95 px-4 py-3 text-sm font-bold text-foreground shadow-[0_0_30px_rgba(22,114,255,.16)] backdrop-blur md:flex"
+        className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-xl border border-electric/30 bg-[#0b1119]/95 px-4 py-3 text-sm font-bold text-foreground shadow-[0_0_30px_rgba(22,114,255,.16)] backdrop-blur md:flex"
       >
         <Sparkles className="h-4 w-4 text-electric" /> Quick quote
       </button>
@@ -253,6 +255,19 @@ export function QuoteAssistant() {
                 <div className="text-xs text-muted-foreground">
                   Question {step + 1} of {qs.length}
                 </div>
+                <div
+                  role="progressbar"
+                  aria-valuenow={step + 1}
+                  aria-valuemin={1}
+                  aria-valuemax={qs.length + 2}
+                  aria-label="Quote progress"
+                  className="mt-3 h-1 overflow-hidden rounded-full bg-white/10"
+                >
+                  <div
+                    className="h-full bg-electric"
+                    style={{ width: `${((step + 1) / (qs.length + 2)) * 100}%` }}
+                  />
+                </div>
                 <label className="mt-3 block text-xl font-bold">{qs[step].label}</label>
                 <textarea
                   autoFocus
@@ -295,6 +310,18 @@ export function QuoteAssistant() {
                 </p>
                 {(["name", "postcode", "phone", "email", "timeframe"] as const).map((k) => (
                   <input
+                    aria-label={
+                      k === "name"
+                        ? "Your name"
+                        : k === "postcode"
+                          ? "Postcode or area"
+                          : k === "phone"
+                            ? "Phone number"
+                            : k === "email"
+                              ? "Email address"
+                              : "Preferred timeframe"
+                    }
+                    type={k === "email" ? "email" : k === "phone" ? "tel" : "text"}
                     key={k}
                     value={contact[k]}
                     onChange={(e) => setContact({ ...contact, [k]: e.target.value })}

@@ -3,6 +3,7 @@ import { ServicePage } from "@/components/ServicePage";
 
 export const Route = createFileRoute("/services/consumer-units")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/consumer-units" }],
     meta: [
       { title: "Consumer Unit Upgrades & Fuse Box Replacements — Sperin Services" },
       {
