@@ -10,8 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OurWorkRouteImport } from './routes/our-work'
+import { Route as LeaveAReviewRouteImport } from './routes/leave-a-review'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ServicesTestingRouteImport } from './routes/services.testing'
@@ -20,10 +25,26 @@ import { Route as ServicesRewiresRouteImport } from './routes/services.rewires'
 import { Route as ServicesKitchensBathroomsRouteImport } from './routes/services.kitchens-bathrooms'
 import { Route as ServicesEvChargersRouteImport } from './routes/services.ev-chargers'
 import { Route as ServicesConsumerUnitsRouteImport } from './routes/services.consumer-units'
+import { Route as OurWorkSlugRouteImport } from './routes/our-work.$slug'
 
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OurWorkRoute = OurWorkRouteImport.update({
+  id: '/our-work',
+  path: '/our-work',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaveAReviewRoute = LeaveAReviewRouteImport.update({
+  id: '/leave-a-review',
+  path: '/leave-a-review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryRoute = GalleryRouteImport.update({
@@ -31,9 +52,19 @@ const GalleryRoute = GalleryRouteImport.update({
   path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommercialRoute = CommercialRouteImport.update({
+  id: '/commercial',
+  path: '/commercial',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -77,13 +108,24 @@ const ServicesConsumerUnitsRoute = ServicesConsumerUnitsRouteImport.update({
   path: '/services/consumer-units',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OurWorkSlugRoute = OurWorkSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => OurWorkRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/commercial': typeof CommercialRoute
   '/contact': typeof ContactRoute
+  '/faqs': typeof FaqsRoute
   '/gallery': typeof GalleryRoute
+  '/leave-a-review': typeof LeaveAReviewRoute
+  '/our-work': typeof OurWorkRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
+  '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -94,9 +136,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/commercial': typeof CommercialRoute
   '/contact': typeof ContactRoute
+  '/faqs': typeof FaqsRoute
   '/gallery': typeof GalleryRoute
+  '/leave-a-review': typeof LeaveAReviewRoute
+  '/our-work': typeof OurWorkRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
+  '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -108,9 +156,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/commercial': typeof CommercialRoute
   '/contact': typeof ContactRoute
+  '/faqs': typeof FaqsRoute
   '/gallery': typeof GalleryRoute
+  '/leave-a-review': typeof LeaveAReviewRoute
+  '/our-work': typeof OurWorkRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
+  '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
@@ -123,9 +177,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/commercial'
     | '/contact'
+    | '/faqs'
     | '/gallery'
+    | '/leave-a-review'
+    | '/our-work'
+    | '/privacy'
     | '/reviews'
+    | '/our-work/$slug'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -136,9 +196,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/commercial'
     | '/contact'
+    | '/faqs'
     | '/gallery'
+    | '/leave-a-review'
+    | '/our-work'
+    | '/privacy'
     | '/reviews'
+    | '/our-work/$slug'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -149,9 +215,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/commercial'
     | '/contact'
+    | '/faqs'
     | '/gallery'
+    | '/leave-a-review'
+    | '/our-work'
+    | '/privacy'
     | '/reviews'
+    | '/our-work/$slug'
     | '/services/consumer-units'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
@@ -163,8 +235,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  CommercialRoute: typeof CommercialRoute
   ContactRoute: typeof ContactRoute
+  FaqsRoute: typeof FaqsRoute
   GalleryRoute: typeof GalleryRoute
+  LeaveAReviewRoute: typeof LeaveAReviewRoute
+  OurWorkRoute: typeof OurWorkRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   ReviewsRoute: typeof ReviewsRoute
   ServicesConsumerUnitsRoute: typeof ServicesConsumerUnitsRoute
   ServicesEvChargersRoute: typeof ServicesEvChargersRoute
@@ -183,6 +260,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/our-work': {
+      id: '/our-work'
+      path: '/our-work'
+      fullPath: '/our-work'
+      preLoaderRoute: typeof OurWorkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leave-a-review': {
+      id: '/leave-a-review'
+      path: '/leave-a-review'
+      fullPath: '/leave-a-review'
+      preLoaderRoute: typeof LeaveAReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
@@ -190,11 +288,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commercial': {
+      id: '/commercial'
+      path: '/commercial'
+      fullPath: '/commercial'
+      preLoaderRoute: typeof CommercialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -253,14 +365,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesConsumerUnitsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/our-work/$slug': {
+      id: '/our-work/$slug'
+      path: '/$slug'
+      fullPath: '/our-work/$slug'
+      preLoaderRoute: typeof OurWorkSlugRouteImport
+      parentRoute: typeof OurWorkRoute
+    }
   }
 }
+
+interface OurWorkRouteChildren {
+  OurWorkSlugRoute: typeof OurWorkSlugRoute
+}
+
+const OurWorkRouteChildren: OurWorkRouteChildren = {
+  OurWorkSlugRoute: OurWorkSlugRoute,
+}
+
+const OurWorkRouteWithChildren =
+  OurWorkRoute._addFileChildren(OurWorkRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  CommercialRoute: CommercialRoute,
   ContactRoute: ContactRoute,
+  FaqsRoute: FaqsRoute,
   GalleryRoute: GalleryRoute,
+  LeaveAReviewRoute: LeaveAReviewRoute,
+  OurWorkRoute: OurWorkRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   ReviewsRoute: ReviewsRoute,
   ServicesConsumerUnitsRoute: ServicesConsumerUnitsRoute,
   ServicesEvChargersRoute: ServicesEvChargersRoute,
@@ -272,3 +407,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

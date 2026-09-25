@@ -11,10 +11,13 @@ export function Footer() {
           <div>
             <Logo className="h-16 w-auto" />
             <p className="mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-tight text-foreground/92">
-              Electrical work for homes, businesses and commercial premises across the West Midlands.
+              Electrical work for homes, businesses and commercial premises across the West
+              Midlands.
             </p>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              In the electrical industry since {SITE.industrySince}. Trading as Sperin Services since {SITE.founded}. Design, installation, inspection, testing, fault finding and remedial work handled with one clear point of contact.
+              In the electrical industry since {SITE.industrySince}. Trading as Sperin Services
+              since {SITE.founded}. Design, installation, inspection, testing, fault finding and
+              remedial work handled with one clear point of contact.
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
               {SITE.qualifications.map((item) => (
@@ -26,7 +29,9 @@ export function Footer() {
           </div>
 
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Services</h2>
+            <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
+              Services
+            </h2>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               {SERVICES.map((service) => (
                 <li key={service.slug}>
@@ -44,15 +49,26 @@ export function Footer() {
           </div>
 
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-electric">Talk to Sperin</h2>
+            <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
+              Talk to Sperin
+            </h2>
             <div className="mt-4 space-y-3 text-sm">
-              <a href={`tel:${SITE.phone}`} className="flex items-center gap-2 text-foreground/90 transition hover:text-electric">
+              <a
+                href={`tel:${SITE.phone}`}
+                className="flex items-center gap-2 text-foreground/90 transition hover:text-electric"
+              >
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
               </a>
-              <a href={`mailto:${SITE.email}`} className="flex items-center gap-2 break-all text-foreground/90 transition hover:text-electric">
+              <a
+                href={`mailto:${SITE.email}`}
+                className="flex items-center gap-2 break-all text-foreground/90 transition hover:text-electric"
+              >
                 <Mail className="h-4 w-4 shrink-0 text-electric" /> {SITE.email}
               </a>
-              <Link to="/contact" className="mt-5 inline-flex items-center gap-2 font-semibold text-electric">
+              <Link
+                to="/contact"
+                className="mt-5 inline-flex items-center gap-2 font-semibold text-electric"
+              >
                 Request a quote <ArrowUpRight className="h-4 w-4" />
               </Link>
             </div>
@@ -62,8 +78,12 @@ export function Footer() {
         <div className="rule mt-12 flex flex-col gap-3 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Sperin Services. All rights reserved.</span>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <Link to="/faqs" className="transition hover:text-foreground">FAQs</Link>
-            <Link to="/privacy" className="transition hover:text-foreground">Privacy</Link>
+            <Link to="/faqs" className="transition hover:text-foreground">
+              FAQs
+            </Link>
+            <Link to="/privacy" className="transition hover:text-foreground">
+              Privacy
+            </Link>
           </div>
         </div>
       </div>

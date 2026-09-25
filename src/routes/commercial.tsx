@@ -15,6 +15,7 @@ import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/commercial")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://sperinservices.co.uk/commercial" }],
     meta: [
       { title: "Commercial Electrician Birmingham & West Midlands | Sperin Services" },
       {
@@ -25,7 +26,8 @@ export const Route = createFileRoute("/commercial")({
       { property: "og:title", content: "Commercial Electrical | Sperin Services" },
       {
         property: "og:description",
-        content: "Electrical work for schools, offices, shops, landlords and small commercial premises across the West Midlands.",
+        content:
+          "Electrical work for schools, offices, shops, landlords and small commercial premises across the West Midlands.",
       },
     ],
   }),
@@ -77,7 +79,9 @@ function Commercial() {
               <span className="text-electric"> keep working.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Planned electrical work for schools, nurseries, offices, shops, landlords and small commercial premises — from testing and remedials to lighting, power, access control and refurbishment work.
+              Planned electrical work for schools, nurseries, offices, shops, landlords and small
+              commercial premises — from testing and remedials to lighting, power, access control
+              and refurbishment work.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
@@ -89,22 +93,24 @@ function Commercial() {
             </div>
           </div>
 
-          <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8">
-            <Building2 className="h-7 w-7 text-electric" />
-            <h2 className="mt-6 text-3xl font-bold">Commercial work starts with a clear scope.</h2>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              The useful information is the scope: what is being altered, what must remain operational, what other trades are doing, what documentation is needed and how the programme affects access. That is what a quotation should be built around.
-            </p>
-            <div className="rule mt-7 pt-6 text-sm font-semibold text-foreground/90">
-              Survey → scope → quotation → programme → installation → testing → handover
-            </div>
-          </aside>
+          <figure className="service-visual">
+            <img
+              src="/projects/rowley-park/rowley-park-overview.webp"
+              width="1120"
+              height="840"
+              fetchPriority="high"
+              alt="Completed early-years refurbishment at Rowley Park Primary Academy"
+            />
+            <figcaption>Completed Sperin Services project · Rowley Park Primary Academy</figcaption>
+          </figure>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
         <span className="eyebrow">Capability</span>
-        <h2 className="mt-4 max-w-3xl text-4xl font-bold sm:text-5xl">The work is broader than a list of domestic services.</h2>
+        <h2 className="mt-4 max-w-3xl text-4xl font-bold sm:text-5xl">
+          The work is broader than a list of domestic services.
+        </h2>
         <div className="mt-10 grid gap-x-10 gap-y-0 lg:grid-cols-2">
           {CAPABILITIES.map(({ icon: Icon, title, text }, index) => (
             <article key={title} className="rule grid grid-cols-[2.7rem_1fr] gap-4 py-6">
@@ -121,12 +127,52 @@ function Commercial() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
+        <div className="surface-raised overflow-hidden rounded-2xl md:grid md:grid-cols-[1.08fr_.92fr]">
+          <Link
+            to="/our-work/$slug"
+            params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+            className="group block overflow-hidden bg-black/20"
+            aria-label="View Rowley Park Primary Academy refurbishment"
+          >
+            <img
+              src="/projects/rowley-park/rowley-park-rest-area.webp"
+              alt="Completed rest area at Rowley Park Primary Academy"
+              width="900"
+              height="675"
+              loading="lazy"
+              className="aspect-[4/3] h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
+            />
+          </Link>
+          <div className="flex flex-col justify-center p-7 sm:p-9 lg:p-10">
+            <span className="eyebrow">Completed education project</span>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+              Rowley Park Primary Academy
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              A complete early-years refurbishment delivered as one coordinated project, including
+              structural alterations, full electrical installation, general and emergency lighting,
+              access control, flooring, decorating and carpentry.
+            </p>
+            <Link
+              to="/our-work/$slug"
+              params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+              className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-electric"
+            >
+              View the completed project <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         <div className="surface-raised rounded-2xl p-7 sm:p-10">
           <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr]">
             <div>
               <span className="eyebrow">Project information</span>
-              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">What helps produce a useful quotation.</h2>
+              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+                What helps produce a useful quotation.
+              </h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
@@ -139,7 +185,10 @@ function Commercial() {
                 "Any known fire alarm or access-control interfaces",
                 "Who is coordinating the other trades",
               ].map((item) => (
-                <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88">
+                <div
+                  key={item}
+                  className="flex items-start gap-3 text-sm leading-relaxed text-foreground/88"
+                >
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-electric" /> {item}
                 </div>
               ))}
@@ -148,7 +197,10 @@ function Commercial() {
         </div>
       </section>
 
-      <CTA title="Send the commercial scope, not just a one-line enquiry." subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful." />
+      <CTA
+        title="Send the commercial scope, not just a one-line enquiry."
+        subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful."
+      />
     </>
   );
 }
