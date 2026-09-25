@@ -45,7 +45,8 @@ function LeaveReview() {
         }),
       });
       const result = await response.json();
-      if (!response.ok || result.success === false) throw new Error("Delivery failed");
+      if (!response.ok || (result.success !== true && result.success !== "true"))
+        throw new Error("Delivery failed");
       setSent(true);
     } catch {
       setError("We could not send your review. Please try again or contact us directly.");

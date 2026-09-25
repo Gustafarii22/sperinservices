@@ -9,7 +9,6 @@ import {
   Phone,
   ShieldCheck,
   Wrench,
-  Zap,
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { illustrativeImages } from "@/lib/illustrative-images";
@@ -79,81 +78,58 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-14 pt-12 lg:px-8 lg:pb-22 lg:pt-20">
-        <div className="grid items-stretch gap-8 lg:grid-cols-[1.2fr_.8fr]">
-          <div className="py-3 lg:py-8">
-            <span className="eyebrow">Birmingham · West Midlands · Established 2010</span>
-            <h1 className="display-title mt-5 max-w-5xl text-[3.4rem] sm:text-7xl lg:text-[5.5rem]">
-              QUALITY YOU CAN SEE.
+      <section className="contractor-hero">
+        <div className="hero-copy">
+          <span className="eyebrow">Electrical contractor · Established 2010</span>
+          <h1 className="hero-title">
+            QUALITY
+            <br />
+            YOU CAN SEE.
+            <br />
+            <span>
+              SERVICE YOU
               <br />
-              <span className="text-electric">SERVICE YOU CAN TRUST.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Domestic and commercial electrical work across Birmingham and the West Midlands — from
-              rewires, consumer units and EV charging to testing, smart homes, kitchens and
-              bathrooms. 23 years of industry experience, with clear advice from first enquiry to
-              handover.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link to="/contact" className="button-primary">
-                Discuss a job <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a href={`tel:${SITE.phone}`} className="button-secondary">
-                <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
-              </a>
-              <a
-                href={`https://wa.me/${SITE.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[0.7rem] bg-[#128C4A] px-5 py-3 text-sm font-bold text-black transition hover:brightness-105"
-              >
-                <WhatsAppGlyph className="h-5 w-5" /> WhatsApp
-              </a>
-            </div>
+              CAN TRUST.
+            </span>
+          </h1>
+          <p className="hero-location">Birmingham &amp; West Midlands</p>
+          <p className="hero-intro">
+            Carefully planned electrical work for homes and commercial premises. From the first
+            conversation to installation, testing and handover — one clear point of contact.
+          </p>
+          <div className="hero-actions">
+            <Link to="/contact" className="button-primary">
+              Discuss a job <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a href={`tel:${SITE.phone}`} className="button-secondary">
+              <Phone className="h-4 w-4" /> {SITE.phoneDisplay}
+            </a>
           </div>
-
-          <aside
-            className="surface-raised relative isolate overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-9"
-            aria-label="Sperin Services capability summary"
+          <a
+            href={`https://wa.me/${SITE.whatsapp}`}
+            target="_blank"
+            rel="noreferrer"
+            className="whatsapp-utility"
           >
-            <img
-              src={`${illustrativeImages["EV Chargers"].url}?auto=format&fit=crop&w=800&q=78`}
-              width="800"
-              height="1000"
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55"
-            />
-            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#090d12]/95 via-[#090d12]/90 to-[#090d12]/55" />
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
-                  Electrical capability
-                </div>
-                <h2 className="mt-3 text-2xl font-bold">Built around real electrical work.</h2>
-              </div>
-              <Zap className="h-7 w-7 text-electric" aria-hidden="true" />
-            </div>
-
-            <dl className="mt-8 space-y-0">
-              {[
-                ["Industry experience", `Since ${SITE.industrySince}`],
-                ["Trading independently", `Since ${SITE.founded}`],
-                ["Inspection & testing", "City & Guilds 2391"],
-                ["Wiring regulations", "18th Edition"],
-                ["Project types", "Domestic · Commercial · Light industrial"],
-              ].map(([term, value]) => (
-                <div
-                  key={term}
-                  className="rule grid grid-cols-[1fr_auto] gap-5 py-4 first:border-t-0 first:pt-0"
-                >
-                  <dt className="text-sm text-muted-foreground">{term}</dt>
-                  <dd className="text-right text-sm font-semibold text-foreground/95">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </aside>
+            <WhatsAppGlyph className="h-4 w-4" /> Prefer WhatsApp? Send your job details
+          </a>
+        </div>
+        <figure className="hero-photograph">
+          <img
+            src={`${illustrativeImages["Testing & Certification"].url}?auto=compress&cs=tinysrgb&w=1400`}
+            width="1400"
+            height="1000"
+            fetchPriority="high"
+            alt={illustrativeImages["Testing & Certification"].alt}
+          />
+          <figcaption>
+            <span>Precision in the detail.</span>
+            <small>Illustrative photograph · not a Sperin Services project</small>
+          </figcaption>
+        </figure>
+        <div className="hero-footnote">
+          <span>Domestic / Commercial / Light industrial</span>
+          <span>Survey · Installation · Inspection &amp; testing</span>
         </div>
       </section>
 
@@ -186,7 +162,8 @@ function Home() {
           <div>
             <span className="eyebrow">Choose the right route</span>
             <h2 className="mt-4 text-4xl font-bold sm:text-5xl">
-              Not every job needs the same process.
+              The same care.
+              <br />A different brief.
             </h2>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
               Domestic work needs care around the property and a clear finish. Commercial work needs
@@ -197,7 +174,7 @@ function Home() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Link to="/contact" className="surface-raised group rounded-2xl p-6 sm:p-7">
+            <Link to="/contact" className="sector-link group p-6 sm:p-7">
               <HomeIcon className="h-6 w-6 text-electric" />
               <div className="mt-10 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 For homeowners & landlords
@@ -213,7 +190,7 @@ function Home() {
               </span>
             </Link>
 
-            <Link to="/commercial" className="surface-raised group rounded-2xl p-6 sm:p-7">
+            <Link to="/commercial" className="sector-link group p-6 sm:p-7">
               <Building2 className="h-6 w-6 text-electric" />
               <div className="mt-10 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 For businesses & premises
@@ -243,29 +220,46 @@ function Home() {
           </p>
         </div>
 
-        <div>
+        <div className="service-index">
           {SERVICES.map((service, index) => (
-            <Link
-              key={service.slug}
-              to={service.path}
-              className="group grid gap-3 border-b border-white/10 py-5 transition hover:bg-white/[0.018] sm:grid-cols-[4rem_1fr_1fr_auto] sm:items-center sm:px-2"
-            >
+            <Link key={service.slug} to={service.path} className="service-row group">
               <span className="font-mono text-xs text-electric">0{index + 1}</span>
-              <h3 className="text-xl font-bold sm:text-2xl">{service.title}</h3>
-              <p className="text-sm text-muted-foreground">{service.short}</p>
+              <div>
+                <h3>{service.title}</h3>
+                <p className="service-scope">{service.short}</p>
+              </div>
+              {["testing", "ev-chargers", "kitchens-bathrooms"].includes(service.slug) ? (
+                <img
+                  src={`${illustrativeImages[service.slug === "testing" ? "Testing & Certification" : service.slug === "ev-chargers" ? "EV Chargers" : "Kitchens & Bathrooms"].url}?auto=format&fit=crop&w=480&q=78`}
+                  width="240"
+                  height="130"
+                  loading="lazy"
+                  alt="Illustrative service detail, not a Sperin Services project"
+                />
+              ) : (
+                <span className="service-detail">
+                  {service.slug === "rewires"
+                    ? "01 / Installation"
+                    : service.slug === "consumer-units"
+                      ? "02 / Protection"
+                      : "05 / Control"}
+                </span>
+              )}
               <ArrowRight className="hidden h-5 w-5 text-electric transition group-hover:translate-x-1 sm:block" />
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl section-pad px-4 lg:px-8">
-        <div className="surface-raised overflow-hidden rounded-2xl">
+      <section className="commercial-feature section-pad">
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
           <div className="grid lg:grid-cols-[1.05fr_.95fr]">
             <div className="p-7 sm:p-10 lg:p-12">
               <span className="eyebrow">Commercial capability</span>
               <h2 className="mt-4 text-4xl font-bold sm:text-5xl">
-                Built for more than domestic call-outs.
+                Powering places.
+                <br />
+                Keeping work moving.
               </h2>
               <p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Sperin Services also takes on planned work for schools, nurseries, offices, shops,
@@ -276,7 +270,17 @@ function Home() {
                 Commercial services <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="technical-grid border-t border-white/10 p-7 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
+            <div className="commercial-photo-detail">
+              <figure>
+                <img
+                  src={`${illustrativeImages["Commercial electrical"].url}?auto=compress&cs=tinysrgb&w=1000`}
+                  width="1000"
+                  height="650"
+                  loading="lazy"
+                  alt={illustrativeImages["Commercial electrical"].alt}
+                />
+                <figcaption>Illustrative photograph · not a Sperin Services project</figcaption>
+              </figure>
               <div className="space-y-4">
                 {[
                   "Commercial EICRs and remedial works",
@@ -293,6 +297,26 @@ function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="contractor-introduction mx-auto max-w-7xl px-4 lg:px-8">
+        <div>
+          <span className="eyebrow">The electrician behind Sperin</span>
+          <h2>
+            Experienced hands.
+            <br />A familiar voice.
+          </h2>
+        </div>
+        <div>
+          <p>
+            “I’m Gus. I’ve worked in the electrical industry since 2003 and independently since
+            2010. You deal with one clear point of contact, with practical advice and the job
+            explained from the outset.”
+          </p>
+          <Link to="/about" className="editorial-link">
+            Meet your electrician <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 

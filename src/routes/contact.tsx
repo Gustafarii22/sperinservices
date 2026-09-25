@@ -100,7 +100,8 @@ function Contact() {
         }),
       });
       const result = await response.json();
-      if (!response.ok || result.success === false) throw new Error("Submission failed");
+      if (!response.ok || (result.success !== true && result.success !== "true"))
+        throw new Error("Submission failed");
       setSent(true);
       setForm(initialForm);
     } catch {

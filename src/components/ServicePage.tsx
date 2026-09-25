@@ -38,68 +38,56 @@ export function ServicePage(p: ServicePageProps) {
             </div>
           </div>
 
-          <aside
-            className="surface-raised technical-grid rounded-2xl p-6 sm:p-8"
-            aria-label="Service standards"
-          >
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
-              Sperin standard
-            </div>
-            <div className="mt-8 space-y-6">
-              {[
-                [
-                  "01",
-                  "Plan",
-                  "Understand the existing installation, the required result and any constraints before work starts.",
-                ],
-                [
-                  "02",
-                  "Install",
-                  "Use sensible routes, appropriate protection and a finish that suits the property.",
-                ],
-                [
-                  "03",
-                  "Test",
-                  "Inspect and test the work, then provide the appropriate documentation for the job.",
-                ],
-              ].map(([number, title, text]) => (
-                <div
-                  key={number}
-                  className="rule grid grid-cols-[3rem_1fr] gap-4 pt-5 first:border-t-0 first:pt-0"
-                >
-                  <div className="font-mono text-sm text-electric">{number}</div>
-                  <div>
-                    <h2 className="text-lg font-bold">{title}</h2>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+          {illustration ? (
+            <figure className="service-visual">
+              <img
+                src={`${illustration.url}?auto=format&fit=crop&w=1000&q=80`}
+                width="1000"
+                height="900"
+                fetchPriority="high"
+                alt={illustration.alt}
+              />
+              <figcaption>Illustrative photograph · not a Sperin Services project</figcaption>
+            </figure>
+          ) : (
+            <aside className="service-standards p-6 sm:p-8" aria-label="Service standards">
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
+                Sperin standard
+              </div>
+              <div className="mt-8 space-y-6">
+                {[
+                  [
+                    "01",
+                    "Plan",
+                    "Understand the existing installation, the required result and any constraints before work starts.",
+                  ],
+                  [
+                    "02",
+                    "Install",
+                    "Use sensible routes, appropriate protection and a finish that suits the property.",
+                  ],
+                  [
+                    "03",
+                    "Test",
+                    "Inspect and test the work, then provide the appropriate documentation for the job.",
+                  ],
+                ].map(([number, title, text]) => (
+                  <div
+                    key={number}
+                    className="rule grid grid-cols-[3rem_1fr] gap-4 pt-5 first:border-t-0 first:pt-0"
+                  >
+                    <div className="font-mono text-sm text-electric">{number}</div>
+                    <div>
+                      <h2 className="text-lg font-bold">{title}</h2>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </aside>
+                ))}
+              </div>
+            </aside>
+          )}
         </div>
       </section>
-
-      {illustration && (
-        <figure className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="relative overflow-hidden rounded-2xl">
-            <img
-              src={`${illustration.url}?auto=format&fit=crop&w=1200&q=78`}
-              srcSet={`${illustration.url}?auto=format&fit=crop&w=640&q=75 640w, ${illustration.url}?auto=format&fit=crop&w=1200&q=78 1200w, ${illustration.url}?auto=format&fit=crop&w=1800&q=80 1800w`}
-              sizes="(max-width: 768px) 100vw, 1200px"
-              width="1200"
-              height="600"
-              loading="lazy"
-              decoding="async"
-              alt={illustration.alt}
-              className="aspect-[16/9] max-h-[540px] w-full object-cover lg:aspect-[2/1]"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#090d12]/70 via-transparent to-transparent" />
-          </div>
-          <figcaption className="mt-2 text-xs text-muted-foreground">
-            Illustrative photograph · not a Sperin Services project
-          </figcaption>
-        </figure>
-      )}
 
       {p.title === "Kitchens & Bathrooms" && (
         <figure className="mx-auto max-w-7xl px-4 pt-8 lg:px-8">
@@ -110,7 +98,7 @@ export function ServicePage(p: ServicePageProps) {
             loading="lazy"
             decoding="async"
             alt={illustrativeImages["Bathroom detail"].alt}
-            className="max-h-[500px] w-full rounded-2xl object-cover"
+            className="max-h-[500px] w-full rounded-sm object-cover"
           />
           <figcaption className="mt-2 text-xs text-muted-foreground">
             Illustrative photograph · not a Sperin Services project

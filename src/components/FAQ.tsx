@@ -3,7 +3,13 @@ import { Plus, Minus } from "lucide-react";
 
 export type FAQItem = { q: string; a: string };
 
-export function FAQ({ items, title = "Frequently Asked Questions" }: { items: FAQItem[]; title?: string }) {
+export function FAQ({
+  items,
+  title = "Frequently Asked Questions",
+}: {
+  items: FAQItem[];
+  title?: string;
+}) {
   return (
     <section className="mx-auto max-w-4xl px-4 lg:px-8 my-20">
       <h2 className="text-3xl sm:text-4xl font-bold text-center">

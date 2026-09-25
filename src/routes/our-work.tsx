@@ -24,11 +24,11 @@ function OurWork() {
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pt-18">
         <span className="eyebrow">Real work</span>
         <h1 className="display-title mt-5 text-5xl sm:text-6xl lg:text-7xl">
-          The work speaks for itself.
+          Electrical work, in detail.
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
-          This gallery is reserved for genuine Sperin Services projects. No stock jobs and no
-          AI-generated installations will be presented as our work.
+          A closer look at Sperin Services projects, from the first fix to the finished
+          installation.
         </p>
       </section>
       <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
@@ -52,11 +52,11 @@ function OurWork() {
         {projects.length === 0 ? (
           <div className="surface-raised rounded-2xl p-8 sm:p-12">
             <Camera className="h-8 w-8 text-electric" />
-            <h2 className="mt-5 text-3xl font-bold">Real project photography coming next.</h2>
+            <h2 className="mt-5 text-3xl font-bold">Project photographs are on their way.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              The project system is ready for genuine before, during and after photographs, service
-              category, general location and project notes. Until those photographs are supplied, we
-              will not pretend stock imagery is completed work.
+              We’re preparing photographs and notes from our own installations. Every project shown
+              here will be genuine Sperin Services work. In the meantime, talk to Gus about the work
+              you need.
             </p>
             <Link to="/contact" className="button-primary mt-7">
               Discuss your project <ArrowRight className="h-4 w-4" />

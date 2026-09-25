@@ -30,11 +30,11 @@ function About() {
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pb-16 lg:pt-18">
         <div className="grid gap-10 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
           <div>
-            <span className="eyebrow">The business behind the website</span>
+            <span className="eyebrow">Gus Sperin · Your electrician</span>
             <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-              A real electrical business,
+              Experience on the tools,
               <br />
-              <span className="text-electric">built around one point of contact.</span>
+              <span className="text-electric">one point of contact.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               I’m Gus, the electrician behind Sperin Services. I started in the electrical industry

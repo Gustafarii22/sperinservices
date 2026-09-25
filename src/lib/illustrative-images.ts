@@ -1,5 +1,9 @@
 /** Verified real illustrative photographs; these are not Sperin Services projects. */
 export const illustrativeImages: Record<string, { url: string; alt: string }> = {
+  "Testing & Certification": {
+    url: "https://images.pexels.com/photos/14319099/pexels-photo-14319099.jpeg",
+    alt: "Gloved hands using a multimeter at an industrial electrical panel; illustrative photograph",
+  },
   "EV Chargers": {
     url: "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b",
     alt: "Electric vehicle charging connector plugged into a car; illustrative photograph",
