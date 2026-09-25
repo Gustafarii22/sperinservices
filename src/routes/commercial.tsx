@@ -1,4 +1,3 @@
-import { illustrativeImages } from "@/lib/illustrative-images";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -96,13 +95,13 @@ function Commercial() {
 
           <figure className="service-visual">
             <img
-              src={`${illustrativeImages["Commercial electrical"].url}?auto=compress&cs=tinysrgb&w=1000`}
-              width="1000"
-              height="1000"
+              src="/projects/rowley-park/rowley-park-overview.webp"
+              width="1120"
+              height="840"
               fetchPriority="high"
-              alt={illustrativeImages["Commercial electrical"].alt}
+              alt="Completed early-years refurbishment at Rowley Park Primary Academy"
             />
-            <figcaption>Illustrative photograph · not a Sperin Services project</figcaption>
+            <figcaption>Completed Sperin Services project · Rowley Park Primary Academy</figcaption>
           </figure>
         </div>
       </section>
@@ -125,6 +124,44 @@ function Commercial() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
+        <div className="surface-raised overflow-hidden rounded-2xl md:grid md:grid-cols-[1.08fr_.92fr]">
+          <Link
+            to="/our-work/$slug"
+            params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+            className="group block overflow-hidden bg-black/20"
+            aria-label="View Rowley Park Primary Academy refurbishment"
+          >
+            <img
+              src="/projects/rowley-park/rowley-park-rest-area.webp"
+              alt="Completed rest area at Rowley Park Primary Academy"
+              width="900"
+              height="675"
+              loading="lazy"
+              className="aspect-[4/3] h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
+            />
+          </Link>
+          <div className="flex flex-col justify-center p-7 sm:p-9 lg:p-10">
+            <span className="eyebrow">Completed education project</span>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+              Rowley Park Primary Academy
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              A complete early-years refurbishment delivered as one coordinated project, including
+              structural alterations, full electrical installation, general and emergency lighting,
+              access control, flooring, decorating and carpentry.
+            </p>
+            <Link
+              to="/our-work/$slug"
+              params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+              className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-electric"
+            >
+              View the completed project <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
