@@ -11,7 +11,7 @@ export const Route = createFileRoute("/our-work")({
       {
         name: "description",
         content:
-          "Genuine Sperin Services electrical, commercial and refurbishment projects across Birmingham and the West Midlands.",
+          "Genuine Sperin Services electrical, commercial and refurbishment projects across the Midlands.",
       },
     ],
   }),
