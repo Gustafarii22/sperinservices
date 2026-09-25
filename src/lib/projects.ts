@@ -19,35 +19,45 @@ export type Project = {
 
 export const projects: Project[] = [
   {
-    slug: "nursery-refurbishment-west-midlands",
-    title: "Nursery Refurbishment & Electrical Installation",
+    slug: "rowley-park-primary-academy-refurbishment",
+    title: "Rowley Park Primary Academy — Early Years Refurbishment",
     service: "Commercial",
-    area: "West Midlands",
+    area: "Stafford",
     date: "2026",
     summary:
-      "A complete nursery refurbishment covering the electrical installation, lighting, access control, flooring, decorating, carpentry and alterations to the space.",
+      "A complete refurbishment of the academy's early-years area, delivered as one coordinated project covering structural alterations, the full electrical installation, lighting, access control, flooring, decorating and carpentry.",
     description:
-      "Sperin Services took on the wider refurbishment of an existing nursery area, with the project covering alterations to walls and ceilings, a full electrical installation for the refurbished space, new lighting and emergency lighting, access control and emergency door-release equipment, power and controls, flooring, decorating and carpentry. The result is a brighter, practical space finished as one coordinated project rather than a collection of separate trades.",
-    cover: "/projects/nursery-refurbishment/nursery-overview.webp",
+      "Sperin Services delivered the refurbishment of an early-years area at Rowley Park Primary Academy in Stafford. The existing space was stripped back and reconfigured, with alterations to walls and ceilings followed by a full electrical installation for the refurbished area. The works also included general and emergency lighting, distribution and power, access-control and emergency door-release equipment, flooring, decorating, carpentry and final finishing. Managing the work as one coordinated project helped keep the electrical installation, building alterations and finished environment working together from the outset.",
+    cover: "/projects/rowley-park/rowley-park-overview.webp",
     photos: [
       {
-        src: "/projects/nursery-refurbishment/nursery-overview.webp",
-        alt: "Completed nursery refurbishment with new lighting, flooring and electrical installation",
+        src: "/projects/rowley-park/rowley-park-overview.webp",
+        alt: "Completed early-years refurbishment at Rowley Park Primary Academy",
         stage: "after",
       },
       {
-        src: "/projects/nursery-refurbishment/staff-kitchen.webp",
-        alt: "Completed kitchen and staff area within the nursery refurbishment",
+        src: "/projects/rowley-park/rowley-park-kitchen.webp",
+        alt: "Completed kitchen and preparation area with new lighting and electrical installation",
         stage: "after",
       },
       {
-        src: "/projects/nursery-refurbishment/distribution-board.webp",
-        alt: "Labelled distribution board serving the refurbished nursery area",
+        src: "/projects/rowley-park/rowley-park-board.webp",
+        alt: "Consumer unit and circuit protection serving the refurbished area",
         stage: "after",
       },
       {
-        src: "/projects/nursery-refurbishment/access-control.webp",
-        alt: "Access control, video entry and emergency door-release installation",
+        src: "/projects/rowley-park/rowley-park-access-control.webp",
+        alt: "Access-control reader and emergency door-release equipment",
+        stage: "after",
+      },
+      {
+        src: "/projects/rowley-park/rowley-park-rest-area.webp",
+        alt: "Completed rest area with general and emergency lighting",
+        stage: "after",
+      },
+      {
+        src: "/projects/rowley-park/rowley-park-entrance.webp",
+        alt: "Completed entrance area with lighting and door-access equipment",
         stage: "after",
       },
     ],
@@ -56,11 +66,11 @@ export const projects: Project[] = [
       "Full electrical installation for the refurbished area",
       "General lighting and emergency lighting",
       "Distribution, power and controls",
-      "Access control, video entry and emergency door release",
+      "Access control and emergency door release",
       "Flooring",
       "Decorating",
       "Carpentry and finishing work",
-      "Testing and handover",
+      "Inspection, testing and handover",
     ],
     relatedService: "/commercial",
     featured: true,
