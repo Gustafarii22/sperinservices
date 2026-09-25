@@ -706,3 +706,25 @@ main h1 {
     display: flex;
   }
 }
+
+.display-title .text-electric {
+  color: #bdc6cb;
+}
+.hero-title {
+  font-family: Manrope, sans-serif;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .contractor-hero {
+    padding-inline: 28px;
+    gap: 24px;
+  }
+  .hero-title {
+    font-size: 3.2rem;
+  }
+  .hero-actions {
+    flex-direction: column;
+  }
+  .hero-footnote {
+    font-size: 8px;
+  }
+}

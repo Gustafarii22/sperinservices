@@ -32,7 +32,7 @@ function Reviews() {
           <div>
             <span className="eyebrow">Customer reviews</span>
             <h1 className="display-title mt-5 text-5xl sm:text-6xl lg:text-7xl">
-              Real feedback. No filler.
+              Your experience matters.
             </h1>
             <p className="mt-5 max-w-2xl text-muted-foreground">
               Only genuine, approved customer reviews will appear here. New submissions are held for
@@ -44,11 +44,10 @@ function Reviews() {
           </div>
           <aside className="surface-raised rounded-2xl p-7">
             <ShieldCheck className="h-7 w-7 text-electric" />
-            <h2 className="mt-5 text-2xl font-bold">Built for trustworthy feedback.</h2>
+            <h2 className="mt-5 text-2xl font-bold">Feedback from the people we work for.</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              The review system is structured for customer name, broad area, service, rating, job
-              reference and moderation status. Ratings and totals are calculated only from published
-              reviews.
+              We check each submission against the work completed before publishing it. Ratings and
+              totals are based only on genuine, approved reviews.
             </p>
           </aside>
         </div>
@@ -59,8 +58,8 @@ function Reviews() {
             <MessageSquareQuote className="mx-auto h-8 w-8 text-electric" />
             <h2 className="mt-5 text-3xl font-bold">The review book starts with real customers.</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              There are no placeholder testimonials here. Once approved reviews are connected to the
-              secure database, they will populate this page automatically.
+              Customer feedback will appear here after it has been checked and approved. Had work
+              completed by Sperin Services? We’d welcome your experience.
             </p>
             <Link to="/leave-a-review" className="button-secondary mt-6">
               Be the first to leave feedback

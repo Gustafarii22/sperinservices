@@ -94,18 +94,16 @@ function Commercial() {
             </div>
           </div>
 
-          <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8">
-            <Building2 className="h-7 w-7 text-electric" />
-            <h2 className="mt-6 text-3xl font-bold">Commercial work starts with a clear scope.</h2>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              The useful information is the scope: what is being altered, what must remain
-              operational, what other trades are doing, what documentation is needed and how the
-              programme affects access. That is what a quotation should be built around.
-            </p>
-            <div className="rule mt-7 pt-6 text-sm font-semibold text-foreground/90">
-              Survey → scope → quotation → programme → installation → testing → handover
-            </div>
-          </aside>
+          <figure className="service-visual">
+            <img
+              src={`${illustrativeImages["Commercial electrical"].url}?auto=compress&cs=tinysrgb&w=1000`}
+              width="1000"
+              height="1000"
+              fetchPriority="high"
+              alt={illustrativeImages["Commercial electrical"].alt}
+            />
+            <figcaption>Illustrative photograph · not a Sperin Services project</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -162,20 +160,6 @@ function Commercial() {
         </div>
       </section>
 
-      <figure className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <img
-          src={`${illustrativeImages["Commercial electrical"].url}?auto=compress&cs=tinysrgb&w=1200`}
-          width="1200"
-          height="650"
-          loading="lazy"
-          decoding="async"
-          alt={illustrativeImages["Commercial electrical"].alt}
-          className="max-h-[500px] w-full rounded-2xl object-cover"
-        />
-        <figcaption className="mt-2 text-xs text-muted-foreground">
-          Illustrative photograph · not a Sperin Services project
-        </figcaption>
-      </figure>
       <CTA
         title="Send the commercial scope, not just a one-line enquiry."
         subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful."
