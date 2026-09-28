@@ -19,6 +19,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OurWorkIndexRouteImport } from './routes/our-work.index'
 import { Route as ServicesTestingRouteImport } from './routes/services.testing'
 import { Route as ServicesSmartHomeRouteImport } from './routes/services.smart-home'
 import { Route as ServicesRewiresRouteImport } from './routes/services.rewires'
@@ -77,6 +78,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OurWorkIndexRoute = OurWorkIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OurWorkRoute,
+} as any)
 const ServicesTestingRoute = ServicesTestingRouteImport.update({
   id: '/services/testing',
   path: '/services/testing',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/services/rewires': typeof ServicesRewiresRoute
   '/services/smart-home': typeof ServicesSmartHomeRoute
   '/services/testing': typeof ServicesTestingRoute
+  '/our-work/': typeof OurWorkIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,7 +148,6 @@ export interface FileRoutesByTo {
   '/faqs': typeof FaqsRoute
   '/gallery': typeof GalleryRoute
   '/leave-a-review': typeof LeaveAReviewRoute
-  '/our-work': typeof OurWorkRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
@@ -151,6 +157,7 @@ export interface FileRoutesByTo {
   '/services/rewires': typeof ServicesRewiresRoute
   '/services/smart-home': typeof ServicesSmartHomeRoute
   '/services/testing': typeof ServicesTestingRoute
+  '/our-work': typeof OurWorkIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,6 +178,7 @@ export interface FileRoutesById {
   '/services/rewires': typeof ServicesRewiresRoute
   '/services/smart-home': typeof ServicesSmartHomeRoute
   '/services/testing': typeof ServicesTestingRoute
+  '/our-work/': typeof OurWorkIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,6 +200,7 @@ export interface FileRouteTypes {
     | '/services/rewires'
     | '/services/smart-home'
     | '/services/testing'
+    | '/our-work/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,7 +210,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/gallery'
     | '/leave-a-review'
-    | '/our-work'
     | '/privacy'
     | '/reviews'
     | '/our-work/$slug'
@@ -211,6 +219,7 @@ export interface FileRouteTypes {
     | '/services/rewires'
     | '/services/smart-home'
     | '/services/testing'
+    | '/our-work'
   id:
     | '__root__'
     | '/'
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/services/rewires'
     | '/services/smart-home'
     | '/services/testing'
+    | '/our-work/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -323,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/our-work/': {
+      id: '/our-work/'
+      path: '/'
+      fullPath: '/our-work/'
+      preLoaderRoute: typeof OurWorkIndexRouteImport
+      parentRoute: typeof OurWorkRoute
+    }
     '/services/testing': {
       id: '/services/testing'
       path: '/services/testing'
@@ -377,10 +394,12 @@ declare module '@tanstack/react-router' {
 
 interface OurWorkRouteChildren {
   OurWorkSlugRoute: typeof OurWorkSlugRoute
+  OurWorkIndexRoute: typeof OurWorkIndexRoute
 }
 
 const OurWorkRouteChildren: OurWorkRouteChildren = {
   OurWorkSlugRoute: OurWorkSlugRoute,
+  OurWorkIndexRoute: OurWorkIndexRoute,
 }
 
 const OurWorkRouteWithChildren =

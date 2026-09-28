@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Check, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { projects, type ProjectPhoto } from "@/lib/projects";
 
 export const Route = createFileRoute("/our-work/$slug")({
@@ -32,22 +33,14 @@ export const Route = createFileRoute("/our-work/$slug")({
 function ProjectPage() {
   const project = Route.useLoaderData();
   const [active, setActive] = useState<ProjectPhoto | null>(null);
+  const photoTrigger = useRef<HTMLButtonElement | null>(null);
   const related = projects
     .filter((p) => p.slug !== project.slug && p.service === project.service)
     .slice(0, 3);
   const gallery = project.photos.slice(1);
 
-  useEffect(() => {
-    if (!active) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setActive(null);
-    };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [active]);
-
   return (
-    <main>
+    <>
       <section className="mx-auto max-w-7xl px-4 pb-8 pt-12 lg:px-8 lg:pt-18">
         <Link to="/our-work" className="text-sm font-semibold text-electric">
           ← All completed projects
@@ -66,7 +59,10 @@ function ProjectPage() {
       <section className="mx-auto max-w-7xl px-4 lg:px-8">
         <button
           type="button"
-          onClick={() => setActive(project.photos[0])}
+          onClick={(event) => {
+            photoTrigger.current = event.currentTarget;
+            setActive(project.photos[0]);
+          }}
           className="group block w-full overflow-hidden rounded-2xl bg-black/20 text-left"
         >
           <img
@@ -108,14 +104,19 @@ function ProjectPage() {
         <section className="mx-auto max-w-7xl px-4 pb-8 lg:px-8 lg:pb-14">
           <div className="border-b border-white/10 pb-6">
             <span className="eyebrow">Finished details</span>
-            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">A few details from the completed job.</h2>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+              A few details from the completed job.
+            </h2>
           </div>
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {gallery.map((photo) => (
               <button
                 type="button"
                 key={photo.src}
-                onClick={() => setActive(photo)}
+                onClick={(event) => {
+                  photoTrigger.current = event.currentTarget;
+                  setActive(photo);
+                }}
                 className="group overflow-hidden rounded-xl bg-black/20 text-left"
               >
                 <img
@@ -178,30 +179,33 @@ function ProjectPage() {
         </section>
       )}
 
-      {active && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Project photograph"
-          onClick={() => setActive(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-5"
+      <Dialog
+        open={Boolean(active)}
+        onOpenChange={(open) => {
+          if (!open) setActive(null);
+        }}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            photoTrigger.current?.focus();
+          }}
+          className="max-w-5xl border-white/15 bg-background p-4 pt-12"
         >
-          <button
-            type="button"
-            aria-label="Close photograph"
-            className="absolute right-5 top-5 rounded-full border border-white/20 bg-black/50 p-2 text-white"
-            onClick={() => setActive(null)}
-          >
-            <X className="h-6 w-6" />
-          </button>
-          <img
-            src={active.src}
-            alt={active.alt}
-            className="max-h-[88vh] max-w-full object-contain"
-            onClick={(event) => event.stopPropagation()}
-          />
-        </div>
-      )}
-    </main>
+          <DialogTitle className="sr-only">Project photograph</DialogTitle>
+          {active && (
+            <figure>
+              <img
+                src={active.src}
+                alt={active.alt}
+                className="mx-auto max-h-[72dvh] max-w-full object-contain"
+              />
+              <figcaption className="mt-4 text-sm text-muted-foreground">{active.alt}</figcaption>
+            </figure>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

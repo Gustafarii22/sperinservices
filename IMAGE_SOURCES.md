@@ -20,3 +20,9 @@ Existing JPEG assets in `src/assets` have no photographer, original URL, or lice
 Art direction: retained the documented EV, kitchen, bathroom and commercial interior photographs. Removed the EV photo from the hero; added electrical testing detail. Keep natural image colour; no AI imagery. No unverified legacy JPEG is used. UK plastic-board candidates were rejected because they did not depict a modern metal consumer-unit upgrade. Consumer-unit and rewire pages retain typography-led service standards until suitable current, licensed work imagery is available.
 
 Display typeface: Manrope variable Latin, self-hosted from @fontsource-variable/manrope 5.3.0; SIL Open Font License 1.1 included at public/fonts/Manrope-LICENSE.txt. This is a font, not project photography.
+
+## Genuine Sperin Services project photographs
+
+The Rowley Park Primary Academy images in `public/projects/rowley-park/` were supplied as genuine Sperin Services work and added to this branch in commit `1b1baed`. They are used only for that Stafford refurbishment case study, the Our Work archive and its commercial-page feature. They are not stock photographs. Photographer credit was not supplied; these are project-owner-supplied assets, not offered under an external stock licence. The earlier nursery assets are retained in the repository but are not used to imply a separate completed project.
+
+The supplied Rowley Park images are small (the overview is 420 × 315). Original-resolution files would improve large-screen project presentation; the existing files are not enlarged for the homepage hero.

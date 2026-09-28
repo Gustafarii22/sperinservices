@@ -3,7 +3,7 @@ import { ArrowRight, Camera } from "lucide-react";
 import { useState } from "react";
 import { projects, projectCategories } from "@/lib/projects";
 
-export const Route = createFileRoute("/our-work")({
+export const Route = createFileRoute("/our-work/")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/our-work" }],
     meta: [
@@ -30,8 +30,8 @@ function OurWork() {
           Real work, shown properly.
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
-          A closer look at genuine Sperin Services projects — electrical installations,
-          commercial work and wider refurbishments, with the actual scope and finished result.
+          A closer look at genuine Sperin Services projects — electrical installations, commercial
+          work and wider refurbishments, with the actual scope and finished result.
         </p>
       </section>
 
@@ -116,7 +116,8 @@ function OurWork() {
                     params={{ slug: project.slug }}
                     className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-electric"
                   >
-                    View project <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                    View project{" "}
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                   </Link>
                 </div>
               </article>

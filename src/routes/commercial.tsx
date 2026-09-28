@@ -146,9 +146,7 @@ function Commercial() {
           </Link>
           <div className="flex flex-col justify-center p-7 sm:p-9 lg:p-10">
             <span className="eyebrow">Completed education project</span>
-            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
-              Rowley Park Primary Academy
-            </h2>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Rowley Park Primary Academy</h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               A complete early-years refurbishment delivered as one coordinated project, including
               structural alterations, full electrical installation, general and emergency lighting,
