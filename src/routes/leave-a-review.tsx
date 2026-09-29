@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FormEvent, useState, useRef } from "react";
+import { FormEvent, useState, useRef, useEffect } from "react";
 import { CheckCircle2, Star } from "lucide-react";
 import {
   GOOGLE_REVIEW_URL,
@@ -24,10 +24,17 @@ export const Route = createFileRoute("/leave-a-review")({
 
 function LeaveReview() {
   const requestId = useRef("");
+  const confirmation = useRef<HTMLHeadingElement>(null);
   const [rating, setRating] = useState(0);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (sent) {
+      confirmation.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [sent]);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!rating) return;
@@ -74,7 +81,9 @@ function LeaveReview() {
     return (
       <section className="mx-auto max-w-2xl px-4 py-20 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-electric" />
-        <h1 className="mt-5 text-4xl font-bold">Thank you.</h1>
+        <h1 ref={confirmation} tabIndex={-1} className="mt-5 text-4xl font-bold">
+          Thank you.
+        </h1>
         <p className="mt-3 text-muted-foreground">
           Your review has been saved and is awaiting approval. It will only appear publicly after
           Gus has checked it.
