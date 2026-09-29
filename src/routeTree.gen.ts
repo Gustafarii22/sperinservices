@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OwnerReviewsRouteImport } from './routes/owner-reviews'
 import { Route as OurWorkRouteImport } from './routes/our-work'
 import { Route as LeaveAReviewRouteImport } from './routes/leave-a-review'
 import { Route as GalleryRouteImport } from './routes/gallery'
@@ -36,6 +37,11 @@ const ReviewsRoute = ReviewsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerReviewsRoute = OwnerReviewsRouteImport.update({
+  id: '/owner-reviews',
+  path: '/owner-reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OurWorkRoute = OurWorkRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/leave-a-review': typeof LeaveAReviewRoute
   '/our-work': typeof OurWorkRouteWithChildren
+  '/owner-reviews': typeof OwnerReviewsRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/faqs': typeof FaqsRoute
   '/gallery': typeof GalleryRoute
   '/leave-a-review': typeof LeaveAReviewRoute
+  '/owner-reviews': typeof OwnerReviewsRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/leave-a-review': typeof LeaveAReviewRoute
   '/our-work': typeof OurWorkRouteWithChildren
+  '/owner-reviews': typeof OwnerReviewsRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/leave-a-review'
     | '/our-work'
+    | '/owner-reviews'
     | '/privacy'
     | '/reviews'
     | '/our-work/$slug'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/gallery'
     | '/leave-a-review'
+    | '/owner-reviews'
     | '/privacy'
     | '/reviews'
     | '/our-work/$slug'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/leave-a-review'
     | '/our-work'
+    | '/owner-reviews'
     | '/privacy'
     | '/reviews'
     | '/our-work/$slug'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   LeaveAReviewRoute: typeof LeaveAReviewRoute
   OurWorkRoute: typeof OurWorkRouteWithChildren
+  OwnerReviewsRoute: typeof OwnerReviewsRoute
   PrivacyRoute: typeof PrivacyRoute
   ReviewsRoute: typeof ReviewsRoute
   ServicesConsumerUnitsRoute: typeof ServicesConsumerUnitsRoute
@@ -275,6 +288,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner-reviews': {
+      id: '/owner-reviews'
+      path: '/owner-reviews'
+      fullPath: '/owner-reviews'
+      preLoaderRoute: typeof OwnerReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/our-work': {
@@ -414,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   LeaveAReviewRoute: LeaveAReviewRoute,
   OurWorkRoute: OurWorkRouteWithChildren,
+  OwnerReviewsRoute: OwnerReviewsRoute,
   PrivacyRoute: PrivacyRoute,
   ReviewsRoute: ReviewsRoute,
   ServicesConsumerUnitsRoute: ServicesConsumerUnitsRoute,

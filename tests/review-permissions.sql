@@ -1,0 +1,26 @@
+-- Run in a transaction: test data is never committed or published.
+begin;
+create temporary table review_checks(check_name text, passed boolean);
+grant insert on review_checks to anon, authenticated;
+insert into public.sperin_reviews(id,request_id,name,service,rating,text,consent) values('b48d5c61-1e7d-4af3-91d2-24efac223cdf',gen_random_uuid(),'SYSTEM TEST','Testing',5,'TEST REVIEW — DO NOT PUBLISH',true);
+set local role anon;
+insert into review_checks select 'Anonymous cannot see pending',count(id)=0 from public.sperin_reviews where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf';
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+with changed as (update public.sperin_reviews set status='approved' where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf' returning id) insert into review_checks select 'Non-owner cannot approve',count(id)=0 from changed;
+select set_config('request.jwt.claims','{"sub":"7319fcef-63e7-4761-9174-179ecabba17e","role":"authenticated"}',true);
+with changed as (update public.sperin_reviews set status='approved',reply='TEST OWNER REPLY' where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf' returning id) insert into review_checks select 'Owner can approve',count(id)=1 from changed;
+reset role;
+set local role anon;
+insert into review_checks select 'Approved review and reply visible publicly',count(id)=1 from public.sperin_reviews where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf' and reply='TEST OWNER REPLY';
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"7319fcef-63e7-4761-9174-179ecabba17e","role":"authenticated"}',true);
+update public.sperin_reviews set status='rejected' where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf';
+reset role;
+set local role anon;
+insert into review_checks select 'Unpublished review hidden again',count(id)=0 from public.sperin_reviews where id='b48d5c61-1e7d-4af3-91d2-24efac223cdf';
+reset role;
+select json_agg(review_checks) as results from review_checks;
+rollback;

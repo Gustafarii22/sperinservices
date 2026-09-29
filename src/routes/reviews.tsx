@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { GOOGLE_REVIEW_URL, type Review } from "@/lib/review-config";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, MessageSquareQuote, ShieldCheck, Star } from "lucide-react";
 import { CTA } from "@/components/CTA";
@@ -17,14 +19,29 @@ export const Route = createFileRoute("/reviews")({
 });
 
 function Reviews() {
-  const reviews: Array<{
-    name: string;
-    area: string;
-    service: string;
-    rating: number;
-    text: string;
-    date: string;
-  }> = [];
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/reviews")
+      .then(async (r) => {
+        if (!r.ok) throw Error();
+        return r.json();
+      })
+      .then((data) => {
+        if (alive) setReviews(data.reviews);
+      })
+      .catch(() => {
+        if (alive) setError(true);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pt-18">
@@ -41,6 +58,14 @@ function Reviews() {
             <Link to="/leave-a-review" className="button-primary mt-7">
               Leave a review <ArrowRight className="h-4 w-4" />
             </Link>
+            <a
+              href={GOOGLE_REVIEW_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="button-secondary mt-3 sm:ml-3"
+            >
+              Review us on Google ↗
+            </a>
           </div>
           <aside className="surface-raised rounded-2xl p-7">
             <ShieldCheck className="h-7 w-7 text-electric" />
@@ -53,7 +78,11 @@ function Reviews() {
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        {reviews.length === 0 ? (
+        {loading ? (
+          <p role="status">Loading customer feedback…</p>
+        ) : error ? (
+          <p role="alert">Reviews are temporarily unavailable. Please refresh to try again.</p>
+        ) : reviews.length === 0 ? (
           <div className="surface rounded-2xl p-8 text-center sm:p-12">
             <MessageSquareQuote className="mx-auto h-8 w-8 text-electric" />
             <h2 className="mt-5 text-3xl font-bold">The review book starts with real customers.</h2>
@@ -67,8 +96,8 @@ function Reviews() {
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
-            {reviews.map((r, i) => (
-              <article key={i} className="surface rounded-2xl p-6">
+            {reviews.map((r) => (
+              <article key={r.id} className="surface rounded-2xl p-6">
                 <div className="flex gap-1" aria-label={`${r.rating} out of 5 stars`}>
                   {Array.from({ length: 5 }, (_, n) => (
                     <Star
@@ -77,12 +106,18 @@ function Reviews() {
                     />
                   ))}
                 </div>
-                <p className="mt-4">{r.text}</p>
+                <p className="mt-4 whitespace-pre-wrap break-words">{r.text}</p>
+                {r.reply && (
+                  <blockquote className="mt-5 border-l border-electric/50 pl-4 text-sm text-muted-foreground">
+                    <strong>Sperin Services replies</strong>
+                    <p className="mt-2 whitespace-pre-wrap">{r.reply}</p>
+                  </blockquote>
+                )}
                 <div className="mt-5 text-sm font-bold">
                   {r.name} · {r.area}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {r.service} · {r.date}
+                  {r.service} · {new Date(r.created_at).toLocaleDateString("en-GB")}
                 </div>
               </article>
             ))}

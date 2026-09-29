@@ -74,8 +74,11 @@ function Privacy() {
             We only share information where necessary. This may include website form and hosting
             providers, email and communications providers, accountants, payment providers, insurers,
             professional advisers, suitably appointed subcontractors, and public authorities where
-            required by law. Website quote requests are processed by FormSubmit and forwarded to our
-            business email.
+            required by law. Website reviews are stored in Supabase with access controls. Submitted
+            reviews stay private until approved; names, towns, ratings, service details and review
+            text are published with consent. Job references remain private. Owner access uses a
+            secure, short-lived sign-in cookie. Website quote requests are processed by FormSubmit
+            and forwarded to our business email.
           </p>
         </PolicySection>
 
