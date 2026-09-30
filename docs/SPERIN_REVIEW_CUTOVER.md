@@ -1,7 +1,10 @@
 # Dedicated Sperin Services review system — activation checklist
 
-Status: implementation staged, NOT activated. New project creation was refused because the
-account already owns two active free projects. No paid subscription has been started.
+Status: implementation staged, NOT activated. The user selected free Neon and Resend instead of
+a new Supabase project. Both resources are now provisioned; sender DNS verification is pending.
+See `SPERIN_FREE_SERVICES.md` for confirmed resources and remaining migration work.
+The Supabase-specific adapter and checklist below are historical staging notes and must be
+adapted to Neon before activation. No paid subscription has been started.
 The existing review system remains active until the dedicated system is provisioned and verified.
 
 ## Behaviour prepared
@@ -17,8 +20,8 @@ The existing review system remains active until the dedicated system is provisio
 
 ## Required setup before activation
 
-1. Provision a dedicated Supabase project with the owner's approval for any recurring charges.
-   Do not pause, upgrade or delete either existing app to obtain capacity without authorization.
+1. Use the dedicated free Neon project already provisioned. Do not provision or upgrade Supabase.
+   Do not pause, upgrade or delete either existing app. Adapt the staged database/auth adapter to Neon.
 2. Apply `database/sperin-dedicated-reviews.sql` to the NEW project only.
 3. Create a verified owner account in that new project for the confirmed notification email.
    Do not copy the EV user's auth row, password, UUID or tokens. Disable public signup.
