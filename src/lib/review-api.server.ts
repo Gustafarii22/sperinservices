@@ -1,4 +1,8 @@
 import {
+  independentReviewApi,
+  independentReviewsEnabled,
+} from "./sperin-independent-reviews.server";
+import {
   REVIEW_DATABASE_URL as DB,
   REVIEW_PUBLIC_KEY as KEY,
   REVIEW_OWNER_ID,
@@ -26,6 +30,9 @@ async function db(path: string, token?: string, init: RequestInit = {}) {
 }
 export async function reviewApi(req: Request): Promise<Response | null> {
   const path = new URL(req.url).pathname;
+  if (path === "/api/review-settings" && req.method === "GET")
+    return json({ independent: independentReviewsEnabled() });
+  if (independentReviewsEnabled()) return independentReviewApi(req);
   if (path !== "/api/reviews" && !path.startsWith("/api/owner/")) return null;
   try {
     if (path === "/api/reviews" && req.method === "GET") {

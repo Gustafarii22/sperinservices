@@ -8,9 +8,17 @@ const compile = (path) =>
   }).outputText;
 const moduleUrl = (text) => `data:text/javascript;base64,${Buffer.from(text).toString("base64")}`;
 const config = moduleUrl(compile("../src/lib/review-config.ts"));
+const mail = moduleUrl(compile("../src/lib/sperin-review-email.server.ts"));
+const independent = moduleUrl(
+  compile("../src/lib/sperin-independent-reviews.server.ts")
+    .replace('"./review-config"', JSON.stringify(config))
+    .replace('"./sperin-review-email.server"', JSON.stringify(mail)),
+);
 const { reviewApi } = await import(
   moduleUrl(
-    compile("../src/lib/review-api.server.ts").replace('"./review-config"', JSON.stringify(config)),
+    compile("../src/lib/review-api.server.ts")
+      .replace('"./review-config"', JSON.stringify(config))
+      .replace('"./sperin-independent-reviews.server"', JSON.stringify(independent)),
   )
 );
 const nativeFetch = globalThis.fetch;

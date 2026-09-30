@@ -43,26 +43,35 @@ function LeaveReview() {
     const data = new FormData(e.currentTarget);
     try {
       if (!requestId.current) requestId.current = crypto.randomUUID();
-      const response = await fetch(`${REVIEW_DATABASE_URL}/functions/v1/sperin-review-submit`, {
-        method: "POST",
-        signal: AbortSignal.timeout(20000),
-        headers: {
-          "Content-Type": "application/json",
-          apikey: REVIEW_PUBLIC_KEY,
-          Authorization: `Bearer ${REVIEW_ANON_JWT}`,
+      const settingsResponse = await fetch("/api/review-settings");
+      if (!settingsResponse.ok) throw new Error("Please try again in a moment.");
+      const { independent } = await settingsResponse.json();
+      const response = await fetch(
+        independent
+          ? "/api/reviews/submit"
+          : `${REVIEW_DATABASE_URL}/functions/v1/sperin-review-submit`,
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(20000),
+          headers: {
+            "Content-Type": "application/json",
+            ...(!independent
+              ? { apikey: REVIEW_PUBLIC_KEY, Authorization: `Bearer ${REVIEW_ANON_JWT}` }
+              : {}),
+          },
+          body: JSON.stringify({
+            request_id: requestId.current,
+            rating,
+            name: data.get("name"),
+            area: data.get("area"),
+            service: data.get("service"),
+            job_reference: data.get("job"),
+            text: data.get("review"),
+            consent: data.get("consent") === "yes",
+            website: data.get("website") || "",
+          }),
         },
-        body: JSON.stringify({
-          request_id: requestId.current,
-          rating,
-          name: data.get("name"),
-          area: data.get("area"),
-          service: data.get("service"),
-          job_reference: data.get("job"),
-          text: data.get("review"),
-          consent: data.get("consent") === "yes",
-          website: data.get("website") || "",
-        }),
-      });
+      );
       const result = await response.json();
       if (!response.ok || (result.success !== true && result.success !== "true"))
         throw new Error(result.error || "We could not save your review. Please try again.");

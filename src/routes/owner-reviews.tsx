@@ -1,3 +1,4 @@
+import { SperinOwnerSignIn } from "@/components/SperinOwnerSignIn";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Check, Copy, EyeOff, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
@@ -22,6 +23,8 @@ async function api(path: string, body?: unknown) {
   return data;
 }
 function OwnerReviews() {
+  const [independent, setIndependent] = useState(false);
+  const [selectedReview, setSelectedReview] = useState("");
   const [ready, setReady] = useState(false),
     [signedIn, setSignedIn] = useState(false),
     [reviews, setReviews] = useState<Review[]>([]),
@@ -33,12 +36,25 @@ function OwnerReviews() {
   const load = async () => {
     const data = await api("/api/owner/reviews");
     setReviews(data.reviews);
+    const selected = new URLSearchParams(window.location.search).get("review");
+    const target = data.reviews.find((r: Review) => r.id === selected);
+    if (target) {
+      setFilter(target.status);
+      setSelectedReview(target.id);
+    }
   };
   useEffect(() => {
     let alive = true;
-    api("/api/owner/session")
-      .then(() => {
+    api("/api/review-settings")
+      .then((s) =>
+        api("/api/owner/session")
+          .then((session) => ({ ...session, independent: s.independent }))
+          .catch(() => ({ independent: s.independent, signedOut: true })),
+      )
+      .then((session) => {
         if (alive) {
+          setIndependent(session.independent);
+          if (session.signedOut) return;
           setSignedIn(true);
           void load().catch((e) => setError(e.message));
         }
@@ -106,6 +122,13 @@ function OwnerReviews() {
         <p className="mt-8" role="status">
           Checking your session…
         </p>
+      ) : !signedIn && independent ? (
+        <SperinOwnerSignIn
+          onSignedIn={async () => {
+            setSignedIn(true);
+            await load();
+          }}
+        />
       ) : !signedIn ? (
         <form onSubmit={login} className="surface-raised mt-8 max-w-lg space-y-5 rounded-xl p-6">
           <ShieldCheck className="h-7 w-7 text-electric" />
@@ -206,11 +229,18 @@ function OwnerReviews() {
               </button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Submissions are saved here directly. Email notifications are not required. Approvals
-              appear without rebuilding the website. Moderate for authenticity and relevance,
-              regardless of rating.
+              {independent
+                ? "New reviews are saved privately and queued for an email notification to your Sperin Services owner inbox. "
+                : "Submissions are saved here directly. Email notifications are not enabled yet. "}
+              Approvals appear without rebuilding the website. Moderate for authenticity and
+              relevance, regardless of rating.
             </p>
           </div>
+          {selectedReview && (
+            <p role="status" className="mt-6 border-l-2 border-electric pl-4">
+              The review from your email is shown first below.
+            </p>
+          )}
           <nav aria-label="Review status" className="my-6 flex flex-wrap gap-3">
             {(["pending", "approved", "rejected"] as const).map((status) => (
               <button
@@ -231,6 +261,7 @@ function OwnerReviews() {
           ) : (
             reviews
               .filter((r) => r.status === filter)
+              .sort((a, b) => Number(b.id === selectedReview) - Number(a.id === selectedReview))
               .map((review) => (
                 <ReviewRow key={review.id} review={review} busy={!!busy} update={update} />
               ))
