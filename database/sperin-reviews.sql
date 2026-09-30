@@ -6,7 +6,7 @@ create table public.sperin_reviews (
  area text not null default '' check (length(area)<=100),
  service text not null check (length(trim(service)) between 2 and 100),
  rating integer not null check (rating between 1 and 5),
- text text not null check (length(trim(text)) between 10 and 3000),
+ text text not null check (trim(text) <> ''),
  consent boolean not null check (consent),
  status text not null default 'pending' check (status in ('pending','approved','rejected')),
  reply text not null default '' check (length(reply)<=2000),

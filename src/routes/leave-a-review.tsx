@@ -147,8 +147,6 @@ function LeaveReview() {
           <textarea
             id="review"
             name="review"
-            minLength={10}
-            maxLength={3000}
             required
             className="mt-2 min-h-36 w-full rounded-xl border border-white/10 bg-black/20 p-4 outline-none focus:border-electric/50"
           />

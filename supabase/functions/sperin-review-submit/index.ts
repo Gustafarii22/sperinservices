@@ -13,11 +13,8 @@ Deno.serve(async (req: Request) => {
     new Response(JSON.stringify(value), { status, headers });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") return respond(405, { error: "Method not allowed" });
-  if (Number(req.headers.get("content-length")) > 16000)
-    return respond(413, { error: "Review is too long" });
   try {
     const raw = await req.text();
-    if (raw.length > 16000) return respond(413, { error: "Review is too long" });
     const input = JSON.parse(raw);
     const clean = (key: string, max: number, min = 0) => {
       if (typeof input[key] !== "string") throw Error("Please complete the required fields.");
@@ -37,12 +34,14 @@ Deno.serve(async (req: Request) => {
       )
     )
       return respond(400, { error: "Please select a rating and confirm your consent." });
+    if (typeof input.text !== "string" || !input.text.trim())
+      return respond(400, { error: "Please enter your review." });
     const payload = {
       request_id: input.request_id,
       name: clean("name", 100, 2),
       area: clean("area", 100),
       service: clean("service", 100, 2),
-      text: clean("text", 3000, 10),
+      text: input.text.trim(),
       job_reference: clean("job_reference", 100),
       rating: input.rating,
       consent: true,
@@ -71,7 +70,7 @@ Deno.serve(async (req: Request) => {
     return respond(201, { success: true, id: data });
   } catch {
     return respond(400, {
-      error: "Please check your details. Reviews must contain 10–3,000 characters.",
+      error: "Please check your name, service, rating and consent, then try again.",
     });
   }
 });
