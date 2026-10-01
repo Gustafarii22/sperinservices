@@ -3,6 +3,7 @@ name: Sperin Services QA
 on:
   push:
     branches:
+      - main
       - feature/real-work-reviews-ai-quote
   pull_request:
     branches:
