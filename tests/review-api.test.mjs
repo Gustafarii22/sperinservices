@@ -6,16 +6,29 @@ const url = (t) => `data:text/javascript;base64,${Buffer.from(t).toString("base6
 const adapter = url(
   'export async function independentReviewApi(req){ return req.url.includes("/api/")?new Response("dedicated"):null; }',
 );
+const googleAdapter = url(
+  'export async function googleBusinessReviewsApi(req){ return req.url.includes("/api/google-reviews")?new Response("google"):null; }',
+);
 const source = ts.transpileModule(
   readFileSync(new URL("../src/lib/review-api.server.ts", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.ESNext } },
 ).outputText;
 const { reviewApi } = await import(
-  url(source.replace('"./sperin-independent-reviews.server"', JSON.stringify(adapter)))
+  url(
+    source
+      .replace('"./google-business-reviews.server"', JSON.stringify(googleAdapter))
+      .replace('"./sperin-independent-reviews.server"', JSON.stringify(adapter)),
+  )
 );
 test("settings always use Sperin's independent system", async () => {
   const r = await reviewApi(new Request("https://sperinservices.co.uk/api/review-settings"));
   assert.deepEqual(await r.json(), { independent: true });
+});
+test("Google review requests use the Google adapter", async () => {
+  assert.equal(
+    await (await reviewApi(new Request("https://sperinservices.co.uk/api/google-reviews"))).text(),
+    "google",
+  );
 });
 test("review requests delegate to dedicated adapter", async () => {
   assert.equal(
