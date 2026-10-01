@@ -3,6 +3,8 @@ import { createHmac } from "node:crypto";
 import { REVIEW_FIELDS } from "./review-config";
 import { reviewNotification, sendSperinEmail } from "./sperin-review-email.server";
 const cookieName = "sperin_services_owner_v2";
+const ownerEmail = "info@sperinservices.co.uk";
+const canonicalSite = "https://sperinservices.co.uk";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json = (value: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(value), {
@@ -14,8 +16,8 @@ const cookie = (token: string, age = 3600) =>
 function settings() {
   const url = process.env.SPERIN_DATABASE_URL || "";
   const auth = process.env.SPERIN_NEON_AUTH_URL || process.env.SPERIN_NEON_AUTH_BASE_URL || "";
-  const email = process.env.SPERIN_OWNER_EMAIL?.toLowerCase() || "";
-  const site = process.env.SPERIN_SITE_URL || "";
+  const email = process.env.SPERIN_OWNER_EMAIL?.toLowerCase() || ownerEmail;
+  const site = (process.env.SPERIN_SITE_URL || canonicalSite).replace(/\/+$/, "");
   // Dedicated Neon project only; no credentials or identities from other apps.
   if (
     !/^postgres(?:ql)?:\/\//.test(url) ||
@@ -23,7 +25,7 @@ function settings() {
     !/^https:\/\/ep-tiny-glitter-zads9u9d\.neonauth\.c-2\.eu-west-2\.aws\.neon\.tech\/neondb\/auth$/.test(
       auth,
     ) ||
-    email !== "info@sperinservices.co.uk" ||
+    email !== ownerEmail ||
     !site.startsWith("https://")
   )
     throw Error("Dedicated Sperin Services setup is incomplete.");
@@ -265,7 +267,11 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
       return review ? json({ review }) : json({ error: "Review not found." }, 404);
     }
     return json({ error: "Not found." }, 404);
-  } catch {
+  } catch (error) {
+    console.error(
+      "Sperin review API unavailable:",
+      error instanceof Error ? error.message : "Unknown server error",
+    );
     return json(
       { error: "Sperin Services review management is temporarily unavailable. Please try again." },
       503,
