@@ -1,4 +1,5 @@
--- Apply ONLY to the dedicated Sperin Services project, never an existing app database.
+-- Neon PostgreSQL: dedicated Sperin project only. Server-only access.
+-- No public Data API policies: table owner is the private server connection.
 create table public.sperin_reviews (
  id uuid primary key default gen_random_uuid(),
  request_id uuid not null unique,
@@ -25,13 +26,10 @@ create table public.sperin_review_limits (
 alter table public.sperin_reviews enable row level security;
 alter table public.sperin_review_private enable row level security;
 alter table public.sperin_review_limits enable row level security;
-revoke all on public.sperin_reviews, public.sperin_review_private, public.sperin_review_limits from anon, authenticated;
-grant select(id,name,area,service,rating,text,status,reply,created_at,moderated_at) on public.sperin_reviews to anon, authenticated;
-grant all on public.sperin_reviews,public.sperin_review_private,public.sperin_review_limits to service_role;
-create policy sperin_public_approved on public.sperin_reviews for select to anon, authenticated using(status='approved');
+revoke all on public.sperin_reviews, public.sperin_review_private, public.sperin_review_limits from public;
 create index sperin_reviews_status_created on public.sperin_reviews(status,created_at desc);
 create function public.sperin_stamp_moderation() returns trigger language plpgsql security invoker set search_path='' as $$ begin new.moderated_at=now(); return new; end; $$;
-revoke all on function public.sperin_stamp_moderation() from public,anon,authenticated;
+revoke all on function public.sperin_stamp_moderation() from public;
 create trigger sperin_moderation_stamp before update on public.sperin_reviews for each row execute function public.sperin_stamp_moderation();
 -- Service-only atomic submission: request retry protection and durable rate limiting.
 create function public.sperin_accept_review(payload jsonb, fingerprint text) returns uuid language plpgsql security invoker set search_path='' as $$
@@ -50,8 +48,7 @@ begin
  delete from public.sperin_review_limits where window_start < now()-interval '2 days';
  return review_id;
 end; $$;
-revoke all on function public.sperin_accept_review(jsonb,text) from public,anon,authenticated;
-grant execute on function public.sperin_accept_review(jsonb,text) to service_role;
+revoke all on function public.sperin_accept_review(jsonb,text) from public;
 -- Notification delivery is durable and independent of customer submission success.
 create table public.sperin_review_notifications (
  review_id uuid primary key references public.sperin_reviews(id),
@@ -68,8 +65,7 @@ create table public.sperin_auth_limits (
 );
 alter table public.sperin_review_notifications enable row level security;
 alter table public.sperin_auth_limits enable row level security;
-revoke all on public.sperin_review_notifications,public.sperin_auth_limits from public,anon,authenticated;
-grant all on public.sperin_review_notifications,public.sperin_auth_limits to service_role;
+revoke all on public.sperin_review_notifications,public.sperin_auth_limits from public;
 create function public.sperin_queue_notification() returns trigger language plpgsql security invoker set search_path='' as $$
 begin insert into public.sperin_review_notifications(review_id) values(new.id); return new; end; $$;
 create trigger sperin_queue_notification after insert on public.sperin_reviews for each row execute function public.sperin_queue_notification();
@@ -92,5 +88,5 @@ declare counted integer; begin
  window_start=case when l.window_start<now()-interval '15 minutes' then now() else l.window_start end returning attempts into counted;
  delete from public.sperin_auth_limits where window_start<now()-interval '1 day';
  return counted <= max_attempts; end; $$;
-revoke all on function public.sperin_queue_notification(),public.sperin_claim_notification(uuid),public.sperin_finish_notification(uuid,text),public.sperin_release_notification(uuid),public.sperin_auth_attempt(text,integer) from public,anon,authenticated;
-grant execute on function public.sperin_queue_notification(),public.sperin_claim_notification(uuid),public.sperin_finish_notification(uuid,text),public.sperin_release_notification(uuid),public.sperin_auth_attempt(text,integer) to service_role;
+revoke all on function public.sperin_queue_notification(),public.sperin_claim_notification(uuid),public.sperin_finish_notification(uuid,text),public.sperin_release_notification(uuid),public.sperin_auth_attempt(text,integer) from public;
+revoke all on public.sperin_reviews,public.sperin_review_private,public.sperin_review_limits,public.sperin_review_notifications,public.sperin_auth_limits from public;

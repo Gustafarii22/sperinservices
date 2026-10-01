@@ -10,11 +10,9 @@
 - Resend Usage page verified both pay-as-you-go switches OFF and disabled. No paid plan selected.
 - No changes to EV Installer or Word of Trade resources, databases, or authentication.
 
-## Current blocker: sender-domain verification
+## Sender-domain verification complete
 
-Resend domain `sperinservices.co.uk` (ID `88c2eff5-1349-4e41-bfc6-ca4e3b15e812`) is NOT verified.
-Cloudflare shows its security verification screen in the cloud browser.
-Do not enable independent review delivery or claim notification emails are working yet.
+Resend domain `sperinservices.co.uk` (ID `88c2eff5-1349-4e41-bfc6-ca4e3b15e812`) was verified on 30 September. The user added the following DNS records. Neon SMTP test email to `info@sperinservices.co.uk` was confirmed Delivered.
 
 Add only these new records after obtaining access; first check for existing conflicts.
 Do not replace the apex MX or existing inbox configuration.
@@ -30,14 +28,7 @@ Notification recipient: `info@sperinservices.co.uk`.
 
 ## Remaining cutover work
 
-The staged implementation in commit 805f472e uses a dedicated Supabase adapter and is NOT activated.
-Adapt that adapter and SQL to the now-provisioned Neon database/managed auth; do not create or upgrade Supabase.
-Keep the original request validation, short reviews, rate limiting, owner-only approval, private job references,
-durable notification outbox, escaped emails, and exact-review deep links.
-Migrate only Sperin review records preserving their IDs, timestamps, consent and moderation status.
-Do not migrate shared authentication credentials. Do not notify on labelled QA records.
-Verify submission, actual delivery, owner sign-in, explicit approval, public visibility and unpublish end-to-end
-before removing the legacy adapter.
+The adapter and schema now use the dedicated Neon database and managed email OTP. Existing Sperin reviews were copied without modifying the other applications. See `SPERIN_REVIEW_CUTOVER.md` for current verification evidence and remaining release gates.
 
 The production domain still needs its Vercel DNS configuration and the intended branch needs a deliberate
 production release. Protected preview links are not permanent customer approval links.
@@ -52,3 +43,4 @@ Official Business Profile API setup requires account authorization and Google AP
 https://developers.google.com/my-business/content/basic-setup
 https://developers.google.com/my-business/content/review-data
 Do not fabricate a feed, scrape around access controls, or enable a paid API under the no-payment instruction.
+

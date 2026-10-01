@@ -8,239 +8,203 @@ const compile = (f) =>
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
 const config = moduleUrl(compile("../src/lib/review-config.ts"));
-const emailModule = moduleUrl(compile("../src/lib/sperin-review-email.server.ts"));
-const { reviewNotification } = await import(emailModule);
+const mail = moduleUrl(compile("../src/lib/sperin-review-email.server.ts"));
+const driver = moduleUrl("export const neon=()=>globalThis.testSql;");
 const { independentReviewApi: api } = await import(
   moduleUrl(
     compile("../src/lib/sperin-independent-reviews.server.ts")
+      .replace('"@neondatabase/serverless"', JSON.stringify(driver))
       .replace('"./review-config"', JSON.stringify(config))
-      .replace('"./sperin-review-email.server"', JSON.stringify(emailModule)),
+      .replace('"./sperin-review-email.server"', JSON.stringify(mail)),
   )
 );
-const nativeFetch = globalThis.fetch;
-const owner = "11111111-1111-4111-8111-111111111111",
-  id = "22222222-2222-4222-8222-222222222222";
-const variables = {
-  SPERIN_SUPABASE_URL: "https://dedicatedsperintest.supabase.co",
-  SPERIN_SUPABASE_SERVICE_ROLE_KEY: "test-only-service-key",
-  SPERIN_OWNER_EMAIL: "owner@example.test",
-  SPERIN_OWNER_USER_ID: owner,
+const { reviewNotification } = await import(mail);
+const id = "22222222-2222-4222-8222-222222222222",
+  email = "info@sperinservices.co.uk";
+const env = {
+  SPERIN_DATABASE_URL:
+    "postgresql://test:test@ep-tiny-glitter-zads9u9d.eu-west-2.aws.neon.tech/neondb",
+  SPERIN_NEON_AUTH_URL:
+    "https://ep-tiny-glitter-zads9u9d.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth",
+  SPERIN_OWNER_EMAIL: email,
   SPERIN_SITE_URL: "https://sperinservices.co.uk",
-  SPERIN_RESEND_API_KEY: "test-only-mail-key",
-  SPERIN_EMAIL_FROM: "Sperin Services <reviews@example.test>",
+  SPERIN_RESEND_API_KEY: "test-only",
+  SPERIN_EMAIL_FROM: "Sperin Services <reviews@sperinservices.co.uk>",
 };
-const old = Object.fromEntries(Object.keys(variables).map((k) => [k, process.env[k]]));
-function setup() {
-  Object.assign(process.env, variables);
-}
+const previous = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]])),
+  nativeFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = nativeFetch;
-  for (const [k, v] of Object.entries(old))
+  delete globalThis.testSql;
+  for (const [k, v] of Object.entries(previous))
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
 });
-const response = (data, status = 200) => new Response(JSON.stringify(data), { status });
-const req = (path, body, cookie) =>
+const res = (v, status = 200) => new Response(JSON.stringify(v), { status });
+const req = (path, body, token, origin = "https://sperinservices.co.uk") =>
   new Request("https://sperinservices.co.uk" + path, {
     method: body ? "POST" : "GET",
     headers: {
-      origin: "https://sperinservices.co.uk",
-      ...(cookie ? { cookie } : {}),
-      "Content-Type": "application/json",
+      origin,
+      "content-type": "application/json",
+      ...(token ? { cookie: `sperin_services_owner_v2=${token}` } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-test("dedicated implementation refuses EV and Word of Trade databases", async () => {
-  setup();
-  globalThis.fetch = () => {
-    throw Error("must not access shared apps");
+let calls = [];
+function setup(handler = () => []) {
+  Object.assign(process.env, env);
+  calls = [];
+  const query = async (q, p = []) => {
+    calls.push([q, p]);
+    return handler(q, p);
   };
-  for (const ref of ["ooxeuejhuynglawkfwpp", "xprmnikoyrocxyrhwdpn"]) {
-    process.env.SPERIN_SUPABASE_URL = `https://${ref}.supabase.co`;
-    assert.equal((await api(req("/api/reviews"))).status, 503);
+  globalThis.testSql = Object.assign((parts, ...values) => query(parts.join("?"), values), {
+    query,
+  });
+  globalThis.fetch = async () => {
+    throw Error("Unexpected network");
+  };
+}
+const payload = {
+  request_id: id,
+  name: "QA test",
+  area: "",
+  service: "Testing",
+  rating: 5,
+  text: "good",
+  consent: true,
+  job_reference: "",
+};
+const session = { session: { id: "session" }, user: { id: "owner", email, emailVerified: true } };
+test("fails closed for another application auth endpoint", async () => {
+  setup();
+  process.env.SPERIN_NEON_AUTH_URL = "https://ooxeuejhuynglawkfwpp.supabase.co";
+  assert.equal((await api(req("/api/reviews"))).status, 503);
+  assert.equal(calls.length, 0);
+});
+test("short and long reviews are saved; email outage does not lose feedback", async () => {
+  for (const text of ["g", "good", "x".repeat(20000)]) {
+    setup((q) =>
+      q.includes("sperin_accept_review")
+        ? [{ id }]
+        : q.includes("sperin_claim_notification")
+          ? [{ result: true }]
+          : q.startsWith("select id,name")
+            ? [{ id, name: "QA", rating: 5, service: "Testing" }]
+            : [{ result: true }],
+    );
+    globalThis.fetch = async () => res({ error: "outage" }, 503);
+    const result = await api(req("/api/reviews/submit", { ...payload, text }));
+    assert.equal(result.status, 201);
+    assert.ok(calls.some(([q]) => q.includes("sperin_release_notification")));
   }
 });
-test("EV owner session cannot access separate dashboard", async () => {
+test("empty review, missing consent and honeypot are rejected before database", async () => {
   setup();
-  globalThis.fetch = () => {
-    throw Error("must not call auth");
-  };
-  assert.equal(
-    (await api(req("/api/owner/reviews", null, "sperin_owner=old-app-token"))).status,
-    401,
-  );
+  for (const change of [{ text: "  " }, { consent: false }, { website: "bot" }])
+    assert.equal((await api(req("/api/reviews/submit", { ...payload, ...change }))).status, 400);
+  assert.equal(calls.length, 0);
 });
-test("notification deep-link targets one review and never auto-approves", () => {
-  const mail = reviewNotification("https://sperinservices.co.uk", {
+test("cross-origin approval and submission are rejected", async () => {
+  setup();
+  for (const path of ["/api/reviews/submit", "/api/owner/reviews/" + id])
+    assert.equal((await api(req(path, payload, "token", "https://other.test"))).status, 403);
+  assert.equal(calls.length, 0);
+});
+test("unauthenticated and wrong-owner sessions cannot read or moderate reviews", async () => {
+  setup();
+  assert.equal((await api(req("/api/owner/reviews"))).status, 401);
+  globalThis.fetch = async () =>
+    res({ ...session, user: { ...session.user, email: "someone@example.test" } });
+  assert.equal((await api(req("/api/owner/reviews", null, "token"))).status, 401);
+  assert.equal(calls.length, 0);
+});
+test("unverified email cannot become owner", async () => {
+  setup();
+  globalThis.fetch = async () =>
+    res({ ...session, user: { ...session.user, emailVerified: false } });
+  assert.equal((await api(req("/api/owner/session", null, "token"))).status, 401);
+});
+test("public endpoint selects approved fields only and never private job references", async () => {
+  setup(() => []);
+  assert.equal((await api(req("/api/reviews"))).status, 200);
+  assert.match(calls[0][0], /where status='approved'/);
+  assert.doesNotMatch(calls[0][0], /job_reference|consent|request_id/);
+});
+test("email notification deep-link is escaped and never auto-publishes", () => {
+  const m = reviewNotification(env.SPERIN_SITE_URL, {
     id,
     name: "<script>bad</script>",
-    rating: 4,
+    rating: 5,
     service: "Testing",
   });
-  assert.ok(mail.text.includes(`/owner-reviews?review=${id}`));
-  assert.ok(!mail.html.includes("<script>"));
-  assert.ok(!mail.text.includes("/api/"));
+  assert.ok(m.text.includes("/owner-reviews?review=" + id));
+  assert.ok(m.html.includes("&lt;script&gt;"));
+  assert.doesNotMatch(m.html, /<script>/);
+  assert.match(m.text, /private until/);
 });
-test("wrong owner email cannot trigger sign-in email", async () => {
-  setup();
-  globalThis.fetch = () => {
-    throw Error("must not send email");
+test("successful submission records provider acceptance and deduplicated delivery key", async () => {
+  setup((q) =>
+    q.includes("accept_review")
+      ? [{ id }]
+      : q.startsWith("select id,name")
+        ? [{ id, name: "QA", rating: 5, service: "Testing" }]
+        : [{ result: true }],
+  );
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, "https://api.resend.com/emails");
+    assert.equal(init.headers["Idempotency-Key"], "sperin-review-" + id);
+    assert.deepEqual(JSON.parse(init.body).to, [email]);
+    return res({ id: "mail-accepted" });
   };
+  assert.equal((await api(req("/api/reviews/submit", payload))).status, 201);
+  assert.ok(calls.some(([q, p]) => q.includes("finish_notification") && p[1] === "mail-accepted"));
+});
+test("managed sign-in sends only to fixed Sperin owner", async () => {
+  setup(() => [{ result: true }]);
   assert.equal(
-    (await api(req("/api/owner/request-code", { email: "someone@example.test" }))).status,
+    (await api(req("/api/owner/request-code", { email: "wrong@example.test" }))).status,
     401,
   );
-});
-test("email code is sent only to configured owner and never returned to browser", async () => {
-  setup();
-  let sent;
   globalThis.fetch = async (url, init) => {
-    if (String(url).includes("sperin_auth_attempt")) return response(true);
-    if (String(url).includes("generate_link")) return response({ id: owner, email_otp: "123456" });
-    if (url === "https://api.resend.com/emails") {
-      sent = JSON.parse(init.body);
-      return response({ id: "message-1" });
-    }
-    throw Error("unexpected");
+    assert.ok(url.startsWith(env.SPERIN_NEON_AUTH_URL));
+    assert.deepEqual(JSON.parse(init.body), { email, type: "sign-in" });
+    return res({ success: true });
   };
-  const r = await api(req("/api/owner/request-code", { email: "owner@example.test" }));
+  assert.equal((await api(req("/api/owner/request-code", { email }))).status, 200);
+});
+test("valid owner code creates Secure HttpOnly cookie; invalid code never does", async () => {
+  setup(() => [{ result: true }]);
+  globalThis.fetch = async () => res({ message: "invalid" }, 401);
+  assert.equal((await api(req("/api/owner/verify-code", { email, code: "000000" }))).status, 401);
+  globalThis.fetch = async () => res({ user: session.user, token: "test-session-token" });
+  const r = await api(req("/api/owner/verify-code", { email, code: "123456" }));
   assert.equal(r.status, 200);
-  assert.ok(!(await r.text()).includes("123456"));
-  assert.deepEqual(sent.to, ["owner@example.test"]);
-  assert.ok(sent.subject.includes("Sperin Services"));
+  assert.match(r.headers.get("set-cookie"), /HttpOnly; Secure; SameSite=Strict/);
+  assert.equal((await r.json()).token, undefined);
 });
-test("mail failure never claims a sign-in email was sent", async () => {
-  setup();
-  globalThis.fetch = async (url) =>
-    String(url).includes("sperin_auth_attempt")
-      ? response(true)
-      : String(url).includes("generate_link")
-        ? response({ id: owner, email_otp: "123456" })
-        : response({}, 503);
-  assert.equal(
-    (await api(req("/api/owner/request-code", { email: "owner@example.test" }))).status,
-    503,
-  );
+test("owner explicitly approves and unpublishes with parameterized SQL", async () => {
+  setup((q, p) => [{ id, status: p[0], reply: p[1] }]);
+  globalThis.fetch = async () => res(session);
+  for (const status of ["approved", "rejected"]) {
+    const r = await api(
+      req("/api/owner/reviews/" + id, { status, reply: "owner's reply" }, "token"),
+    );
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).review.status, status);
+  }
+  assert.ok(calls.every(([q]) => q.includes("where id=$3::uuid")));
 });
-test("verified owner receives independent secure cookie", async () => {
+test("logout revokes managed session before clearing cookie", async () => {
   setup();
-  globalThis.fetch = async (url) =>
-    String(url).includes("sperin_auth_attempt")
-      ? response(true)
-      : response({
-          user: { id: owner, email_confirmed_at: "2026-09-30" },
-          access_token: "dedicated-token",
-          expires_in: 3600,
-        });
-  const r = await api(
-    req("/api/owner/verify-code", { email: "owner@example.test", code: "123456" }),
-  );
-  assert.equal(r.status, 200);
-  const cookie = r.headers.get("set-cookie");
-  for (const s of ["sperin_services_owner_v2=", "HttpOnly", "Secure", "SameSite=Strict"])
-    assert.ok(cookie.includes(s));
-  assert.ok(!(await r.text()).includes("dedicated-token"));
-});
-test("expired code cannot establish a session", async () => {
-  setup();
-  globalThis.fetch = async (url) =>
-    String(url).includes("sperin_auth_attempt")
-      ? response(true)
-      : response({ error: "expired" }, 403);
-  const r = await api(
-    req("/api/owner/verify-code", { email: "owner@example.test", code: "123456" }),
-  );
-  assert.equal(r.status, 401);
-  assert.equal(r.headers.get("set-cookie"), null);
-});
-test("short review saves and notification contains exact approval link", async () => {
-  setup();
-  let sent,
-    finished = false;
-  globalThis.fetch = async (url, init) => {
-    url = String(url);
-    if (url.includes("sperin_accept_review")) {
-      assert.equal(JSON.parse(init.body).payload.text, "good");
-      return response(id);
-    }
-    if (url.includes("sperin_claim_notification")) return response(true);
-    if (url.includes("sperin_reviews?"))
-      return response([{ id, name: "Test", service: "Testing", rating: 5 }]);
-    if (url === "https://api.resend.com/emails") {
-      sent = JSON.parse(init.body);
-      return response({ id: "message-2" });
-    }
-    if (url.includes("sperin_finish_notification")) {
-      finished = true;
-      return response(null);
-    }
-    throw Error(url);
-  };
-  const r = await api(
-    req("/api/reviews/submit", {
-      request_id: id,
-      name: "Test",
-      area: "",
-      service: "Testing",
-      job_reference: "",
-      rating: 5,
-      consent: true,
-      text: "good",
-    }),
-  );
-  assert.equal(r.status, 201);
-  assert.ok(sent.text.includes(`review=${id}`));
-  assert.ok(finished);
-});
-test("notification outage preserves saved review and releases delivery for retry", async () => {
-  setup();
-  let retry = false;
+  const routes = [];
   globalThis.fetch = async (url) => {
-    url = String(url);
-    if (url.includes("sperin_accept_review")) return response(id);
-    if (url.includes("sperin_claim_notification")) return response(true);
-    if (url.includes("sperin_reviews?"))
-      return response([{ id, name: "Test", service: "Testing", rating: 5 }]);
-    if (url.includes("sperin_release_notification")) {
-      retry = true;
-      return response(null);
-    }
-    return response({}, 503);
+    routes.push(url);
+    return res(url.endsWith("/get-session") ? session : { success: true });
   };
-  const r = await api(
-    req("/api/reviews/submit", {
-      request_id: id,
-      name: "Test",
-      area: "",
-      service: "Testing",
-      job_reference: "",
-      rating: 5,
-      consent: true,
-      text: "good",
-    }),
-  );
-  assert.equal(r.status, 201);
-  assert.ok(retry);
-});
-test("cross-site approval is rejected", async () => {
-  setup();
-  const r = await api(
-    new Request(`https://sperinservices.co.uk/api/owner/reviews/${id}`, {
-      method: "POST",
-      headers: { origin: "https://attacker.test" },
-      body: "{}",
-    }),
-  );
-  assert.equal(r.status, 403);
-});
-test("GET on a review link cannot publish a review", async () => {
-  setup();
-  globalThis.fetch = async (url, init) => {
-    assert.notEqual(init.method, "PATCH");
-    return response({ id: owner, email: "owner@example.test", email_confirmed_at: "2026-09-30" });
-  };
-  assert.equal(
-    (await api(req(`/api/owner/reviews/${id}`, null, "sperin_services_owner_v2=token"))).status,
-    404,
-  );
+  const r = await api(req("/api/owner/logout", {}, "token"));
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("set-cookie"), /Max-Age=0/);
+  assert.ok(routes[1].endsWith("/sign-out"));
 });

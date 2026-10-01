@@ -1,7 +1,7 @@
 import { SperinOwnerSignIn } from "@/components/SperinOwnerSignIn";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
-import { Check, Copy, EyeOff, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Copy, EyeOff, LogOut, RefreshCw } from "lucide-react";
 import { GOOGLE_REVIEW_URL, type Review } from "@/lib/review-config";
 export const Route = createFileRoute("/owner-reviews")({
   head: () => ({
@@ -23,7 +23,6 @@ async function api(path: string, body?: unknown) {
   return data;
 }
 function OwnerReviews() {
-  const [independent, setIndependent] = useState(false);
   const [selectedReview, setSelectedReview] = useState("");
   const [ready, setReady] = useState(false),
     [signedIn, setSignedIn] = useState(false),
@@ -31,8 +30,7 @@ function OwnerReviews() {
     [filter, setFilter] = useState<Review["status"]>("pending"),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(""),
-    [showPassword, setShowPassword] = useState(false);
+    [busy, setBusy] = useState("");
   const load = async () => {
     const data = await api("/api/owner/reviews");
     setReviews(data.reviews);
@@ -45,15 +43,10 @@ function OwnerReviews() {
   };
   useEffect(() => {
     let alive = true;
-    api("/api/review-settings")
-      .then((s) =>
-        api("/api/owner/session")
-          .then((session) => ({ ...session, independent: s.independent }))
-          .catch(() => ({ independent: s.independent, signedOut: true })),
-      )
+    api("/api/owner/session")
+      .catch(() => ({ signedOut: true }))
       .then((session) => {
         if (alive) {
-          setIndependent(session.independent);
           if (session.signedOut) return;
           setSignedIn(true);
           void load().catch((e) => setError(e.message));
@@ -67,21 +60,6 @@ function OwnerReviews() {
       alive = false;
     };
   }, []);
-  async function login(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy("login");
-    setError("");
-    const form = new FormData(e.currentTarget);
-    try {
-      await api("/api/owner/login", { email: form.get("email"), password: form.get("password") });
-      setSignedIn(true);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to sign in.");
-    } finally {
-      setBusy("");
-    }
-  }
   async function update(review: Review, status: Review["status"], reply = review.reply) {
     setBusy(review.id);
     setError("");
@@ -122,57 +100,6 @@ function OwnerReviews() {
         <p className="mt-8" role="status">
           Checking your session…
         </p>
-      ) : !signedIn && independent ? (
-        <SperinOwnerSignIn
-          onSignedIn={async () => {
-            setSignedIn(true);
-            await load();
-          }}
-        />
-      ) : !signedIn ? (
-        <form onSubmit={login} className="surface-raised mt-8 max-w-lg space-y-5 rounded-xl p-6">
-          <ShieldCheck className="h-7 w-7 text-electric" />
-          <h2 className="text-xl font-bold">Owner sign in</h2>
-          <p className="text-sm text-muted-foreground">
-            Use your existing EV Installer owner account. Only your verified account can access this
-            review queue.
-          </p>
-          <label className="block text-sm font-semibold">
-            Email
-            <input
-              name="email"
-              type="email"
-              autoComplete="username"
-              defaultValue="gussysperin@yahoo.co.uk"
-              required
-              className="mt-2 w-full rounded border border-white/20 bg-black/20 px-4 py-3 text-foreground"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Password
-            <input
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              className="mt-2 w-full rounded border border-white/20 bg-black/20 px-4 py-3 text-foreground"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="text-sm text-muted-foreground"
-          >
-            {showPassword ? "Hide" : "Show"} password
-          </button>
-          <button disabled={!!busy} className="button-primary w-full">
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-          <p className="text-xs text-muted-foreground">
-            Forgotten your password? Use the password reset in your EV Installer app, then return
-            here.
-          </p>
-        </form>
       ) : (
         <>
           <div className="my-8 flex flex-wrap gap-3">
@@ -193,6 +120,29 @@ function OwnerReviews() {
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
+            </button>
+            <button
+              className="button-secondary"
+              disabled={!!busy}
+              onClick={async () => {
+                setBusy("retry");
+                setError("");
+                try {
+                  const result = await api("/api/owner/retry-notifications", {});
+                  await load();
+                  setNotice(
+                    result.remaining
+                      ? `${result.remaining} notification(s) remain queued. Try again in five minutes.`
+                      : "All queued notifications have been sent.",
+                  );
+                } catch {
+                  setError("Could not retry notifications. Reviews remain saved safely.");
+                } finally {
+                  setBusy("");
+                }
+              }}
+            >
+              Retry queued emails
             </button>
             <Link to="/reviews" className="button-secondary">
               View public reviews
@@ -229,11 +179,9 @@ function OwnerReviews() {
               </button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              {independent
-                ? "New reviews are saved privately and queued for an email notification to your Sperin Services owner inbox. "
-                : "Submissions are saved here directly. Email notifications are not enabled yet. "}
-              Approvals appear without rebuilding the website. Moderate for authenticity and
-              relevance, regardless of rating.
+              New reviews are saved privately and emailed to info@sperinservices.co.uk. Approvals
+              appear without rebuilding the website. Moderate for authenticity and relevance,
+              regardless of rating.
             </p>
           </div>
           {selectedReview && (

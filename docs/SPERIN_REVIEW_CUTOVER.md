@@ -1,63 +1,38 @@
-# Dedicated Sperin Services review system — activation checklist
+# Dedicated Sperin Services review system
 
-Status: implementation staged, NOT activated. The user selected free Neon and Resend instead of
-a new Supabase project. Both resources are now provisioned; sender DNS verification is pending.
-See `SPERIN_FREE_SERVICES.md` for confirmed resources and remaining migration work.
-The Supabase-specific adapter and checklist below are historical staging notes and must be
-adapted to Neon before activation. No paid subscription has been started.
-The existing review system remains active until the dedicated system is provisioned and verified.
+Updated 1 October 2026. The application now uses only the dedicated Neon PostgreSQL and Neon Better Auth project, with Resend email delivery. Legacy shared Supabase routes, client keys and EV account sign-in have been removed from the application.
 
-## Behaviour prepared
+## Provisioned
 
-- Dedicated Supabase project and owner user, separate from both other apps.
-- Sperin Services email-code sign-in; no app password or shared session.
-- New reviews enter a private queue and create an email outbox entry atomically.
-- Branded email links to `/owner-reviews?review=<id>`, selecting the exact review after login.
-- Links never approve on GET; publication needs an authenticated POST and an explicit click.
-- Provider failure leaves the review saved and email pending for retry.
-- Server checks refuse the existing EV and Word of Trade project URLs.
-- Existing short-review/no-upper-character-limit behaviour is preserved.
+- Neon Free, London: `sperin-services-reviews`, project `silent-cell-22036391`.
+- Resend Free, Ireland: `sperin-services-review-email`. Domain verified.
+- SMTP configured in Neon using the dedicated Resend key; sender `reviews@sperinservices.co.uk`, brand `Sperin Services`.
+- Owner authorization requires verified email `info@sperinservices.co.uk` on every private request.
+- Original eight Sperin records migrated with IDs, timestamps, consent and status intact (seven hidden test records, one pending). No other application records or authentication were modified.
 
-## Required setup before activation
+## Server environment
 
-1. Use the dedicated free Neon project already provisioned. Do not provision or upgrade Supabase.
-   Do not pause, upgrade or delete either existing app. Adapt the staged database/auth adapter to Neon.
-2. Apply `database/sperin-dedicated-reviews.sql` to the NEW project only.
-3. Create a verified owner account in that new project for the confirmed notification email.
-   Do not copy the EV user's auth row, password, UUID or tokens. Disable public signup.
-4. Configure a dedicated Resend sending key and verified Sperin Services sender. Do not reuse
-   another app's mail key. Confirm recipient and sender before sending the authorized test.
-5. Add server-only Vercel variables (never expose service or mail keys through VITE variables):
-   - `SPERIN_SUPABASE_URL`
-   - `SPERIN_SUPABASE_SERVICE_ROLE_KEY`
-   - `SPERIN_OWNER_EMAIL`
-   - `SPERIN_OWNER_USER_ID`
-   - `SPERIN_SITE_URL` — a stable publicly accessible origin, not an expiring protected preview
-   - `SPERIN_RESEND_API_KEY`
-   - `SPERIN_EMAIL_FROM` — `Sperin Services <verified-sender-address>`
-   - `CRON_SECRET` — generated secret for delivery retries
-6. Add a Vercel cron for GET `/api/reviews/notifications`. Hobby permits daily scheduling;
-   use `0 8 * * *` on Hobby, or an approved more frequent schedule on an eligible plan.
-   The cron uses Vercel's CRON_SECRET bearer header. Set an appropriate function timeout and
-   batch size for the chosen plan. Immediate delivery is attempted with every submission.
-7. Export only Sperin reviews and private job references from the old project, migrate preserving
-   IDs, timestamps, consent and status, and enqueue ONLY genuine pending reviews for notifications.
-   Exclude labelled QA reviews from notification backfill. Preserve approved customer reviews.
-8. Pause submissions briefly during final copy, compare row IDs and counts, then set
-   `SPERIN_INDEPENDENT_REVIEWS=true` and redeploy. Do not enable without all dependencies ready.
-9. Verify in the deployed browser: short review → persisted pending row → delivered notification
-   (provider delivered status and owner inbox) → exact review deep link → code sign-in → explicit
-   approval → public review → unpublish. Test expiry, wrong owner, retry, duplicate submission and
-   provider outage. Unit tests use simulated provider responses and do NOT prove email delivery.
-10. After cutover succeeds, remove legacy EV review config, endpoint and policies from website code
-    and revoke the old submission endpoint. Archive/move legacy Sperin data only after verification;
-    leave all EV app data and authentication untouched. Do not delete customer data without approval.
+- `SPERIN_DATABASE_URL` (Neon integration)
+- `SPERIN_NEON_AUTH_URL` (or provisioned `SPERIN_NEON_AUTH_BASE_URL`)
+- `SPERIN_RESEND_API_KEY` (Resend integration)
+- `SPERIN_OWNER_EMAIL=info@sperinservices.co.uk`
+- `SPERIN_EMAIL_FROM=Sperin Services <reviews@sperinservices.co.uk>`
+- `SPERIN_SITE_URL` (exact stable HTTPS origin; trusted in Neon Auth)
 
-## Verification performed before provisioning
+Application values are initially configured for Preview. Provider integration values exist for Preview and Production. Production release must set its own site origin before promotion. The obsolete `SPERIN_INDEPENDENT_REVIEWS` switch is no longer consulted: this version cannot fall back to another application's authentication.
 
-`node --test tests/review-api.test.mjs tests/independent-reviews.test.mjs`
+## Behaviour
 
-20 tests cover isolation, secure cookies, invalid codes, intended recipient, escaped email content,
-exact review links, non-mutating GETs, approval origin checks, notification failures, and existing
-review protections. Dedicated database migration, real code delivery and independent production
-sign-in are still unverified because provisioning and email credentials are unavailable.
+Review text accepts any nonempty length. Normal transport/request-size limits still apply. Submission and notification outbox are atomic; request UUID prevents duplicate reviews. Delivery uses a provider idempotency key and database lease. Mail failure leaves the review safely stored. Owner can retry queued email with an authenticated POST. A protected `/api/reviews/notifications` endpoint is available for a future production daily cron after `CRON_SECRET` is configured; no cron is currently scheduled.
+
+Email links open `/owner-reviews?review=<id>`. Opening a link never publishes. Managed email OTP produces a Secure HttpOnly SameSite cookie; each request revalidates the managed session and verified owner email. Approval and unpublication require explicit authenticated same-origin POSTs. Private job references never appear in public responses.
+
+## Verification completed before preview
+
+- Build and TypeScript passed; lint zero errors, six pre-existing refresh warnings.
+- 17 automated routing/security/notification tests passed.
+- Real dedicated database/API submission of `good` succeeded; replay returned same UUID, one database row and one notification provider ID.
+- Test stayed absent from public response and was hidden after checking.
+- Neon SMTP configuration test was shown as Delivered in Resend.
+
+Remaining release gates: deployed browser submission; real owner OTP sign-in; approve/public/unpublish through the browser; production domain cutover from the existing Cloudflare Worker to Vercel. Do not claim these completed until observed.
