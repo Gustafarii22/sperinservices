@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
-const moduleUrl = (text) =>
-  `data:text/javascript;base64,${Buffer.from(text).toString("base64")}`;
+const moduleUrl = (text) => `data:text/javascript;base64,${Buffer.from(text).toString("base64")}`;
 const source = ts.transpileModule(
   readFileSync(new URL("../src/lib/google-business-reviews.server.ts", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } },
