@@ -28,8 +28,8 @@ export async function sendSperinEmail(
   idempotencyKey: string,
 ) {
   const key = process.env.SPERIN_RESEND_API_KEY;
-  const from = process.env.SPERIN_EMAIL_FROM;
-  if (!key || !from) throw new Error("Sperin Services email has not been configured.");
+  const from = process.env.SPERIN_EMAIL_FROM || "Sperin Services <reviews@sperinservices.co.uk>";
+  if (!key) throw new Error("Sperin Services email has not been configured.");
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     signal: AbortSignal.timeout(12000),
