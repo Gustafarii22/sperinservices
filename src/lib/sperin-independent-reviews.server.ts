@@ -43,17 +43,28 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
   try {
     const c = settings();
     const sql = neon(c.url, { fetchOptions: { signal: AbortSignal.timeout(25000) } });
-    async function auth(route: string, init: RequestInit = {}, token?: string) {
+    async function auth(route: string, init: RequestInit = {}, sessionCookies?: string) {
       return fetch(`${c.auth}${route}`, {
         ...init,
         signal: AbortSignal.timeout(12000),
         headers: {
           "Content-Type": "application/json",
           Origin: c.site,
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(sessionCookies ? { Cookie: sessionCookies } : {}),
           ...init.headers,
         },
       });
+    }
+    function sessionCookiesFrom(response: Response) {
+      const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+      const values =
+        typeof headers.getSetCookie === "function"
+          ? headers.getSetCookie()
+          : [response.headers.get("set-cookie") || ""];
+      return values
+        .map((value) => value.split(";", 1)[0]?.trim())
+        .filter(Boolean)
+        .join("; ");
     }
     async function rpc(name: string, value: Record<string, unknown>) {
       const signatures: Record<string, string> = {
@@ -198,15 +209,16 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
         body: JSON.stringify({ email: c.email, otp: input.code, name: "Gus · Sperin Services" }),
       });
       const data = await r.json();
+      const sessionCookies = sessionCookiesFrom(r);
       if (
         !r.ok ||
         data.user?.email?.toLowerCase() !== c.email ||
         !data.user?.emailVerified ||
-        typeof data.token !== "string"
+        !sessionCookies
       )
         return json({ error: "The code is invalid or expired. Request a new code." }, 401);
       return json({ success: true }, 200, {
-        "set-cookie": cookie(data.token),
+        "set-cookie": cookie(sessionCookies),
       });
     }
     const value = req.headers
@@ -214,9 +226,9 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
       ?.split(";")
       .map((x) => x.trim())
       .find((x) => x.startsWith(`${cookieName}=`));
-    const token = value ? decodeURIComponent(value.slice(cookieName.length + 1)) : "";
-    if (!token) return json({ error: "Sign in to your Sperin Services owner area." }, 401);
-    const u = await auth("/get-session", {}, token);
+    const sessionCookies = value ? decodeURIComponent(value.slice(cookieName.length + 1)) : "";
+    if (!sessionCookies) return json({ error: "Sign in to your Sperin Services owner area." }, 401);
+    const u = await auth("/get-session", {}, sessionCookies);
     const session = await u.json();
     const user = session?.user;
     if (
@@ -229,7 +241,7 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
         "set-cookie": cookie("", 0),
       });
     if (path === "/api/owner/logout" && req.method === "POST") {
-      const result = await auth("/sign-out", { method: "POST", body: "{}" }, token);
+      const result = await auth("/sign-out", { method: "POST", body: "{}" }, sessionCookies);
       if (!result.ok) throw Error("Sign-out unavailable");
       return json({ success: true }, 200, { "set-cookie": cookie("", 0) });
     }

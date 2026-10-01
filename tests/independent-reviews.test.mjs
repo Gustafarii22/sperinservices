@@ -40,7 +40,7 @@ afterEach(() => {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
 });
-const res = (v, status = 200) => new Response(JSON.stringify(v), { status });
+const res = (v, status = 200, headers = {}) => new Response(JSON.stringify(v), { status, headers });
 const req = (path, body, token, origin = "https://sperinservices.co.uk") =>
   new Request("https://sperinservices.co.uk" + path, {
     method: body ? "POST" : "GET",
@@ -178,11 +178,26 @@ test("valid owner code creates Secure HttpOnly cookie; invalid code never does",
   setup(() => [{ result: true }]);
   globalThis.fetch = async () => res({ message: "invalid" }, 401);
   assert.equal((await api(req("/api/owner/verify-code", { email, code: "000000" }))).status, 401);
-  globalThis.fetch = async () => res({ user: session.user, token: "test-session-token" });
+  globalThis.fetch = async () =>
+    res({ user: session.user }, 200, {
+      "set-cookie":
+        "better-auth.session_token=test-session-token; Path=/; HttpOnly; Secure; SameSite=Lax",
+    });
   const r = await api(req("/api/owner/verify-code", { email, code: "123456" }));
   assert.equal(r.status, 200);
-  assert.match(r.headers.get("set-cookie"), /HttpOnly; Secure; SameSite=Strict/);
+  const appCookie = r.headers.get("set-cookie");
+  assert.match(appCookie, /HttpOnly; Secure; SameSite=Strict/);
   assert.equal((await r.json()).token, undefined);
+
+  const stored = appCookie.match(/sperin_services_owner_v2=([^;]+)/)?.[1];
+  assert.ok(stored);
+  globalThis.fetch = async (url, init) => {
+    assert.ok(url.endsWith("/get-session"));
+    assert.equal(init.headers.Cookie, "better-auth.session_token=test-session-token");
+    return res(session);
+  };
+  const sessionResult = await api(req("/api/owner/session", null, stored));
+  assert.equal(sessionResult.status, 200);
 });
 test("owner explicitly approves and unpublishes with parameterized SQL", async () => {
   setup((q, p) => [{ id, status: p[0], reply: p[1] }]);
@@ -199,11 +214,18 @@ test("owner explicitly approves and unpublishes with parameterized SQL", async (
 test("logout revokes managed session before clearing cookie", async () => {
   setup();
   const routes = [];
-  globalThis.fetch = async (url) => {
+  globalThis.fetch = async (url, init) => {
     routes.push(url);
+    assert.equal(init.headers.Cookie, "better-auth.session_token=test-session-token");
     return res(url.endsWith("/get-session") ? session : { success: true });
   };
-  const r = await api(req("/api/owner/logout", {}, "token"));
+  const r = await api(
+    req(
+      "/api/owner/logout",
+      {},
+      encodeURIComponent("better-auth.session_token=test-session-token"),
+    ),
+  );
   assert.equal(r.status, 200);
   assert.match(r.headers.get("set-cookie"), /Max-Age=0/);
   assert.ok(routes[1].endsWith("/sign-out"));
