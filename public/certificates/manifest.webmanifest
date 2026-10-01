@@ -1,0 +1,11 @@
+{
+  "name": "Sperin Certificates",
+  "short_name": "Certificates",
+  "description": "Local-first UK electrical, emergency lighting and domestic smoke alarm certification app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
+  "icons": [{"src":"./icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]
+}
