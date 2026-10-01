@@ -15,3 +15,13 @@ export type Review = {
 };
 export const GOOGLE_REVIEW_URL =
   "https://search.google.com/local/writereview?placeid=ChIJL3jjyAK9cEgRpfDz2qeXROA";
+
+export type GoogleReview = {
+  id: string;
+  reviewer: string;
+  rating: number;
+  text: string;
+  created_at: string;
+  updated_at: string;
+  source: "google";
+};
