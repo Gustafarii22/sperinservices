@@ -1,0 +1,37 @@
+name: Sperin Services QA
+
+on:
+  push:
+    branches:
+      - feature/real-work-reviews-ai-quote
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Review and security tests
+        run: node --test tests/review-api.test.mjs tests/independent-reviews.test.mjs
+
+      - name: Production build
+        run: npm run build
