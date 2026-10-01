@@ -40,8 +40,7 @@ afterEach(() => {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
 });
-const res = (v, status = 200, headers = {}) =>
-  new Response(JSON.stringify(v), { status, headers });
+const res = (v, status = 200, headers = {}) => new Response(JSON.stringify(v), { status, headers });
 const req = (path, body, token, origin = "https://sperinservices.co.uk") =>
   new Request("https://sperinservices.co.uk" + path, {
     method: body ? "POST" : "GET",
@@ -180,14 +179,10 @@ test("valid owner code creates Secure HttpOnly cookie; invalid code never does",
   globalThis.fetch = async () => res({ message: "invalid" }, 401);
   assert.equal((await api(req("/api/owner/verify-code", { email, code: "000000" }))).status, 401);
   globalThis.fetch = async () =>
-    res(
-      { user: session.user },
-      200,
-      {
-        "set-cookie":
-          "better-auth.session_token=test-session-token; Path=/; HttpOnly; Secure; SameSite=Lax",
-      },
-    );
+    res({ user: session.user }, 200, {
+      "set-cookie":
+        "better-auth.session_token=test-session-token; Path=/; HttpOnly; Secure; SameSite=Lax",
+    });
   const r = await api(req("/api/owner/verify-code", { email, code: "123456" }));
   assert.equal(r.status, 200);
   const appCookie = r.headers.get("set-cookie");
