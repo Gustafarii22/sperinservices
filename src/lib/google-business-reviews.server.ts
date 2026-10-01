@@ -57,9 +57,9 @@ function config() {
   const accountId = process.env.GOOGLE_BUSINESS_ACCOUNT_ID?.trim() || "";
   const locationId = process.env.GOOGLE_BUSINESS_LOCATION_ID?.trim() || "";
   const values = [clientId, clientSecret, refreshToken, accountId, locationId];
-  if (values.every(Boolean))
-    return { clientId, clientSecret, refreshToken, accountId, locationId };
-  if (values.some(Boolean)) throw Error("Google Business Profile review configuration is incomplete.");
+  if (values.every(Boolean)) return { clientId, clientSecret, refreshToken, accountId, locationId };
+  if (values.some(Boolean))
+    throw Error("Google Business Profile review configuration is incomplete.");
   return null;
 }
 
