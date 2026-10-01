@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Mail, ShieldCheck } from "lucide-react";
 export function SperinOwnerSignIn({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
-  const [email, setEmail] = useState(""),
-    [code, setCode] = useState(""),
+  const email = "info@sperinservices.co.uk";
+  const [code, setCode] = useState(""),
     [sent, setSent] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -35,19 +35,7 @@ export function SperinOwnerSignIn({ onSignedIn }: { onSignedIn: () => Promise<vo
           ? "Check your inbox for your Sperin Services sign-in code."
           : "We’ll email you a one-time code to open your private review desk. No other app account or password is needed."}
       </p>
-      <label className="block text-sm font-semibold">
-        Owner email
-        <input
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-          readOnly={sent}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-2 w-full rounded border border-white/20 bg-black/20 px-4 py-3"
-        />
-      </label>
+      <p className="break-all text-sm font-semibold">Owner email: {email}</p>
       {sent && (
         <label className="block text-sm font-semibold">
           Email code
@@ -78,7 +66,7 @@ export function SperinOwnerSignIn({ onSignedIn }: { onSignedIn: () => Promise<vo
           }}
           className="text-sm underline"
         >
-          Use another email or request a new code
+          Request a new code
         </button>
       )}
       {error && (
