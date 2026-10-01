@@ -227,8 +227,7 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
       .map((x) => x.trim())
       .find((x) => x.startsWith(`${cookieName}=`));
     const sessionCookies = value ? decodeURIComponent(value.slice(cookieName.length + 1)) : "";
-    if (!sessionCookies)
-      return json({ error: "Sign in to your Sperin Services owner area." }, 401);
+    if (!sessionCookies) return json({ error: "Sign in to your Sperin Services owner area." }, 401);
     const u = await auth("/get-session", {}, sessionCookies);
     const session = await u.json();
     const user = session?.user;
