@@ -57,7 +57,8 @@ function config() {
   const accountId = process.env.GOOGLE_BUSINESS_ACCOUNT_ID?.trim() || "";
   const locationId = process.env.GOOGLE_BUSINESS_LOCATION_ID?.trim() || "";
   const values = [clientId, clientSecret, refreshToken, accountId, locationId];
-  if (values.every(Boolean)) return { clientId, clientSecret, refreshToken, accountId, locationId };
+  if (values.every(Boolean))
+    return { clientId, clientSecret, refreshToken, accountId, locationId };
   if (values.some(Boolean)) throw Error("Google Business Profile review configuration is incomplete.");
   return null;
 }
@@ -89,7 +90,10 @@ function normalize(review: GoogleApiReview): PublicGoogleReview | null {
   const date = review.createTime || review.updateTime;
   if (!stars || !date) return null;
   return {
-    id: review.reviewId || review.name || `google-${date}-${review.reviewer?.displayName || "anonymous"}`,
+    id:
+      review.reviewId ||
+      review.name ||
+      `google-${date}-${review.reviewer?.displayName || "anonymous"}`,
     reviewer:
       review.reviewer?.isAnonymous || !review.reviewer?.displayName
         ? "Google customer"
@@ -158,11 +162,7 @@ export async function googleBusinessReviewsApi(request: Request): Promise<Respon
       fetchedAt: new Date().toISOString(),
     };
     cache = { expiresAt: Date.now() + cacheMs, payload };
-    return json(
-      payload,
-      200,
-      "public, max-age=300, s-maxage=900, stale-while-revalidate=86400",
-    );
+    return json(payload, 200, "public, max-age=300, s-maxage=900, stale-while-revalidate=86400");
   } catch (error) {
     console.error(
       "Google review feed unavailable:",
@@ -175,6 +175,9 @@ export async function googleBusinessReviewsApi(request: Request): Promise<Respon
         "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
       );
     }
-    return json({ configured: true, reviews: [], error: "Google reviews are temporarily unavailable." }, 503);
+    return json(
+      { configured: true, reviews: [], error: "Google reviews are temporarily unavailable." },
+      503,
+    );
   }
 }
