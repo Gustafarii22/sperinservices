@@ -100,6 +100,13 @@ function OwnerReviews() {
         <p className="mt-8" role="status">
           Checking your session…
         </p>
+      ) : !signedIn ? (
+        <SperinOwnerSignIn
+          onSignedIn={async () => {
+            setSignedIn(true);
+            await load();
+          }}
+        />
       ) : (
         <>
           <div className="my-8 flex flex-wrap gap-3">
