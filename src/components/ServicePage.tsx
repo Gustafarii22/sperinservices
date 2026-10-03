@@ -45,6 +45,8 @@ export function ServicePage(p: ServicePageProps) {
                 width="1000"
                 height="900"
                 fetchPriority="high"
+                decoding="async"
+                sizes="(max-width: 1023px) 100vw, 40vw"
                 alt={illustration.alt}
               />
               <figcaption>Illustrative photograph · not a Sperin Services project</figcaption>
