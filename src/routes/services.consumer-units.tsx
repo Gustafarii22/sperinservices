@@ -17,6 +17,7 @@ export const Route = createFileRoute("/services/consumer-units")({
         property: "og:description",
         content: "Safer modern protection with RCBOs and surge devices. West Midlands.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/consumer-units" },
     ],
     scripts: [
       {
