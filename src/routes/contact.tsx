@@ -141,7 +141,7 @@ function Contact() {
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-[#25D366]"
+                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-[#72d997]"
               >
                 <WhatsAppGlyph className="h-6 w-6" />
                 <span>
