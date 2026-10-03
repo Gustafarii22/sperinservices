@@ -6,7 +6,11 @@ import { projects, type ProjectPhoto } from "@/lib/projects";
 
 export const Route = createFileRoute("/our-work/$slug")({
   loader: ({ params }) => {
-    const project = projects.find((p) => p.slug === params.slug);
+    const requestedSlug =
+      params.slug === "rowley-park-primary-academy"
+        ? "rowley-park-primary-academy-refurbishment"
+        : params.slug;
+    const project = projects.find((p) => p.slug === requestedSlug);
     if (!project) throw notFound();
     return project;
   },
