@@ -14,8 +14,7 @@ import { SERVICES, SITE } from "@/lib/site";
 import { illustrativeImages } from "@/lib/illustrative-images";
 import { CTA } from "@/components/CTA";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
-
-const AREAS = SITE.areas;
+import { electricianJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,33 +41,7 @@ export const Route = createFileRoute("/")({
     scripts: [
       {
         type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Electrician",
-          name: SITE.name,
-          url: SITE.url,
-          telephone: SITE.phone,
-          email: SITE.email,
-          image: `${SITE.url}/sperin-logo.png`,
-          foundingDate: String(SITE.founded),
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: "Birmingham",
-            addressRegion: "West Midlands",
-            addressCountry: "GB",
-          },
-          areaServed: AREAS.map((name) => ({ "@type": "City", name })),
-          knowsAbout: [
-            "Electrical installation",
-            "Electrical inspection and testing",
-            "EICR",
-            "Consumer units",
-            "EV charging",
-            "Commercial electrical work",
-            "Access control",
-            "Emergency lighting",
-          ],
-        }),
+        children: JSON.stringify(electricianJsonLd()),
       },
     ],
   }),
@@ -120,6 +93,7 @@ function Home() {
             width="1400"
             height="1000"
             fetchPriority="high"
+            sizes="(max-width: 767px) 100vw, 50vw"
             alt={illustrativeImages["Testing & Certification"].alt}
           />
           <figcaption>
