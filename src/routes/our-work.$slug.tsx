@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { projects, type ProjectPhoto } from "@/lib/projects";
+import { breadcrumbJsonLd, projectJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/our-work/$slug")({
   loader: ({ params }) => {
@@ -21,15 +22,49 @@ export const Route = createFileRoute("/our-work/$slug")({
     meta: [
       { title: `${project?.title || "Project"} | Sperin Services` },
       { name: "description", content: project?.summary || "Sperin Services project" },
+      { property: "og:type", content: "article" },
+      {
+        property: "og:url",
+        content: `https://sperinservices.co.uk/our-work/${project?.slug || ""}`,
+      },
+      { property: "og:title", content: `${project?.title || "Project"} | Sperin Services` },
+      { property: "og:description", content: project?.summary || "Sperin Services project" },
       ...(project?.cover
         ? [
             {
               property: "og:image",
               content: `https://sperinservices.co.uk${project.cover}`,
             },
+            {
+              property: "og:image:alt",
+              content: project.photos[0]?.alt || project.title,
+            },
+            { name: "twitter:card", content: "summary_large_image" },
+            {
+              name: "twitter:image",
+              content: `https://sperinservices.co.uk${project.cover}`,
+            },
           ]
         : []),
     ],
+    scripts: project
+      ? [
+          {
+            type: "application/ld+json",
+            children: JSON.stringify(projectJsonLd(project)),
+          },
+          {
+            type: "application/ld+json",
+            children: JSON.stringify(
+              breadcrumbJsonLd([
+                { name: "Home", path: "/" },
+                { name: "Our Work", path: "/our-work" },
+                { name: project.title, path: `/our-work/${project.slug}` },
+              ]),
+            ),
+          },
+        ]
+      : [],
   }),
   component: ProjectPage,
 });
@@ -129,6 +164,7 @@ function ProjectPage() {
                   width="900"
                   height="675"
                   loading="lazy"
+                  decoding="async"
                   className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                 />
                 <span className="block px-1 pt-3 text-sm leading-relaxed text-muted-foreground">
