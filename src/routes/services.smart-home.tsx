@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ServicePage } from "@/components/ServicePage";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/smart-home")({
   head: () => ({
@@ -15,6 +16,28 @@ export const Route = createFileRoute("/services/smart-home")({
       {
         property: "og:description",
         content: "App, voice and scene-controlled homes done properly.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          serviceJsonLd({
+            name: "Smart Home Automation",
+            description: "Smart lighting, app and voice control, smart heating, security integration and future-ready wiring across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            path: "/services/smart-home",
+          }),
+        ),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+            { name: "Smart Home Automation", path: "/services/smart-home" },
+          ]),
+        ),
       },
     ],
   }),
