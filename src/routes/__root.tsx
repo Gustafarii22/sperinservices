@@ -84,7 +84,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE.name },
       { property: "og:locale", content: "en_GB" },
-      { property: "og:url", content: SITE.url },
       { property: "og:image", content: `${SITE.url}${SITE.socialImage}` },
       { property: "og:image:alt", content: SITE.socialImageAlt },
       { name: "twitter:card", content: "summary_large_image" },
