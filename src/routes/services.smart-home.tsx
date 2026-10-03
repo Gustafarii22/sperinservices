@@ -17,6 +17,7 @@ export const Route = createFileRoute("/services/smart-home")({
         property: "og:description",
         content: "App, voice and scene-controlled homes done properly.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/smart-home" },
     ],
     scripts: [
       {
