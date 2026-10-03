@@ -17,6 +17,7 @@ export const Route = createFileRoute("/services/testing")({
         property: "og:description",
         content: "Inspection, certification and fault finding for domestic properties.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/testing" },
     ],
     scripts: [
       {
