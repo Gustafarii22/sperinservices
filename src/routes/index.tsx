@@ -36,6 +36,7 @@ export const Route = createFileRoute("/")({
         content:
           "Electrical work for homes, businesses and commercial premises. In the industry since 2003 and trading independently since 2010.",
       },
+      { property: "og:url", content: SITE.url },
     ],
     links: [{ rel: "canonical", href: SITE.url }],
     scripts: [
