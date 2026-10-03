@@ -14,6 +14,13 @@ export const Route = createFileRoute("/reviews")({
         content:
           "Genuine customer feedback for Sperin Services, including approved website reviews and Google reviews.",
       },
+      { property: "og:title", content: "Customer Reviews | Sperin Services" },
+      {
+        property: "og:description",
+        content:
+          "Read genuine customer feedback for Sperin Services and leave a review after completed work.",
+      },
+      { property: "og:url", content: "https://sperinservices.co.uk/reviews" },
     ],
   }),
   component: Reviews,
