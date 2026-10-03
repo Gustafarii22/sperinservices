@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ServicePage } from "@/components/ServicePage";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/rewires")({
   head: () => ({
@@ -15,6 +16,28 @@ export const Route = createFileRoute("/services/rewires")({
       {
         property: "og:description",
         content: "Tidy domestic rewires with smart home options. West Midlands.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          serviceJsonLd({
+            name: "Full & Part Rewires",
+            description: "Domestic full and part rewires across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Clean planning, tidy first and second fix wiring.",
+            path: "/services/rewires",
+          }),
+        ),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+            { name: "Full & Part Rewires", path: "/services/rewires" },
+          ]),
+        ),
       },
     ],
   }),
