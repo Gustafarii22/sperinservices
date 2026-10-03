@@ -46,6 +46,13 @@ export const Route = createFileRoute("/faqs")({
         content:
           "Straight answers about electrical quotes, EICRs, certification, EV charging, commercial work, access control and coverage across Birmingham and the West Midlands.",
       },
+      { property: "og:title", content: "Electrical FAQs | Sperin Services" },
+      {
+        property: "og:description",
+        content:
+          "Straight answers about quotes, EICRs, certification, EV charging and commercial electrical work.",
+      },
+      { property: "og:url", content: "https://sperinservices.co.uk/faqs" },
     ],
     scripts: [
       {
@@ -60,9 +67,6 @@ export const Route = createFileRoute("/faqs")({
           })),
         }),
       },
-      { property: "og:title", content: "Electrical FAQs | Sperin Services" },
-      { property: "og:description", content: "Straight answers about quotes, EICRs, certification, EV charging and commercial electrical work." },
-      { property: "og:url", content: "https://sperinservices.co.uk/faqs" },
     ],
   }),
   component: FAQs,
