@@ -29,6 +29,7 @@ export const Route = createFileRoute("/commercial")({
         content:
           "Electrical work for schools, offices, shops, landlords and small commercial premises across the West Midlands.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/commercial" },
     ],
   }),
   component: Commercial,
