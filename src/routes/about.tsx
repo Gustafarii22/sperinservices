@@ -19,6 +19,7 @@ export const Route = createFileRoute("/about")({
         content:
           "A straightforward electrical business built on long-term trade experience, inspection and testing capability, and clear project delivery.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/about" },
     ],
   }),
   component: About,
