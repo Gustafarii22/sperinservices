@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Camera } from "lucide-react";
 import { useState } from "react";
 import { projects, projectCategories } from "@/lib/projects";
+import { breadcrumbJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/our-work/")({
   head: () => ({
@@ -12,6 +13,24 @@ export const Route = createFileRoute("/our-work/")({
         name: "description",
         content:
           "Genuine Sperin Services electrical, commercial and refurbishment projects across the Midlands.",
+      },
+      { property: "og:title", content: "Our Work | Sperin Services" },
+      {
+        property: "og:description",
+        content:
+          "Genuine Sperin Services projects, photographed and documented with the actual scope of work.",
+      },
+      { property: "og:url", content: "https://sperinservices.co.uk/our-work" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Our Work", path: "/our-work" },
+          ]),
+        ),
       },
     ],
   }),
@@ -70,7 +89,7 @@ function OurWork() {
           <p className="py-12 text-muted-foreground">No projects in this category yet.</p>
         ) : (
           <div className="space-y-6">
-            {shown.map((project) => (
+            {shown.map((project, index) => (
               <article
                 key={project.slug}
                 className="surface-raised group overflow-hidden rounded-2xl md:grid md:grid-cols-[1.15fr_.85fr]"
@@ -86,7 +105,8 @@ function OurWork() {
                     alt={project.photos[0]?.alt || project.title}
                     width="1120"
                     height="840"
-                    loading="eager"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     className="aspect-[16/10] h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
                   />
                 </Link>
