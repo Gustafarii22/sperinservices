@@ -20,6 +20,7 @@ export const Route = createFileRoute("/contact")({
         property: "og:description",
         content: "Tell us what the job actually involves and we can advise on the right next step.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/contact" },
     ],
   }),
   component: Contact,
