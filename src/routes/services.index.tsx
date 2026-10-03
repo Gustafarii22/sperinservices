@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { SERVICES } from "@/lib/site";
+import { breadcrumbJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/")({
   head: () => ({
@@ -11,6 +12,24 @@ export const Route = createFileRoute("/services/")({
         name: "description",
         content:
           "Electrical services for homes, landlords and commercial premises across Birmingham and the West Midlands.",
+      },
+      { property: "og:title", content: "Electrical Services | Sperin Services" },
+      {
+        property: "og:description",
+        content:
+          "Rewires, consumer units, EICRs, EV charging, smart systems and coordinated electrical work across Birmingham and the West Midlands.",
+      },
+      { property: "og:url", content: "https://sperinservices.co.uk/services" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+          ]),
+        ),
       },
     ],
   }),
