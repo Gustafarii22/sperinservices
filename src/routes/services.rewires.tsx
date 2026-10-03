@@ -17,6 +17,7 @@ export const Route = createFileRoute("/services/rewires")({
         property: "og:description",
         content: "Tidy domestic rewires with smart home options. West Midlands.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/rewires" },
     ],
     scripts: [
       {
