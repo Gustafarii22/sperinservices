@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ServicePage } from "@/components/ServicePage";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/ev-chargers")({
   head: () => ({
@@ -15,6 +16,28 @@ export const Route = createFileRoute("/services/ev-chargers")({
       {
         property: "og:description",
         content: "Tidy, smart EV charger installs for domestic properties.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          serviceJsonLd({
+            name: "EV Chargers",
+            description: "Smart home EV charger installations with tidy cable routes and load considerations. Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            path: "/services/ev-chargers",
+          }),
+        ),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+            { name: "EV Chargers", path: "/services/ev-chargers" },
+          ]),
+        ),
       },
     ],
   }),
