@@ -14,6 +14,7 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
       },
       { property: "og:title", content: "Kitchens & Bathrooms — Sperin Services" },
       { property: "og:description", content: "Electrical and building works with a clean finish." },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/kitchens-bathrooms" },
     ],
     scripts: [
       {
