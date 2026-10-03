@@ -15,7 +15,7 @@ export function Footer() {
               Midlands.
             </p>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              In the electrical industry since {SITE.industrySince}. Trading as Sperin Services
+              In the electrical industry since {SITE.industrySince}. Trading independently
               since {SITE.founded}. Design, installation, inspection, testing, fault finding and
               remedial work handled with one clear point of contact.
             </p>
