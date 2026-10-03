@@ -17,6 +17,7 @@ export const Route = createFileRoute("/services/ev-chargers")({
         property: "og:description",
         content: "Tidy, smart EV charger installs for domestic properties.",
       },
+      { property: "og:url", content: "https://sperinservices.co.uk/services/ev-chargers" },
     ],
     scripts: [
       {
