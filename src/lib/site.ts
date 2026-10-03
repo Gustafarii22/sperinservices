@@ -7,6 +7,14 @@ export const SITE = {
   email: "info@sperinservices.co.uk",
   website: "sperinservices.co.uk",
   url: "https://sperinservices.co.uk",
+  region: "West Midlands",
+  country: "GB",
+  socialImage: "/projects/rowley-park/rowley-park-overview.webp",
+  socialImageAlt: "Completed Sperin Services refurbishment at Rowley Park Primary Academy",
+  openingHours: [
+    { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "20:00" },
+    { days: ["Saturday"], opens: "08:00", closes: "17:00" },
+  ],
   founded: 2010,
   industrySince: 2003,
   areas: [
