@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ServicePage } from "@/components/ServicePage";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/consumer-units")({
   head: () => ({
@@ -15,6 +16,28 @@ export const Route = createFileRoute("/services/consumer-units")({
       {
         property: "og:description",
         content: "Safer modern protection with RCBOs and surge devices. West Midlands.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          serviceJsonLd({
+            name: "Consumer Unit Upgrades",
+            description: "Modern consumer unit upgrades, fuse box replacements, RCBO and surge protection across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            path: "/services/consumer-units",
+          }),
+        ),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+            { name: "Consumer Unit Upgrades", path: "/services/consumer-units" },
+          ]),
+        ),
       },
     ],
   }),
