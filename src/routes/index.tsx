@@ -16,6 +16,8 @@ import { CTA } from "@/components/CTA";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 import { electricianJsonLd } from "@/lib/seo";
 
+const AREAS = SITE.areas;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
