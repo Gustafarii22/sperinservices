@@ -10,7 +10,7 @@ export function MobileBar() {
         Call
       </a>
       <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer">
-        <WhatsAppGlyph className="h-4 w-4 text-[#25d366]" />
+        <WhatsAppGlyph className="h-4 w-4 text-[#72d997]" />
         WhatsApp
       </a>
       <Link to="/contact">
