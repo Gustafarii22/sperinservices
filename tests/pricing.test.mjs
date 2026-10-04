@@ -87,10 +87,29 @@ const backend = source("booking-api.server")
   .replace('"./sperin-review-email.server"', JSON.stringify(emailUrl))
   .replace('"@neondatabase/serverless"', JSON.stringify(neonUrl))
   .replace('"zod"', JSON.stringify(zodUrl));
-const { bookingApi } = await import(url(backend));
+const { bookingApi, lookupTravel } = await import(url(backend));
 process.env.SPERIN_DATABASE_URL = "postgres://test";
 process.env.SPERIN_RESEND_API_KEY = "test";
 delete process.env.SPERIN_ROUTING_API_KEY;
+const nativeFetch = globalThis.fetch;
+globalThis.__routeSeconds = 20 * 60;
+globalThis.__routeFails = false;
+globalThis.fetch = async (input, init) => {
+  const target = typeof input === "string" ? input : input.url;
+  if (target.startsWith("https://api.postcodes.io/postcodes/")) {
+    return Response.json({
+      result: {
+        longitude: target.includes("B664JB") ? -1.99 : -2.42,
+        latitude: target.includes("B664JB") ? 52.49 : 52.53,
+      },
+    });
+  }
+  if (target.startsWith("https://router.project-osrm.org/")) {
+    if (globalThis.__routeFails) throw Error("router unavailable");
+    return Response.json({ code: "Ok", routes: [{ duration: globalThis.__routeSeconds }] });
+  }
+  return nativeFetch(input, init);
+};
 const payload = () => ({
   name: "TEST ONLY",
   email: "test@example.com",
@@ -182,15 +201,34 @@ test("non-image attachments and spam rejected", async () => {
   assert.equal((await bookingApi(request(payload()))).status, 429);
   globalThis.__allow = true;
 });
-test("missing routing returns confirmation, not a fictitious free trip", async () => {
-  const r = await bookingApi(
-    new Request("https://sperinservices.co.uk/api/pricing/travel", {
-      method: "POST",
-      headers: { origin: "https://sperinservices.co.uk" },
-      body: JSON.stringify({ postcode: "B66 4JB" }),
-    }),
-  );
-  const data = await r.json();
-  assert.equal(data.charge, null);
-  assert.match(data.message, /confirmed/);
+test("postcode travel check returns included and supplement outcomes", async () => {
+  for (const [minutes, charge] of [
+    [20, 0],
+    [45, 15],
+    [55, 25],
+    [70, null],
+  ]) {
+    globalThis.__routeSeconds = minutes * 60;
+    const r = await bookingApi(
+      new Request("https://sperinservices.co.uk/api/pricing/travel", {
+        method: "POST",
+        headers: { origin: "https://sperinservices.co.uk" },
+        body: JSON.stringify({ postcode: "WV15 5EG" }),
+      }),
+    );
+    assert.equal(r.status, 200);
+    const data = await r.json();
+    assert.equal(data.minutes, minutes);
+    assert.equal(data.charge, charge);
+    assert.equal(data.source, "osrm");
+  }
+});
+
+test("travel check has a deterministic fallback when road routing is unavailable", async () => {
+  globalThis.__routeFails = true;
+  const data = await lookupTravel("B66 4JB");
+  assert.equal(data.source, "fallback");
+  assert.equal(data.charge, 0);
+  assert.match(data.message, /travel included/);
+  globalThis.__routeFails = false;
 });
