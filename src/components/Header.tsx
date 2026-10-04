@@ -28,12 +28,16 @@ export function Header() {
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
         <div
-          className={`mx-auto flex max-w-7xl items-center justify-between gap-5 px-4 transition-all lg:px-8 ${
-            scrolled ? "min-h-[72px]" : "min-h-[82px]"
+          className={`relative mx-auto flex max-w-7xl items-center justify-center px-4 transition-all lg:justify-between lg:gap-5 lg:px-8 ${
+            scrolled ? "min-h-[80px] lg:min-h-[74px]" : "min-h-[90px] lg:min-h-[86px]"
           }`}
         >
-          <Link to="/" className="flex shrink-0 items-center" aria-label="Sperin Services home">
-            <Logo className="h-14 w-auto sm:h-16" />
+          <Link
+            to="/"
+            className="flex shrink-0 items-center justify-center"
+            aria-label="Sperin Services home"
+          >
+            <Logo className="h-[68px] w-auto max-w-[72vw] sm:h-[74px] lg:h-[72px] lg:max-w-none" />
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
@@ -47,7 +51,7 @@ export function Header() {
             <button
               type="button"
               aria-label="Open menu"
-              className="mobile-menu-trigger inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05]"
+              className="mobile-menu-trigger absolute right-4 inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:static"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -60,16 +64,16 @@ export function Header() {
         >
           <DialogTitle className="sr-only">Sperin Services navigation</DialogTitle>
 
-          <div className="border-b border-white/10 px-5 pb-4 pt-5">
+          <div className="border-b border-white/10 px-5 pb-4 pt-5 text-center">
             <Link
               to="/"
               onClick={() => setOpen(false)}
-              className="inline-flex items-center"
+              className="inline-flex items-center justify-center"
               aria-label="Sperin Services home"
             >
-              <Logo className="h-18 w-auto" />
+              <Logo className="h-20 w-auto max-w-[78vw]" />
             </Link>
-            <div className="mt-3 h-px w-12 bg-electric" />
+            <div className="mx-auto mt-3 h-px w-12 bg-electric" />
           </div>
 
           <nav className="p-3" aria-label="Mobile navigation">
