@@ -1,36 +1,39 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Calculator, Phone } from "lucide-react";
-import { SITE } from "@/lib/site";
+import { ArrowRight, Calculator, MessageSquareText } from "lucide-react";
 
 export function CTA({
-  title = "Ready for the next step?",
-  subtitle = "Use the estimate calculator for listed standard jobs, or send the project details for anything bespoke, larger or uncertain.",
+  title = "What do you need?",
+  subtitle = "Price a listed job, or send the details and photos.",
 }: {
   title?: string;
   subtitle?: string;
 }) {
   return (
-    <section className="mx-auto my-12 max-w-7xl px-4 lg:px-8">
-      <div className="enquiry-section p-6 sm:p-8 lg:p-10">
-        <span className="eyebrow">Start here</span>
-        <h2 className="mt-3 max-w-3xl text-3xl font-semibold sm:text-4xl">{title}</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          {subtitle}
-        </p>
-        <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">
-          <Link to="/pricing" className="button-primary">
-            <Calculator className="h-4 w-4" /> Build an estimate
+    <section className="mx-auto my-10 max-w-7xl px-4 lg:px-8">
+      <div className="grid overflow-hidden rounded-md border border-white/10 bg-[#15191a] lg:grid-cols-[.75fr_1.25fr]">
+        <div className="p-5 sm:p-6">
+          <span className="eyebrow">Next step</span>
+          <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">{title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="grid border-t border-white/10 sm:grid-cols-2 lg:border-l lg:border-t-0">
+          <Link
+            to="/pricing"
+            className="group flex min-h-20 items-center gap-3 border-b border-white/10 px-5 transition hover:bg-electric/[0.05] sm:border-b-0 sm:border-r"
+          >
+            <Calculator className="h-5 w-5 text-electric" />
+            <span className="flex-1 font-semibold">Price Your Job</span>
+            <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
           </Link>
-          <Link to="/contact" className="button-secondary">
-            Discuss a project <ArrowRight className="h-4 w-4" />
+          <Link
+            to="/contact"
+            className="group flex min-h-20 items-center gap-3 px-5 transition hover:bg-white/[0.03]"
+          >
+            <MessageSquareText className="h-5 w-5 text-electric" />
+            <span className="flex-1 font-semibold">Discuss Your Job</span>
+            <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
           </Link>
         </div>
-        <a
-          href={`tel:${SITE.phone}`}
-          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <Phone className="h-4 w-4 text-electric" /> Prefer to call? {SITE.phoneDisplay}
-        </a>
       </div>
     </section>
   );
