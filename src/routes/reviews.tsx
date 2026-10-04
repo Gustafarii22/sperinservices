@@ -88,11 +88,11 @@ function Reviews() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pt-18">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pt-12">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
           <div>
             <span className="eyebrow">Customer reviews</span>
-            <h1 className="display-title mt-5 text-5xl sm:text-6xl lg:text-7xl">
+            <h1 className="display-title mt-5 text-5xl sm:text-6xl">
               Your experience matters.
             </h1>
             <p className="mt-5 max-w-2xl text-muted-foreground">
