@@ -96,8 +96,9 @@ function Reviews() {
               Your experience matters.
             </h1>
             <p className="mt-5 max-w-2xl text-muted-foreground">
-              Genuine feedback appears here from approved Sperin Services submissions and, once
-              connected, directly from our verified Google Business Profile.
+              Genuine feedback from approved Sperin Services submissions and, when connected,
+              automatically from the verified Google Business Profile. No reviews are fabricated
+              or imported from unrelated sources.
             </p>
             <Link to="/leave-a-review" className="button-primary mt-7">
               Leave a review <ArrowRight className="h-4 w-4" />
@@ -111,13 +112,13 @@ function Reviews() {
               Review us on Google ↗
             </a>
           </div>
-          <aside className="surface-raised rounded-2xl p-7">
+          <aside className="surface-raised rounded-md p-7">
             <ShieldCheck className="h-7 w-7 text-electric" />
             <h2 className="mt-5 text-2xl font-bold">Feedback from the people we work for.</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Reviews submitted through this website are checked before publication. Google reviews
-              are imported from the verified Sperin Services Business Profile and clearly labelled
-              as Google reviews.
+              Website reviews stay private until approved. Google reviews are fetched automatically
+              from the Sperin Services Business Profile when the Google connection is active and are
+              clearly labelled as Google reviews.
             </p>
             {google.configured &&
             typeof google.averageRating === "number" &&
@@ -140,11 +141,15 @@ function Reviews() {
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         {loading ? (
-          <p role="status">Loading customer feedback…</p>
+          <div className="grid gap-4 md:grid-cols-2" aria-label="Loading customer reviews">
+            {[0, 1, 2, 3].map((item) => (
+              <div key={item} className="h-40 animate-pulse rounded-md bg-white/[0.035]" />
+            ))}
+          </div>
         ) : error && combined.length === 0 ? (
           <p role="alert">Reviews are temporarily unavailable. Please refresh to try again.</p>
         ) : combined.length === 0 ? (
-          <div className="surface rounded-2xl p-8 text-center sm:p-12">
+          <div className="surface rounded-md p-8 text-center sm:p-12">
             <MessageSquareQuote className="mx-auto h-8 w-8 text-electric" />
             <h2 className="mt-5 text-3xl font-bold">The review book starts with real customers.</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
@@ -193,7 +198,7 @@ function Stars({ rating }: { rating: number }) {
 
 function WebsiteReviewCard({ review }: { review: Review }) {
   return (
-    <article className="surface rounded-2xl p-6">
+    <article className="surface rounded-md p-6">
       <div className="flex items-center justify-between gap-3">
         <Stars rating={review.rating} />
         <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -220,7 +225,7 @@ function WebsiteReviewCard({ review }: { review: Review }) {
 
 function GoogleReviewCard({ review }: { review: GoogleReview }) {
   return (
-    <article className="surface rounded-2xl p-6">
+    <article className="surface rounded-md p-6">
       <div className="flex items-center justify-between gap-3">
         <Stars rating={review.rating} />
         <span className="rounded-full border border-electric/25 bg-electric/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-electric">
