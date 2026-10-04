@@ -373,6 +373,25 @@ function Contact() {
           </form>
         </div>
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8" aria-labelledby="coverage-title">
+        <div className="border-t border-white/10 pt-6">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-electric" />
+            <h2 id="coverage-title" className="text-sm font-semibold">Main service area</h2>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {SITE.areas.map((area) => (
+              <span key={area} className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-muted-foreground">
+                {area}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Outside these areas? Send the postcode and we will confirm whether the job is practical to cover.
+          </p>
+        </div>
+      </section>
     </>
   );
 }
