@@ -45,7 +45,7 @@ function OurWork() {
     <>
       <section className="mx-auto max-w-7xl px-4 pb-7 pt-8 lg:px-8 lg:pt-12">
         <span className="eyebrow">Completed projects</span>
-        <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
+        <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl">
           Real work, shown properly.
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
