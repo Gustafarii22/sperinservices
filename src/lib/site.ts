@@ -56,8 +56,8 @@ export const SERVICES = [
   {
     slug: "testing",
     path: "/services/testing",
-    title: "Inspection & Testing",
-    short: "EICRs, certification, fault finding and remedials",
+    title: "EICRs & Testing",
+    short: "Electrical Installation Condition Reports, certification, fault finding and remedials",
     image: "testing",
   },
   {
