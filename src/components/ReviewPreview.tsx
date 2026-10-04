@@ -61,8 +61,8 @@ export function ReviewPreview() {
     <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
       <div className="flex items-end justify-between gap-5 border-b border-white/10 pb-5">
         <div>
-          <span className="eyebrow">Reviews</span>
-          <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">What customers say.</h2>
+          <h2 className="text-3xl font-semibold sm:text-4xl">Reviews</h2>
+          <p className="mt-1 text-sm text-muted-foreground">What customers say.</p>
         </div>
         <Link
           to="/reviews"
