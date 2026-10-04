@@ -5,7 +5,7 @@ import { SITE } from "@/lib/site";
 
 export function Footer() {
   return (
-    <footer className="mt-14 border-t border-white/10 bg-[#0b0d0e]">
+    <footer className="mt-0 border-t border-white/10 bg-[#0b0d0e]">
       <div className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
         <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
           <div>
