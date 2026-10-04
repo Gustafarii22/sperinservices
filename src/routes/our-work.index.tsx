@@ -66,10 +66,10 @@ function OurWork() {
               type="button"
               onClick={() => setCategory(c)}
               aria-pressed={category === c}
-              className={`shrink-0 rounded-full border px-3 py-2 text-xs transition ${
+              className={`shrink-0 border-b-2 px-3 py-2 text-xs font-semibold transition ${
                 category === c
-                  ? "border-electric bg-electric/10 text-electric"
-                  : "border-white/15 text-muted-foreground hover:border-white/30 hover:text-foreground"
+                  ? "border-electric bg-electric/[0.035] text-electric"
+                  : "border-transparent text-muted-foreground hover:border-white/25 hover:text-foreground"
               }`}
             >
               {c}
