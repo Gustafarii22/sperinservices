@@ -71,7 +71,10 @@ export function HomeTravelChecker() {
           </div>
 
           {travel ? (
-            <div role="status" className="mt-3 border-l-2 border-electric bg-electric/[0.06] px-4 py-3">
+            <div
+              role="status"
+              className="mt-3 border-l-2 border-electric bg-electric/[0.06] px-4 py-3"
+            >
               <p className="font-semibold">
                 {travel.charge === 0
                   ? "Travel included — £0"
@@ -86,7 +89,9 @@ export function HomeTravelChecker() {
               ) : null}
             </div>
           ) : error ? (
-            <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>
+            <p role="alert" className="mt-3 text-sm text-red-300">
+              {error}
+            </p>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
               Up to 35 minutes included · 36–50 +£15 · 51–65 +£25 · longer journeys agreed first.
