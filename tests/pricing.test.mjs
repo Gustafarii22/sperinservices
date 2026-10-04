@@ -61,8 +61,10 @@ test("PDF is branded, itemised, paginated and has a valid xref", () => {
   const pdf = new TextDecoder().decode(bytes);
   assert.match(pdf, /^%PDF-1.4/);
   assert.match(pdf, /SPERIN SERVICES/);
+  assert.match(pdf, /SperinServicesEstimateV2/);
   assert.match(pdf, /DESCRIPTION OF WORK/);
-  assert.match(pdf, /Unit Price/);
+  assert.match(pdf, /COST/);
+  assert.doesNotMatch(pdf, /Unit Price/);
   assert.match(pdf, /Standard double socket replacement/);
   assert.match(pdf, /FuseBox consumer unit/);
   assert.match(pdf, /VAT \\(not registered\\)/);
@@ -110,6 +112,27 @@ const request = (p, origin = "https://sperinservices.co.uk") =>
     headers: { origin, "Content-Type": "application/json" },
     body: JSON.stringify(p),
   });
+test("download endpoint returns the new letterheaded two-column PDF", async () => {
+  const r = await bookingApi(
+    new Request("https://sperinservices.co.uk/api/pricing/pdf", {
+      method: "POST",
+      headers: { origin: "https://sperinservices.co.uk", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selection: { switch: 1, socket: 2 },
+        postcode: "",
+        reference: "12345678-1234-4123-8123-123456789abc",
+      }),
+    }),
+  );
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), "application/pdf");
+  const pdf = Buffer.from(await r.arrayBuffer()).toString("latin1");
+  assert.match(pdf, /SPERIN SERVICES/);
+  assert.match(pdf, /DESCRIPTION OF WORK/);
+  assert.match(pdf, /COST/);
+  assert.match(pdf, /ESTIMATE/);
+});
+
 test("booking server recalculates and sends private PDF to the owner", async () => {
   globalThis.__allow = true;
   globalThis.__failEmail = false;

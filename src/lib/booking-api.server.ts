@@ -11,6 +11,12 @@ const postcodeSchema = z
   .trim()
   .toUpperCase()
   .regex(/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/, "Enter a full UK postcode.");
+const pdfSchema = z.object({
+  selection: z.record(z.number().int().min(0).max(20)),
+  postcode: z.string().trim().max(10).optional().default(""),
+  reference: z.string().uuid(),
+});
+
 const schema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
@@ -86,7 +92,8 @@ export async function lookupTravel(raw: string): Promise<Travel> {
 }
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
-  if (!["/api/pricing/travel", "/api/pricing/booking"].includes(url.pathname)) return null;
+  if (!["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking"].includes(url.pathname))
+    return null;
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   if (req.headers.get("origin") !== url.origin)
     return json({ error: "Request origin not allowed." }, 403);
@@ -117,6 +124,35 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       const parsed = postcodeSchema.safeParse((body as { postcode?: unknown })?.postcode);
       if (!parsed.success) return json({ error: "Enter a full UK postcode." }, 400);
       return json(await lookupTravel(parsed.data));
+    }
+    if (url.pathname.endsWith("/pdf")) {
+      const parsed = pdfSchema.safeParse(body);
+      if (!parsed.success) return json({ error: "Choose valid work for the estimate." }, 400);
+      const p = parsed.data;
+      const selected = JOBS.filter((job) => p.selection[job.id] > 0);
+      if (!selected.length || Object.keys(p.selection).some((id) => !JOBS.some((job) => job.id === id)))
+        return json({ error: "Choose a listed job." }, 400);
+      for (const group of ["eicr", "board"])
+        if (
+          selected.filter((job) => job.group === group).length > 1 ||
+          selected.some((job) => job.group === group && p.selection[job.id] !== 1)
+        )
+          return json({ error: "Choose one circuit range per package." }, 400);
+      const travel = p.postcode
+        ? await lookupTravel(postcodeSchema.parse(p.postcode))
+        : undefined;
+      const reference = `SS-${p.reference.slice(0, 8).toUpperCase()}`;
+      const bytes = estimatePdf(p.selection, travel, reference, {
+        postcode: p.postcode || undefined,
+      });
+      return new Response(bytes, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${reference}-estimate.pdf"`,
+          "Cache-Control": "no-store, max-age=0",
+        },
+      });
     }
     const parsed = schema.safeParse(body);
     if (!parsed.success)
