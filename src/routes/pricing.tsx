@@ -188,7 +188,8 @@ function Pricing() {
             <span className="block text-electric">See the total as you go.</span>
           </h1>
           <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-            Pick listed work, check travel and see the running price. Keep a PDF estimate if you need one. No VAT is added.
+            Pick listed work, check travel and see the running price. Keep a PDF estimate if you need
+            one. No VAT is added.
           </p>
         </div>
 
