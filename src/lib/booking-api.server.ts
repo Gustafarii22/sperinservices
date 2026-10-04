@@ -166,7 +166,14 @@ export async function bookingApi(req: Request): Promise<Response | null> {
     if (url.pathname.endsWith("/travel")) {
       const parsed = postcodeSchema.safeParse((body as { postcode?: unknown })?.postcode);
       if (!parsed.success) return json({ error: "Enter a full UK postcode." }, 400);
-      return json(await lookupTravel(parsed.data));
+      try {
+        return json(await lookupTravel(parsed.data));
+      } catch {
+        return json(
+          { error: "We could not calculate travel for that postcode. Check it and try again." },
+          400,
+        );
+      }
     }
     if (url.pathname.endsWith("/pdf")) {
       const parsed = pdfSchema.safeParse(body);
