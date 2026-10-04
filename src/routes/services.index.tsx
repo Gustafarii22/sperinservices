@@ -41,9 +41,7 @@ function ServicesIndex() {
     <>
       <section className="mx-auto max-w-7xl px-4 pb-7 pt-8 lg:px-8 lg:pt-12">
         <span className="eyebrow">Electrical services</span>
-        <h1 className="display-title mt-4 max-w-4xl text-5xl sm:text-6xl">
-          Choose the job.
-        </h1>
+        <h1 className="display-title mt-4 max-w-4xl text-5xl sm:text-6xl">Choose the job.</h1>
         <p className="mt-4 max-w-xl text-muted-foreground">
           Short, practical information. Pick the service you need.
         </p>
