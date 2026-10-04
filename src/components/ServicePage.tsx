@@ -47,11 +47,11 @@ export function ServicePage(p: ServicePageProps) {
                 "Electrical Installation Condition Reports (EICRs)",
               ].includes(p.title) ? (
                 <Link to="/pricing" hash="estimate" className="button-primary">
-                  See standard prices <ArrowRight className="h-4 w-4" />
+                  Price this job <ArrowRight className="h-4 w-4" />
                 </Link>
               ) : (
                 <Link to="/contact" className="button-primary">
-                  Discuss this job <ArrowRight className="h-4 w-4" />
+                  Discuss Your Job <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
               <a href={`tel:${SITE.phone}`} className="button-secondary">
