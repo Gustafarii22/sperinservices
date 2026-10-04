@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Building2, Calculator, Home } from "lucide-react";
 import { SERVICES } from "@/lib/site";
 import { breadcrumbJsonLd } from "@/lib/seo";
 
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/services/")({
       {
         property: "og:description",
         content:
-          "Rewires, consumer units, EICRs, EV charging, smart systems and coordinated electrical work across Birmingham and the West Midlands.",
+          "Rewires, consumer units, EICRs, EV charging, smart systems and commercial electrical work across Birmingham and the West Midlands.",
       },
       { property: "og:url", content: "https://sperinservices.co.uk/services" },
     ],
@@ -39,47 +39,51 @@ export const Route = createFileRoute("/services/")({
 function ServicesIndex() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pt-18">
-        <span className="eyebrow">Electrical services</span>
-        <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-          Electrical work planned properly.
+      <section className="mx-auto max-w-7xl px-4 pb-7 pt-8 lg:px-8 lg:pt-12">
+        <span className="eyebrow">Services</span>
+        <h1 className="display-title mt-4 max-w-4xl text-5xl sm:text-6xl">
+          Find the work you need.
         </h1>
-        <p className="mt-5 max-w-2xl text-muted-foreground">
-          From testing and consumer-unit upgrades to rewires, EV charging and connected systems,
-          choose the service that best matches the job.
+        <p className="mt-4 max-w-2xl text-muted-foreground">
+          Choose a service for practical detail, or use one of the two simple routes below.
         </p>
+
+        <div className="mt-6 grid gap-px border border-white/10 bg-white/10 sm:grid-cols-2">
+          <Link to="/pricing" className="group bg-background p-5">
+            <Calculator className="h-5 w-5 text-electric" />
+            <h2 className="mt-3 text-xl font-semibold">Standard listed work</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Build an estimate and check travel.</p>
+            <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-electric">
+              Prices & estimate <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+          <Link to="/contact" className="group bg-background p-5">
+            <Home className="h-5 w-5 text-electric" />
+            <h2 className="mt-3 text-xl font-semibold">Bespoke or uncertain scope</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Send details and photographs.</p>
+            <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-electric">
+              Discuss a project <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+        </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <section className="mx-auto max-w-7xl px-4 pb-12 lg:px-8">
+        <div className="grid gap-px bg-white/10 md:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((service) => (
-            <Link
-              key={service.slug}
-              to={service.path}
-              className="surface-raised group rounded-2xl p-6 transition hover:-translate-y-0.5"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-electric">
-                Sperin Services
-              </p>
-              <h2 className="mt-3 text-2xl font-bold">{service.title}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{service.short}</p>
-              <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-electric">
-                View service
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-              </span>
+            <Link key={service.slug} to={service.path} className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]">
+              <h2 className="text-xl font-semibold">{service.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.short}</p>
+              <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
             </Link>
           ))}
-        </div>
-
-        <div className="surface mt-8 flex flex-col gap-5 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div>
-            <h2 className="text-2xl font-bold">Not sure which service applies?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Send a brief description or photographs and we can point you in the right direction.
+          <Link to="/commercial" className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]">
+            <Building2 className="h-5 w-5 text-electric" />
+            <h2 className="mt-3 text-xl font-semibold">Commercial Electrical</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              EICRs, remedials, lighting, power, emergency lighting, access control and refurbishment work.
             </p>
-          </div>
-          <Link to="/contact" className="button-primary shrink-0">
-            Get a quote
+            <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
           </Link>
         </div>
       </section>
