@@ -6,11 +6,11 @@ import { Logo } from "./Logo";
 import { SERVICES, SITE } from "@/lib/site";
 
 const NAV = [
-  { to: "/pricing", label: "Prices" },
+  { to: "/pricing", label: "Price Calculator" },
   { to: "/our-work", label: "Our Work" },
   { to: "/reviews", label: "Reviews" },
-  { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
+  { to: "/about", label: "About" },
 ] as const;
 
 export function Header() {
@@ -43,7 +43,7 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden items-center lg:flex">
             <a
               href={`tel:${SITE.phone}`}
               className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-semibold text-foreground/82 transition hover:text-foreground"
@@ -51,9 +51,6 @@ export function Header() {
               <Phone className="h-4 w-4 text-electric" />
               {SITE.phoneDisplay}
             </a>
-            <Link to="/pricing" className="button-primary text-sm">
-              Build estimate
-            </Link>
           </div>
 
           <DialogTrigger asChild>
@@ -73,61 +70,50 @@ export function Header() {
         >
           <DialogTitle className="px-2 pr-8 text-xl">Sperin Services</DialogTitle>
           <nav className="mt-3" aria-label="Mobile navigation">
-            <Link
-              to="/pricing"
-              onClick={() => setOpen(false)}
-              className="button-primary mb-3 w-full"
-            >
-              Build an estimate
-            </Link>
-            <Link
-              to="/contact"
-              onClick={() => setOpen(false)}
-              className="button-secondary mb-5 w-full"
-            >
-              Discuss a project
-            </Link>
+            <div className="border-t border-white/10 pt-2">
+              <details className="group">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-md px-3 py-3 text-base font-semibold transition hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
+                  <span>Services</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="ml-3 border-l border-white/10 pb-2 pl-3">
+                  <Link
+                    to="/services"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md px-3 py-2.5 text-sm font-semibold text-electric"
+                  >
+                    View all services
+                  </Link>
+                  <Link
+                    to="/commercial"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md px-3 py-2.5 text-sm text-foreground/78"
+                  >
+                    Commercial electrical
+                  </Link>
+                  {SERVICES.map((service) => (
+                    <Link
+                      key={service.slug}
+                      to={service.path}
+                      onClick={() => setOpen(false)}
+                      className="block rounded-md px-3 py-2.5 text-sm text-foreground/78"
+                    >
+                      {service.title}
+                    </Link>
+                  ))}
+                </div>
+              </details>
 
-            <div className="border-t border-white/10 pt-3">
-              <Link
-                to="/services"
-                onClick={() => setOpen(false)}
-                className="block rounded-md px-3 py-3 text-base font-semibold"
-              >
-                Services
-              </Link>
-              <Link
-                to="/commercial"
-                onClick={() => setOpen(false)}
-                className="block rounded-md px-3 py-2.5 text-sm text-foreground/75"
-              >
-                Commercial electrical
-              </Link>
-              {SERVICES.map((service) => (
+              {NAV.map((item) => (
                 <Link
-                  key={service.slug}
-                  to={service.path}
+                  key={item.to}
+                  to={item.to}
                   onClick={() => setOpen(false)}
-                  className="block rounded-md px-3 py-2.5 text-sm text-foreground/75"
+                  className="flex min-h-12 items-center rounded-md px-3 py-3 text-base font-semibold transition hover:bg-white/[0.04] data-[status=active]:text-electric"
                 >
-                  {service.title}
+                  {item.label}
                 </Link>
               ))}
-            </div>
-
-            <div className="mt-3 border-t border-white/10 pt-3">
-              {NAV.filter((item) => item.to !== "/pricing" && item.to !== "/contact").map(
-                (item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setOpen(false)}
-                    className="block rounded-md px-3 py-3 text-base font-semibold"
-                  >
-                    {item.label}
-                  </Link>
-                ),
-              )}
             </div>
 
             <a
