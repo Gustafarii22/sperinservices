@@ -11,7 +11,6 @@ export function Logo({ className = "h-20 w-auto" }: { className?: string }) {
       style={{
         objectFit: "contain",
         imageRendering: "auto",
-        filter: "drop-shadow(0 0 12px rgba(40,150,230,.18))",
       }}
     />
   );
