@@ -12,18 +12,28 @@ export function Footer() {
             <Logo className="h-12 w-auto" />
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Domestic and commercial electrical work across Birmingham and the West Midlands.
-              Industry experience since {SITE.industrySince}; trading independently since {SITE.founded}.
+              Industry experience since {SITE.industrySince}; trading independently since{" "}
+              {SITE.founded}.
             </p>
             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-              <a href={`tel:${SITE.phone}`} className="inline-flex items-center gap-2 hover:text-electric">
+              <a
+                href={`tel:${SITE.phone}`}
+                className="inline-flex items-center gap-2 hover:text-electric"
+              >
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
               </a>
-              <a href={`mailto:${SITE.email}`} className="inline-flex items-center gap-2 hover:text-electric">
+              <a
+                href={`mailto:${SITE.email}`}
+                className="inline-flex items-center gap-2 hover:text-electric"
+              >
                 <Mail className="h-4 w-4 text-electric" /> {SITE.email}
               </a>
             </div>
           </div>
-          <nav className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-muted-foreground sm:grid-cols-3" aria-label="Footer">
+          <nav
+            className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-muted-foreground sm:grid-cols-3"
+            aria-label="Footer"
+          >
             <Link to="/services">Services</Link>
             <Link to="/pricing">Prices</Link>
             <Link to="/our-work">Our Work</Link>

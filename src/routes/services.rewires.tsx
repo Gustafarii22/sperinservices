@@ -25,7 +25,8 @@ export const Route = createFileRoute("/services/rewires")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Full & Part Rewires",
-            description: "Domestic full and part rewires across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Clean planning, tidy first and second fix wiring.",
+            description:
+              "Domestic full and part rewires across Birmingham, Sutton Coldfield, Tamworth and the West Midlands. Clean planning, tidy first and second fix wiring.",
             path: "/services/rewires",
           }),
         ),
@@ -64,15 +65,15 @@ export const Route = createFileRoute("/services/rewires")({
       faqs={[
         {
           q: "How long does a full rewire take?",
-          a: "Timescale depends on property size, access, occupancy, number of points, floor and wall construction, and whether other refurbishment work is happening at the same time. We confirm a realistic programme after survey rather than promising a generic duration."
+          a: "Timescale depends on property size, access, occupancy, number of points, floor and wall construction, and whether other refurbishment work is happening at the same time. We confirm a realistic programme after survey rather than promising a generic duration.",
         },
         {
           q: "Can the work be done while I live in the property?",
-          a: "Sometimes, but a full rewire in an occupied home is significantly more disruptive. We discuss room access, temporary supplies, furniture, floor coverings and the daily sequence before deciding whether remaining in the property is practical."
+          a: "Sometimes, but a full rewire in an occupied home is significantly more disruptive. We discuss room access, temporary supplies, furniture, floor coverings and the daily sequence before deciding whether remaining in the property is practical.",
         },
         {
           q: "Do you provide certification?",
-          a: "The new installation work is inspected and tested and the appropriate electrical certification is provided on completion. Any required domestic Building Regulations notification is dealt with through the appropriate route."
+          a: "The new installation work is inspected and tested and the appropriate electrical certification is provided on completion. Any required domestic Building Regulations notification is dealt with through the appropriate route.",
         },
         {
           q: "Do you cover my area?",

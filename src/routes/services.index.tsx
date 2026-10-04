@@ -52,7 +52,9 @@ function ServicesIndex() {
           <Link to="/pricing" className="group bg-background p-5">
             <Calculator className="h-5 w-5 text-electric" />
             <h2 className="mt-3 text-xl font-semibold">Standard listed work</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Build an estimate and check travel.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Build an estimate and check travel.
+            </p>
             <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-electric">
               Prices & estimate <ArrowRight className="h-4 w-4" />
             </span>
@@ -71,17 +73,25 @@ function ServicesIndex() {
       <section className="mx-auto max-w-7xl px-4 pb-12 lg:px-8">
         <div className="grid gap-px bg-white/10 md:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((service) => (
-            <Link key={service.slug} to={service.path} className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]">
+            <Link
+              key={service.slug}
+              to={service.path}
+              className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]"
+            >
               <h2 className="text-xl font-semibold">{service.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.short}</p>
               <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
             </Link>
           ))}
-          <Link to="/commercial" className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]">
+          <Link
+            to="/commercial"
+            className="group min-h-40 bg-background p-5 transition hover:bg-[#1a1d1f]"
+          >
             <Building2 className="h-5 w-5 text-electric" />
             <h2 className="mt-3 text-xl font-semibold">Commercial Electrical</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              EICRs, remedials, lighting, power, emergency lighting, access control and refurbishment work.
+              EICRs, remedials, lighting, power, emergency lighting, access control and
+              refurbishment work.
             </p>
             <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
           </Link>

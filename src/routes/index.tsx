@@ -57,8 +57,8 @@ function HomePage() {
             <span className="mt-2 block text-electric">Birmingham &amp; West Midlands.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Carefully planned electrical work, clear prices where the scope allows it, proper testing
-            and one point of contact from first conversation to handover.
+            Carefully planned electrical work, clear prices where the scope allows it, proper
+            testing and one point of contact from first conversation to handover.
           </p>
 
           <div className="mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
@@ -71,7 +71,10 @@ function HomePage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm text-foreground/78">
-            <a href={`tel:${SITE.phone}`} className="inline-flex items-center gap-2 hover:text-electric">
+            <a
+              href={`tel:${SITE.phone}`}
+              className="inline-flex items-center gap-2 hover:text-electric"
+            >
               <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
             </a>
             <a
@@ -139,7 +142,10 @@ function HomePage() {
             <span className="eyebrow">Services</span>
             <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Choose what you need.</h2>
           </div>
-          <Link to="/services" className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex">
+          <Link
+            to="/services"
+            className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex"
+          >
             View all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -156,7 +162,10 @@ function HomePage() {
               <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
             </Link>
           ))}
-          <Link to="/commercial" className="group col-span-2 min-h-24 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5 lg:col-span-3">
+          <Link
+            to="/commercial"
+            className="group col-span-2 min-h-24 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5 lg:col-span-3"
+          >
             <h3 className="text-xl font-semibold">Commercial Electrical</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Testing, lighting, power, access control, remedials and refurbishment work.
@@ -205,17 +214,20 @@ function HomePage() {
               Choose listed work, check travel, see the running estimate and download a PDF.
             </p>
             <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric">
-              Build an estimate <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              Build an estimate{" "}
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
             </span>
           </Link>
           <Link to="/contact" className="group bg-[#15191b] p-6 sm:p-8">
             <BriefcaseBusiness className="h-6 w-6 text-electric" />
             <h2 className="mt-5 text-3xl font-semibold">Bespoke or larger project?</h2>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Send the postcode, scope and useful photographs. A survey can be arranged where needed.
+              Send the postcode, scope and useful photographs. A survey can be arranged where
+              needed.
             </p>
             <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric">
-              Discuss a project <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              Discuss a project{" "}
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
             </span>
           </Link>
         </div>

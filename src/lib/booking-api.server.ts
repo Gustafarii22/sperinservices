@@ -147,9 +147,7 @@ export async function lookupTravel(raw: string): Promise<Travel> {
   const lat2 = toRadians(to[1]);
   const dLat = lat2 - lat1;
   const dLon = toRadians(to[0] - from[0]);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   const straightKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   // Conservative road approximation used only if live routing is unavailable.
   const estimatedRoadKm = straightKm * 1.3;
@@ -288,7 +286,10 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       if (!parsed.success) return json({ error: "Choose valid work for the estimate." }, 400);
       const p = parsed.data;
       const selected = JOBS.filter((job) => p.selection[job.id] > 0);
-      if (!selected.length || Object.keys(p.selection).some((id) => !JOBS.some((job) => job.id === id)))
+      if (
+        !selected.length ||
+        Object.keys(p.selection).some((id) => !JOBS.some((job) => job.id === id))
+      )
         return json({ error: "Choose a listed job." }, 400);
       for (const group of ["eicr", "board"])
         if (
@@ -296,9 +297,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
           selected.some((job) => job.group === group && p.selection[job.id] !== 1)
         )
           return json({ error: "Choose one circuit range per package." }, 400);
-      const travel = p.postcode
-        ? await lookupTravel(postcodeSchema.parse(p.postcode))
-        : undefined;
+      const travel = p.postcode ? await lookupTravel(postcodeSchema.parse(p.postcode)) : undefined;
       const reference = `SS-${p.reference.slice(0, 8).toUpperCase()}`;
       const bytes = estimatePdf(p.selection, travel, reference, {
         postcode: p.postcode || undefined,

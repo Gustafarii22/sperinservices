@@ -12,7 +12,11 @@ export const SITE = {
   socialImage: "/projects/rowley-park/rowley-park-overview.webp",
   socialImageAlt: "Completed Sperin Services refurbishment at Rowley Park Primary Academy",
   openingHours: [
-    { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "20:00" },
+    {
+      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "08:00",
+      closes: "20:00",
+    },
     { days: ["Saturday"], opens: "08:00", closes: "17:00" },
   ],
   founded: 2010,

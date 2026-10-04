@@ -64,7 +64,10 @@ export function ReviewPreview() {
           <span className="eyebrow">Reviews</span>
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">What customers say.</h2>
         </div>
-        <Link to="/reviews" className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex">
+        <Link
+          to="/reviews"
+          className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex"
+        >
           All reviews <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -105,7 +108,8 @@ export function ReviewPreview() {
             <div>
               <p className="font-semibold">Genuine reviews only.</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Approved website reviews and Google Business Profile reviews appear here automatically as they become available.
+                Approved website reviews and Google Business Profile reviews appear here
+                automatically as they become available.
               </p>
             </div>
           </div>
@@ -119,7 +123,8 @@ export function ReviewPreview() {
       typeof google.averageRating === "number" &&
       typeof google.totalReviewCount === "number" ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          Google rating: <strong className="text-foreground">{google.averageRating.toFixed(1)} / 5</strong>
+          Google rating:{" "}
+          <strong className="text-foreground">{google.averageRating.toFixed(1)} / 5</strong>
           {" · "}
           {google.totalReviewCount} reviews
         </p>

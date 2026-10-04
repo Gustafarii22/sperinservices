@@ -25,7 +25,8 @@ export const Route = createFileRoute("/services/smart-home")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Smart Home Automation",
-            description: "Smart lighting, app and voice control, smart heating, security integration and future-ready wiring across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            description:
+              "Smart lighting, app and voice control, smart heating, security integration and future-ready wiring across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
             path: "/services/smart-home",
           }),
         ),
@@ -67,7 +68,7 @@ export const Route = createFileRoute("/services/smart-home")({
         },
         {
           q: "Which platforms do you work with?",
-          a: "The right platform depends on the job, existing wiring and what needs controlling. We can work with suitable mainstream lighting, control, heating and connected-home products, but we choose the system around the required function rather than promising every ecosystem."
+          a: "The right platform depends on the job, existing wiring and what needs controlling. We can work with suitable mainstream lighting, control, heating and connected-home products, but we choose the system around the required function rather than promising every ecosystem.",
         },
         {
           q: "Do you cover my area?",

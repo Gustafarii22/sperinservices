@@ -22,7 +22,8 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Kitchens & Bathrooms",
-            description: "Electrical and coordinated building work for kitchens and bathrooms across Birmingham and the West Midlands.",
+            description:
+              "Electrical and coordinated building work for kitchens and bathrooms across Birmingham and the West Midlands.",
             path: "/services/kitchens-bathrooms",
           }),
         ),
@@ -60,11 +61,11 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
       faqs={[
         {
           q: "Do you handle the full project or just the electrics?",
-          a: "We can undertake the electrical work and, where agreed in the quotation, coordinate wider refurbishment elements. The exact trade scope is stated clearly before work starts."
+          a: "We can undertake the electrical work and, where agreed in the quotation, coordinate wider refurbishment elements. The exact trade scope is stated clearly before work starts.",
         },
         {
           q: "How long does a kitchen or bathroom take?",
-          a: "It depends on strip-out, first fix, drying/finishing stages, appliance delivery and other trades. The programme is agreed from the actual project scope rather than using a generic duration."
+          a: "It depends on strip-out, first fix, drying/finishing stages, appliance delivery and other trades. The programme is agreed from the actual project scope rather than using a generic duration.",
         },
         { q: "Do you cover my area?", a: "Yes — across the West Midlands." },
       ]}

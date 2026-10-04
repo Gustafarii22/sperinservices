@@ -18,7 +18,8 @@ export const Route = createFileRoute("/contact")({
       { property: "og:title", content: "Discuss a Project | Sperin Services" },
       {
         property: "og:description",
-        content: "Send the job details and useful photographs. We will confirm the right next step.",
+        content:
+          "Send the job details and useful photographs. We will confirm the right next step.",
       },
       { property: "og:url", content: "https://sperinservices.co.uk/contact" },
     ],
@@ -71,7 +72,8 @@ async function preparePhoto(file: File): Promise<Photo> {
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
   const data = canvas.toDataURL("image/jpeg", 0.72).split(",")[1];
-  if (data.length > 1000000) throw Error("This photograph is too detailed. Please use a smaller image.");
+  if (data.length > 1000000)
+    throw Error("This photograph is too detailed. Please use a smaller image.");
   return { name: file.name, type: "image/jpeg", content: data };
 }
 
@@ -142,7 +144,8 @@ function Contact() {
         }),
       });
       const result = await response.json();
-      if (!response.ok || !result.success) throw Error(result.error || "The enquiry could not be sent.");
+      if (!response.ok || !result.success)
+        throw Error(result.error || "The enquiry could not be sent.");
       setSent(result.reference);
       setForm(initialForm);
       setPhotos([]);
@@ -191,7 +194,10 @@ function Contact() {
                   <strong>Send quick details or photos</strong>
                 </span>
               </a>
-              <a href={`mailto:${SITE.email}`} className="flex items-center gap-3 border-t border-white/10 py-4">
+              <a
+                href={`mailto:${SITE.email}`}
+                className="flex items-center gap-3 border-t border-white/10 py-4"
+              >
                 <Mail className="h-5 w-5 text-electric" />
                 <span>
                   <span className="block text-xs text-muted-foreground">Email</span>
@@ -209,7 +215,9 @@ function Contact() {
             </div>
 
             <div className="mt-7">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">What happens next</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
+                What happens next
+              </p>
               <ol className="mt-3 space-y-3 text-sm text-muted-foreground">
                 {[
                   "We review the scope and photographs.",
@@ -228,7 +236,9 @@ function Contact() {
           <form onSubmit={submit} className="surface-raised p-5 sm:p-7" noValidate>
             <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">Project details</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
+                  Project details
+                </p>
                 <h2 className="mt-2 text-2xl font-semibold">Request a quotation</h2>
               </div>
               <MapPin className="h-5 w-5 text-electric" />
@@ -236,20 +246,47 @@ function Contact() {
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="Name" error={errors.name}>
-                <input className={inputCls} autoComplete="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
+                <input
+                  className={inputCls}
+                  autoComplete="name"
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                />
               </Field>
               <Field label="Phone" error={errors.phone}>
-                <input className={inputCls} autoComplete="tel" inputMode="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+                <input
+                  className={inputCls}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  value={form.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                />
               </Field>
               <Field label="Email" error={errors.email}>
-                <input className={inputCls} autoComplete="email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
+                <input
+                  className={inputCls}
+                  autoComplete="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                />
               </Field>
               <Field label="Postcode" error={errors.postcode}>
-                <input className={inputCls} autoComplete="postal-code" value={form.postcode} onChange={(e) => update("postcode", e.target.value.toUpperCase())} maxLength={10} />
+                <input
+                  className={inputCls}
+                  autoComplete="postal-code"
+                  value={form.postcode}
+                  onChange={(e) => update("postcode", e.target.value.toUpperCase())}
+                  maxLength={10}
+                />
               </Field>
 
               <Field label="Work" error={errors.service}>
-                <select className={inputCls} value={form.service} onChange={(e) => update("service", e.target.value)}>
+                <select
+                  className={inputCls}
+                  value={form.service}
+                  onChange={(e) => update("service", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   {SERVICES.map((service) => (
                     <option key={service.slug}>{service.title}</option>
@@ -264,7 +301,11 @@ function Contact() {
               </Field>
 
               <Field label="Property / premises" error={errors.property}>
-                <select className={inputCls} value={form.property} onChange={(e) => update("property", e.target.value)}>
+                <select
+                  className={inputCls}
+                  value={form.property}
+                  onChange={(e) => update("property", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>House / flat</option>
                   <option>Rental / HMO</option>
@@ -276,7 +317,11 @@ function Contact() {
               </Field>
 
               <Field label="Timescale" error={errors.timescale}>
-                <select className={inputCls} value={form.timescale} onChange={(e) => update("timescale", e.target.value)}>
+                <select
+                  className={inputCls}
+                  value={form.timescale}
+                  onChange={(e) => update("timescale", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>Urgent fault / safety issue</option>
                   <option>Within 2 weeks</option>
@@ -287,7 +332,11 @@ function Contact() {
               </Field>
 
               <Field label="Preferred reply" error={errors.contactMethod}>
-                <select className={inputCls} value={form.contactMethod} onChange={(e) => update("contactMethod", e.target.value)}>
+                <select
+                  className={inputCls}
+                  value={form.contactMethod}
+                  onChange={(e) => update("contactMethod", e.target.value)}
+                >
                   <option value="">Choose…</option>
                   <option>Phone</option>
                   <option>WhatsApp</option>
@@ -313,10 +362,13 @@ function Contact() {
                       <Camera className="h-4 w-4 text-electric" /> Add photographs
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      Up to 3 JPG, PNG or WebP images. Consumer unit, meter, route or affected area are useful.
+                      Up to 3 JPG, PNG or WebP images. Consumer unit, meter, route or affected area
+                      are useful.
                     </span>
                   </span>
-                  <span className="text-sm font-bold text-electric">{photoBusy ? "Preparing…" : "Choose"}</span>
+                  <span className="text-sm font-bold text-electric">
+                    {photoBusy ? "Preparing…" : "Choose"}
+                  </span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -332,7 +384,9 @@ function Contact() {
                       <button
                         key={`${photo.name}-${index}`}
                         type="button"
-                        onClick={() => setPhotos((current) => current.filter((_, n) => n !== index))}
+                        onClick={() =>
+                          setPhotos((current) => current.filter((_, n) => n !== index))
+                        }
                         className="rounded-md border border-white/10 px-2.5 py-1.5 text-muted-foreground"
                       >
                         {photo.name} ×
@@ -347,29 +401,59 @@ function Contact() {
             <div className="absolute -left-[10000px]" aria-hidden="true">
               <label>
                 Website
-                <input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                <input
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
               </label>
             </div>
 
             <label className="mt-5 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5"
+              />
               <span>
-                I agree that these details can be used to respond to this enquiry and manage the job.{" "}
-                <Link to="/privacy" className="text-electric underline underline-offset-2">Privacy policy</Link>.
+                I agree that these details can be used to respond to this enquiry and manage the
+                job.{" "}
+                <Link to="/privacy" className="text-electric underline underline-offset-2">
+                  Privacy policy
+                </Link>
+                .
               </span>
             </label>
 
-            <button type="submit" disabled={sending || photoBusy} className="button-primary mt-5 w-full disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={sending || photoBusy}
+              className="button-primary mt-5 w-full disabled:opacity-50"
+            >
               <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send project details"}
             </button>
 
             {sent && (
-              <div role="status" className="mt-4 border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]">
-                <div className="flex gap-2"><Check className="h-4 w-4" /> Enquiry received.</div>
+              <div
+                role="status"
+                className="mt-4 border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]"
+              >
+                <div className="flex gap-2">
+                  <Check className="h-4 w-4" /> Enquiry received.
+                </div>
                 <div className="mt-1 text-xs">Reference: {sent}</div>
               </div>
             )}
-            {submitError && <div role="alert" className="mt-4 border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{submitError}</div>}
+            {submitError && (
+              <div
+                role="alert"
+                className="mt-4 border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+              >
+                {submitError}
+              </div>
+            )}
           </form>
         </div>
       </section>
@@ -378,17 +462,23 @@ function Contact() {
         <div className="border-t border-white/10 pt-6">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-electric" />
-            <h2 id="coverage-title" className="text-sm font-semibold">Main service area</h2>
+            <h2 id="coverage-title" className="text-sm font-semibold">
+              Main service area
+            </h2>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {SITE.areas.map((area) => (
-              <span key={area} className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-muted-foreground">
+              <span
+                key={area}
+                className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-muted-foreground"
+              >
                 {area}
               </span>
             ))}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Outside these areas? Send the postcode and we will confirm whether the job is practical to cover.
+            Outside these areas? Send the postcode and we will confirm whether the job is practical
+            to cover.
           </p>
         </div>
       </section>
@@ -409,7 +499,9 @@ function Field({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/72">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/72">
+        {label}
+      </span>
       {children}
       {error && <span className="mt-1.5 block text-xs text-destructive">{error}</span>}
     </label>

@@ -12,7 +12,10 @@ export const Route = createFileRoute("/services/testing")({
         content:
           "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
       },
-      { property: "og:title", content: "Electrical Installation Condition Reports (EICRs) — Sperin Services" },
+      {
+        property: "og:title",
+        content: "Electrical Installation Condition Reports (EICRs) — Sperin Services",
+      },
       {
         property: "og:description",
         content: "Inspection, certification and fault finding for domestic properties.",
@@ -25,7 +28,8 @@ export const Route = createFileRoute("/services/testing")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Electrical Installation Condition Reports (EICRs)",
-            description: "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
+            description:
+              "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
             path: "/services/testing",
           }),
         ),
@@ -36,7 +40,10 @@ export const Route = createFileRoute("/services/testing")({
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
             { name: "Services", path: "/services" },
-            { name: "Electrical Installation Condition Reports (EICRs)", path: "/services/testing" },
+            {
+              name: "Electrical Installation Condition Reports (EICRs)",
+              path: "/services/testing",
+            },
           ]),
         ),
       },
@@ -48,7 +55,7 @@ export const Route = createFileRoute("/services/testing")({
       intro="Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification for homes, landlords and small commercial premises across the West Midlands."
       included={[
         "Electrical testing of domestic installations",
-        "Electrical Installation Condition Reports (EICRs)" ,
+        "Electrical Installation Condition Reports (EICRs)",
         "Fault finding and diagnosis",
         "Safety checks before purchase or letting",
         "Certification for new circuits and alterations",
@@ -63,7 +70,7 @@ export const Route = createFileRoute("/services/testing")({
       faqs={[
         {
           q: "How long does a test take?",
-          a: "It depends on the number of circuits, access, installation size and what is found. A small straightforward property may take a few hours; larger or more complex installations take longer. The scope is agreed before the inspection."
+          a: "It depends on the number of circuits, access, installation size and what is found. A small straightforward property may take a few hours; larger or more complex installations take longer. The scope is agreed before the inspection.",
         },
         {
           q: "Will my power be off?",
@@ -71,7 +78,7 @@ export const Route = createFileRoute("/services/testing")({
         },
         {
           q: "Do you provide a written report?",
-          a: "Yes. For an EICR you receive an Electrical Installation Condition Report with observations and classification codes where applicable, plus clear recommendations on the next step."
+          a: "Yes. For an EICR you receive an Electrical Installation Condition Report with observations and classification codes where applicable, plus clear recommendations on the next step.",
         },
         { q: "Do you cover my area?", a: "Yes — across the West Midlands." },
       ]}

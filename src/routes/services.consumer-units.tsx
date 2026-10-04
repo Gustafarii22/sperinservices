@@ -25,7 +25,8 @@ export const Route = createFileRoute("/services/consumer-units")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Consumer Unit Upgrades",
-            description: "Modern consumer unit upgrades, fuse box replacements, RCBO and surge protection across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            description:
+              "Modern consumer unit upgrades, fuse box replacements, RCBO and surge protection across Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
             path: "/services/consumer-units",
           }),
         ),
@@ -76,7 +77,7 @@ export const Route = createFileRoute("/services/consumer-units")({
         },
         {
           q: "Do you provide certification?",
-          a: "Yes. The replacement work is inspected and tested and the appropriate electrical certification is provided. Where domestic Building Regulations notification is required, the appropriate notification route is used."
+          a: "Yes. The replacement work is inspected and tested and the appropriate electrical certification is provided. Where domestic Building Regulations notification is required, the appropriate notification route is used.",
         },
         {
           q: "Do you cover my area?",

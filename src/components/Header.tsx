@@ -27,9 +27,11 @@ export function Header() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
-        <div className={`mx-auto flex min-h-[64px] max-w-7xl items-center justify-between gap-4 px-4 transition-all lg:px-8 ${
-          scrolled ? "min-h-[58px]" : ""
-        }`}>
+        <div
+          className={`mx-auto flex min-h-[64px] max-w-7xl items-center justify-between gap-4 px-4 transition-all lg:px-8 ${
+            scrolled ? "min-h-[58px]" : ""
+          }`}
+        >
           <Link to="/" className="flex shrink-0 items-center" aria-label="Sperin Services home">
             <Logo className="h-11 w-auto sm:h-12" />
           </Link>
@@ -114,16 +116,18 @@ export function Header() {
             </div>
 
             <div className="mt-3 border-t border-white/10 pt-3">
-              {NAV.filter((item) => item.to !== "/pricing" && item.to !== "/contact").map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-md px-3 py-3 text-base font-semibold"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {NAV.filter((item) => item.to !== "/pricing" && item.to !== "/contact").map(
+                (item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md px-3 py-3 text-base font-semibold"
+                  >
+                    {item.label}
+                  </Link>
+                ),
+              )}
             </div>
 
             <a
@@ -191,7 +195,9 @@ function ServicesDropdown() {
             className="block rounded-md px-3 py-3 transition hover:bg-white/[0.045]"
           >
             <div className="text-sm font-semibold">Commercial electrical</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">Premises, testing, lighting, power & access</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Premises, testing, lighting, power & access
+            </div>
           </Link>
           <div className="my-1 border-t border-white/10" />
           {SERVICES.map((service) => (

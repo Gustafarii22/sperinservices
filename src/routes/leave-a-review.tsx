@@ -13,7 +13,10 @@ export const Route = createFileRoute("/leave-a-review")({
         content: "Share genuine feedback about work completed by Sperin Services.",
       },
       { property: "og:title", content: "Leave a Review | Sperin Services" },
-      { property: "og:description", content: "Share genuine feedback about work completed by Sperin Services." },
+      {
+        property: "og:description",
+        content: "Share genuine feedback about work completed by Sperin Services.",
+      },
       { property: "og:url", content: "https://sperinservices.co.uk/leave-a-review" },
     ],
   }),

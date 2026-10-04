@@ -25,7 +25,8 @@ export const Route = createFileRoute("/services/ev-chargers")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "EV Chargers",
-            description: "Smart home EV charger installations with tidy cable routes and load considerations. Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
+            description:
+              "Smart home EV charger installations with tidy cable routes and load considerations. Birmingham, Sutton Coldfield, Tamworth and the West Midlands.",
             path: "/services/ev-chargers",
           }),
         ),
@@ -67,7 +68,7 @@ export const Route = createFileRoute("/services/ev-chargers")({
         },
         {
           q: "Will my supply handle a charger?",
-          a: "We check the incoming supply, main fuse where known, earthing arrangement and existing demand. Where necessary we consider load management, CT monitoring or a DNO application before installation."
+          a: "We check the incoming supply, main fuse where known, earthing arrangement and existing demand. Where necessary we consider load management, CT monitoring or a DNO application before installation.",
         },
         {
           q: "Do you cover my area?",
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/services/ev-chargers")({
         },
         {
           q: "Can I get a quote?",
-          a: "Yes. Send the postcode, charger make/model if chosen, photographs of the meter and consumer unit, proposed charger position and the likely cable route. That usually gives us enough information to identify what needs checking next."
+          a: "Yes. Send the postcode, charger make/model if chosen, photographs of the meter and consumer unit, proposed charger position and the likely cable route. That usually gives us enough information to identify what needs checking next.",
         },
       ]}
     />

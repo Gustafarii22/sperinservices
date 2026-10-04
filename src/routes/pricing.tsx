@@ -1,14 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Minus, Plus, Download, ArrowRight, Check, MapPin } from "lucide-react";
-import {
-  JOBS,
-  estimate,
-  money,
-  CONDITIONS,
-  type Selection,
-  type Travel,
-} from "@/lib/pricing";
+import { JOBS, estimate, money, CONDITIONS, type Selection, type Travel } from "@/lib/pricing";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/pricing" }],
@@ -142,9 +135,7 @@ function Pricing() {
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     } catch (err) {
       setPdfError(
-        err instanceof Error
-          ? err.message
-          : "Could not create the PDF. Please try again.",
+        err instanceof Error ? err.message : "Could not create the PDF. Please try again.",
       );
     } finally {
       setPdfBusy(false);
@@ -205,10 +196,12 @@ function Pricing() {
         <div className="mt-7 border-l-2 border-electric bg-electric/[0.06] p-4 sm:p-5">
           <p className="font-semibold text-foreground">How pricing works</p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            <strong className="text-foreground">Listed prices are the price for the defined standard jobs below.</strong>
-            {" "}You do not pay the listed job price plus the hourly rate for the same work. Hourly
-            rates are used for fault finding, uncertain scope and work that cannot reasonably be
-            priced in advance.
+            <strong className="text-foreground">
+              Listed prices are the price for the defined standard jobs below.
+            </strong>{" "}
+            You do not pay the listed job price plus the hourly rate for the same work. Hourly rates
+            are used for fault finding, uncertain scope and work that cannot reasonably be priced in
+            advance.
           </p>
         </div>
 
@@ -230,9 +223,9 @@ function Pricing() {
             Hourly, evening & weekend rates
           </summary>
           <p className="mt-3 leading-relaxed">
-            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:
-            {" "}<strong className="text-foreground">£140 for the first hour, then £70/hour</strong>.
-            A pre-booked day rate replaces hourly attendance charges.
+            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:{" "}
+            <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>. A
+            pre-booked day rate replaces hourly attendance charges.
           </p>
         </details>
       </section>

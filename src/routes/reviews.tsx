@@ -92,13 +92,11 @@ function Reviews() {
         <div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
           <div>
             <span className="eyebrow">Customer reviews</span>
-            <h1 className="display-title mt-5 text-5xl sm:text-6xl">
-              Your experience matters.
-            </h1>
+            <h1 className="display-title mt-5 text-5xl sm:text-6xl">Your experience matters.</h1>
             <p className="mt-5 max-w-2xl text-muted-foreground">
               Genuine feedback from approved Sperin Services submissions and, when connected,
-              automatically from the verified Google Business Profile. No reviews are fabricated
-              or imported from unrelated sources.
+              automatically from the verified Google Business Profile. No reviews are fabricated or
+              imported from unrelated sources.
             </p>
             <Link to="/leave-a-review" className="button-primary mt-7">
               Leave a review <ArrowRight className="h-4 w-4" />

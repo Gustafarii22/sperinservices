@@ -95,7 +95,8 @@ function FAQs() {
               Questions worth answering before the job starts.
             </h1>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              Straight answers about scope, access, testing, certification, pricing and handover before work starts.
+              Straight answers about scope, access, testing, certification, pricing and handover
+              before work starts.
             </p>
           </div>
           <div>
