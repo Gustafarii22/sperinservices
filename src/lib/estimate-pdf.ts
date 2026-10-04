@@ -10,6 +10,7 @@ type PdfRow = {
   description: string;
   detail: string;
   cost: number | null;
+  costLabel?: string;
 };
 
 type PdfDocument = {
@@ -210,7 +211,7 @@ function rowBlock(row: PdfRow, y: number, shade: boolean) {
       ty -= 9;
     }
   }
-  const cost = row.cost == null ? "TO ASSESS" : money(row.cost);
+  const cost = row.cost == null ? row.costLabel || "TO ASSESS" : money(row.cost);
   stream += rightText(cost, RIGHT - 12, y - 20, row.cost == null ? 8.5 : 10, "F2", row.cost == null ? BLUE : NAVY);
   return { stream, height };
 }
@@ -330,6 +331,7 @@ export function estimatePdf(
     description: "Travel",
     detail: travel?.message || "Travel supplement to be confirmed before booking.",
     cost: travelAmount,
+    costLabel: travelAmount == null ? "TO CONFIRM" : undefined,
   });
 
   const document: PdfDocument = {
