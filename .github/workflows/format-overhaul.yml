@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - feat/iphone-simple-site-overhaul
-    paths-ignore:
-      - ".github/workflows/format-overhaul.yml"
 
 permissions:
   contents: write
