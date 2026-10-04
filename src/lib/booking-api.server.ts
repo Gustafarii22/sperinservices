@@ -42,54 +42,97 @@ const schema = z.object({
 });
 export async function lookupTravel(raw: string): Promise<Travel> {
   const postcode = postcodeSchema.parse(raw).replace(/\s/g, "");
-  const unknown = {
-    postcode,
-    charge: null,
-    message: "Travel supplement to be confirmed before booking.",
-  };
-  // A commercial routing key is optional. No paid service or demo-only routing is enabled.
-  if (!process.env.SPERIN_ROUTING_API_KEY) return unknown;
-  try {
-    const coordinates = await Promise.all(
-      ["B664JB", postcode].map(async (p) => {
-        const r = await fetch(`https://api.postcodes.io/postcodes/${p}`, {
-          signal: AbortSignal.timeout(5000),
-        });
-        const data = await r.json();
-        if (!r.ok || !data.result) throw Error("Postcode unavailable");
-        return [data.result.longitude, data.result.latitude];
-      }),
-    );
-    const r = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/json", {
-      method: "POST",
-      signal: AbortSignal.timeout(8000),
-      headers: {
-        Authorization: process.env.SPERIN_ROUTING_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ coordinates }),
-    });
-    const data = await r.json();
-    const seconds = data.routes?.[0]?.summary?.duration;
-    if (!r.ok || typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0)
-      return unknown;
-    const minutes = Math.ceil(seconds / 60),
-      charge = travelCharge(minutes);
+  const coordinates = await Promise.all(
+    ["B664JB", postcode].map(async (p) => {
+      const r = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(p)}`, {
+        signal: AbortSignal.timeout(5000),
+        headers: { Accept: "application/json" },
+      });
+      const data = await r.json();
+      if (!r.ok || !data.result) throw Error("Postcode unavailable");
+      return [Number(data.result.longitude), Number(data.result.latitude)] as [number, number];
+    }),
+  );
+
+  const finish = (
+    minutes: number,
+    source: NonNullable<Travel["source"]>,
+    approximate = false,
+  ): Travel => {
+    const rounded = Math.max(0, Math.ceil(minutes));
+    const charge = travelCharge(rounded);
+    const prefix = approximate ? "Approx." : "About";
     return {
       postcode,
-      minutes,
+      minutes: rounded,
       charge,
+      source,
       message:
         charge === null
-          ? `About ${minutes} minutes each way — travel agreed before booking.`
+          ? `${prefix} ${rounded} minutes each way — longer journey, price agreed before booking.`
           : charge === 0
-            ? `About ${minutes} minutes each way — travel included.`
-            : `About ${minutes} minutes each way — £${charge} per visit travel supplement.`,
+            ? `${prefix} ${rounded} minutes each way — travel included.`
+            : `${prefix} ${rounded} minutes each way — £${charge} per visit travel supplement.`,
     };
-  } catch {
-    return unknown;
+  };
+
+  if (process.env.SPERIN_ROUTING_API_KEY) {
+    try {
+      const r = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/json", {
+        method: "POST",
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          Authorization: process.env.SPERIN_ROUTING_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ coordinates }),
+      });
+      const data = await r.json();
+      const seconds = data.routes?.[0]?.summary?.duration;
+      if (r.ok && typeof seconds === "number" && Number.isFinite(seconds) && seconds >= 0)
+        return finish(seconds / 60, "openrouteservice");
+    } catch {
+      // Fall through to the no-key router below.
+    }
   }
+
+  try {
+    const route = coordinates.map(([lon, lat]) => `${lon},${lat}`).join(";");
+    const r = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${route}?overview=false&steps=false`,
+      {
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "SperinServices/1.0 (info@sperinservices.co.uk)",
+        },
+      },
+    );
+    const data = await r.json();
+    const seconds = data.routes?.[0]?.duration;
+    if (r.ok && data.code === "Ok" && typeof seconds === "number" && Number.isFinite(seconds))
+      return finish(seconds / 60, "osrm");
+  } catch {
+    // Fall through to a conservative postcode-distance estimate.
+  }
+
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const [from, to] = coordinates;
+  const lat1 = toRadians(from[1]);
+  const lat2 = toRadians(to[1]);
+  const dLat = lat2 - lat1;
+  const dLon = toRadians(to[0] - from[0]);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  const straightKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  // Conservative road approximation used only if live routing is unavailable.
+  const estimatedRoadKm = straightKm * 1.3;
+  const estimatedMinutes = (estimatedRoadKm / 48) * 60 + 5;
+  return finish(estimatedMinutes, "fallback", true);
 }
+
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
   if (!["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking"].includes(url.pathname))
@@ -123,7 +166,14 @@ export async function bookingApi(req: Request): Promise<Response | null> {
     if (url.pathname.endsWith("/travel")) {
       const parsed = postcodeSchema.safeParse((body as { postcode?: unknown })?.postcode);
       if (!parsed.success) return json({ error: "Enter a full UK postcode." }, 400);
-      return json(await lookupTravel(parsed.data));
+      try {
+        return json(await lookupTravel(parsed.data));
+      } catch {
+        return json(
+          { error: "We could not calculate travel for that postcode. Check it and try again." },
+          400,
+        );
+      }
     }
     if (url.pathname.endsWith("/pdf")) {
       const parsed = pdfSchema.safeParse(body);

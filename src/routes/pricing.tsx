@@ -388,9 +388,21 @@ function Pricing() {
                 Up to 35 minutes included; 36–50 minutes +£15; 51–65 minutes +£25 per visit. Longer
                 journeys agreed individually.
               </p>
-              <p role="status" className="mt-3 text-sm">
-                {travel?.message}
-              </p>
+              {travel && (
+                <div
+                  role="status"
+                  className="mt-3 rounded-md border border-electric/35 bg-electric/10 p-3"
+                >
+                  <p className="font-semibold">
+                    {travel.charge === 0
+                      ? "Travel included — £0"
+                      : travel.charge !== null
+                        ? `Travel supplement — +£${travel.charge} per visit`
+                        : "Longer journey — price confirmed before booking"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{travel.message}</p>
+                </div>
+              )}
               {travelError && (
                 <p role="alert" className="mt-2 text-sm text-red-300">
                   {travelError}
@@ -398,8 +410,10 @@ function Pricing() {
               )}
               {travel?.minutes !== undefined && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Estimated road journey, without live traffic. Routing: openrouteservice /
-                  OpenStreetMap contributors.
+                  Estimated each-way driving time without live traffic.
+                  {travel.source === "fallback"
+                    ? " Live road routing was unavailable, so this uses a conservative postcode-distance estimate."
+                    : " Routing uses OpenStreetMap road data."}
                 </p>
               )}
             </div>
