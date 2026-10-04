@@ -189,23 +189,30 @@ function Pricing() {
   }
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-12 pt-12 lg:px-8 lg:pt-20">
-        <span className="eyebrow">Sperin / Prices & planning</span>
-        <div className="mt-5 grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-end">
-          <h1 className="display-title max-w-3xl text-5xl sm:text-6xl lg:text-7xl">
+      <section className="mx-auto max-w-7xl px-4 pb-9 pt-8 lg:px-8 lg:pt-12">
+        <span className="eyebrow">Prices & estimate</span>
+        <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
+          <h1 className="display-title max-w-3xl text-5xl sm:text-6xl">
             Clear prices.
-            <br />
-            <span className="text-electric">Considered work.</span>
+            <span className="block text-electric">No double charging.</span>
           </h1>
-          <div className="max-w-lg">
-            <p className="text-lg leading-relaxed text-muted-foreground">
-              Know where you stand before you get in touch. Choose the work you need, keep a copy of
-              your estimate and send us the details.
-            </p>
-            <p className="mt-4 text-sm">No VAT added — Sperin Services is not VAT registered.</p>
-          </div>
+          <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
+            Choose listed standard work, see the running estimate, check travel and keep a PDF copy.
+            No VAT is added.
+          </p>
         </div>
-        <div className="mt-10 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+
+        <div className="mt-7 border-l-2 border-electric bg-electric/[0.06] p-4 sm:p-5">
+          <p className="font-semibold text-foreground">How pricing works</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <strong className="text-foreground">Listed prices are the price for the defined standard jobs below.</strong>
+            {" "}You do not pay the listed job price plus the hourly rate for the same work. Hourly
+            rates are used for fault finding, uncertain scope and work that cannot reasonably be
+            priced in advance.
+          </p>
+        </div>
+
+        <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {[
             ["£75", "First hour on site", "Local weekday visit, including attendance."],
             ["£50", "Each further hour", "Billed at £25 per started half-hour."],
@@ -218,13 +225,16 @@ function Pricing() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Fault finding uses the same hourly rates. Evenings from 7pm and all Saturday/Sunday
-          visits:{" "}
-          <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>.
-          Availability and scope agreed before booking. A day rate replaces hourly attendance
-          charges.
-        </p>
+        <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
+          <summary className="cursor-pointer font-semibold text-foreground/86">
+            Hourly, evening & weekend rates
+          </summary>
+          <p className="mt-3 leading-relaxed">
+            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:
+            {" "}<strong className="text-foreground">£140 for the first hour, then £70/hour</strong>.
+            A pre-booked day rate replaces hourly attendance charges.
+          </p>
+        </details>
       </section>
       <section id="estimate" className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -470,14 +480,28 @@ function Pricing() {
               Send your selected work and optional photographs. Gus will confirm the scope, price
               and availability before you commit.
             </p>
-            <ul className="mt-7 space-y-4 text-sm text-muted-foreground">
-              {CONDITIONS.slice(0, 4).map((line) => (
-                <li key={line} className="flex gap-3">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
-                  {line}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+              <div className="flex gap-3">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
+                <span>We review the details and photographs.</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
+                <span>We confirm the scope, fixed quotation and whether a survey is needed.</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
+                <span>Nothing is booked until you agree the confirmed price and timing.</span>
+              </div>
+            </div>
+            <details className="mt-5 border-t border-white/10 pt-4 text-sm">
+              <summary className="cursor-pointer font-semibold">Estimate conditions</summary>
+              <ul className="mt-3 space-y-2 text-muted-foreground">
+                {CONDITIONS.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </details>
           </div>
           <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
             {(
