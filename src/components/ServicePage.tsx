@@ -46,7 +46,7 @@ export function ServicePage(p: ServicePageProps) {
                 "Consumer Unit Upgrades",
                 "Electrical Installation Condition Reports (EICRs)",
               ].includes(p.title) ? (
-                <Link to="/pricing" hash="estimate" className="button-primary">
+                <Link to="/pricing" hash="calculator" className="button-primary">
                   Price this job <ArrowRight className="h-4 w-4" />
                 </Link>
               ) : (
