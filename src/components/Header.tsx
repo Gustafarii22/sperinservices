@@ -1,16 +1,7 @@
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import {
-  Calculator,
-  ChevronDown,
-  Images,
-  Mail,
-  Menu,
-  Star,
-  UserRound,
-  Zap,
-} from "lucide-react";
+import { Calculator, ChevronDown, Images, Mail, Menu, Star, UserRound, Zap } from "lucide-react";
 import { Logo } from "./Logo";
 import { SERVICES } from "@/lib/site";
 
@@ -202,7 +193,9 @@ function ServicesDropdown() {
               className="block border-b border-white/[0.07] px-4 py-3.5 transition hover:bg-electric/[0.06]"
             >
               <div className="text-sm font-semibold text-foreground/92">{service.title}</div>
-              <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{service.short}</div>
+              <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {service.short}
+              </div>
             </Link>
           ))}
 
