@@ -168,7 +168,7 @@ function Privacy() {
 
 function PolicySection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl hairline bg-card/40 p-5 sm:p-6">
+    <section className="rounded-md hairline bg-card/40 p-5 sm:p-6">
       <h2 className="text-xl font-bold text-foreground">{title}</h2>
       <div className="mt-3">{children}</div>
     </section>
