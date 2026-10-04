@@ -12,7 +12,7 @@ export const Route = createFileRoute("/services/testing")({
         content:
           "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
       },
-      { property: "og:title", content: "Testing & Certification — Sperin Services" },
+      { property: "og:title", content: "Electrical Installation Condition Reports (EICRs) — Sperin Services" },
       {
         property: "og:description",
         content: "Inspection, certification and fault finding for domestic properties.",
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/services/testing")({
         type: "application/ld+json",
         children: JSON.stringify(
           serviceJsonLd({
-            name: "Testing & Certification",
+            name: "Electrical Installation Condition Reports (EICRs)",
             description: "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
             path: "/services/testing",
           }),
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/services/testing")({
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
             { name: "Services", path: "/services" },
-            { name: "Testing & Certification", path: "/services/testing" },
+            { name: "Electrical Installation Condition Reports (EICRs)", path: "/services/testing" },
           ]),
         ),
       },
