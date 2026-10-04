@@ -4,7 +4,6 @@ import { Minus, Plus, Download, ArrowRight, Check, MapPin } from "lucide-react";
 import {
   JOBS,
   estimate,
-  estimateLines,
   money,
   CONDITIONS,
   type Selection,
@@ -112,9 +111,9 @@ function Pricing() {
   }
   function download() {
     const id = ref();
-    const bytes = estimatePdf(
-      estimateLines(selection, travel, `SS-${id.slice(0, 8).toUpperCase()}`),
-    );
+    const bytes = estimatePdf(selection, travel, `SS-${id.slice(0, 8).toUpperCase()}`, {
+      postcode: travel?.postcode || postcode.trim().toUpperCase() || undefined,
+    });
     const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
     const a = document.createElement("a");
     a.href = url;

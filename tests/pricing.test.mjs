@@ -8,7 +8,7 @@ const source = (name) =>
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
 const pricingUrl = url(source("pricing"));
-const pdfUrl = url(source("estimate-pdf"));
+const pdfUrl = url(source("estimate-pdf").replace('"./pricing"', JSON.stringify(pricingUrl)));
 const { estimate, travelCharge, estimateLines } = await import(pricingUrl);
 const { estimatePdf } = await import(pdfUrl);
 test("agreed mixed-job and multiple-switch examples", () => {
@@ -51,17 +51,22 @@ test("travel boundaries", () => {
   ])
     assert.equal(travelCharge(m), p);
 });
-test("PDF is paginated, has correct xref and exclusions", () => {
+test("PDF is branded, itemised, paginated and has a valid xref", () => {
   const bytes = estimatePdf(
-    estimateLines(
-      { switch: 1, socket: 2, board10: 1, eicr6: 1 },
-      { postcode: "B664JB", charge: null, message: "Travel to be confirmed" },
-      "SS-TEST",
-    ),
+    { switch: 1, socket: 2, board10: 1, eicr6: 1 },
+    { postcode: "B664JB", charge: null, message: "Travel to be confirmed" },
+    "SS-TEST",
+    { customerName: "Test Customer", address: "Test address", postcode: "B66 4JB" },
   );
   const pdf = new TextDecoder().decode(bytes);
   assert.match(pdf, /^%PDF-1.4/);
-  assert.match(pdf, /GBP 800/);
+  assert.match(pdf, /SPERIN SERVICES/);
+  assert.match(pdf, /DESCRIPTION OF WORK/);
+  assert.match(pdf, /Unit Price/);
+  assert.match(pdf, /Standard double socket replacement/);
+  assert.match(pdf, /FuseBox consumer unit/);
+  assert.match(pdf, /VAT \\(not registered\\)/);
+  assert.match(pdf, /PRICED SUBTOTAL/);
   assert.match(pdf, /Travel to be confirmed/);
   const start = Number(pdf.match(/startxref\n(\d+)/)[1]);
   assert.equal(pdf.slice(start, start + 4), "xref");

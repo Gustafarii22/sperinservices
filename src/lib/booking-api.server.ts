@@ -179,7 +179,13 @@ export async function bookingApi(req: Request): Promise<Response | null> {
     const lines = estimateLines(p.selection, travel, reference);
     attachments.push({
       filename: `${reference}-estimate.pdf`,
-      content: Buffer.from(estimatePdf(lines)).toString("base64"),
+      content: Buffer.from(
+        estimatePdf(p.selection, travel, reference, {
+          customerName: p.name,
+          address: p.address,
+          postcode: p.postcode,
+        }),
+      ).toString("base64"),
     });
     const text = [
       `New booking request — ${reference}`,
