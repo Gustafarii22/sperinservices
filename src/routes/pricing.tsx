@@ -228,7 +228,7 @@ function Pricing() {
           </p>
         </details>
       </section>
-      <section id="estimate" className="mx-auto max-w-7xl px-4 lg:px-8">
+      <section id="calculator" className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <span className="eyebrow">01 / Choose your work</span>
