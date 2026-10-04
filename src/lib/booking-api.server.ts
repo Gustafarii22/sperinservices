@@ -92,22 +92,6 @@ export async function lookupTravel(raw: string): Promise<Travel> {
 }
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
-  if (url.pathname === "/api/pricing/pdf-preview" && req.method === "GET") {
-    const bytes = estimatePdf(
-      { switch: 1, socket: 2, doorbell: 1, eicr6: 1, board10: 1 },
-      { postcode: "B664JB", charge: null, message: "Travel supplement to be confirmed before booking." },
-      "SS-PREVIEW",
-      { customerName: "Example Customer", address: "24 Example Road, Birmingham", postcode: "B66 4JB" },
-    );
-    return new Response(bytes, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": "inline; filename=\"Sperin-estimate-preview.pdf\"",
-        "Cache-Control": "no-store",
-      },
-    });
-  }
   if (!["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking"].includes(url.pathname))
     return null;
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
