@@ -86,7 +86,7 @@ function Commercial() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
-                Discuss a commercial job <ArrowRight className="h-4 w-4" />
+                Discuss Your Job <ArrowRight className="h-4 w-4" />
               </Link>
               <a href={`tel:${SITE.phone}`} className="button-secondary">
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
@@ -197,8 +197,8 @@ function Commercial() {
       </section>
 
       <CTA
-        title="Send the commercial scope, not just a one-line enquiry."
-        subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful."
+        title="Commercial job to price?"
+        subtitle="Send the scope, drawings or photos you already have."
       />
     </>
   );
