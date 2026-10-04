@@ -364,7 +364,7 @@ export function estimatePdf(
 
   let finalY = pageRows.length === 1 ? 602 : 662;
   for (const row of pageRows.at(-1) || []) finalY -= rowHeight(row);
-  if (finalY < 250) pageRows.push([]);
+  if (finalY < 275) pageRows.push([]);
 
   const pages = pageRows.length;
   const streams: string[] = [];
@@ -394,9 +394,9 @@ export function estimatePdf(
 
     if (pageIndex === pages - 1) {
       y -= 18;
-      stream += summaryBlock(document, y).stream;
-      const notesY = Math.min(y, 238);
-      stream += notesBlock(document, notesY).stream;
+      const summary = summaryBlock(document, y);
+      stream += summary.stream;
+      stream += notesBlock(document, summary.y - 18).stream;
     }
 
     stream += footer(pageIndex + 1, pages);
