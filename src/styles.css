@@ -684,7 +684,7 @@ main h1 {
 @media (max-width: 767px) {
   .mobile-contact-bar {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     position: fixed;
     bottom: 0;
     inset-inline: 0;
@@ -695,18 +695,21 @@ main h1 {
     gap: 4px;
   }
   .mobile-contact-bar a {
-    min-height: 48px;
+    min-height: 50px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    font-size: 11px;
-    font-weight: 650;
-  }
-  .mobile-contact-bar a:last-child {
-    background: var(--electric);
-    color: #101416;
+    gap: 4px;
     border-radius: 4px;
+    color: var(--foreground);
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    transition: background 160ms ease, color 160ms ease;
+  }
+  .mobile-contact-bar a:active {
+    background: rgba(255,255,255,.05);
   }
   footer {
     padding-bottom: 90px;
