@@ -45,7 +45,7 @@ function About() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
-                Talk about a project <ArrowRight className="h-4 w-4" />
+                Discuss Your Job <ArrowRight className="h-4 w-4" />
               </Link>
               <a href={`tel:${SITE.phone}`} className="button-secondary">
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
@@ -153,8 +153,8 @@ function About() {
       </section>
 
       <CTA
-        title="Got a job in mind? Start with the details."
-        subtitle="Send the postcode, a short description and useful photographs through the project form. We will confirm the right next step."
+        title="Got a job in mind?"
+        subtitle="Send the postcode, a short description and useful photos."
       />
     </>
   );
