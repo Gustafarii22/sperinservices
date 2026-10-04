@@ -187,7 +187,7 @@ function Contact() {
                 rel="noreferrer"
                 className="flex items-center gap-3 border-t border-white/10 py-4"
               >
-                <WhatsAppGlyph className="h-5 w-5 text-[#72d997]" />
+                <WhatsAppGlyph className="h-5 w-5 text-[#25D366]" />
                 <span>
                   <span className="block text-xs text-muted-foreground">WhatsApp</span>
                   <strong>Send quick details or photos</strong>
