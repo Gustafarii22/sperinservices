@@ -6,11 +6,11 @@ export const Route = createFileRoute("/pricing")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/pricing" }],
     meta: [
-      { title: "Electrical Prices & Estimate Calculator | Sperin Services" },
+      { title: "Job Price Calculator | Sperin Services" },
       {
         name: "description",
         content:
-          "Clear electrical prices in Birmingham and the West Midlands. Build an estimate, download a PDF and request a visit with job photographs.",
+          "Price listed electrical work, check travel, download a PDF estimate and request a visit across Birmingham and the West Midlands.",
       },
       { property: "og:title", content: "Clear prices. Considered work. | Sperin Services" },
       { property: "og:url", content: "https://sperinservices.co.uk/pricing" },
@@ -181,15 +181,14 @@ function Pricing() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-9 pt-8 lg:px-8 lg:pt-12">
-        <span className="eyebrow">Prices & estimate</span>
+        <span className="eyebrow">Job price calculator</span>
         <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
           <h1 className="display-title max-w-3xl text-5xl sm:text-6xl">
-            Clear prices.
-            <span className="block text-electric">No double charging.</span>
+            Price your job.
+            <span className="block text-electric">See the total as you go.</span>
           </h1>
           <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-            Choose listed standard work, see the running estimate, check travel and keep a PDF copy.
-            No VAT is added.
+            Pick listed work, check travel and see the running price. Keep a PDF estimate if you need one. No VAT is added.
           </p>
         </div>
 
@@ -233,7 +232,7 @@ function Pricing() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <span className="eyebrow">01 / Choose your work</span>
-            <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Build your estimate</h2>
+            <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Choose your job</h2>
           </div>
           <p className="max-w-sm text-sm text-muted-foreground">
             Weekday daytime guide prices. Multiple small jobs share one visit allowance — you don’t
