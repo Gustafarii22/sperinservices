@@ -1,35 +1,33 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Phone } from "lucide-react";
+import { ArrowRight, Calculator, Phone } from "lucide-react";
 import { SITE } from "@/lib/site";
-import { WhatsAppButton } from "./WhatsAppButton";
 
 export function CTA({
-  title = "Good work starts with a conversation.",
-  subtitle = "Tell Gus what you have in mind. Send your postcode, a short description and any useful photographs, and we’ll help you work out the next step.",
+  title = "Ready for the next step?",
+  subtitle = "Use the estimate calculator for listed standard jobs, or send the project details for anything bespoke, larger or uncertain.",
 }: {
   title?: string;
   subtitle?: string;
 }) {
   return (
-    <section className="mx-auto my-20 max-w-7xl px-4 lg:px-8">
-      <div className="enquiry-section relative overflow-hidden p-7 sm:p-10 lg:p-12">
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 technical-grid opacity-50 lg:block" />
-        <div className="relative max-w-3xl">
-          <span className="eyebrow">Start with the job</span>
-          <h2 className="mt-4 text-3xl font-bold sm:text-4xl lg:text-5xl">{title}</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {subtitle}
-          </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link to="/contact" className="button-primary">
-              Request a quote <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a href={`tel:${SITE.phone}`} className="button-secondary">
-              <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
-            </a>
-            <WhatsAppButton size="md" />
-          </div>
+    <section className="mx-auto my-12 max-w-7xl px-4 lg:px-8">
+      <div className="enquiry-section p-6 sm:p-8 lg:p-10">
+        <span className="eyebrow">Start here</span>
+        <h2 className="mt-3 max-w-3xl text-3xl font-semibold sm:text-4xl">{title}</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {subtitle}
+        </p>
+        <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">
+          <Link to="/pricing" className="button-primary">
+            <Calculator className="h-4 w-4" /> Build an estimate
+          </Link>
+          <Link to="/contact" className="button-secondary">
+            Discuss a project <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
+        <a href={`tel:${SITE.phone}`} className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Phone className="h-4 w-4 text-electric" /> Prefer to call? {SITE.phoneDisplay}
+        </a>
       </div>
     </section>
   );
