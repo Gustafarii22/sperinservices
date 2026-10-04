@@ -9,13 +9,13 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/contact" }],
     meta: [
-      { title: "Request an Electrical Quote | Sperin Services" },
+      { title: "Discuss Your Job | Sperin Services" },
       {
         name: "description",
         content:
           "Discuss domestic or commercial electrical work with Sperin Services across Birmingham and the West Midlands. Send the postcode, scope and useful photographs.",
       },
-      { property: "og:title", content: "Discuss a Project | Sperin Services" },
+      { property: "og:title", content: "Discuss Your Job | Sperin Services" },
       {
         property: "og:description",
         content:
@@ -164,14 +164,12 @@ function Contact() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pt-12">
-        <span className="eyebrow">Discuss a project</span>
+        <span className="eyebrow">Discuss your job</span>
         <div className="mt-4 grid gap-7 lg:grid-cols-[.78fr_1.22fr] lg:items-start">
           <div>
             <h1 className="display-title text-5xl sm:text-6xl">Tell us what needs doing.</h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Send the postcode, a short description and useful photographs. We will review the
-              details and confirm whether we can price it from the information supplied or need a
-              site survey.
+              Send the postcode, a short description and useful photos. We’ll tell you the next step.
             </p>
 
             <div className="mt-6 border-y border-white/10">
@@ -237,9 +235,9 @@ function Contact() {
             <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
-                  Project details
+                  Job details
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Request a quotation</h2>
+                <h2 className="mt-2 text-2xl font-semibold">Send your job</h2>
               </div>
               <MapPin className="h-5 w-5 text-electric" />
             </div>
@@ -432,7 +430,7 @@ function Contact() {
               disabled={sending || photoBusy}
               className="button-primary mt-5 w-full disabled:opacity-50"
             >
-              <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send project details"}
+              <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send job details"}
             </button>
 
             {sent && (
