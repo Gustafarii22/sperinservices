@@ -113,7 +113,13 @@ export const JOBS: Job[] = [
   },
 ];
 export type Selection = Record<string, number>;
-export type Travel = { postcode: string; minutes?: number; charge: number | null; message: string };
+export type Travel = {
+  postcode: string;
+  minutes?: number;
+  charge: number | null;
+  message: string;
+  source?: "openrouteservice" | "osrm" | "fallback";
+};
 export const money = (value: number) => `£${value.toFixed(value % 1 ? 2 : 0)}`;
 export function travelCharge(minutes: number): number | null {
   if (!Number.isFinite(minutes) || minutes < 0) return null;
