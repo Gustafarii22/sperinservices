@@ -15,9 +15,9 @@ export function Footer() {
               Midlands.
             </p>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              In the electrical industry since {SITE.industrySince}. Trading independently
-              since {SITE.founded}. Design, installation, inspection, testing, fault finding and
-              remedial work handled with one clear point of contact.
+              In the electrical industry since {SITE.industrySince}. Trading independently since{" "}
+              {SITE.founded}. Design, installation, inspection, testing, fault finding and remedial
+              work handled with one clear point of contact.
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
               {SITE.qualifications.map((item) => (
@@ -40,6 +40,11 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to="/pricing" className="transition hover:text-foreground">
+                  Prices & estimate calculator
+                </Link>
+              </li>
               <li>
                 <Link to="/commercial" className="transition hover:text-foreground">
                   Commercial electrical

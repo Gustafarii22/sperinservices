@@ -12,7 +12,10 @@ export const Route = createFileRoute("/privacy")({
       },
       { name: "robots", content: "index,follow" },
       { property: "og:title", content: "Privacy Policy | Sperin Services" },
-      { property: "og:description", content: "How Sperin Services collects, uses and protects personal information." },
+      {
+        property: "og:description",
+        content: "How Sperin Services collects, uses and protects personal information.",
+      },
       { property: "og:url", content: "https://sperinservices.co.uk/privacy" },
     ],
   }),
@@ -28,7 +31,7 @@ function Privacy() {
       <h1 className="mt-5 text-4xl font-bold sm:text-5xl">
         <span className="gradient-electric-text">Privacy Policy</span>
       </h1>
-      <p className="mt-4 text-sm text-muted-foreground">Last updated: 14 September 2026</p>
+      <p className="mt-4 text-sm text-muted-foreground">Last updated: 4 October 2026</p>
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-muted-foreground">
         <PolicySection title="Who we are">
@@ -77,11 +80,15 @@ function Privacy() {
             We only share information where necessary. This may include website form and hosting
             providers, email and communications providers, accountants, payment providers, insurers,
             professional advisers, suitably appointed subcontractors, and public authorities where
-            required by law. Website reviews are stored in Supabase with access controls. Submitted
-            reviews stay private until approved; names, towns, ratings, service details and review
-            text are published with consent. Job references remain private. Owner access uses a
-            secure, short-lived sign-in cookie. Website quote requests are processed by FormSubmit
-            and forwarded to our business email.
+            required by law. Website reviews are stored in a dedicated Neon database with access
+            controls. Submitted reviews stay private until approved; names, towns, ratings, service
+            details and review text are published with consent. Job references remain private. Owner
+            access uses a secure, short-lived sign-in cookie. Website quote requests are processed
+            by FormSubmit and forwarded to our business email. Pricing-page booking requests and
+            optional photographs are sent privately through Resend to our business email.
+            Photographs are resized in your browser before upload. Where enabled, postcode travel
+            checks use Postcodes.io and openrouteservice; only location information needed for
+            routing is sent.
           </p>
         </PolicySection>
 

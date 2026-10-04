@@ -24,7 +24,13 @@ export function ownerCodeEmail(code: string) {
 }
 export async function sendSperinEmail(
   to: string,
-  content: { subject: string; text: string; html: string },
+  content: {
+    subject: string;
+    text: string;
+    html: string;
+    reply_to?: string;
+    attachments?: { filename: string; content: string }[];
+  },
   idempotencyKey: string,
 ) {
   const key = process.env.SPERIN_RESEND_API_KEY;

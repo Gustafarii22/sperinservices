@@ -1,3 +1,4 @@
+import { bookingApi } from "./lib/booking-api.server";
 import { reviewApi } from "./lib/review-api.server";
 import "./lib/error-capture";
 
@@ -70,6 +71,8 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const bookingResponse = await bookingApi(request);
+      if (bookingResponse) return bookingResponse;
       const reviewResponse = await reviewApi(request);
       if (reviewResponse) return reviewResponse;
       const handler = await getServerEntry();
