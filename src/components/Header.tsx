@@ -29,11 +29,11 @@ export function Header() {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
         <div
           className={`mx-auto flex max-w-7xl items-center justify-between gap-5 px-4 transition-all lg:px-8 ${
-            scrolled ? "min-h-[58px]" : "min-h-[66px]"
+            scrolled ? "min-h-[72px]" : "min-h-[82px]"
           }`}
         >
           <Link to="/" className="flex shrink-0 items-center" aria-label="Sperin Services home">
-            <Logo className="h-11 w-auto sm:h-12" />
+            <Logo className="h-14 w-auto sm:h-16" />
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
@@ -67,7 +67,7 @@ export function Header() {
               className="inline-flex items-center"
               aria-label="Sperin Services home"
             >
-              <Logo className="h-14 w-auto" />
+              <Logo className="h-18 w-auto" />
             </Link>
             <div className="mt-3 h-px w-12 bg-electric" />
           </div>
