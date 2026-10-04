@@ -64,7 +64,9 @@ function About() {
                 ["Inspection & testing", "City & Guilds 2391"],
                 ["Electrical training", "City & Guilds 2360 Parts 1 & 2"],
                 ["Wiring regulations", "18th Edition"],
-                ["Insurance", "Public liability insured"],
+                ["Public liability", "£2,000,000"],
+                ["Employers’ liability", "£10,000,000"],
+                ["Professional indemnity", "£2,000,000"],
               ].map(([term, value]) => (
                 <div
                   key={term}
