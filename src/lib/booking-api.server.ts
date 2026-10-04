@@ -40,6 +40,30 @@ const schema = z.object({
     )
     .max(3),
 });
+
+const enquirySchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().min(7).max(30),
+  postcode: postcodeSchema,
+  service: z.string().trim().min(1).max(120),
+  property: z.string().trim().min(1).max(120),
+  timescale: z.string().trim().min(1).max(120),
+  contactMethod: z.string().trim().min(1).max(50),
+  message: z.string().trim().min(10).max(2500),
+  consent: z.literal(true),
+  website: z.string().max(0),
+  reference: z.string().uuid(),
+  photos: z
+    .array(
+      z.object({
+        name: z.string().max(100),
+        type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        content: z.string().max(1500000),
+      }),
+    )
+    .max(3),
+});
 export async function lookupTravel(raw: string): Promise<Travel> {
   const postcode = postcodeSchema.parse(raw).replace(/\s/g, "");
   const coordinates = await Promise.all(
@@ -123,9 +147,7 @@ export async function lookupTravel(raw: string): Promise<Travel> {
   const lat2 = toRadians(to[1]);
   const dLat = lat2 - lat1;
   const dLon = toRadians(to[0] - from[0]);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   const straightKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   // Conservative road approximation used only if live routing is unavailable.
   const estimatedRoadKm = straightKm * 1.3;
@@ -135,7 +157,11 @@ export async function lookupTravel(raw: string): Promise<Travel> {
 
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
-  if (!["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking"].includes(url.pathname))
+  if (
+    !["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking", "/api/enquiry"].includes(
+      url.pathname,
+    )
+  )
     return null;
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   if (req.headers.get("origin") !== url.origin)
@@ -163,6 +189,86 @@ export async function bookingApi(req: Request): Promise<Response | null> {
     } catch {
       return json({ error: "Invalid request." }, 400);
     }
+    if (url.pathname === "/api/enquiry") {
+      const parsed = enquirySchema.safeParse(body);
+      if (!parsed.success)
+        return json({ error: "Please check your contact details and job information." }, 400);
+      const p = parsed.data;
+      let photoBytes = 0;
+      const attachments = p.photos.map((photo, index) => {
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(photo.content)) throw Error("photo");
+        const file = Buffer.from(photo.content, "base64");
+        photoBytes += file.length;
+        const valid =
+          photo.type === "image/jpeg"
+            ? file[0] === 255 && file[1] === 216 && file[2] === 255
+            : photo.type === "image/png"
+              ? file.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+              : file.toString("ascii", 0, 4) === "RIFF" && file.toString("ascii", 8, 12) === "WEBP";
+        if (!valid || file.length > 1000000 || file.length < 12) throw Error("photo");
+        return {
+          filename: `enquiry-photo-${index + 1}.${
+            photo.type === "image/jpeg" ? "jpg" : photo.type.split("/")[1]
+          }`,
+          content: photo.content,
+        };
+      });
+      if (photoBytes > 2200000)
+        return json({ error: "Please keep all photographs below 2 MB in total." }, 413);
+
+      const database = process.env.SPERIN_DATABASE_URL;
+      if (!database || !process.env.SPERIN_RESEND_API_KEY)
+        return json(
+          { error: "Online enquiries are temporarily unavailable. Please call 07817 360156." },
+          503,
+        );
+      const sql = neon(database, { fetchOptions: { signal: AbortSignal.timeout(10000) } });
+      const fingerprint = createHmac("sha256", database)
+        .update(
+          "enquiry:" +
+            (req.headers.get("x-vercel-forwarded-for") ||
+              req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+              "unknown"),
+        )
+        .digest("hex");
+      const [limit] = await sql`select public.sperin_auth_attempt(${fingerprint},5) as allowed`;
+      if (!limit?.allowed)
+        return json({ error: "Too many attempts. Please try later or call us." }, 429);
+
+      const reference = `SS-${p.reference.slice(0, 8).toUpperCase()}`;
+      const text = [
+        `New Sperin Services project enquiry — ${reference}`,
+        `Name: ${p.name}`,
+        `Phone: ${p.phone}`,
+        `Email: ${p.email}`,
+        `Postcode: ${p.postcode}`,
+        `Work: ${p.service}`,
+        `Property / premises: ${p.property}`,
+        `Timescale: ${p.timescale}`,
+        `Preferred reply: ${p.contactMethod}`,
+        `Photographs: ${p.photos.length}`,
+        "",
+        p.message,
+      ].join("\n");
+      const escaped = text.replace(
+        /[&<>]/g,
+        (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]!,
+      );
+      const digest = createHash("sha256").update(JSON.stringify(p)).digest("hex");
+      await sendSperinEmail(
+        "info@sperinservices.co.uk",
+        {
+          subject: `Sperin project enquiry ${reference} — ${p.service}`,
+          text,
+          html: `<div style="font-family:Arial,sans-serif"><h1>Sperin Services</h1><h2>New project enquiry</h2><pre style="white-space:pre-wrap;font-family:Arial,sans-serif">${escaped}</pre></div>`,
+          reply_to: p.email,
+          attachments,
+        },
+        `sperin-enquiry-${digest}`,
+      );
+      return json({ success: true, reference });
+    }
+
     if (url.pathname.endsWith("/travel")) {
       const parsed = postcodeSchema.safeParse((body as { postcode?: unknown })?.postcode);
       if (!parsed.success) return json({ error: "Enter a full UK postcode." }, 400);
@@ -180,7 +286,10 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       if (!parsed.success) return json({ error: "Choose valid work for the estimate." }, 400);
       const p = parsed.data;
       const selected = JOBS.filter((job) => p.selection[job.id] > 0);
-      if (!selected.length || Object.keys(p.selection).some((id) => !JOBS.some((job) => job.id === id)))
+      if (
+        !selected.length ||
+        Object.keys(p.selection).some((id) => !JOBS.some((job) => job.id === id))
+      )
         return json({ error: "Choose a listed job." }, 400);
       for (const group of ["eicr", "board"])
         if (
@@ -188,9 +297,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
           selected.some((job) => job.group === group && p.selection[job.id] !== 1)
         )
           return json({ error: "Choose one circuit range per package." }, 400);
-      const travel = p.postcode
-        ? await lookupTravel(postcodeSchema.parse(p.postcode))
-        : undefined;
+      const travel = p.postcode ? await lookupTravel(postcodeSchema.parse(p.postcode)) : undefined;
       const reference = `SS-${p.reference.slice(0, 8).toUpperCase()}`;
       const bytes = estimatePdf(p.selection, travel, reference, {
         postcode: p.postcode || undefined,

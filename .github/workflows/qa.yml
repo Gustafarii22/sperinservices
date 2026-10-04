@@ -31,8 +31,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Review and security tests
-        run: node --test tests/review-api.test.mjs tests/independent-reviews.test.mjs tests/google-business-reviews.test.mjs
+      - name: Review, pricing and security tests
+        run: node --test tests/review-api.test.mjs tests/independent-reviews.test.mjs tests/google-business-reviews.test.mjs tests/pricing.test.mjs
 
       - name: Production build
         run: npm run build

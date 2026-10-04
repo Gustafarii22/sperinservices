@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Mail, MapPin, Phone, Send } from "lucide-react";
+import { Camera, Check, Mail, MapPin, Phone, Send } from "lucide-react";
 import { z } from "zod";
 import { SITE, SERVICES } from "@/lib/site";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
@@ -9,16 +9,17 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/contact" }],
     meta: [
-      { title: "Request an Electrical Quote | Sperin Services" },
+      { title: "Discuss Your Job | Sperin Services" },
       {
         name: "description",
         content:
-          "Request an electrical quote from Sperin Services for domestic or commercial work across Birmingham and the West Midlands.",
+          "Discuss domestic or commercial electrical work with Sperin Services across Birmingham and the West Midlands. Send the postcode, scope and useful photographs.",
       },
-      { property: "og:title", content: "Request a Quote | Sperin Services" },
+      { property: "og:title", content: "Discuss Your Job | Sperin Services" },
       {
         property: "og:description",
-        content: "Tell us what the job actually involves and we can advise on the right next step.",
+        content:
+          "Send the job details and useful photographs. We will confirm the right next step.",
       },
       { property: "og:url", content: "https://sperinservices.co.uk/contact" },
     ],
@@ -39,6 +40,7 @@ const schema = z.object({
 });
 
 type FormState = z.infer<typeof schema>;
+type Photo = { name: string; type: "image/jpeg"; content: string };
 
 const initialForm: FormState = {
   name: "",
@@ -52,22 +54,64 @@ const initialForm: FormState = {
   message: "",
 };
 
+const inputCls =
+  "mt-2 w-full rounded-md border border-white/15 bg-black/20 px-3.5 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
+
+async function preparePhoto(file: File): Promise<Photo> {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 15000000)
+    throw Error("Choose JPG, PNG or WebP images up to 15 MB each.");
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const context = canvas.getContext("2d");
+  if (!context) throw Error("Photo processing is unavailable in this browser.");
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const data = canvas.toDataURL("image/jpeg", 0.72).split(",")[1];
+  if (data.length > 1000000)
+    throw Error("This photograph is too detailed. Please use a smaller image.");
+  return { name: file.name, type: "image/jpeg", content: data };
+}
+
 function Contact() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [website, setWebsite] = useState("");
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState("");
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    setSent("");
+  }
+
+  async function addPhotos(files: FileList | null) {
+    if (!files) return;
+    setPhotoBusy(true);
+    setPhotoError("");
+    try {
+      const next = [...files].slice(0, Math.max(0, 3 - photos.length));
+      const prepared = await Promise.all(next.map(preparePhoto));
+      setPhotos((current) => [...current, ...prepared].slice(0, 3));
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Could not prepare that photograph.");
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (website) return;
-
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       const nextErrors: Record<string, string> = {};
@@ -77,36 +121,41 @@ function Contact() {
       setErrors(nextErrors);
       return;
     }
+    if (!consent) {
+      setSubmitError("Please agree to the privacy notice before sending.");
+      return;
+    }
 
     setErrors({});
     setSubmitError("");
     setSending(true);
-
     try {
-      const response = await fetch(`https://formsubmit.co/ajax/${SITE.email}`, {
+      const reference = crypto.randomUUID();
+      const response = await fetch("/api/enquiry", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          _subject: `New Sperin Services enquiry — ${form.service}`,
-          _template: "table",
-          name: form.name,
-          phone: form.phone,
-          email: form.email,
-          postcode: form.postcode,
-          service: form.service,
-          property_or_premises: form.property,
-          timescale: form.timescale,
-          preferred_contact: form.contactMethod,
-          message: form.message,
+          ...form,
+          postcode: form.postcode.toUpperCase(),
+          consent,
+          website,
+          photos,
+          reference,
         }),
       });
       const result = await response.json();
-      if (!response.ok || (result.success !== true && result.success !== "true"))
-        throw new Error("Submission failed");
-      setSent(true);
+      if (!response.ok || !result.success)
+        throw Error(result.error || "The enquiry could not be sent.");
+      setSent(result.reference);
       setForm(initialForm);
-    } catch {
-      setSubmitError("The form could not be sent. Please call, WhatsApp or email instead.");
+      setPhotos([]);
+      setConsent(false);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "The enquiry could not be sent. Please call, WhatsApp or email instead.",
+      );
     } finally {
       setSending(false);
     }
@@ -114,144 +163,144 @@ function Contact() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-12 pt-12 lg:px-8 lg:pt-18">
-        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pt-12">
+        <span className="eyebrow">Discuss your job</span>
+        <div className="mt-4 grid gap-7 lg:grid-cols-[.78fr_1.22fr] lg:items-start">
           <div>
-            <span className="eyebrow">Quote / enquiry</span>
-            <h1 className="display-title mt-5 text-5xl sm:text-6xl">
-              Start with the job, not a sales form.
-            </h1>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              The more useful the first details are, the quicker we can tell you what needs checking
-              and whether a site visit is the right next step.
+            <h1 className="display-title text-5xl sm:text-6xl">Tell us what needs doing.</h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+              Send the postcode, a short description and useful photos. We’ll tell you the next
+              step.
             </p>
 
-            <div className="rule mt-8 space-y-0 pt-2">
-              <a
-                href={`tel:${SITE.phone}`}
-                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric"
-              >
+            <div className="mt-6 border-y border-white/10">
+              <a href={`tel:${SITE.phone}`} className="flex items-center gap-3 py-4">
                 <Phone className="h-5 w-5 text-electric" />
                 <span>
                   <span className="block text-xs text-muted-foreground">Call</span>
-                  <span className="font-semibold">{SITE.phoneDisplay}</span>
+                  <strong>{SITE.phoneDisplay}</strong>
                 </span>
               </a>
               <a
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-[#72d997]"
+                className="flex items-center gap-3 border-t border-white/10 py-4"
               >
-                <WhatsAppGlyph className="h-6 w-6" />
+                <WhatsAppGlyph className="h-5 w-5 text-[#25D366]" />
                 <span>
                   <span className="block text-xs text-muted-foreground">WhatsApp</span>
-                  <span className="font-semibold">Best for photos and quick job details</span>
+                  <strong>Send quick details or photos</strong>
                 </span>
               </a>
               <a
                 href={`mailto:${SITE.email}`}
-                className="flex items-center gap-4 border-b border-white/10 py-4 transition hover:text-electric"
+                className="flex items-center gap-3 border-t border-white/10 py-4"
               >
                 <Mail className="h-5 w-5 text-electric" />
                 <span>
                   <span className="block text-xs text-muted-foreground">Email</span>
-                  <span className="font-semibold">{SITE.email}</span>
+                  <strong>{SITE.email}</strong>
                 </span>
               </a>
-              <div className="flex items-start gap-4 py-4">
-                <MapPin className="mt-0.5 h-5 w-5 text-electric" />
-                <span>
-                  <span className="block text-xs text-muted-foreground">Coverage</span>
-                  <span className="font-semibold">Birmingham & wider West Midlands</span>
-                </span>
-              </div>
+            </div>
+
+            <div className="mt-6 border-l-2 border-electric pl-4">
+              <p className="font-semibold">Urgent electrical fault or loss of power?</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Call us so we can quickly establish whether the fault is something we can attend to.
+                This is not advertised as a 24/7 emergency service.
+              </p>
+            </div>
+
+            <div className="mt-7">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
+                What happens next
+              </p>
+              <ol className="mt-3 space-y-3 text-sm text-muted-foreground">
+                {[
+                  "We review the scope and photographs.",
+                  "We contact you and arrange a survey if needed.",
+                  "You receive the confirmed quotation before work is booked.",
+                ].map((item, index) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="font-mono text-electric">0{index + 1}</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
 
-          <form onSubmit={submit} className="surface-raised rounded-2xl p-6 sm:p-8" noValidate>
-            <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-6">
+          <form onSubmit={submit} className="surface-raised p-5 sm:p-7" noValidate>
+            <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-5">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
-                  Project details
-                </div>
-                <h2 className="mt-2 text-3xl font-bold">Request a quote</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
+                  Job details
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">Send your job</h2>
               </div>
-              <span className="hidden font-mono text-xs text-muted-foreground sm:block">
-                SS / ENQUIRY
-              </span>
+              <MapPin className="h-5 w-5 text-electric" />
             </div>
 
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="Name" error={errors.name}>
                 <input
-                  aria-invalid={Boolean(errors.name)}
-                  autoComplete="name"
                   className={inputCls}
+                  autoComplete="name"
                   value={form.name}
                   onChange={(e) => update("name", e.target.value)}
-                  maxLength={100}
                 />
               </Field>
               <Field label="Phone" error={errors.phone}>
                 <input
-                  aria-invalid={Boolean(errors.phone)}
+                  className={inputCls}
                   autoComplete="tel"
                   inputMode="tel"
-                  className={inputCls}
                   value={form.phone}
                   onChange={(e) => update("phone", e.target.value)}
-                  maxLength={25}
                 />
               </Field>
               <Field label="Email" error={errors.email}>
                 <input
-                  aria-invalid={Boolean(errors.email)}
+                  className={inputCls}
                   autoComplete="email"
                   type="email"
-                  className={inputCls}
                   value={form.email}
                   onChange={(e) => update("email", e.target.value)}
-                  maxLength={255}
                 />
               </Field>
               <Field label="Postcode" error={errors.postcode}>
                 <input
-                  aria-invalid={Boolean(errors.postcode)}
-                  autoComplete="postal-code"
                   className={inputCls}
+                  autoComplete="postal-code"
                   value={form.postcode}
                   onChange={(e) => update("postcode", e.target.value.toUpperCase())}
                   maxLength={10}
                 />
               </Field>
 
-              <Field label="What work do you need?" error={errors.service}>
+              <Field label="Work" error={errors.service}>
                 <select
-                  aria-invalid={Boolean(errors.service)}
                   className={inputCls}
                   value={form.service}
                   onChange={(e) => update("service", e.target.value)}
                 >
                   <option value="">Choose…</option>
                   {SERVICES.map((service) => (
-                    <option key={service.slug} value={service.title}>
-                      {service.title}
-                    </option>
+                    <option key={service.slug}>{service.title}</option>
                   ))}
-                  <option value="Commercial electrical">Commercial electrical</option>
-                  <option value="Access control / door entry">Access control / door entry</option>
-                  <option value="Lighting / emergency lighting">
-                    Lighting / emergency lighting
-                  </option>
-                  <option value="Fault finding / remedials">Fault finding / remedials</option>
-                  <option value="Other">Other</option>
+                  <option>Commercial electrical</option>
+                  <option>Access control / door entry</option>
+                  <option>Lighting / emergency lighting</option>
+                  <option>Fault finding / remedials</option>
+                  <option>Urgent electrical fault</option>
+                  <option>Other</option>
                 </select>
               </Field>
 
               <Field label="Property / premises" error={errors.property}>
                 <select
-                  aria-invalid={Boolean(errors.property)}
                   className={inputCls}
                   value={form.property}
                   onChange={(e) => update("property", e.target.value)}
@@ -268,7 +317,6 @@ function Contact() {
 
               <Field label="Timescale" error={errors.timescale}>
                 <select
-                  aria-invalid={Boolean(errors.timescale)}
                   className={inputCls}
                   value={form.timescale}
                   onChange={(e) => update("timescale", e.target.value)}
@@ -284,7 +332,6 @@ function Contact() {
 
               <Field label="Preferred reply" error={errors.contactMethod}>
                 <select
-                  aria-invalid={Boolean(errors.contactMethod)}
                   className={inputCls}
                   value={form.contactMethod}
                   onChange={(e) => update("contactMethod", e.target.value)}
@@ -298,72 +345,110 @@ function Contact() {
 
               <Field label="What needs doing?" error={errors.message} className="sm:col-span-2">
                 <textarea
-                  aria-invalid={Boolean(errors.message)}
-                  rows={6}
+                  rows={5}
                   className={inputCls}
                   value={form.message}
                   onChange={(e) => update("message", e.target.value)}
                   maxLength={2500}
-                  placeholder="Tell us what is there now, what you want changed, and anything that may affect access or timing."
+                  placeholder="What is there now, what you want changed, and anything that may affect access or timing."
                 />
               </Field>
 
-              <div className="absolute -left-[10000px]" aria-hidden="true">
-                <label>
-                  Website
+              <div className="sm:col-span-2">
+                <label className="flex cursor-pointer items-center justify-between gap-4 border border-white/12 bg-white/[0.02] p-4">
+                  <span>
+                    <span className="flex items-center gap-2 font-semibold">
+                      <Camera className="h-4 w-4 text-electric" /> Add photographs
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Up to 3 JPG, PNG or WebP images. Consumer unit, meter, route or affected area
+                      are useful.
+                    </span>
+                  </span>
+                  <span className="text-sm font-bold text-electric">
+                    {photoBusy ? "Preparing…" : "Choose"}
+                  </span>
                   <input
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="sr-only"
+                    disabled={photoBusy || photos.length >= 3}
+                    onChange={(e) => addPhotos(e.target.files)}
                   />
                 </label>
+                {photos.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {photos.map((photo, index) => (
+                      <button
+                        key={`${photo.name}-${index}`}
+                        type="button"
+                        onClick={() =>
+                          setPhotos((current) => current.filter((_, n) => n !== index))
+                        }
+                        className="rounded-md border border-white/10 px-2.5 py-1.5 text-muted-foreground"
+                      >
+                        {photo.name} ×
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {photoError && <p className="mt-2 text-sm text-red-300">{photoError}</p>}
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-[#25D366]/20 bg-[#25D366]/[0.055] p-4 text-sm leading-relaxed text-muted-foreground">
-              Photos of the consumer unit, meter position, route or affected area can save a lot of
-              guesswork. Send them by{" "}
-              <a
-                href={`https://wa.me/${SITE.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-[#25D366] underline underline-offset-2"
-              >
-                WhatsApp
-              </a>{" "}
-              after submitting.
+            <div className="absolute -left-[10000px]" aria-hidden="true">
+              <label>
+                Website
+                <input
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </label>
             </div>
 
-            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="submit"
-                disabled={sending}
-                className="button-primary sm:min-w-44 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send enquiry"}
-              </button>
-              <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Your details are used to respond to this enquiry and manage the job.{" "}
+            <label className="mt-5 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I agree that these details can be used to respond to this enquiry and manage the
+                job.{" "}
                 <Link to="/privacy" className="text-electric underline underline-offset-2">
                   Privacy policy
                 </Link>
                 .
-              </p>
-            </div>
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={sending || photoBusy}
+              className="button-primary mt-5 w-full disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send job details"}
+            </button>
 
             {sent && (
               <div
                 role="status"
-                className="mt-5 rounded-lg border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]"
+                className="mt-4 border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]"
               >
-                Enquiry sent. Thank you — we’ll use the details above to respond.
+                <div className="flex gap-2">
+                  <Check className="h-4 w-4" /> Enquiry received.
+                </div>
+                <div className="mt-1 text-xs">Reference: {sent}</div>
               </div>
             )}
             {submitError && (
               <div
                 role="alert"
-                className="mt-5 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+                className="mt-4 border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
               >
                 {submitError}
               </div>
@@ -371,12 +456,34 @@ function Contact() {
           </form>
         </div>
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8" aria-labelledby="coverage-title">
+        <div className="border-t border-white/10 pt-6">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-electric" />
+            <h2 id="coverage-title" className="text-sm font-semibold">
+              Main service area
+            </h2>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {SITE.areas.map((area) => (
+              <span
+                key={area}
+                className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-muted-foreground"
+              >
+                {area}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Outside these areas? Send the postcode and we will confirm whether the job is practical
+            to cover.
+          </p>
+        </div>
+      </section>
     </>
   );
 }
-
-const inputCls =
-  "w-full rounded-lg border border-white/12 bg-black/20 px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
 
 function Field({
   label,
@@ -391,7 +498,7 @@ function Field({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.09em] text-foreground/72">
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/72">
         {label}
       </span>
       {children}

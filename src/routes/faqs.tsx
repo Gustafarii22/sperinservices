@@ -31,6 +31,18 @@ const FAQS = [
     a: "Sperin Services can undertake the electrical power, containment and wiring associated with access-controlled doors, readers, locks, intercoms and interfaces where the system specification is clear.",
   },
   {
+    q: "Are you insured?",
+    a: "Yes. Sperin Services holds public liability insurance. If a client, landlord or commercial site needs evidence before work starts, ask for the current documentation.",
+  },
+  {
+    q: "How is Building Regulations notification handled?",
+    a: "Where domestic electrical work is notifiable, the appropriate Building Regulations notification route is agreed and used for that job. The certification and notification arrangements are explained before work begins.",
+  },
+  {
+    q: "What happens if I have a concern after completed work?",
+    a: "Contact Sperin Services with the job details and the issue will be assessed. The aim is to deal with genuine post-completion concerns directly rather than leave them unresolved.",
+  },
+  {
     q: "What areas do you cover?",
     a: "The main service area is Birmingham and the wider West Midlands, including Smethwick, Quinton, Harborne, Oldbury, Halesowen, West Bromwich, Solihull, Dudley, Walsall, Sutton Coldfield and Tamworth.",
   },
@@ -75,7 +87,7 @@ export const Route = createFileRoute("/faqs")({
 function FAQs() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-12 pt-12 lg:px-8 lg:pt-18">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pt-12">
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
           <div>
             <span className="eyebrow">Useful answers</span>
@@ -83,8 +95,8 @@ function FAQs() {
               Questions worth answering before the job starts.
             </h1>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              These are practical questions about scope, access, testing and handover rather than
-              generic SEO filler.
+              Straight answers about scope, access, testing, certification, pricing and handover
+              before work starts.
             </p>
           </div>
           <div>

@@ -67,7 +67,7 @@ test("PDF is branded, itemised, paginated and has a valid xref", () => {
   assert.doesNotMatch(pdf, /Unit Price/);
   assert.match(pdf, /Standard double socket replacement/);
   assert.match(pdf, /FuseBox consumer unit/);
-  assert.match(pdf, /VAT \\(not registered\\)/);
+  assert.match(pdf, /VAT .*not registered/);
   assert.match(pdf, /PRICED SUBTOTAL/);
   assert.match(pdf, /Travel to be confirmed/);
   const start = Number(pdf.match(/startxref\n(\d+)/)[1]);
@@ -201,6 +201,75 @@ test("non-image attachments and spam rejected", async () => {
   assert.equal((await bookingApi(request(payload()))).status, 429);
   globalThis.__allow = true;
 });
+test("project enquiry uses the same protected email backend", async () => {
+  globalThis.__allow = true;
+  globalThis.__failEmail = false;
+  const enquiry = {
+    name: "TEST ONLY",
+    email: "test@example.com",
+    phone: "07000000000",
+    postcode: "B66 4JB",
+    service: "Consumer Unit Upgrades",
+    property: "House / flat",
+    timescale: "Within 1 month",
+    contactMethod: "Email",
+    message: "Test project enquiry only. Do not book this job.",
+    consent: true,
+    website: "",
+    reference: "12345678-1234-4123-8123-123456789abc",
+    photos: [],
+  };
+  const r = await bookingApi(
+    new Request("https://sperinservices.co.uk/api/enquiry", {
+      method: "POST",
+      headers: { origin: "https://sperinservices.co.uk", "Content-Type": "application/json" },
+      body: JSON.stringify(enquiry),
+    }),
+  );
+  assert.equal(r.status, 200);
+  const data = await r.json();
+  assert.equal(data.success, true);
+  assert.equal(data.reference, "SS-12345678");
+  assert.equal(globalThis.__email[0], "info@sperinservices.co.uk");
+  assert.match(globalThis.__email[1].subject, /Consumer Unit Upgrades/);
+  assert.match(globalThis.__email[1].text, /Test project enquiry only/);
+  assert.equal(globalThis.__email[1].reply_to, "test@example.com");
+});
+
+test("project enquiry rejects invalid origins and missing consent", async () => {
+  const base = {
+    name: "TEST ONLY",
+    email: "test@example.com",
+    phone: "07000000000",
+    postcode: "B66 4JB",
+    service: "Other",
+    property: "House / flat",
+    timescale: "Planning stage / flexible",
+    contactMethod: "Phone",
+    message: "Test project enquiry only. Do not book.",
+    consent: true,
+    website: "",
+    reference: "12345678-1234-4123-8123-123456789abc",
+    photos: [],
+  };
+  const wrongOrigin = await bookingApi(
+    new Request("https://sperinservices.co.uk/api/enquiry", {
+      method: "POST",
+      headers: { origin: "https://other.test", "Content-Type": "application/json" },
+      body: JSON.stringify(base),
+    }),
+  );
+  assert.equal(wrongOrigin.status, 403);
+  const missingConsent = await bookingApi(
+    new Request("https://sperinservices.co.uk/api/enquiry", {
+      method: "POST",
+      headers: { origin: "https://sperinservices.co.uk", "Content-Type": "application/json" },
+      body: JSON.stringify({ ...base, consent: false }),
+    }),
+  );
+  assert.equal(missingConsent.status, 400);
+});
+
 test("postcode travel check returns included and supplement outcomes", async () => {
   for (const [minutes, charge] of [
     [20, 0],

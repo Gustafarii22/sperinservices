@@ -22,7 +22,8 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Kitchens & Bathrooms",
-            description: "Electrical and coordinated building work for kitchens and bathrooms across Birmingham and the West Midlands.",
+            description:
+              "Electrical and coordinated building work for kitchens and bathrooms across Birmingham and the West Midlands.",
             path: "/services/kitchens-bathrooms",
           }),
         ),
@@ -42,17 +43,17 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
   component: () => (
     <ServicePage
       title="Kitchens & Bathrooms"
-      intro="Electrical and building works for kitchens and bathrooms — coordinated, neat and finished to a high standard. Birmingham, Sutton Coldfield, Tamworth and the West Midlands."
+      intro="Kitchen and bathroom electrical work planned around appliance loads, lighting, extraction, safe zones, controls and the wider refurbishment — with other trades coordinated where the project requires it."
       included={[
         "Lighting design and installation",
         "Extractor fans and ventilation",
         "Sockets and appliance circuits",
-        "Tiling and building coordination",
+        "Electrical coordination with tiling, cabinetry and other building work",
         "First and second fix electrical",
         "Clean, considered final finish",
       ]}
       whyItMatters={[
-        "Kitchens and bathrooms benefit from proper planning of services",
+        "Appliance circuits, lighting, extraction and accessory positions need agreeing before finishes go in",
         "Good lighting transforms how a room feels and functions",
         "Coordinated trades = a faster, tidier project",
         "Long-lasting finishes and reliable electrics",
@@ -60,11 +61,11 @@ export const Route = createFileRoute("/services/kitchens-bathrooms")({
       faqs={[
         {
           q: "Do you handle the full project or just the electrics?",
-          a: "Both — we handle electrical and building elements and coordinate other trades as needed.",
+          a: "We can undertake the electrical work and, where agreed in the quotation, coordinate wider refurbishment elements. The exact trade scope is stated clearly before work starts.",
         },
         {
           q: "How long does a kitchen or bathroom take?",
-          a: "Depends on scope. We'll provide a clear timeline before starting.",
+          a: "It depends on strip-out, first fix, drying/finishing stages, appliance delivery and other trades. The programme is agreed from the actual project scope rather than using a generic duration.",
         },
         { q: "Do you cover my area?", a: "Yes — across the West Midlands." },
       ]}

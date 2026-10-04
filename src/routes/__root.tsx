@@ -90,7 +90,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Sperin Services | Electrical Contractors" },
       {
         name: "twitter:description",
-        content: "Electrical work for homes, businesses and commercial premises across Birmingham and the West Midlands.",
+        content:
+          "Electrical work for homes, businesses and commercial premises across Birmingham and the West Midlands.",
       },
       { name: "twitter:image", content: `${SITE.url}${SITE.socialImage}` },
       { name: "twitter:image:alt", content: SITE.socialImageAlt },

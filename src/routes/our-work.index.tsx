@@ -43,9 +43,9 @@ function OurWork() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pt-18">
+      <section className="mx-auto max-w-7xl px-4 pb-7 pt-8 lg:px-8 lg:pt-12">
         <span className="eyebrow">Completed projects</span>
-        <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
+        <h1 className="display-title mt-5 max-w-4xl text-5xl sm:text-6xl">
           Real work, shown properly.
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
@@ -56,7 +56,7 @@ function OurWork() {
 
       <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         <div
-          className="mb-7 flex flex-wrap gap-2"
+          className="mb-7 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Filter projects by category"
         >
@@ -66,10 +66,10 @@ function OurWork() {
               type="button"
               onClick={() => setCategory(c)}
               aria-pressed={category === c}
-              className={`rounded-full border px-3 py-2 text-xs transition ${
+              className={`shrink-0 border-b-2 px-3 py-2 text-xs font-semibold transition ${
                 category === c
-                  ? "border-electric bg-electric/10 text-electric"
-                  : "border-white/15 text-muted-foreground hover:border-white/30 hover:text-foreground"
+                  ? "border-electric bg-electric/[0.035] text-electric"
+                  : "border-transparent text-muted-foreground hover:border-white/25 hover:text-foreground"
               }`}
             >
               {c}
@@ -78,7 +78,7 @@ function OurWork() {
         </div>
 
         {projects.length === 0 ? (
-          <div className="surface-raised rounded-2xl p-8 sm:p-12">
+          <div className="surface-raised rounded-md p-8 sm:p-12">
             <Camera className="h-8 w-8 text-electric" />
             <h2 className="mt-5 text-3xl font-bold">Project photographs are on their way.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -92,7 +92,7 @@ function OurWork() {
             {shown.map((project, index) => (
               <article
                 key={project.slug}
-                className="surface-raised group overflow-hidden rounded-2xl md:grid md:grid-cols-[1.15fr_.85fr]"
+                className="surface-raised group overflow-hidden rounded-md md:grid md:grid-cols-[1.15fr_.85fr]"
               >
                 <Link
                   to="/our-work/$slug"

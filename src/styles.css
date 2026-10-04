@@ -59,7 +59,7 @@
   --secondary: oklch(0.15 0.012 250);
   --secondary-foreground: oklch(0.95 0.006 240);
   --muted: oklch(0.135 0.01 250);
-  --muted-foreground: #adb0b1;
+  --muted-foreground: #b7bbbd;
   --accent: oklch(0.72 0.18 238);
   --accent-foreground: oklch(0.08 0.01 250);
   --destructive: oklch(0.58 0.18 27);
@@ -228,9 +228,10 @@
 
   .display-title {
     font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4.25rem) !important;
     font-weight: 600;
-    letter-spacing: -0.055em;
-    line-height: 1.06;
+    letter-spacing: -0.05em;
+    line-height: 1.04;
   }
 
   .rule {
@@ -283,8 +284,28 @@
   }
 
   .section-pad {
-    padding-top: clamp(4.5rem, 8vw, 7.5rem);
-    padding-bottom: clamp(4.5rem, 8vw, 7.5rem);
+    padding-top: clamp(2.75rem, 5vw, 4.5rem);
+    padding-bottom: clamp(2.75rem, 5vw, 4.5rem);
+  }
+
+  .surface,
+  .surface-strong,
+  .surface-raised {
+    border-radius: 0.4rem;
+  }
+
+  main .rounded-2xl,
+  main .rounded-xl {
+    border-radius: 0.4rem;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary {
+    touch-action: manipulation;
   }
 }
 
@@ -632,12 +653,15 @@ main h1 {
 }
 
 .whatsapp-button {
-  background: #18251d;
-  color: #72d997;
-  border: 1px solid #3a5543;
+  background: transparent;
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, .34);
+}
+.whatsapp-button svg {
+  filter: drop-shadow(0 0 4px rgba(37, 211, 102, .48));
 }
 .whatsapp-button:hover {
-  background: #24372b;
+  background: rgba(37, 211, 102, .08);
 }
 .enquiry-section {
   border-top: 1px solid #657079;
@@ -664,7 +688,7 @@ main h1 {
 @media (max-width: 767px) {
   .mobile-contact-bar {
     display: grid;
-    grid-template-columns: 0.7fr 0.9fr 1.3fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     position: fixed;
     bottom: 0;
     inset-inline: 0;
@@ -675,18 +699,21 @@ main h1 {
     gap: 4px;
   }
   .mobile-contact-bar a {
-    min-height: 48px;
+    min-height: 50px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    font-size: 11px;
+    gap: 4px;
+    border-radius: 4px;
+    color: var(--foreground);
+    font-size: 10px;
     font-weight: 650;
+    letter-spacing: 0.01em;
+    transition: background 160ms ease, color 160ms ease;
   }
-  .mobile-contact-bar a:last-child {
-    background: var(--electric);
-    color: #101416;
-    border-radius: 3px;
+  .mobile-contact-bar a:active {
+    background: rgba(255,255,255,.05);
   }
   footer {
     padding-bottom: 90px;

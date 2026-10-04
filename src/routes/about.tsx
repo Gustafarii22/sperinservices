@@ -28,7 +28,7 @@ export const Route = createFileRoute("/about")({
 function About() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pb-16 lg:pt-18">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
         <div className="grid gap-10 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
           <div>
             <span className="eyebrow">Gus Sperin · Your electrician</span>
@@ -45,7 +45,7 @@ function About() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
-                Talk about a project <ArrowRight className="h-4 w-4" />
+                Discuss Your Job <ArrowRight className="h-4 w-4" />
               </Link>
               <a href={`tel:${SITE.phone}`} className="button-secondary">
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
@@ -53,7 +53,7 @@ function About() {
             </div>
           </div>
 
-          <aside className="surface-raised technical-grid rounded-2xl p-6 sm:p-8">
+          <aside className="surface-raised technical-grid rounded-md p-6 sm:p-8">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
               Trade record
             </div>
@@ -64,6 +64,9 @@ function About() {
                 ["Inspection & testing", "City & Guilds 2391"],
                 ["Electrical training", "City & Guilds 2360 Parts 1 & 2"],
                 ["Wiring regulations", "18th Edition"],
+                ["Public liability", "£2,000,000"],
+                ["Employers’ liability", "£10,000,000"],
+                ["Professional indemnity", "£2,000,000"],
               ].map(([term, value]) => (
                 <div
                   key={term}
@@ -78,7 +81,7 @@ function About() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
           <div>
             <span className="eyebrow">How Sperin works</span>
@@ -120,7 +123,7 @@ function About() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        <div className="surface rounded-2xl p-6 sm:p-8 lg:p-10">
+        <div className="surface rounded-md p-6 sm:p-8 lg:p-10">
           <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
             <div>
               <span className="eyebrow">What you can expect</span>
@@ -135,7 +138,9 @@ function About() {
                 "Practical advice without unnecessary jargon",
                 "Care around occupied homes and working premises",
                 "Options explained when there is more than one sensible route",
+                "Appropriate electrical certification and the correct Building Regulations notification route where required",
                 "Qualifications and credentials stated accurately, without overclaiming",
+                "If you have a concern after completed work, contact us so it can be assessed rather than left unresolved",
               ].map((item) => (
                 <div
                   key={item}
@@ -150,8 +155,8 @@ function About() {
       </section>
 
       <CTA
-        title="Got a job in mind? Start with the details."
-        subtitle="Send the postcode and a short description of the work. If photos will help, WhatsApp is usually the quickest way to give us the full picture."
+        title="Got a job in mind?"
+        subtitle="Send the postcode, a short description and useful photos."
       />
     </>
   );

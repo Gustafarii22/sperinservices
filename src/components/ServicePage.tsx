@@ -16,9 +16,22 @@ export type ServicePageProps = {
 
 export function ServicePage(p: ServicePageProps) {
   const illustration = illustrativeImages[p.title];
+  const genuineProjectImage =
+    p.title === "Consumer Unit Upgrades" ||
+    p.title === "Electrical Installation Condition Reports (EICRs)"
+      ? {
+          src: "/projects/rowley-park/rowley-park-board.webp",
+          alt: "Consumer unit installed as part of the Rowley Park Primary Academy refurbishment",
+        }
+      : p.title === "Kitchens & Bathrooms"
+        ? {
+            src: "/projects/rowley-park/rowley-park-kitchen.webp",
+            alt: "Completed kitchen and preparation area at Rowley Park Primary Academy",
+          }
+        : null;
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-12 lg:px-8 lg:pb-16 lg:pt-18">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
         <div className="grid items-stretch gap-6 lg:grid-cols-[1.15fr_.85fr]">
           <div className="py-4 lg:py-8">
             <span className="eyebrow">Electrical service · West Midlands</span>
@@ -28,17 +41,39 @@ export function ServicePage(p: ServicePageProps) {
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               {p.intro}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link to="/contact" className="button-primary">
-                Discuss this job <ArrowRight className="h-4 w-4" />
-              </Link>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {[
+                "Consumer Unit Upgrades",
+                "Electrical Installation Condition Reports (EICRs)",
+              ].includes(p.title) ? (
+                <Link to="/pricing" hash="calculator" className="button-primary">
+                  Price this job <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link to="/contact" className="button-primary">
+                  Discuss Your Job <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
               <a href={`tel:${SITE.phone}`} className="button-secondary">
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
               </a>
             </div>
           </div>
 
-          {illustration ? (
+          {genuineProjectImage ? (
+            <figure className="service-visual">
+              <img
+                src={genuineProjectImage.src}
+                width="1000"
+                height="900"
+                fetchPriority="high"
+                decoding="async"
+                sizes="(max-width: 1023px) 100vw, 40vw"
+                alt={genuineProjectImage.alt}
+              />
+              <figcaption>Genuine Sperin Services project · Rowley Park Primary Academy</figcaption>
+            </figure>
+          ) : illustration ? (
             <figure className="service-visual">
               <img
                 src={`${illustration.url}?auto=format&fit=crop&w=1000&q=80`}
@@ -91,23 +126,7 @@ export function ServicePage(p: ServicePageProps) {
         </div>
       </section>
 
-      {p.title === "Kitchens & Bathrooms" && (
-        <figure className="mx-auto max-w-7xl px-4 pt-8 lg:px-8">
-          <img
-            src={`${illustrativeImages["Bathroom detail"].url}?auto=format&fit=crop&w=1200&q=78`}
-            width="1200"
-            height="650"
-            loading="lazy"
-            decoding="async"
-            alt={illustrativeImages["Bathroom detail"].alt}
-            className="max-h-[500px] w-full rounded-sm object-cover"
-          />
-          <figcaption className="mt-2 text-xs text-muted-foreground">
-            Illustrative photograph · not a Sperin Services project
-          </figcaption>
-        </figure>
-      )}
-      <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8 lg:py-14">
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
           <div>
             <span className="eyebrow">Scope</span>
@@ -130,7 +149,7 @@ export function ServicePage(p: ServicePageProps) {
             </ul>
           </div>
 
-          <div className="surface rounded-2xl p-6 sm:p-8">
+          <div className="surface p-6 sm:p-8">
             <span className="eyebrow">Why it matters</span>
             <div className="mt-6 space-y-5">
               {p.whyItMatters.map((item, index) => (
@@ -141,19 +160,6 @@ export function ServicePage(p: ServicePageProps) {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <div className="rule grid gap-5 pt-8 sm:grid-cols-3">
-          {SITE.qualifications.map((qualification) => (
-            <div key={qualification}>
-              <div className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Qualification
-              </div>
-              <div className="mt-2 text-sm font-semibold text-foreground/90">{qualification}</div>
-            </div>
-          ))}
         </div>
       </section>
 

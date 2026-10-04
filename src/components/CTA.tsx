@@ -1,34 +1,38 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Phone } from "lucide-react";
-import { SITE } from "@/lib/site";
-import { WhatsAppButton } from "./WhatsAppButton";
+import { ArrowRight, Calculator, MessageSquareText } from "lucide-react";
 
 export function CTA({
-  title = "Good work starts with a conversation.",
-  subtitle = "Tell Gus what you have in mind. Send your postcode, a short description and any useful photographs, and we’ll help you work out the next step.",
+  title = "What do you need?",
+  subtitle = "Price a listed job, or send the details and photos.",
 }: {
   title?: string;
   subtitle?: string;
 }) {
   return (
-    <section className="mx-auto my-20 max-w-7xl px-4 lg:px-8">
-      <div className="enquiry-section relative overflow-hidden p-7 sm:p-10 lg:p-12">
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 technical-grid opacity-50 lg:block" />
-        <div className="relative max-w-3xl">
-          <span className="eyebrow">Start with the job</span>
-          <h2 className="mt-4 text-3xl font-bold sm:text-4xl lg:text-5xl">{title}</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {subtitle}
-          </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link to="/contact" className="button-primary">
-              Request a quote <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a href={`tel:${SITE.phone}`} className="button-secondary">
-              <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
-            </a>
-            <WhatsAppButton size="md" />
-          </div>
+    <section className="mx-auto my-10 max-w-7xl px-4 lg:px-8">
+      <div className="grid overflow-hidden rounded-md border border-white/10 bg-[#15191a] lg:grid-cols-[.75fr_1.25fr]">
+        <div className="p-5 sm:p-6">
+          <span className="eyebrow">Next step</span>
+          <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">{title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="grid border-t border-white/10 sm:grid-cols-2 lg:border-l lg:border-t-0">
+          <Link
+            to="/pricing"
+            className="group flex min-h-20 items-center gap-3 border-b border-white/10 px-5 transition hover:bg-electric/[0.05] sm:border-b-0 sm:border-r"
+          >
+            <Calculator className="h-5 w-5 text-electric" />
+            <span className="flex-1 font-semibold">Price Your Job</span>
+            <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
+          </Link>
+          <Link
+            to="/contact"
+            className="group flex min-h-20 items-center gap-3 px-5 transition hover:bg-white/[0.03]"
+          >
+            <MessageSquareText className="h-5 w-5 text-electric" />
+            <span className="flex-1 font-semibold">Discuss Your Job</span>
+            <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
+          </Link>
         </div>
       </div>
     </section>

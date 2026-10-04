@@ -71,11 +71,11 @@ const CAPABILITIES = [
 function Commercial() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-12 pt-12 lg:px-8 lg:pb-18 lg:pt-20">
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
         <div className="grid gap-8 lg:grid-cols-[1.14fr_.86fr] lg:items-stretch">
           <div className="py-3 lg:py-8">
             <span className="eyebrow">Commercial electrical · West Midlands</span>
-            <h1 className="display-title mt-5 max-w-5xl text-5xl sm:text-6xl lg:text-[5.1rem]">
+            <h1 className="display-title mt-5 max-w-5xl text-5xl sm:text-6xl">
               Electrical work for premises that have to
               <span className="text-electric"> keep working.</span>
             </h1>
@@ -86,7 +86,7 @@ function Commercial() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="button-primary">
-                Discuss a commercial job <ArrowRight className="h-4 w-4" />
+                Discuss Your Job <ArrowRight className="h-4 w-4" />
               </Link>
               <a href={`tel:${SITE.phone}`} className="button-secondary">
                 <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
@@ -107,7 +107,7 @@ function Commercial() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
         <span className="eyebrow">Capability</span>
         <h2 className="mt-4 max-w-3xl text-4xl font-bold sm:text-5xl">
           The work is broader than a list of domestic services.
@@ -128,8 +128,8 @@ function Commercial() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
-        <div className="surface-raised overflow-hidden rounded-2xl md:grid md:grid-cols-[1.08fr_.92fr]">
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
+        <div className="surface-raised overflow-hidden rounded-md md:grid md:grid-cols-[1.08fr_.92fr]">
           <Link
             to="/our-work/$slug"
             params={{ slug: "rowley-park-primary-academy-refurbishment" }}
@@ -165,7 +165,7 @@ function Commercial() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        <div className="surface-raised rounded-2xl p-7 sm:p-10">
+        <div className="surface-raised rounded-md p-7 sm:p-10">
           <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr]">
             <div>
               <span className="eyebrow">Project information</span>
@@ -197,8 +197,8 @@ function Commercial() {
       </section>
 
       <CTA
-        title="Send the commercial scope, not just a one-line enquiry."
-        subtitle="If you already have drawings, a schedule, photographs or an outline programme, mention that in the enquiry. It makes the first conversation much more useful."
+        title="Commercial job to price?"
+        subtitle="Send the scope, drawings or photos you already have."
       />
     </>
   );
