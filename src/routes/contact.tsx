@@ -169,7 +169,8 @@ function Contact() {
           <div>
             <h1 className="display-title text-5xl sm:text-6xl">Tell us what needs doing.</h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Send the postcode, a short description and useful photos. We’ll tell you the next step.
+              Send the postcode, a short description and useful photos. We’ll tell you the next
+              step.
             </p>
 
             <div className="mt-6 border-y border-white/10">
