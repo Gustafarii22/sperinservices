@@ -32,10 +32,9 @@ export function HomeTravelChecker() {
     <section className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
       <div className="grid gap-5 border-y border-white/10 py-6 md:grid-cols-[.8fr_1.2fr] md:items-center">
         <div>
-          <span className="eyebrow">Travel checker</span>
-          <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Check your postcode.</h2>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">
-            See whether travel is included or if a visit supplement applies.
+          <h2 className="text-3xl font-semibold sm:text-4xl">Postcode Checker</h2>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+            Enter your postcode to see whether travel is included.
           </p>
         </div>
 
