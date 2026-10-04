@@ -45,13 +45,13 @@ export const Route = createFileRoute("/services/ev-chargers")({
   component: () => (
     <ServicePage
       title="EV Chargers"
-      intro="Home EV charger installations done properly — neat cable routes, smart charging features and proper load considerations for your property. Across Birmingham, Sutton Coldfield, Tamworth and the West Midlands."
+      intro="EV charger installations planned around the existing supply, earthing arrangement, load, charger position and cable route — with testing, certification and DNO considerations handled as part of the job."
       included={[
         "Home EV charger installation",
         "Tidy cable routing and trunking",
-        "Load considerations and supply checks",
-        "Smart charging features and app setup",
-        "Domestic properties, indoor and outdoor mounting",
+        "Incoming supply, earthing and load assessment",
+        "PEN protection, load management and CT requirements where applicable",
+        "Cable route, mounting position and DNO requirements",
         "Testing and certification",
       ]}
       whyItMatters={[
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/services/ev-chargers")({
         },
         {
           q: "Will my supply handle a charger?",
-          a: "We assess your incoming supply and existing loads before quoting. If load management is needed, we'll specify a unit that supports it.",
+          a: "We check the incoming supply, main fuse where known, earthing arrangement and existing demand. Where necessary we consider load management, CT monitoring or a DNO application before installation."
         },
         {
           q: "Do you cover my area?",
@@ -75,7 +75,7 @@ export const Route = createFileRoute("/services/ev-chargers")({
         },
         {
           q: "Can I get a quote?",
-          a: "Yes, free quotes. Send us your address, the charger you'd like (or ask us to recommend), and a couple of photos of your fuse board and proposed location.",
+          a: "Yes. Send the postcode, charger make/model if chosen, photographs of the meter and consumer unit, proposed charger position and the likely cable route. That usually gives us enough information to identify what needs checking next."
         },
       ]}
     />
