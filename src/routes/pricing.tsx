@@ -9,7 +9,6 @@ import {
   type Selection,
   type Travel,
 } from "@/lib/pricing";
-import { estimatePdf } from "@/lib/estimate-pdf";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/pricing" }],
@@ -62,6 +61,8 @@ function Pricing() {
   const [photoError, setPhotoError] = useState("");
   const [overlapConfirmed, setOverlapConfirmed] = useState(false);
   const [sending, setSending] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState("");
   const [reference, setReference] = useState("");
@@ -109,17 +110,45 @@ function Pricing() {
       setChecking(false);
     }
   }
-  function download() {
+  async function download() {
+    if (!e.count || pdfBusy) return;
     const id = ref();
-    const bytes = estimatePdf(selection, travel, `SS-${id.slice(0, 8).toUpperCase()}`, {
-      postcode: travel?.postcode || postcode.trim().toUpperCase() || undefined,
-    });
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Sperin-estimate-${id.slice(0, 8)}.pdf`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setPdfBusy(true);
+    setPdfError("");
+    try {
+      const response = await fetch("/api/pricing/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selection,
+          postcode: postcode.trim().toUpperCase(),
+          reference: id,
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw Error(result.error || "Could not create the estimate PDF.");
+      }
+      const blob = await response.blob();
+      if (blob.type !== "application/pdf" || blob.size < 500)
+        throw Error("The estimate PDF was not created correctly.");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Sperin-Services-estimate-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (err) {
+      setPdfError(
+        err instanceof Error
+          ? err.message
+          : "Could not create the PDF. Please try again.",
+      );
+    } finally {
+      setPdfBusy(false);
+    }
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -400,13 +429,18 @@ function Pricing() {
             </div>
             <button
               type="button"
-              disabled={!e.count}
+              disabled={!e.count || pdfBusy}
               onClick={download}
               className="button-secondary mt-6 w-full disabled:opacity-40"
             >
               <Download size={17} />
-              Download estimate PDF
+              {pdfBusy ? "Creating letterheaded PDF…" : "Download estimate PDF"}
             </button>
+            {pdfError && (
+              <p role="alert" className="mt-2 text-sm text-red-300">
+                {pdfError}
+              </p>
+            )}
             <a href="#booking" className="button-primary mt-3 w-full">
               Request this booking <ArrowRight size={17} />
             </a>
