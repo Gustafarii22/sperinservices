@@ -17,7 +17,7 @@ export type ServicePageProps = {
 export function ServicePage(p: ServicePageProps) {
   const illustration = illustrativeImages[p.title];
   const genuineProjectImage =
-    p.title === "Consumer Unit Upgrades" || p.title === "Testing & Certification"
+    p.title === "Consumer Unit Upgrades" || p.title === "Electrical Installation Condition Reports (EICRs)"
       ? {
           src: "/projects/rowley-park/rowley-park-board.webp",
           alt: "Consumer unit installed as part of the Rowley Park Primary Academy refurbishment",
@@ -41,7 +41,7 @@ export function ServicePage(p: ServicePageProps) {
               {p.intro}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              {["Consumer Unit Upgrades", "Testing & Certification"].includes(p.title) ? (
+              {["Consumer Unit Upgrades", "Electrical Installation Condition Reports (EICRs)"].includes(p.title) ? (
                 <Link to="/pricing" hash="estimate" className="button-primary">
                   See standard prices <ArrowRight className="h-4 w-4" />
                 </Link>
