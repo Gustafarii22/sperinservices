@@ -16,6 +16,18 @@ export type ServicePageProps = {
 
 export function ServicePage(p: ServicePageProps) {
   const illustration = illustrativeImages[p.title];
+  const genuineProjectImage =
+    p.title === "Consumer Unit Upgrades" || p.title === "Testing & Certification"
+      ? {
+          src: "/projects/rowley-park/rowley-park-board.webp",
+          alt: "Consumer unit installed as part of the Rowley Park Primary Academy refurbishment",
+        }
+      : p.title === "Kitchens & Bathrooms"
+        ? {
+            src: "/projects/rowley-park/rowley-park-kitchen.webp",
+            alt: "Completed kitchen and preparation area at Rowley Park Primary Academy",
+          }
+        : null;
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
@@ -44,7 +56,20 @@ export function ServicePage(p: ServicePageProps) {
             </div>
           </div>
 
-          {illustration ? (
+          {genuineProjectImage ? (
+            <figure className="service-visual">
+              <img
+                src={genuineProjectImage.src}
+                width="1000"
+                height="900"
+                fetchPriority="high"
+                decoding="async"
+                sizes="(max-width: 1023px) 100vw, 40vw"
+                alt={genuineProjectImage.alt}
+              />
+              <figcaption>Genuine Sperin Services project · Rowley Park Primary Academy</figcaption>
+            </figure>
+          ) : illustration ? (
             <figure className="service-visual">
               <img
                 src={`${illustration.url}?auto=format&fit=crop&w=1000&q=80`}
@@ -97,22 +122,6 @@ export function ServicePage(p: ServicePageProps) {
         </div>
       </section>
 
-      {p.title === "Kitchens & Bathrooms" && (
-        <figure className="mx-auto max-w-7xl px-4 pt-8 lg:px-8">
-          <img
-            src={`${illustrativeImages["Bathroom detail"].url}?auto=format&fit=crop&w=1200&q=78`}
-            width="1200"
-            height="650"
-            loading="lazy"
-            decoding="async"
-            alt={illustrativeImages["Bathroom detail"].alt}
-            className="max-h-[500px] w-full object-cover"
-          />
-          <figcaption className="mt-2 text-xs text-muted-foreground">
-            Illustrative photograph · not a Sperin Services project
-          </figcaption>
-        </figure>
-      )}
       <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
           <div>
