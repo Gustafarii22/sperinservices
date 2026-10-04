@@ -228,9 +228,10 @@
 
   .display-title {
     font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4.25rem) !important;
     font-weight: 600;
-    letter-spacing: -0.055em;
-    line-height: 1.06;
+    letter-spacing: -0.05em;
+    line-height: 1.04;
   }
 
   .rule {
@@ -652,12 +653,15 @@ main h1 {
 }
 
 .whatsapp-button {
-  background: #18251d;
+  background: transparent;
   color: #25d366;
-  border: 1px solid rgba(37, 211, 102, .38);
+  border: 1px solid rgba(37, 211, 102, .34);
+}
+.whatsapp-button svg {
+  filter: drop-shadow(0 0 4px rgba(37, 211, 102, .48));
 }
 .whatsapp-button:hover {
-  background: rgba(37, 211, 102, .12);
+  background: rgba(37, 211, 102, .08);
 }
 .enquiry-section {
   border-top: 1px solid #657079;
