@@ -653,11 +653,11 @@ main h1 {
 
 .whatsapp-button {
   background: #18251d;
-  color: #72d997;
-  border: 1px solid #3a5543;
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, .38);
 }
 .whatsapp-button:hover {
-  background: #24372b;
+  background: rgba(37, 211, 102, .12);
 }
 .enquiry-section {
   border-top: 1px solid #657079;
