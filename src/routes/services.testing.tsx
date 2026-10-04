@@ -10,7 +10,7 @@ export const Route = createFileRoute("/services/testing")({
       {
         name: "description",
         content:
-          "Domestic electrical testing, EICR-style inspection and certification, fault finding and safety checks across the West Midlands.",
+          "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
       },
       { property: "og:title", content: "Testing & Certification — Sperin Services" },
       {
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/services/testing")({
         children: JSON.stringify(
           serviceJsonLd({
             name: "Testing & Certification",
-            description: "Domestic electrical testing, EICR-style inspection and certification, fault finding and safety checks across the West Midlands.",
+            description: "Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification across Birmingham and the West Midlands.",
             path: "/services/testing",
           }),
         ),
@@ -45,10 +45,10 @@ export const Route = createFileRoute("/services/testing")({
   component: () => (
     <ServicePage
       title="Testing & Certification"
-      intro="Inspection, certification, fault finding and safety checks for domestic properties — across Birmingham, Sutton Coldfield, Tamworth and the West Midlands."
+      intro="Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification for homes, landlords and small commercial premises across the West Midlands."
       included={[
         "Electrical testing of domestic installations",
-        "Inspection and certification (EICR-style reports)",
+        "Electrical Installation Condition Reports (EICRs)" ,
         "Fault finding and diagnosis",
         "Safety checks before purchase or letting",
         "Certification for new circuits and alterations",
@@ -56,14 +56,14 @@ export const Route = createFileRoute("/services/testing")({
       ]}
       whyItMatters={[
         "Identifies hidden faults before they become safety issues",
-        "Often required for landlords and property sales",
+        "Useful for landlords, property purchases, older installations and planned remedial work",
         "Peace of mind for older properties or after DIY work",
         "Helps prioritise any remedial work required",
       ]}
       faqs={[
         {
           q: "How long does a test take?",
-          a: "A typical domestic property is around half a day. Larger or more complex installations may take longer.",
+          a: "It depends on the number of circuits, access, installation size and what is found. A small straightforward property may take a few hours; larger or more complex installations take longer. The scope is agreed before the inspection."
         },
         {
           q: "Will my power be off?",
@@ -71,7 +71,7 @@ export const Route = createFileRoute("/services/testing")({
         },
         {
           q: "Do you provide a written report?",
-          a: "Yes — a clear report with any observations and recommendations.",
+          a: "Yes. For an EICR you receive an Electrical Installation Condition Report with observations and classification codes where applicable, plus clear recommendations on the next step."
         },
         { q: "Do you cover my area?", a: "Yes — across the West Midlands." },
       ]}
