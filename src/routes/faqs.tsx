@@ -95,8 +95,7 @@ function FAQs() {
               Questions worth answering before the job starts.
             </h1>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              These are practical questions about scope, access, testing and handover rather than
-              generic SEO filler.
+              Straight answers about scope, access, testing, certification, pricing and handover before work starts.
             </p>
           </div>
           <div>
