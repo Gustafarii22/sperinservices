@@ -36,7 +36,7 @@ const FAQS = [
   },
   {
     q: "How is Building Regulations notification handled?",
-    a: "Where domestic electrical work is notifiable, the appropriate Building Regulations notification route is agreed and used for that job. The website does not display scheme badges unless the registration is current.",
+    a: "Where domestic electrical work is notifiable, the appropriate Building Regulations notification route is agreed and used for that job. The certification and notification arrangements are explained before work begins.",
   },
   {
     q: "What happens if I have a concern after completed work?",
