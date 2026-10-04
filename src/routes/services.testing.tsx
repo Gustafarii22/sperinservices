@@ -6,7 +6,7 @@ export const Route = createFileRoute("/services/testing")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/services/testing" }],
     meta: [
-      { title: "Electrical Testing & Certification (EICR) — Sperin Services" },
+      { title: "Electrical Installation Condition Reports (EICRs) | Sperin Services" },
       {
         name: "description",
         content:
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/services/testing")({
   }),
   component: () => (
     <ServicePage
-      title="Testing & Certification"
+      title="Electrical Installation Condition Reports (EICRs)"
       intro="Electrical Installation Condition Reports (EICRs), inspection, testing, fault finding and certification for homes, landlords and small commercial premises across the West Midlands."
       included={[
         "Electrical testing of domestic installations",
