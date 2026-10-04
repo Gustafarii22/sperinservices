@@ -1,18 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  BriefcaseBusiness,
   Calculator,
   CheckCircle2,
   ClipboardCheck,
-  Home,
+  Mail,
+  MessageSquareText,
   Phone,
   ShieldCheck,
   Wrench,
+  Zap,
 } from "lucide-react";
 import { SERVICES, SITE } from "@/lib/site";
 import { electricianJsonLd } from "@/lib/seo";
 import { ReviewPreview } from "@/components/ReviewPreview";
+import { HomeTravelChecker } from "@/components/HomeTravelChecker";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 
 export const Route = createFileRoute("/")({
@@ -49,74 +51,86 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <>
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-9 pt-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-8 lg:pb-12 lg:pt-12">
-        <div className="py-2">
-          <span className="eyebrow">Established 2010 · Industry experience since 2003</span>
-          <h1 className="display-title mt-5 max-w-4xl text-[clamp(2.8rem,7vw,5.3rem)] leading-[.98]">
-            Domestic &amp; commercial electrician.
-            <span className="mt-2 block text-electric">Birmingham &amp; West Midlands.</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Carefully planned electrical work, clear prices where the scope allows it, proper
-            testing and one point of contact from first conversation to handover.
-          </p>
-
-          <div className="mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
-            <Link to="/pricing" className="button-primary">
-              <Calculator className="h-4 w-4" /> Build an estimate
-            </Link>
-            <Link to="/contact" className="button-secondary">
-              Discuss a project <ArrowRight className="h-4 w-4" />
-            </Link>
+      <section className="mx-auto max-w-7xl px-4 pb-7 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
+        <div className="grid gap-8 lg:grid-cols-[1.08fr_.92fr] lg:items-end">
+          <div>
+            <span className="eyebrow">Sperin Services · Birmingham & West Midlands</span>
+            <h1 className="display-title mt-4 max-w-4xl text-[clamp(2.8rem,7vw,5.4rem)] leading-[.96]">
+              Electrical work.
+              <span className="block text-electric">Clear, tested, done properly.</span>
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Domestic and commercial electrical work with one point of contact and clear pricing
+              where the job allows it.
+            </p>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm text-foreground/78">
-            <a
-              href={`tel:${SITE.phone}`}
-              className="inline-flex items-center gap-2 hover:text-electric"
+          <div className="overflow-hidden rounded-md border border-white/10 bg-[#15191a]">
+            <Link
+              to="/pricing"
+              className="group flex min-h-24 items-center gap-4 border-b border-white/10 px-5 py-4 transition hover:bg-electric/[0.05]"
             >
-              <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
-            </a>
-            <a
-              href={`https://wa.me/${SITE.whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 hover:text-[#72d997]"
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-electric/10 text-electric">
+                <Calculator className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-lg">Price Your Job</strong>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  Pick the work, see the price, check travel.
+                </span>
+              </span>
+              <ArrowRight className="h-5 w-5 text-electric transition group-hover:translate-x-1" />
+            </Link>
+
+            <Link
+              to="/contact"
+              className="group flex min-h-24 items-center gap-4 px-5 py-4 transition hover:bg-white/[0.03]"
             >
-              <WhatsAppGlyph className="h-4 w-4 text-[#72d997]" /> WhatsApp
-            </a>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-electric">
+                <MessageSquareText className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-lg">Discuss Your Job</strong>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  Send details, postcode and photos.
+                </span>
+              </span>
+              <ArrowRight className="h-5 w-5 text-electric transition group-hover:translate-x-1" />
+            </Link>
           </div>
         </div>
 
-        <Link
-          to="/our-work/$slug"
-          params={{ slug: "rowley-park-primary-academy-refurbishment" }}
-          className="group block overflow-hidden bg-[#202426]"
-          aria-label="View Rowley Park Primary Academy project"
-        >
-          <figure className="relative">
-            <img
-              src="/projects/rowley-park/rowley-park-overview.webp"
-              width="1120"
-              height="840"
-              fetchPriority="high"
-              alt="Completed Sperin Services refurbishment at Rowley Park Primary Academy"
-              className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.01]"
-            />
-            <figcaption className="absolute inset-x-0 bottom-0 m-0 bg-gradient-to-t from-black/80 to-transparent px-5 pb-4 pt-12 text-xs text-white/85">
-              Genuine Sperin Services project · Rowley Park Primary Academy
-            </figcaption>
-          </figure>
-        </Link>
+        <div className="mt-6 grid overflow-hidden rounded-md border border-white/10 sm:grid-cols-3">
+          <a
+            href={`tel:${SITE.phone}`}
+            className="flex min-h-14 items-center justify-center gap-2 border-b border-white/10 px-4 text-sm font-semibold transition hover:bg-white/[0.03] hover:text-electric sm:border-b-0 sm:border-r"
+          >
+            <Phone className="h-4 w-4 text-electric" /> Call
+          </a>
+          <a
+            href={`https://wa.me/${SITE.whatsapp}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-h-14 items-center justify-center gap-2 border-b border-white/10 px-4 text-sm font-semibold transition hover:bg-[#25D366]/[0.05] hover:text-[#25D366] sm:border-b-0 sm:border-r"
+          >
+            <WhatsAppGlyph className="h-5 w-5 text-[#25D366]" /> WhatsApp
+          </a>
+          <a
+            href={`mailto:${SITE.email}`}
+            className="flex min-h-14 items-center justify-center gap-2 px-4 text-sm font-semibold transition hover:bg-white/[0.03] hover:text-electric"
+          >
+            <Mail className="h-4 w-4 text-electric" /> Email
+          </a>
+        </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.015]">
+      <section className="border-y border-white/10 bg-white/[0.012]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:grid-cols-4 lg:px-8">
           {[
             [ShieldCheck, "Public liability insured"],
             [ClipboardCheck, "City & Guilds 2391"],
             [Wrench, "18th Edition"],
-            [CheckCircle2, "Test & certification"],
+            [CheckCircle2, "Testing & certification"],
           ].map(([Icon, text], index) => {
             const ItemIcon = Icon as typeof ShieldCheck;
             return (
@@ -127,7 +141,7 @@ function HomePage() {
                 }`}
               >
                 <ItemIcon className="h-5 w-5 shrink-0 text-electric" />
-                <span className="text-xs font-semibold text-foreground/86 sm:text-sm">
+                <span className="text-xs font-semibold text-foreground/88 sm:text-sm">
                   {String(text)}
                 </span>
               </div>
@@ -139,106 +153,88 @@ function HomePage() {
       <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
         <div className="flex items-end justify-between gap-5 border-b border-white/10 pb-5">
           <div>
-            <span className="eyebrow">Services</span>
-            <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Choose what you need.</h2>
+            <span className="eyebrow">Electrical services</span>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Choose what you need.</h2>
           </div>
           <Link
             to="/services"
             className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex"
           >
-            View all <ArrowRight className="h-4 w-4" />
+            All services <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-white/10 lg:grid-cols-3">
-          {SERVICES.map((service) => (
+        <div className="grid lg:grid-cols-2">
+          {SERVICES.map((service, index) => (
             <Link
               key={service.slug}
               to={service.path}
-              className="group min-h-28 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5"
+              className={`group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-white/10 py-4 transition hover:bg-white/[0.018] lg:px-4 ${
+                index % 2 === 0 ? "lg:border-r" : ""
+              }`}
             >
-              <h3 className="text-xl font-semibold">{service.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.short}</p>
-              <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
+              <span className="font-mono text-xs text-electric">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span>
+                <strong className="block text-base sm:text-lg">{service.title}</strong>
+                <span className="mt-1 hidden text-sm text-muted-foreground sm:block">
+                  {service.short}
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
             </Link>
           ))}
-          <Link
-            to="/commercial"
-            className="group col-span-2 min-h-24 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5 lg:col-span-3"
-          >
-            <h3 className="text-xl font-semibold">Commercial Electrical</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Testing, lighting, power, access control, remedials and refurbishment work.
-            </p>
-            <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
-          </Link>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <div className="grid overflow-hidden border border-white/10 md:grid-cols-[.9fr_1.1fr]">
-          <img
-            src="/projects/rowley-park/rowley-park-rest-area.webp"
-            alt="Completed rest area at Rowley Park Primary Academy"
-            width="900"
-            height="675"
-            loading="lazy"
-            className="aspect-[16/10] h-full w-full object-cover"
-          />
-          <div className="flex flex-col justify-center p-6 sm:p-8">
-            <span className="eyebrow">Recent work</span>
-            <h2 className="mt-3 text-3xl font-semibold">Rowley Park Primary Academy</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              A coordinated early-years refurbishment including a full electrical installation,
-              lighting, access control, flooring, decorating and carpentry.
-            </p>
-            <Link
-              to="/our-work/$slug"
-              params={{ slug: "rowley-park-primary-academy-refurbishment" }}
-              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric"
-            >
-              View genuine project <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
+        <Link
+          to="/commercial"
+          className="group mt-3 flex min-h-20 items-center gap-4 border border-electric/20 bg-electric/[0.035] px-4 py-4 transition hover:bg-electric/[0.06] sm:px-5"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-electric/10 text-electric">
+            <Zap className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block text-lg">Commercial Electrical</strong>
+            <span className="mt-0.5 block text-sm text-muted-foreground">
+              Testing, lighting, power, access control and refurbishment.
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
+        </Link>
       </section>
 
       <ReviewPreview />
 
-      <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
-        <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 md:grid-cols-2">
-          <Link to="/pricing" className="group bg-[#15191b] p-6 sm:p-8">
-            <Calculator className="h-6 w-6 text-electric" />
-            <h2 className="mt-5 text-3xl font-semibold">Straightforward job?</h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Choose listed work, check travel, see the running estimate and download a PDF.
-            </p>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric">
-              Build an estimate{" "}
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-            </span>
-          </Link>
-          <Link to="/contact" className="group bg-[#15191b] p-6 sm:p-8">
-            <BriefcaseBusiness className="h-6 w-6 text-electric" />
-            <h2 className="mt-5 text-3xl font-semibold">Bespoke or larger project?</h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Send the postcode, scope and useful photographs. A survey can be arranged where
-              needed.
-            </p>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric">
-              Discuss a project{" "}
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-            </span>
-          </Link>
-        </div>
+      <HomeTravelChecker />
 
-        <div className="mt-7 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <Home className="h-4 w-4 text-electric" />
-          <span>Serving Birmingham, Smethwick, Quinton and the wider West Midlands.</span>
-          <Link to="/contact" className="font-semibold text-electric">
-            Check your area
-          </Link>
-        </div>
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-4 lg:px-8 lg:pb-12">
+        <Link
+          to="/our-work/$slug"
+          params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+          className="group grid overflow-hidden rounded-md border border-white/10 bg-[#15191a] md:grid-cols-[1.15fr_.85fr]"
+        >
+          <img
+            src="/projects/rowley-park/rowley-park-overview.webp"
+            alt="Completed Sperin Services refurbishment at Rowley Park Primary Academy"
+            width="1120"
+            height="840"
+            loading="lazy"
+            decoding="async"
+            className="aspect-[16/10] h-full w-full object-cover transition duration-500 group-hover:scale-[1.01]"
+          />
+          <div className="flex flex-col justify-center p-5 sm:p-7">
+            <span className="eyebrow">Recent work · genuine project</span>
+            <h2 className="mt-3 text-3xl font-semibold">Rowley Park Primary Academy</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Early-years refurbishment with a full electrical installation, lighting and access
+              control alongside the wider finish.
+            </p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-electric">
+              View project <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+            </span>
+          </div>
+        </Link>
       </section>
     </>
   );
