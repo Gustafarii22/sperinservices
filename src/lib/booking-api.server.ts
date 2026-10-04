@@ -135,6 +135,31 @@ export async function lookupTravel(raw: string): Promise<Travel> {
 
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
+  if (url.pathname === "/api/pricing/travel-preview" && req.method === "GET") {
+    const raw = url.searchParams.get("postcode") || "WV15 5EG";
+    try {
+      return json(await lookupTravel(raw));
+    } catch {
+      return json({ error: "Travel preview failed." }, 400);
+    }
+  }
+  if (url.pathname === "/api/pricing/pdf-preview" && req.method === "GET") {
+    const travel = await lookupTravel("WV15 5EG");
+    const bytes = estimatePdf(
+      { fcu: 1, pendant: 2, fan: 1, alarm: 1, doorbell: 1, board10: 1 },
+      travel,
+      "SS-PREVIEW",
+      { postcode: "WV15 5EG" },
+    );
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "inline; filename=\"Sperin-estimate-preview.pdf\"",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
   if (!["/api/pricing/travel", "/api/pricing/pdf", "/api/pricing/booking"].includes(url.pathname))
     return null;
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
