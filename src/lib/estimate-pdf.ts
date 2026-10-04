@@ -132,25 +132,43 @@ function wrap(value: unknown, maxWidth: number, size = 9) {
 function lightning(x: number, y: number, scale = 1) {
   return `q\n${colour(BLUE)}\n${(x + 16 * scale).toFixed(2)} ${(y + 38 * scale).toFixed(
     2,
-  )} m\n${(x + 4 * scale).toFixed(2)} ${(y + 20 * scale).toFixed(2)} l\n${(
-    x +
-    13 * scale
-  ).toFixed(2)} ${(y + 20 * scale).toFixed(2)} l\n${(x + 7 * scale).toFixed(2)} ${
-    y +
-    4 * scale
-  } l\n${(x + 28 * scale).toFixed(2)} ${(y + 26 * scale).toFixed(2)} l\n${(
-    x +
-    18 * scale
-  ).toFixed(2)} ${(y + 26 * scale).toFixed(2)} l\nh f\nQ\n`;
+  )} m\n${(x + 4 * scale).toFixed(2)} ${(y + 20 * scale).toFixed(2)} l\n${(x + 13 * scale).toFixed(
+    2,
+  )} ${(y + 20 * scale).toFixed(2)} l\n${(x + 7 * scale).toFixed(2)} ${
+    y + 4 * scale
+  } l\n${(x + 28 * scale).toFixed(2)} ${(y + 26 * scale).toFixed(2)} l\n${(x + 18 * scale).toFixed(
+    2,
+  )} ${(y + 26 * scale).toFixed(2)} l\nh f\nQ\n`;
 }
 
 function letterhead(page: number, pages: number, document: PdfDocument) {
   let stream = "";
   stream += lightning(M, 752, 1.08);
   stream += text("SPERIN SERVICES", M + 42, 797, 23, "F2", NAVY);
-  stream += text("Electrical Installation  |  Inspection & Testing  |  EV Charging", M + 42, 778, 8.3, "F1", MUTED);
-  stream += text("Augustine Sperin  |  18 Dawson Street, Bearwood, Birmingham B66 4JB", M + 42, 762, 8.2, "F1", MUTED);
-  stream += text("07817 360156  |  info@sperinservices.co.uk  |  sperinservices.co.uk", M + 42, 748, 8.2, "F1", MUTED);
+  stream += text(
+    "Electrical Installation  |  Inspection & Testing  |  EV Charging",
+    M + 42,
+    778,
+    8.3,
+    "F1",
+    MUTED,
+  );
+  stream += text(
+    "Augustine Sperin  |  18 Dawson Street, Bearwood, Birmingham B66 4JB",
+    M + 42,
+    762,
+    8.2,
+    "F1",
+    MUTED,
+  );
+  stream += text(
+    "07817 360156  |  info@sperinservices.co.uk  |  sperinservices.co.uk",
+    M + 42,
+    748,
+    8.2,
+    "F1",
+    MUTED,
+  );
 
   stream += rightText("ESTIMATE", RIGHT, 798, 23, "F2", BLUE);
   stream += rightText(`Reference: ${document.reference}`, RIGHT, 775, 8.5, "F1", NAVY);
@@ -162,9 +180,25 @@ function letterhead(page: number, pages: number, document: PdfDocument) {
 
 function customerPanel(document: PdfDocument) {
   let stream = rect(M, 666, RIGHT - M, 48, PALE);
-  stream += text(document.details.customerName ? "ESTIMATE FOR" : "ONLINE ESTIMATE", M + 14, 699, 8, "F2", BLUE);
-  stream += text(document.details.customerName || "Customer-selected electrical work", M + 14, 683, 11, "F2", NAVY);
-  const location = [document.details.address, document.details.postcode].filter(Boolean).join("  |  ");
+  stream += text(
+    document.details.customerName ? "ESTIMATE FOR" : "ONLINE ESTIMATE",
+    M + 14,
+    699,
+    8,
+    "F2",
+    BLUE,
+  );
+  stream += text(
+    document.details.customerName || "Customer-selected electrical work",
+    M + 14,
+    683,
+    11,
+    "F2",
+    NAVY,
+  );
+  const location = [document.details.address, document.details.postcode]
+    .filter(Boolean)
+    .join("  |  ");
   stream += text(
     location || "Final scope and fixed quotation confirmed after assessment.",
     M + 14,
@@ -212,7 +246,14 @@ function rowBlock(row: PdfRow, y: number, shade: boolean) {
     }
   }
   const cost = row.cost == null ? row.costLabel || "TO ASSESS" : money(row.cost);
-  stream += rightText(cost, RIGHT - 12, y - 20, row.cost == null ? 8.5 : 10, "F2", row.cost == null ? BLUE : NAVY);
+  stream += rightText(
+    cost,
+    RIGHT - 12,
+    y - 20,
+    row.cost == null ? 8.5 : 10,
+    "F2",
+    row.cost == null ? BLUE : NAVY,
+  );
   return { stream, height };
 }
 
@@ -244,7 +285,8 @@ function notesBlock(document: PdfDocument, y: number) {
     "Prices assume suitable existing wiring, same-position replacement where applicable and normal safe access.",
     "Sperin Services is not VAT registered. No VAT is charged.",
   ];
-  if (document.hasUnknown) notes.push("Any work marked TO ASSESS is excluded from the priced subtotal.");
+  if (document.hasUnknown)
+    notes.push("Any work marked TO ASSESS is excluded from the priced subtotal.");
   if (document.travelAmount == null)
     notes.push(document.travelMessage || "Travel supplement will be confirmed before booking.");
 
@@ -263,7 +305,14 @@ function notesBlock(document: PdfDocument, y: number) {
 
 function footer(page: number, pages: number) {
   let stream = rule(M, 34, RIGHT, 34, LINE, 0.6);
-  stream += text("Sperin Services  |  Electrical Installation  |  Inspection & Testing  |  EV Charging", M, 20, 7.1, "F1", MUTED);
+  stream += text(
+    "Sperin Services  |  Electrical Installation  |  Inspection & Testing  |  EV Charging",
+    M,
+    20,
+    7.1,
+    "F1",
+    MUTED,
+  );
   stream += rightText(`${page} / ${pages}`, RIGHT, 20, 7.1, "F1", MUTED);
   return stream;
 }
@@ -273,7 +322,8 @@ function makePdf(streams: string[]) {
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
   objects[2] = "";
   objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
-  objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  objects[4] =
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
   const kids: number[] = [];
   let id = 5;
 
@@ -281,7 +331,8 @@ function makePdf(streams: string[]) {
     const pageId = id++;
     const contentId = id++;
     kids.push(pageId);
-    objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>`;
+    objects[pageId] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>`;
     const byteLength = new TextEncoder().encode(stream).length;
     objects[contentId] = `<< /Length ${byteLength} >>\nstream\n${stream}\nendstream`;
   }
