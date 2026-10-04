@@ -144,19 +144,19 @@ function HomePage() {
           </Link>
         </div>
 
-        <div className="grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-px bg-white/10 lg:grid-cols-3">
           {SERVICES.map((service) => (
             <Link
               key={service.slug}
               to={service.path}
-              className="group min-h-32 bg-background p-5 transition hover:bg-[#1a1d1f]"
+              className="group min-h-28 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5"
             >
               <h3 className="text-xl font-semibold">{service.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.short}</p>
               <ArrowRight className="mt-5 h-4 w-4 text-electric transition group-hover:translate-x-1" />
             </Link>
           ))}
-          <Link to="/commercial" className="group min-h-32 bg-background p-5 transition hover:bg-[#1a1d1f]">
+          <Link to="/commercial" className="group col-span-2 min-h-24 bg-background p-4 transition hover:bg-[#1a1d1f] sm:p-5 lg:col-span-3">
             <h3 className="text-xl font-semibold">Commercial Electrical</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Testing, lighting, power, access control, remedials and refurbishment work.
