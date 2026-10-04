@@ -1,14 +1,12 @@
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
-import { Menu, ChevronDown, Phone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Menu, Phone } from "lucide-react";
 import { Logo } from "./Logo";
 import { SERVICES, SITE } from "@/lib/site";
 
 const NAV = [
-  { to: "/", label: "Home", exact: true },
-  { to: "/commercial", label: "Commercial" },
-  { to: "/pricing", label: "Pricing" },
+  { to: "/pricing", label: "Prices" },
   { to: "/our-work", label: "Our Work" },
   { to: "/reviews", label: "Reviews" },
   { to: "/about", label: "About" },
@@ -20,7 +18,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -28,104 +26,112 @@ export function Header() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <header className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-5 sm:pt-4">
-        <div
-          className={`surface-strong mx-auto max-w-7xl rounded-xl transition-all duration-200 ${
-            scrolled ? "shadow-elegant" : ""
-          }`}
-        >
-          <div className="flex min-h-[68px] items-center justify-between gap-4 px-3 sm:px-5">
-            <Link to="/" className="flex shrink-0 items-center" aria-label="Sperin Services home">
-              <Logo className="h-12 w-auto sm:h-14" />
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
+        <div className={`mx-auto flex min-h-[64px] max-w-7xl items-center justify-between gap-4 px-4 transition-all lg:px-8 ${
+          scrolled ? "min-h-[58px]" : ""
+        }`}>
+          <Link to="/" className="flex shrink-0 items-center" aria-label="Sperin Services home">
+            <Logo className="h-11 w-auto sm:h-12" />
+          </Link>
+
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+            <ServicesDropdown />
+            {NAV.map((item) => (
+              <NavItem key={item.to} to={item.to} label={item.label} />
+            ))}
+          </nav>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            <a
+              href={`tel:${SITE.phone}`}
+              className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-semibold text-foreground/82 transition hover:text-foreground"
+            >
+              <Phone className="h-4 w-4 text-electric" />
+              {SITE.phoneDisplay}
+            </a>
+            <Link to="/pricing" className="button-primary text-sm">
+              Build estimate
             </Link>
-
-            <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
-              <NavItem to="/" label="Home" exact />
-              <ServicesDropdown />
-              {NAV.slice(1).map((item) => (
-                <NavItem key={item.to} to={item.to} label={item.label} />
-              ))}
-            </nav>
-
-            <div className="hidden items-center gap-3 lg:flex">
-              <a
-                href={`tel:${SITE.phone}`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80 transition hover:text-foreground"
-              >
-                <Phone className="h-4 w-4 text-electric" />
-                {SITE.phoneDisplay}
-              </a>
-              <Link to="/contact" className="button-primary text-sm">
-                Get a quote
-              </Link>
-            </div>
-
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                aria-label="Open menu"
-                className="mobile-menu-trigger button-secondary !min-h-0 !p-2.5"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            </DialogTrigger>
           </div>
+
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              aria-label="Open menu"
+              className="mobile-menu-trigger inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025]"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </DialogTrigger>
         </div>
 
         <DialogContent
-          className="mobile-navigation max-h-[90dvh] overflow-y-auto w-[calc(100%-24px)] max-w-lg p-5"
+          className="mobile-navigation max-h-[92dvh] w-[calc(100%-20px)] max-w-md overflow-y-auto p-4"
           aria-describedby={undefined}
         >
-          <DialogTitle className="pr-8 text-xl">Sperin Services</DialogTitle>
-          <nav className="surface mx-auto max-w-lg rounded-2xl p-4" aria-label="Mobile navigation">
-            <div className="grid gap-1">
+          <DialogTitle className="px-2 pr-8 text-xl">Sperin Services</DialogTitle>
+          <nav className="mt-3" aria-label="Mobile navigation">
+            <Link
+              to="/pricing"
+              onClick={() => setOpen(false)}
+              className="button-primary mb-3 w-full"
+            >
+              Build an estimate
+            </Link>
+            <Link
+              to="/contact"
+              onClick={() => setOpen(false)}
+              className="button-secondary mb-5 w-full"
+            >
+              Discuss a project
+            </Link>
+
+            <div className="border-t border-white/10 pt-3">
               <Link
-                to="/"
+                to="/services"
                 onClick={() => setOpen(false)}
-                activeOptions={{ exact: true }}
-                className="rounded-lg px-4 py-3 text-lg font-semibold transition hover:bg-white/5 data-[status=active]:text-electric"
+                className="block rounded-md px-3 py-3 text-base font-semibold"
               >
-                Home
+                Services
               </Link>
-
-              <div className="rule mt-2 pt-4">
-                <div className="px-4 pb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  Electrical services
-                </div>
-                {SERVICES.map((service) => (
-                  <Link
-                    key={service.slug}
-                    to={service.path}
-                    onClick={() => setOpen(false)}
-                    className="block rounded-lg px-4 py-2.5 text-sm text-foreground/85 transition hover:bg-white/5 hover:text-electric data-[status=active]:text-electric"
-                  >
-                    {service.title}
-                  </Link>
-                ))}
-              </div>
-
-              <div className="rule mt-3 grid gap-1 pt-3">
-                {NAV.slice(1).map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setOpen(false)}
-                    className="rounded-lg px-4 py-3 text-lg font-semibold transition hover:bg-white/5 data-[status=active]:text-electric"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              <Link
+                to="/commercial"
+                onClick={() => setOpen(false)}
+                className="block rounded-md px-3 py-2.5 text-sm text-foreground/75"
+              >
+                Commercial electrical
+              </Link>
+              {SERVICES.map((service) => (
+                <Link
+                  key={service.slug}
+                  to={service.path}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-md px-3 py-2.5 text-sm text-foreground/75"
+                >
+                  {service.title}
+                </Link>
+              ))}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <a href={`tel:${SITE.phone}`} className="button-secondary text-sm">
-                <Phone className="h-4 w-4 text-electric" /> Call
-              </a>
-              <Link to="/contact" onClick={() => setOpen(false)} className="button-primary text-sm">
-                Get a quote
-              </Link>
+            <div className="mt-3 border-t border-white/10 pt-3">
+              {NAV.filter((item) => item.to !== "/pricing" && item.to !== "/contact").map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-md px-3 py-3 text-base font-semibold"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
+
+            <a
+              href={`tel:${SITE.phone}`}
+              className="mt-4 flex min-h-12 items-center justify-center gap-2 border-t border-white/10 pt-4 text-sm font-semibold"
+            >
+              <Phone className="h-4 w-4 text-electric" /> {SITE.phoneDisplay}
+            </a>
           </nav>
         </DialogContent>
       </header>
@@ -133,12 +139,11 @@ export function Header() {
   );
 }
 
-function NavItem({ to, label, exact }: { to: string; label: string; exact?: boolean }) {
+function NavItem({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      activeOptions={exact ? { exact: true } : undefined}
-      className="rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground/72 transition hover:bg-white/[0.035] hover:text-foreground data-[status=active]:bg-white/[0.045] data-[status=active]:text-electric"
+      className="rounded-md px-3 py-2.5 text-sm font-semibold text-foreground/72 transition hover:bg-white/[0.035] hover:text-foreground data-[status=active]:text-electric"
     >
       {label}
     </Link>
@@ -147,11 +152,13 @@ function NavItem({ to, label, exact }: { to: string; label: string; exact?: bool
 
 function ServicesDropdown() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isActive = pathname.startsWith("/services");
+  const isActive = pathname.startsWith("/services") || pathname === "/commercial";
   const detailsRef = useRef<HTMLDetailsElement>(null);
+
   useEffect(() => {
     if (detailsRef.current) detailsRef.current.open = false;
   }, [pathname]);
+
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (detailsRef.current && !detailsRef.current.contains(event.target as Node))
@@ -162,35 +169,38 @@ function ServicesDropdown() {
   }, []);
 
   return (
-    <details
-      ref={detailsRef}
-      className="group relative"
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && detailsRef.current) {
-          detailsRef.current.open = false;
-          detailsRef.current.querySelector("summary")?.focus();
-        }
-      }}
-    >
+    <details ref={detailsRef} className="group relative">
       <summary
-        className={`flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:bg-white/[0.035] hover:text-foreground [&::-webkit-details-marker]:hidden ${
-          isActive ? "bg-white/[0.045] text-electric" : "text-foreground/72"
+        className={`flex cursor-pointer list-none items-center gap-1 rounded-md px-3 py-2.5 text-sm font-semibold transition hover:bg-white/[0.035] [&::-webkit-details-marker]:hidden ${
+          isActive ? "text-electric" : "text-foreground/72"
         }`}
       >
         Services
         <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-3">
-        <div className="surface-strong rounded-xl p-2 shadow-elegant">
+      <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-2">
+        <div className="surface-strong rounded-md p-2 shadow-elegant">
+          <Link
+            to="/services"
+            className="block rounded-md px-3 py-3 text-sm font-bold text-electric transition hover:bg-white/[0.045]"
+          >
+            View all services
+          </Link>
+          <Link
+            to="/commercial"
+            className="block rounded-md px-3 py-3 transition hover:bg-white/[0.045]"
+          >
+            <div className="text-sm font-semibold">Commercial electrical</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">Premises, testing, lighting, power & access</div>
+          </Link>
+          <div className="my-1 border-t border-white/10" />
           {SERVICES.map((service) => (
             <Link
               key={service.slug}
               to={service.path}
-              className="block rounded-lg px-3 py-3 transition hover:bg-white/[0.045] data-[status=active]:bg-white/[0.05]"
+              className="block rounded-md px-3 py-3 transition hover:bg-white/[0.045]"
             >
-              <div className="text-sm font-semibold text-foreground/90 group-open:data-[status=active]:text-electric">
-                {service.title}
-              </div>
+              <div className="text-sm font-semibold text-foreground/90">{service.title}</div>
               <div className="mt-0.5 text-xs text-muted-foreground">{service.short}</div>
             </Link>
           ))}
