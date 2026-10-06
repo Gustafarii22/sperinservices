@@ -27,13 +27,13 @@ export function Header() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[68px] max-w-7xl items-center gap-3 px-4 sm:h-[72px] lg:h-[82px] lg:px-8">
+        <div className="mx-auto flex h-[68px] max-w-7xl items-center gap-2 px-2 sm:h-[72px] sm:px-3 lg:h-[82px] lg:gap-5 lg:px-8">
           <Link
             to="/"
             aria-label="Sperin Services home"
             className="flex min-w-0 flex-1 items-center justify-center lg:flex-none lg:justify-start"
           >
-            <Logo className="h-[54px] w-auto max-w-[calc(100vw-88px)] sm:h-[58px] lg:h-[68px] lg:max-w-[300px]" />
+            <Logo className="h-[64px] w-auto max-w-[calc(100vw-58px)] sm:h-[68px] sm:max-w-[440px] lg:h-[76px] lg:max-w-[350px]" />
           </Link>
 
           <nav className="ml-auto hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
@@ -47,7 +47,7 @@ export function Header() {
             <button
               type="button"
               aria-label="Open menu"
-              className="mobile-menu-trigger ml-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
+              className="mobile-menu-trigger ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
