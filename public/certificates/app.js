@@ -45,11 +45,12 @@
     supplyDeviceBs: ['BS 88-2', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
     spdType: [
       'No SPD / N/A',
-      'Type 1 — BS EN IEC 61643-11',
-      'Type 2 — BS EN IEC 61643-11',
-      'Type 1+2 — BS EN IEC 61643-11',
-      'Type 2+3 — BS EN IEC 61643-11',
-      'Type 3 — BS EN IEC 61643-11',
+      'Type 1 — BS EN IEC 61643-11:2025+A11:2025',
+      'Type 2 — BS EN IEC 61643-11:2025+A11:2025',
+      'Type 1+2 — BS EN IEC 61643-11:2025+A11:2025',
+      'Type 2+3 — BS EN IEC 61643-11:2025+A11:2025',
+      'Type 3 — BS EN IEC 61643-11:2025+A11:2025',
+      'Legacy marking — BS EN 61643-11:2012+A11:2018',
       'Other'
     ]
   };
