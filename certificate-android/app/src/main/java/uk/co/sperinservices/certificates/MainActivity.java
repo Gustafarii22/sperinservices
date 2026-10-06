@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.2.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.2.1");
 
         setupVoice();
 
