@@ -877,7 +877,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>A paper-friendly question list to take around site, write on, then enter or dictate back into the certificate later.</span></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>The same Sperin Services certificate form, left blank for site use, so paper and issued PDF match.</span></div></div><div class="note warning">Sperin Services branded model-form layout. Complete only where you are competent and authorised to certify the work.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1139,61 +1139,22 @@
   }
 
   async function downloadPDF() {
-    const cert = getCurrent(); if (!cert) return;
+    const cert=getCurrent(); if(!cert)return;
     syncSingleSignatory(cert); persist();
-    const schema = SCHEMAS[cert.type];
-    const jsPDFCtor = window.jspdf?.jsPDF;
-    if (!jsPDFCtor || typeof (new jsPDFCtor()).autoTable !== 'function') {
-      alert('The direct PDF library is not available right now. The print-to-PDF screen will open instead. Choose “Save as PDF”.');
-      window.print(); return;
-    }
-    try {
-      const doc = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'landscape' });
-      let orientation='landscape', y=30;
-      pdfHeader(doc, schema, cert);
-      const newPage=(o=orientation)=>{doc.addPage('a4',o);orientation=o;pdfHeader(doc,schema,cert);y=30;};
-      const ensureSpace=(need=25)=>{const h=doc.internal.pageSize.getHeight();if(y+need>h-18)newPage(orientation);};
-      const addSectionTitle=title=>{ensureSpace(12);const w=doc.internal.pageSize.getWidth();doc.setFillColor(235,242,250);doc.rect(12,y-5,w-24,8,'F');doc.setFont('helvetica','bold');doc.setTextColor(20,40,62);doc.setFontSize(9);doc.text(title,14,y);doc.setTextColor(20,28,38);y+=6;};
-      const backToPortrait=()=>{if(orientation!=='landscape')newPage('landscape');};
-
-      schema.sections.forEach(part => {
-        if (part.type === 'section') {
-          backToPortrait();
-          const visible=part.fields.filter(field=>fieldVisible(field,cert)).filter(field=>hasPdfValue(field,cert.fields[field.key]));
-          if(!visible.length) return;
-          addSectionTitle(part.title);
-          const body=visible.map(field=>[field.label,formatPdfValue(field,cert.fields[field.key])]);
-          doc.autoTable({ startY:y, head:[], body, margin:{left:12,right:12,top:30,bottom:16}, theme:'grid', styles:{fontSize:7.7,cellPadding:1.8,textColor:[25,33,43],lineColor:[205,214,225],lineWidth:.12}, columnStyles:{0:{cellWidth:78,fontStyle:'bold',fillColor:[248,250,252]},1:{cellWidth:195}}, didDrawPage:()=>pdfHeader(doc,schema,cert) });
-          y=doc.lastAutoTable.finalY+6;
-        } else if(part.type==='table') {
-          const rows=(cert.tables[part.key]||[]).filter(row=>Object.values(row).some(v=>v!==undefined&&v!==null&&String(v).trim()!==''));
-          if(!rows.length) return;
-          const schedule=part.key==='circuits'||part.key==='tests';
-          if(orientation!=='landscape') newPage('landscape');
-          addSectionTitle(part.title);
-          const head=[part.columns.map(c=>c.label)], body=rows.map(row=>part.columns.map(c=>String(row[c.key]??'')));
-          doc.autoTable({startY:y,head,body,margin:{left:8,right:8,top:30,bottom:16},theme:'grid',
-            styles:{fontSize:schedule?6.5:(part.columns.length>8?5.7:7),cellPadding:schedule?1.5:1.3,overflow:'linebreak',lineColor:[195,205,216],lineWidth:.12},
-            headStyles:{fillColor:[20,55,92],textColor:[255,255,255],fontStyle:'bold'},
-            didDrawPage:()=>pdfHeader(doc,schema,cert)});
-          y=doc.lastAutoTable.finalY+6;
-        }
-      });
-      backToPortrait();
-      ensureSpace(16);
-      doc.setFontSize(7.2); doc.setTextColor(80);
-      doc.text('Independent certificate record. Technical accuracy and competence remain the responsibility of the person(s) signing the certificate.',12,y,{maxWidth:186});
-      pdfFooter(doc);
-      const pdfName = `${pdfSafeName(cert)}.pdf`;
-      if (window.Android && typeof window.Android.savePdfBase64 === 'function') {
-        window.Android.savePdfBase64(doc.output('datauristring'), pdfName);
+    try{
+      if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
+      const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
+      const pdfName=`${pdfSafeName(cert)}.pdf`;
+      if(window.Android && typeof window.Android.savePdfBase64==='function'){
+        window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
         toast('PDF saved to Downloads');
-      } else {
+      }else{
         doc.save(pdfName);
         toast('PDF created');
       }
-    } catch (err) {
-      console.error(err); alert('PDF generation hit an error. The print-to-PDF screen will open instead.'); window.print();
+    }catch(err){
+      console.error(err);
+      alert('Certificate PDF generation failed: '+(err?.message||err));
     }
   }
 
@@ -1311,268 +1272,26 @@
 
   function sheetHeader(doc,p,no,type){const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setFillColor(7,17,31);doc.rect(0,0,w,22,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('SPERIN CERTIFICATES · SITE SHEET',14,9);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text('SPERIN SHEET '+p.id+' | PAGE '+no+' | '+type,14,16);doc.text('PLAN '+planSummary(p),w-14,16,{align:'right'});doc.setFillColor(0);[[4,4],[w-8,4],[4,h-8],[w-8,h-8]].forEach(q=>doc.rect(q[0],q[1],4,4,'F'));doc.setTextColor(20,28,38);}
   function generateSiteSheetPdf(p,cert){
-    const C=window.jspdf?.jsPDF;
-    if(!C||typeof(new C()).autoTable!=='function'){alert('PDF engine unavailable');return;}
-    const doc=new C({unit:'mm',format:'a4',orientation:'landscape'});
-    const descs=buildSiteDescriptors(p,cert);
-    const schema=SCHEMAS[p.type];
-    let pn=0;
-    const navy=[7,17,31],blue=[24,105,211],pale=[235,243,252],ink=[20,30,42],line=[104,118,135];
-
-    const brandTop=(title)=>{
-      const w=doc.internal.pageSize.getWidth();
-      doc.setFillColor(...navy);doc.rect(0,0,w,16,'F');
-      doc.setFillColor(...blue);doc.rect(0,16,w,1.4,'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('SPERIN SERVICES',12,7.2);
-      doc.setFont('helvetica','normal');doc.setFontSize(5.9);doc.text('ELECTRICAL CERTIFICATION · SITE WORKSHEET',12,12);
-      doc.setFont('helvetica','bold');doc.setFontSize(8.4);doc.text(String(title||''),w/2,8,{align:'center'});
-      doc.setFont('helvetica','normal');doc.setFontSize(6);
-      doc.text('Cert/Report: '+String(cert.number||''),w-12,6.5,{align:'right'});
-      doc.text(String(schema.standard||''),w-12,11.5,{align:'right'});
-      doc.setTextColor(...ink);doc.setDrawColor(...line);doc.setLineWidth(.15);
-    };
-    const newPage=(title)=>{
-      if(pn)doc.addPage('a4','landscape');
-      pn=doc.getNumberOfPages();
-      brandTop(title);
-      return 21;
-    };
-    const sectionBar=(title,y)=>{
-      doc.setFillColor(...blue);doc.roundedRect(12,y,273,5.7,1,1,'F');
-      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7.1);
-      doc.text(String(title||'').toUpperCase(),14,y+3.9);
-      doc.setTextColor(...ink);
-      return y+7.2;
-    };
-    const choiceText=(field,value)=>{
-      if(value!==undefined&&value!==null&&String(value).trim()!=='')return formatPdfValue(field,value);
-      if(field.type==='select'&&Array.isArray(field.options)&&field.options.length){
-        const opts=field.options.slice(0,7);
-        return opts.map(x=>'□ '+x).join('   ');
-      }
-      if(field.type==='checkbox')return '□';
-      return '';
-    };
-    const sectionRows=(part)=>{
-      const fields=part.fields.filter(field=>fieldVisible(field,cert));
-      const rows=[];let pending=null;
-      const flush=()=>{if(pending){rows.push(pending);pending=null;}};
-      fields.forEach(field=>{
-        const value=choiceText(field,cert.fields?.[field.key]);
-        const long=field.type==='textarea'||field.span==='full'||field.label.length>58;
-        const label={content:field.label,styles:{fontStyle:'bold',fillColor:[247,249,252]}};
-        const answer={content:value};
-        if(long){
-          flush();
-          rows.push([label,{content:value,colSpan:3,styles:{minCellHeight:8}}]);
-        }else if(!pending){
-          pending=[label,answer];
-        }else{
-          pending.push(label,answer);rows.push(pending);pending=null;
-        }
-      });
-      flush();
-      if(rows.length&&rows[rows.length-1].length===2){
-        rows[rows.length-1].push({content:'',styles:{fillColor:[247,249,252]}},{content:''});
-      }
-      return rows;
-    };
-    const estimateSection=(rows)=>7.2+rows.reduce((n,r)=>n+(r.some(c=>typeof c==='object'&&c?.styles?.minCellHeight>=8)?8.5:6.2),0)+2;
-    const ensure=(need,title)=>{
-      if(doc.internal.pageSize.getHeight()-10-(currentY||0)<need)currentY=newPage(title);
-    };
-    let currentY=newPage(schema.name+' · SITE WORKSHEET');
-    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(75);
-    doc.text('Write clearly inside the answer boxes. For voice read-back, say the printed heading followed by the answer. Say “skip” if not recorded.',12,currentY);
-    currentY+=4;
-
-    schema.sections.forEach(part=>{
-      if(part.type==='section'){
-        const rows=sectionRows(part);
-        if(!rows.length)return;
-        const need=estimateSection(rows);
-        if(currentY>178 || (need<155&&currentY+need>199))currentY=newPage(schema.name+' · SITE WORKSHEET');
-        currentY=sectionBar(part.title,currentY);
-        part.fields.filter(field=>fieldVisible(field,cert)).forEach(d=>{
-          const match=descs.find(x=>x.kind==='field'&&x.key===d.key);
-          if(match)match.page=pn;
-        });
-        doc.autoTable({
-          startY:currentY,
-          body:rows,
-          margin:{left:12,right:12,top:22,bottom:10},
-          theme:'grid',
-          pageBreak:'auto',
-          rowPageBreak:'avoid',
-          styles:{fontSize:6.5,cellPadding:1.15,minCellHeight:5.7,lineColor:line,lineWidth:.12,textColor:ink,valign:'middle',overflow:'linebreak'},
-          columnStyles:{0:{cellWidth:50},1:{cellWidth:86},2:{cellWidth:50},3:{cellWidth:87}},
-          didDrawPage:()=>brandTop(schema.name+' · SITE WORKSHEET')
-        });
-        pn=doc.getNumberOfPages();
-        currentY=doc.lastAutoTable.finalY+3.2;
-      } else if(part.type==='table'&&!['boards','circuits','tests'].includes(part.key)){
-        const rows=Array.isArray(cert.tables?.[part.key])?cert.tables[part.key]:[];
-        if(!rows.length)return;
-        if(currentY>145)currentY=newPage(schema.name+' · SITE WORKSHEET');
-        currentY=sectionBar(part.title,currentY);
-        const headers=part.columns.map(c=>c.label);
-        const body=rows.map((row,ri)=>part.columns.map(col=>{
-          const value=row?.[col.key];
-          if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value);
-          if(col.type==='select'&&Array.isArray(col.options)&&col.options.length<=8)return col.options.map(x=>'□ '+x).join('  ');
-          return '';
-        }));
-        doc.autoTable({
-          startY:currentY,
-          head:[headers],
-          body,
-          margin:{left:12,right:12,top:22,bottom:10},
-          theme:'grid',
-          rowPageBreak:'avoid',
-          showHead:'everyPage',
-          styles:{fontSize:6.1,cellPadding:.9,minCellHeight:5.3,lineColor:line,lineWidth:.12,textColor:ink,valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',lineColor:line,lineWidth:.14},
-          didDrawPage:()=>brandTop(schema.name+' · SITE WORKSHEET')
-        });
-        pn=doc.getNumberOfPages();
-        currentY=doc.lastAutoTable.finalY+3.2;
-      }
-    });
-
-    const boardRow=(b,bi)=>{
-      const row=(cert.tables?.boards||[])[bi]||{};
-      return {ref:b.ref||row.ref||'',location:b.location||row.location||'',suppliedFrom:row.suppliedFrom||'',
-        zdb:row.zdb||'',ipf:row.ipf||'',mainSwitch:row.mainSwitch||'',rcd:row.rcd||'',spd:row.spd||''};
-    };
-    const boardBox=(b,bi,y,testPage=false)=>{
-      const r=boardRow(b,bi),x=12,w=273,h=testPage?20:25;
-      doc.setFillColor(...pale);doc.roundedRect(x,y,w,h,1.2,1.2,'F');
-      doc.setDrawColor(...line);doc.roundedRect(x,y,w,h,1.2,1.2,'S');
-      doc.setFillColor(...blue);doc.rect(x,y,42,5.2,'F');
-      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.text('DB / CU DETAILS',x+2,y+3.6);
-      doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(6.1);
-      doc.text('Reference: '+r.ref,x+46,y+3.7);doc.text('Location: '+r.location,x+102,y+3.7);doc.text('Supplied from: '+r.suppliedFrom,x+183,y+3.7);
-      if(testPage){
-        doc.text('Zdb: '+r.zdb+' Ω',x+2,y+10.3);doc.text('Ipf: '+r.ipf+' kA',x+58,y+10.3);
-        doc.text('Correct polarity  □',x+114,y+10.3);doc.text('Phase sequence  □',x+171,y+10.3);doc.text('SPD operational  □ / N/A □',x+222,y+10.3);
+    try{
+      if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
+      const descs=buildSiteDescriptors(p,cert);
+      p.descriptors=descs;
+      const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[p.type],settings,worksheet:true});
+      p.pages=doc.getNumberOfPages();
+      p.updatedAt=new Date().toISOString();
+      updateStoredPlan(p);
+      const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';
+      if(window.Android&&window.Android.savePdfBase64){
+        window.Android.savePdfBase64(doc.output('datauristring'),name);
+        toast('Site sheet PDF saved');
       }else{
-        doc.text('Distribution OCPD: '+r.mainSwitch,x+2,y+10.3);doc.text('RCD / RCBO: '+r.rcd,x+142,y+10.3);
-        doc.text('SPD: '+r.spd,x+2,y+16.5);doc.text('Zdb: '+r.zdb+' Ω',x+142,y+16.5);doc.text('Ipf: '+r.ipf+' kA',x+193,y+16.5);
-        doc.text('Correct polarity  □   Phase sequence  □   SPD operational  □',x+2,y+22.1);
+        doc.save(name);
+        toast('Site sheet PDF created');
       }
-      return y+h+2.5;
-    };
-    const markGrid=(data,map)=>{
-      if(data.section!=='body')return;
-      const d=map[data.row.index]?.[data.column.index];if(!d)return;
-      d.page=pn;d.grid={x1:data.cell.x/doc.internal.pageSize.getWidth(),y1:data.cell.y/doc.internal.pageSize.getHeight(),
-        x2:(data.cell.x+data.cell.width)/doc.internal.pageSize.getWidth(),y2:(data.cell.y+data.cell.height)/doc.internal.pageSize.getHeight()};
-    };
-    const scheduleTitle=(text,y)=>{
-      doc.setFillColor(...blue);doc.roundedRect(12,y,273,5.5,1,1,'F');
-      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.text(text,148.5,y+3.8,{align:'center'});
-      doc.setTextColor(...ink);return y+6.8;
-    };
-    const wiringKey=(y)=>{
-      doc.setFont('helvetica','bold');doc.setFontSize(5.9);doc.text('WIRING TYPE CODES',12,y);
-      const codes=['A Thermoplastic insulated/sheathed','B Thermoplastic in metallic conduit','C Thermoplastic in non-metallic conduit',
-        'D Thermoplastic in metallic trunking','E Thermoplastic in non-metallic trunking','F Thermoplastic SWA',
-        'G Thermosetting SWA','H Mineral insulated','O Other'];
-      doc.autoTable({startY:y+1.5,body:[codes],margin:{left:12,right:12},theme:'grid',
-        styles:{fontSize:4.4,cellPadding:.8,minCellHeight:4.8,lineColor:line,lineWidth:.1,textColor:ink}});
-      return doc.lastAutoTable.finalY+1.5;
-    };
-    const instrumentBox=(y)=>{
-      const f=cert.fields||{};
-      doc.setFillColor(...pale);doc.roundedRect(12,y,273,14.5,1,1,'F');doc.setDrawColor(...line);doc.roundedRect(12,y,273,14.5,1,1,'S');
-      doc.setFont('helvetica','bold');doc.setFontSize(5.8);doc.text('TEST INSTRUMENTS',14,y+3.4);
-      doc.setFont('helvetica','normal');doc.setFontSize(5.3);
-      doc.text('MFT: '+String(f.testerMake||'')+' '+String(f.testerModel||'')+' / '+String(f.testerSerial||''),14,y+7.3);
-      doc.text('Low Ω: __________   IR: __________   Loop/Zs: __________   RCD: __________   Earth electrode: __________',105,y+7.3);
-      doc.text('Tested by: '+String(f.testedBy||'')+'     Signature: __________________________     Date: __________________',14,y+12);
-      return y+16;
-    };
-
-    if(p.type==='eic'||p.type==='eicr'){
-      (p.boards||[]).forEach((b,bi)=>{
-        const offset=(p.boards||[]).slice(0,bi).reduce((n,x)=>n+x.circuits,0);
-        const perPage=18;
-        for(let first=0;first<b.circuits;first+=perPage){
-          const count=Math.min(perPage,b.circuits-first);
-          let y=newPage('SCHEDULE OF CIRCUIT DETAILS · '+b.ref);
-          y=boardBox(b,bi,y,false);y=scheduleTitle('SCHEDULE OF CIRCUIT DETAILS',y);
-
-          const cols=[
-            ['1','Circuit','circuitNo'],['2','Circuit description','description'],['3','Wiring','wiringType'],['4','Ref.','refMethod'],
-            ['5','Points','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
-            ['9','Type','ocpdType'],['10','A','ocpdRating'],['11','kA','breakingCapacity'],['12','Max Zs Ω','maxZs'],
-            ['13','RCD BS','rcdBs'],['14','Type','rcdType'],['15','mA','rcdIdn'],['16','A','rcdRating']
-          ];
-          const widths=[10,42,15,14,13,13,13,20,10,10,13,15,18,11,10,10];
-          const body=[],map=[];
-          for(let local=0;local<count;local++){
-            const gi=offset+first+local,row=cert.tables?.circuits?.[gi]||{};
-            body.push(cols.map(c=>String(row[c[2]]??'')));
-            map.push(cols.map(c=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===c[2])||null));
-          }
-          doc.autoTable({
-            startY:y,
-            head:[
-              [{content:'',colSpan:2},{content:'Conductors / installation',colSpan:5,styles:{halign:'center'}},
-               {content:'Overcurrent protective device',colSpan:5,styles:{halign:'center'}},{content:'RCD',colSpan:4,styles:{halign:'center'}}],
-              cols.map(c=>c[0]+' '+c[1])
-            ],
-            body,margin:{left:12,right:12,bottom:23},theme:'grid',rowPageBreak:'avoid',
-            styles:{fontSize:4.8,cellPadding:.55,minCellHeight:5.5,lineColor:line,lineWidth:.11,textColor:ink,halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',fontSize:4.6,lineColor:line,lineWidth:.12},
-            columnStyles:Object.fromEntries(widths.map((w,i)=>[i,{cellWidth:w,halign:i===1?'left':'center'}])),
-            didDrawCell:data=>markGrid(data,map)
-          });
-          wiringKey(Math.min(190,doc.lastAutoTable.finalY+3));
-
-          y=newPage('SCHEDULE OF TEST RESULTS · '+b.ref);
-          y=boardBox(b,bi,y,true);y=scheduleTitle('SCHEDULE OF TEST RESULTS',y);
-          const tcols=[
-            ['17','Circuit','circuitNo'],['18','r1 Ω','r1'],['19','rn Ω','rn'],['20','r2 Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
-            ['23','IR V','irVoltage'],['24','L-L MΩ','irLL'],['25','L-E MΩ','irLE'],['26','Polarity','polarity'],['27','Zs Ω','zs'],
-            ['28','RCD ms','rcdTime'],['29','RCD test','rcdButton'],['30','AFDD test','afddButton'],['31','Remarks','remarks']
-          ];
-          const twidths=[10,12,12,12,14,11,13,15,15,13,14,16,16,16,60];
-          const tbody=[],tmap=[];
-          for(let local=0;local<count;local++){
-            const gi=offset+first+local,row=cert.tables?.tests?.[gi]||{};
-            tbody.push(tcols.map(c=>String(row[c[2]]??'')));
-            tmap.push(tcols.map(c=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===c[2])||null));
-          }
-          doc.autoTable({
-            startY:y,
-            head:[
-              [{content:'',colSpan:1},{content:'Continuity',colSpan:5,styles:{halign:'center'}},
-               {content:'Insulation resistance',colSpan:3,styles:{halign:'center'}},{content:'',colSpan:2},
-               {content:'RCD',colSpan:2,styles:{halign:'center'}},{content:'AFDD',colSpan:1,styles:{halign:'center'}},{content:'',colSpan:1}],
-              tcols.map(c=>c[0]+' '+c[1])
-            ],
-            body:tbody,margin:{left:12,right:12,bottom:27},theme:'grid',rowPageBreak:'avoid',
-            styles:{fontSize:4.9,cellPadding:.55,minCellHeight:5.5,lineColor:line,lineWidth:.11,textColor:ink,halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',fontSize:4.6,lineColor:line,lineWidth:.12},
-            columnStyles:Object.fromEntries(twidths.map((w,i)=>[i,{cellWidth:w,halign:i===14?'left':'center'}])),
-            didDrawCell:data=>markGrid(data,tmap)
-          });
-          instrumentBox(Math.min(187,doc.lastAutoTable.finalY+3));
-        }
-      });
+    }catch(err){
+      console.error(err);
+      alert('Site sheet PDF generation failed: '+(err?.message||err));
     }
-
-    p.descriptors=descs;p.pages=doc.getNumberOfPages();p.updatedAt=new Date().toISOString();updateStoredPlan(p);
-    const total=doc.getNumberOfPages();
-    for(let i=1;i<=total;i++){
-      doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(90);
-      doc.text('Sperin Services · '+p.id+' · Page '+i+' of '+total,148.5,206.5,{align:'center'});
-    }
-    const name='Sperin-Site-Sheet-'+schema.code+'-'+p.id+'.pdf';
-    if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}
-    else{doc.save(name);toast('Site sheet PDF created');}
   }
 
   function renderSiteBuilder(){let m=document.querySelector('.site-builder-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop site-builder-backdrop';m.innerHTML='<div class="card modal site-builder-modal" data-modal><div data-site-builder-body></div></div>';document.body.appendChild(m);}const s=siteBuilderState,boards=s.type==='eic'||s.type==='eicr',templates=siteTemplates();m.querySelector('[data-site-builder-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">BLANK SITE SHEETS</div><h2>Build exactly the paper pack you need</h2><p>The whole certificate is included, with exactly the boards and circuit slots you choose.</p></div><button class="btn" data-action="site-builder-close">Close</button></div><section class="profile-section"><div class="settings-grid"><div class="field"><label>Certificate type</label><select data-site-builder="type">'+Object.entries(SCHEMAS).map(e=>'<option value="'+esc(e[0])+'" '+(s.type===e[0]?'selected':'')+'>'+esc(e[1].name)+'</option>').join('')+'</select></div><div class="field"><label>Template name (optional)</label><input data-site-builder="name" value="'+esc(s.name||'')+'"/></div></div></section>'+(boards?'<section class="profile-section"><div class="sheet-builder-title"><div><h3>Distribution boards / consumer units</h3><p class="profile-help">Set the exact number of circuit spaces to print.</p></div><button class="btn" data-action="site-board-add">+ Add board</button></div><div class="sheet-board-list">'+s.boards.map((b,i)=>'<div class="sheet-board-row"><div class="field"><label>Board reference</label><input data-site-board="'+i+'" data-site-board-key="ref" value="'+esc(b.ref)+'"/></div><div class="field"><label>Location</label><input data-site-board="'+i+'" data-site-board-key="location" value="'+esc(b.location||'')+'"/></div><div class="field"><label>Circuits to print</label><input type="number" min="1" max="72" data-site-board="'+i+'" data-site-board-key="circuits" value="'+esc(b.circuits)+'"/></div><button class="btn danger" data-action="site-board-remove" data-index="'+i+'" '+(s.boards.length===1?'disabled':'')+'>Remove</button></div>').join('')+'</div></section>':'<section class="profile-section"><p class="profile-help">The complete blank certificate will be generated.</p></section>')+(templates.length?'<section class="profile-section"><h3>Saved templates</h3><div class="sheet-template-list">'+templates.map(t=>'<button class="btn" data-action="site-template-load" data-template-id="'+esc(t.id)+'">'+esc(t.name)+'</button>').join('')+'</div></section>':'')+'<div class="profile-footer"><button class="btn" data-action="site-template-save">Save as template</button><button class="btn primary" data-action="site-generate">Create draft & download site PDF</button></div>';}
@@ -1896,41 +1615,21 @@
   }
 
   function downloadRapidSheet() {
-    const cert=getCurrent(); if(!cert) return;
-    const descs=rapidDescriptors(cert);
-    const jsPDFCtor=window.jspdf?.jsPDF;
-    if(!jsPDFCtor || typeof (new jsPDFCtor()).autoTable!=='function'){
-      alert('The PDF engine is not available. Reopen the app and try again.');
-      return;
-    }
-    const doc=new jsPDFCtor({unit:'mm',format:'a4',orientation:'landscape'});
-    pdfHeader(doc,SCHEMAS[cert.type],cert);
-    doc.setTextColor(25,33,43);
-    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('PRINTABLE SITE WORKSHEET',14,32);
-    doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.text('Write answers on site. Later use Voice Fill and read them in number order. Say “NEXT FIELD” between each answer.',14,38,{maxWidth:180});
-    const rows=descs.map(d=>{
-      const value=rapidGetValue(cert,d);
-      const choices=d.options?.length ? d.options.join(' / ') : '';
-      return [String(d.no),d.section,d.label,String(value??''),choices];
-    });
-    doc.autoTable({
-      startY:44,
-      head:[['No.','Section','Field','Handwritten / current value','Quick choices']],
-      body:rows,
-      margin:{left:8,right:8,top:28,bottom:14},
-      styles:{fontSize:6.5,cellPadding:1.4,overflow:'linebreak'},
-      headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
-      columnStyles:{0:{cellWidth:12},1:{cellWidth:50},2:{cellWidth:74},3:{cellWidth:65},4:{cellWidth:65}}
-    });
-    pdfFooter(doc);
-    const name='Sperin-Site-Worksheet-'+(cert.number||cert.type||'certificate').replace(/[^a-z0-9-_]+/gi,'-')+'.pdf';
-    if(window.Android && typeof window.Android.savePdfBase64==='function'){
-      window.Android.savePdfBase64(doc.output('datauristring'),name);
-      toast('Site worksheet saved to Downloads');
-    } else {
-      doc.save(name);
-      toast('Site worksheet created');
+    const cert=getCurrent(); if(!cert)return;
+    try{
+      if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
+      const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:true});
+      const name='Sperin-Site-Worksheet-'+(cert.number||cert.type||'certificate').replace(/[^a-z0-9-_]+/gi,'-')+'.pdf';
+      if(window.Android && typeof window.Android.savePdfBase64==='function'){
+        window.Android.savePdfBase64(doc.output('datauristring'),name);
+        toast('Site worksheet saved to Downloads');
+      }else{
+        doc.save(name);
+        toast('Site worksheet created');
+      }
+    }catch(err){
+      console.error(err);
+      alert('Site worksheet generation failed: '+(err?.message||err));
     }
   }
 
