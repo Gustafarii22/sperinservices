@@ -41,6 +41,12 @@ jobs:
         with:
           gradle-version: "8.10.2"
 
+      - name: Cache stable debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: sperin-certificates-debug-keystore-v1
+
       - name: Bundle certificate web app
         run: |
           rm -rf certificate-android/app/src/main/assets/certificates
@@ -57,12 +63,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.1.0.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.2.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.1.0
-          path: certificate-android/dist/Sperin-Certificates-v1.1.0.apk
+          name: Sperin-Certificates-v1.2.0
+          path: certificate-android/dist/Sperin-Certificates-v1.2.0.apk
           if-no-files-found: error
           retention-days: 30
