@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Calculator, ChevronDown, Images, Mail, Menu, Star, UserRound, Zap } from "lucide-react";
 import logo from "@/assets/sperin-logo.png";
+import { Logo } from "./Logo";
 import { SERVICES } from "@/lib/site";
 
 const NAV = [
