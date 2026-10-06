@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const VERSION = '1.7.0';
+  // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
   const SHEET_TEMPLATES_KEY = 'sperin-certificates-site-sheet-templates-v1';
