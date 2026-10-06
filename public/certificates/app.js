@@ -1346,276 +1346,262 @@
     if(!C||typeof(new C()).autoTable!=='function'){alert('PDF engine unavailable');return;}
     const doc=new C({unit:'mm',format:'a4',orientation:'landscape'});
     const descs=buildSiteDescriptors(p,cert);
+    const schema=SCHEMAS[p.type];
     let pn=0;
+    const navy=[7,17,31],blue=[24,105,211],pale=[235,243,252],ink=[20,30,42],line=[104,118,135];
 
-    const nextPage=()=>{
+    const brandTop=(title)=>{
+      const w=doc.internal.pageSize.getWidth();
+      doc.setFillColor(...navy);doc.rect(0,0,w,16,'F');
+      doc.setFillColor(...blue);doc.rect(0,16,w,1.4,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('SPERIN SERVICES',12,7.2);
+      doc.setFont('helvetica','normal');doc.setFontSize(5.9);doc.text('ELECTRICAL CERTIFICATION · SITE WORKSHEET',12,12);
+      doc.setFont('helvetica','bold');doc.setFontSize(8.4);doc.text(String(title||''),w/2,8,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(6);
+      doc.text('Cert/Report: '+String(cert.number||''),w-12,6.5,{align:'right'});
+      doc.text(String(schema.standard||''),w-12,11.5,{align:'right'});
+      doc.setTextColor(...ink);doc.setDrawColor(...line);doc.setLineWidth(.15);
+    };
+    const newPage=(title)=>{
       if(pn)doc.addPage('a4','landscape');
-      pn++;
-      doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(.2);
-      return {w:doc.internal.pageSize.getWidth(),h:doc.internal.pageSize.getHeight()};
+      pn=doc.getNumberOfPages();
+      brandTop(title);
+      return 21;
     };
-
-    const simpleHeader=(title)=>{
-      const {w}=nextPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(11);
-      doc.text('SPERIN SERVICES',12,12);
-      doc.setFontSize(12);doc.text(title,w/2,12,{align:'center'});
-      doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-      doc.text('Certificate/Report No.: '+String(cert.number||''),w-12,12,{align:'right'});
-      doc.line(12,15,w-12,15);
-      return 19;
+    const sectionBar=(title,y)=>{
+      doc.setFillColor(...blue);doc.roundedRect(12,y,273,5.7,1,1,'F');
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7.1);
+      doc.text(String(title||'').toUpperCase(),14,y+3.9);
+      doc.setTextColor(...ink);
+      return y+7.2;
     };
-
-    const generalPage=(title)=>{
-      const {w}=nextPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('SPERIN SERVICES',12,11);
-      doc.setFontSize(11);doc.text(title,w/2,11,{align:'center'});
-      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Certificate/Report No.: '+String(cert.number||''),w-12,11,{align:'right'});
-      doc.line(12,14,w-12,14);
-      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS.',12,20);
-      doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-      doc.text('For voice read-back, read the printed heading then the answer. Say SKIP if not recorded.',12,25);
-      return 30;
+    const choiceText=(field,value)=>{
+      if(value!==undefined&&value!==null&&String(value).trim()!=='')return formatPdfValue(field,value);
+      if(field.type==='select'&&Array.isArray(field.options)&&field.options.length){
+        const opts=field.options.slice(0,7);
+        return opts.map(x=>'□ '+x).join('   ');
+      }
+      if(field.type==='checkbox')return '□';
+      return '';
     };
-
-    const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table)));
-    const groups=new Map();
-    general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});
-    let y=generalPage(SCHEMAS[p.type].name.toUpperCase()+' · SITE WORKSHEET');
-    for(const [name,items] of groups){
-      if(y>168)y=generalPage(SCHEMAS[p.type].name.toUpperCase()+' · SITE WORKSHEET');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(name.toUpperCase(),12,y);y+=2.5;
-      items.forEach(d=>d.page=pn);
-      doc.autoTable({
-        startY:y,
-        head:[['Field','Answer','Choices']],
-        body:items.map(d=>[d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),
-        margin:{left:12,right:12,bottom:10},
-        theme:'grid',
-        styles:{fontSize:7,cellPadding:1.7,minCellHeight:6.5,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]},
-        headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'bold',lineColor:[0,0,0],lineWidth:.18},
-        columnStyles:{0:{cellWidth:90,fontStyle:'bold'},1:{cellWidth:125},2:{cellWidth:60,fontSize:6.2}}
+    const sectionRows=(part)=>{
+      const fields=part.fields.filter(field=>fieldVisible(field,cert));
+      const rows=[];let pending=null;
+      const flush=()=>{if(pending){rows.push(pending);pending=null;}};
+      fields.forEach(field=>{
+        const value=choiceText(field,cert.fields?.[field.key]);
+        const long=field.type==='textarea'||field.span==='full'||field.label.length>58;
+        const label={content:field.label,styles:{fontStyle:'bold',fillColor:[247,249,252]}};
+        const answer={content:value};
+        if(long){
+          flush();
+          rows.push([label,{content:value,colSpan:3,styles:{minCellHeight:8}}]);
+        }else if(!pending){
+          pending=[label,answer];
+        }else{
+          pending.push(label,answer);rows.push(pending);pending=null;
+        }
       });
-      y=doc.lastAutoTable.finalY+5;
-    }
+      flush();
+      if(rows.length&&rows[rows.length-1].length===2){
+        rows[rows.length-1].push({content:'',styles:{fillColor:[247,249,252]}},{content:''});
+      }
+      return rows;
+    };
+    const estimateSection=(rows)=>7.2+rows.reduce((n,r)=>n+(r.some(c=>typeof c==='object'&&c?.styles?.minCellHeight>=8)?8.5:6.2),0)+2;
+    const ensure=(need,title)=>{
+      if(doc.internal.pageSize.getHeight()-10-(currentY||0)<need)currentY=newPage(title);
+    };
+    let currentY=newPage(schema.name+' · SITE WORKSHEET');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(75);
+    doc.text('Write clearly inside the answer boxes. For voice read-back, say the printed heading followed by the answer. Say “skip” if not recorded.',12,currentY);
+    currentY+=4;
+
+    schema.sections.forEach(part=>{
+      if(part.type==='section'){
+        const rows=sectionRows(part);
+        if(!rows.length)return;
+        const need=estimateSection(rows);
+        if(currentY>178 || (need<155&&currentY+need>199))currentY=newPage(schema.name+' · SITE WORKSHEET');
+        currentY=sectionBar(part.title,currentY);
+        part.fields.filter(field=>fieldVisible(field,cert)).forEach(d=>{
+          const match=descs.find(x=>x.kind==='field'&&x.key===d.key);
+          if(match)match.page=pn;
+        });
+        doc.autoTable({
+          startY:currentY,
+          body:rows,
+          margin:{left:12,right:12,top:22,bottom:10},
+          theme:'grid',
+          pageBreak:'auto',
+          rowPageBreak:'avoid',
+          styles:{fontSize:6.5,cellPadding:1.15,minCellHeight:5.7,lineColor:line,lineWidth:.12,textColor:ink,valign:'middle',overflow:'linebreak'},
+          columnStyles:{0:{cellWidth:50},1:{cellWidth:86},2:{cellWidth:50},3:{cellWidth:87}},
+          didDrawPage:()=>brandTop(schema.name+' · SITE WORKSHEET')
+        });
+        pn=doc.getNumberOfPages();
+        currentY=doc.lastAutoTable.finalY+3.2;
+      } else if(part.type==='table'&&!['boards','circuits','tests'].includes(part.key)){
+        const rows=Array.isArray(cert.tables?.[part.key])?cert.tables[part.key]:[];
+        if(!rows.length)return;
+        if(currentY>145)currentY=newPage(schema.name+' · SITE WORKSHEET');
+        currentY=sectionBar(part.title,currentY);
+        const headers=part.columns.map(c=>c.label);
+        const body=rows.map((row,ri)=>part.columns.map(col=>{
+          const value=row?.[col.key];
+          if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value);
+          if(col.type==='select'&&Array.isArray(col.options)&&col.options.length<=8)return col.options.map(x=>'□ '+x).join('  ');
+          return '';
+        }));
+        doc.autoTable({
+          startY:currentY,
+          head:[headers],
+          body,
+          margin:{left:12,right:12,top:22,bottom:10},
+          theme:'grid',
+          rowPageBreak:'avoid',
+          showHead:'everyPage',
+          styles:{fontSize:6.1,cellPadding:.9,minCellHeight:5.3,lineColor:line,lineWidth:.12,textColor:ink,valign:'middle',overflow:'linebreak'},
+          headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',lineColor:line,lineWidth:.14},
+          didDrawPage:()=>brandTop(schema.name+' · SITE WORKSHEET')
+        });
+        pn=doc.getNumberOfPages();
+        currentY=doc.lastAutoTable.finalY+3.2;
+      }
+    });
 
     const boardRow=(b,bi)=>{
       const row=(cert.tables?.boards||[])[bi]||{};
-      return {
-        ref:b.ref||row.ref||'',
-        location:b.location||row.location||'',
-        suppliedFrom:row.suppliedFrom||'',
-        zdb:row.zdb||'',
-        ipf:row.ipf||'',
-        mainSwitch:row.mainSwitch||'',
-        rcd:row.rcd||'',
-        spd:row.spd||''
-      };
+      return {ref:b.ref||row.ref||'',location:b.location||row.location||'',suppliedFrom:row.suppliedFrom||'',
+        zdb:row.zdb||'',ipf:row.ipf||'',mainSwitch:row.mainSwitch||'',rcd:row.rcd||'',spd:row.spd||''};
     };
-
-    const drawCircuitBoardBox=(b,bi,y)=>{
-      const row=boardRow(b,bi),x=12,w=273,h=33;
-      doc.rect(x,y,w,h);
-      doc.setFont('helvetica','bold');doc.setFontSize(7.6);
-      doc.text('Distribution board/Consumer unit details',x+2,y+4);
-      doc.setFont('helvetica','normal');doc.setFontSize(6.8);
-      doc.text('DB/CU reference: '+row.ref,x+2,y+10);
-      doc.text('Location: '+row.location,x+78,y+10);
-      doc.text('Supplied from: '+row.suppliedFrom,x+154,y+10);
-      doc.text('Distribution circuit OCPD: '+row.mainSwitch,x+2,y+17);
-      doc.text('SPD Details: '+row.spd,x+154,y+17);
-      doc.text('RCD: '+row.rcd,x+2,y+24);
-      doc.text('Zdb: '+row.zdb+' Ω',x+154,y+24);
-      doc.text('Ipf: '+row.ipf+' kA',x+213,y+24);
-      doc.text('Correct polarity  □    Phase sequence  □    SPD operational  □',x+154,y+30);
-      return y+h+3;
+    const boardBox=(b,bi,y,testPage=false)=>{
+      const r=boardRow(b,bi),x=12,w=273,h=testPage?20:25;
+      doc.setFillColor(...pale);doc.roundedRect(x,y,w,h,1.2,1.2,'F');
+      doc.setDrawColor(...line);doc.roundedRect(x,y,w,h,1.2,1.2,'S');
+      doc.setFillColor(...blue);doc.rect(x,y,42,5.2,'F');
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.text('DB / CU DETAILS',x+2,y+3.6);
+      doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(6.1);
+      doc.text('Reference: '+r.ref,x+46,y+3.7);doc.text('Location: '+r.location,x+102,y+3.7);doc.text('Supplied from: '+r.suppliedFrom,x+183,y+3.7);
+      if(testPage){
+        doc.text('Zdb: '+r.zdb+' Ω',x+2,y+10.3);doc.text('Ipf: '+r.ipf+' kA',x+58,y+10.3);
+        doc.text('Correct polarity  □',x+114,y+10.3);doc.text('Phase sequence  □',x+171,y+10.3);doc.text('SPD operational  □ / N/A □',x+222,y+10.3);
+      }else{
+        doc.text('Distribution OCPD: '+r.mainSwitch,x+2,y+10.3);doc.text('RCD / RCBO: '+r.rcd,x+142,y+10.3);
+        doc.text('SPD: '+r.spd,x+2,y+16.5);doc.text('Zdb: '+r.zdb+' Ω',x+142,y+16.5);doc.text('Ipf: '+r.ipf+' kA',x+193,y+16.5);
+        doc.text('Correct polarity  □   Phase sequence  □   SPD operational  □',x+2,y+22.1);
+      }
+      return y+h+2.5;
     };
-
-    const drawTestBoardBox=(b,bi,y)=>{
-      const row=boardRow(b,bi),x=12,w=273,h=26;
-      doc.rect(x,y,w,h);
-      doc.setFont('helvetica','bold');doc.setFontSize(7.6);
-      doc.text('Distribution board/Consumer unit details',x+2,y+4);
-      doc.setFont('helvetica','normal');doc.setFontSize(6.8);
-      doc.text('DB/CU reference: '+row.ref,x+2,y+10);
-      doc.text('Zdb: '+row.zdb+' Ω',x+82,y+10);
-      doc.text('Ipf: '+row.ipf+' kA',x+134,y+10);
-      doc.text('Correct polarity  □',x+2,y+18);
-      doc.text('Phase sequence  □',x+82,y+18);
-      doc.text('SPD operational status confirmed  □ / N/A □',x+154,y+18);
-      return y+h+3;
-    };
-
     const markGrid=(data,map)=>{
       if(data.section!=='body')return;
-      const d=map[data.row.index]?.[data.column.index];
-      if(!d)return;
-      d.page=pn;
-      d.grid={
-        x1:data.cell.x/doc.internal.pageSize.getWidth(),
-        y1:data.cell.y/doc.internal.pageSize.getHeight(),
-        x2:(data.cell.x+data.cell.width)/doc.internal.pageSize.getWidth(),
-        y2:(data.cell.y+data.cell.height)/doc.internal.pageSize.getHeight()
-      };
+      const d=map[data.row.index]?.[data.column.index];if(!d)return;
+      d.page=pn;d.grid={x1:data.cell.x/doc.internal.pageSize.getWidth(),y1:data.cell.y/doc.internal.pageSize.getHeight(),
+        x2:(data.cell.x+data.cell.width)/doc.internal.pageSize.getWidth(),y2:(data.cell.y+data.cell.height)/doc.internal.pageSize.getHeight()};
     };
-
-    const wiringKey=()=>{
-      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('CODES FOR TYPES OF WIRING',12,188);
-      const codes=[
-        ['A','Thermoplastic insulated/sheathed cables'],
-        ['B','Thermoplastic cables in metallic conduit'],
-        ['C','Thermoplastic cables in non-metallic conduit'],
-        ['D','Thermoplastic cables in metallic trunking'],
-        ['E','Thermoplastic cables in non-metallic trunking'],
-        ['F','Thermoplastic SWA cables'],
-        ['G','Thermosetting SWA cables'],
-        ['H','Mineral insulated cables'],
-        ['O','Other – please state']
-      ];
-      doc.autoTable({
-        startY:190,
-        head:[],
-        body:[codes.slice(0,5).map(x=>x[0]+'  '+x[1]),codes.slice(5).map(x=>x[0]+'  '+x[1])],
-        margin:{left:12,right:12},
-        theme:'grid',
-        styles:{fontSize:5.4,cellPadding:1.2,minCellHeight:6.4,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]},
-        columnStyles:{0:{cellWidth:54},1:{cellWidth:54},2:{cellWidth:54},3:{cellWidth:54},4:{cellWidth:54}}
-      });
+    const scheduleTitle=(text,y)=>{
+      doc.setFillColor(...blue);doc.roundedRect(12,y,273,5.5,1,1,'F');
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.text(text,148.5,y+3.8,{align:'center'});
+      doc.setTextColor(...ink);return y+6.8;
     };
-
+    const wiringKey=(y)=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(5.9);doc.text('WIRING TYPE CODES',12,y);
+      const codes=['A Thermoplastic insulated/sheathed','B Thermoplastic in metallic conduit','C Thermoplastic in non-metallic conduit',
+        'D Thermoplastic in metallic trunking','E Thermoplastic in non-metallic trunking','F Thermoplastic SWA',
+        'G Thermosetting SWA','H Mineral insulated','O Other'];
+      doc.autoTable({startY:y+1.5,body:[codes],margin:{left:12,right:12},theme:'grid',
+        styles:{fontSize:4.4,cellPadding:.8,minCellHeight:4.8,lineColor:line,lineWidth:.1,textColor:ink}});
+      return doc.lastAutoTable.finalY+1.5;
+    };
     const instrumentBox=(y)=>{
       const f=cert.fields||{};
-      doc.setFont('helvetica','bold');doc.setFontSize(6.8);doc.text('DETAILS OF TEST INSTRUMENTS USED (SERIAL AND/OR ASSET NUMBERS)',12,y);
-      doc.setFont('helvetica','normal');doc.setFontSize(6.2);
-      const cols=[
-        ['Multifunction',f.testerSerial||f.instrumentMft||''],
-        ['Continuity',f.testerLowOhmSerial||''],
-        ['Insulation resistance',f.testerInsulationSerial||''],
-        ['Earth fault loop impedance',f.testerLoopSerial||''],
-        ['RCD',f.testerRcdSerial||''],
-        ['Earth electrode resistance',f.testerEarthSerial||'']
-      ];
-      doc.autoTable({
-        startY:y+2,
-        head:[],
-        body:[cols.slice(0,3).map(x=>x[0]+': '+x[1]),cols.slice(3).map(x=>x[0]+': '+x[1])],
-        margin:{left:12,right:12},
-        theme:'grid',
-        styles:{fontSize:5.6,cellPadding:1.2,minCellHeight:6,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]}
-      });
-      const yy=doc.lastAutoTable.finalY+3;
-      doc.text('Tested by name (Capitals): '+String(f.testedBy||'')+'    Signature: __________________________    Date: __________________',12,yy);
-      return yy+4;
+      doc.setFillColor(...pale);doc.roundedRect(12,y,273,14.5,1,1,'F');doc.setDrawColor(...line);doc.roundedRect(12,y,273,14.5,1,1,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(5.8);doc.text('TEST INSTRUMENTS',14,y+3.4);
+      doc.setFont('helvetica','normal');doc.setFontSize(5.3);
+      doc.text('MFT: '+String(f.testerMake||'')+' '+String(f.testerModel||'')+' / '+String(f.testerSerial||''),14,y+7.3);
+      doc.text('Low Ω: __________   IR: __________   Loop/Zs: __________   RCD: __________   Earth electrode: __________',105,y+7.3);
+      doc.text('Tested by: '+String(f.testedBy||'')+'     Signature: __________________________     Date: __________________',14,y+12);
+      return y+16;
     };
 
     if(p.type==='eic'||p.type==='eicr'){
       (p.boards||[]).forEach((b,bi)=>{
         const offset=(p.boards||[]).slice(0,bi).reduce((n,x)=>n+x.circuits,0);
-        const perPage=12;
+        const perPage=18;
         for(let first=0;first<b.circuits;first+=perPage){
           const count=Math.min(perPage,b.circuits-first);
-
-          let yy=simpleHeader('GENERIC SCHEDULE OF CIRCUIT DETAILS');
-          yy=drawCircuitBoardBox(b,bi,yy);
-          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('CIRCUIT DETAILS',148.5,yy,{align:'center'});yy+=2;
+          let y=newPage('SCHEDULE OF CIRCUIT DETAILS · '+b.ref);
+          y=boardBox(b,bi,y,false);y=scheduleTitle('SCHEDULE OF CIRCUIT DETAILS',y);
 
           const cols=[
-            ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],
-            ['4','Reference method','refMethod'],['5','Number of points served','points'],
-            ['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],
-            ['8','BS (EN)','ocpdBs'],['9','Type','ocpdType'],['10','Rating (A)','ocpdRating'],
-            ['11','Breaking capacity (kA)','breakingCapacity'],['12','Maximum permitted Zs (Ω)','maxZs'],
-            ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
+            ['1','Circuit','circuitNo'],['2','Circuit description','description'],['3','Wiring','wiringType'],['4','Ref.','refMethod'],
+            ['5','Points','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
+            ['9','Type','ocpdType'],['10','A','ocpdRating'],['11','kA','breakingCapacity'],['12','Max Zs Ω','maxZs'],
+            ['13','RCD BS','rcdBs'],['14','Type','rcdType'],['15','mA','rcdIdn'],['16','A','rcdRating']
           ];
-          const widths=[10,42,15,15,14,13,13,20,11,12,16,16,19,12,12,12];
+          const widths=[10,42,15,14,13,13,13,20,10,10,13,15,18,11,10,10];
           const body=[],map=[];
-          for(let local=0;local<perPage;local++){
-            if(local<count){
-              const gi=offset+first+local,row=cert.tables?.circuits?.[gi]||{};
-              body.push(cols.map(c=>String(row[c[2]]??'')));
-              map.push(cols.map(c=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===c[2])||null));
-            }else{
-              body.push(cols.map(()=>''));map.push(cols.map(()=>null));
-            }
+          for(let local=0;local<count;local++){
+            const gi=offset+first+local,row=cert.tables?.circuits?.[gi]||{};
+            body.push(cols.map(c=>String(row[c[2]]??'')));
+            map.push(cols.map(c=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===c[2])||null));
           }
           doc.autoTable({
-            startY:yy,
+            startY:y,
             head:[
-              [
-                {content:'',colSpan:2},
-                {content:'Conductor details',colSpan:5,styles:{halign:'center'}},
-                {content:'Overcurrent protective device',colSpan:5,styles:{halign:'center'}},
-                {content:'RCD',colSpan:4,styles:{halign:'center'}}
-              ],
-              cols.map(c=>c[0]+'  '+c[1])
+              [{content:'',colSpan:2},{content:'Conductors / installation',colSpan:5,styles:{halign:'center'}},
+               {content:'Overcurrent protective device',colSpan:5,styles:{halign:'center'}},{content:'RCD',colSpan:4,styles:{halign:'center'}}],
+              cols.map(c=>c[0]+' '+c[1])
             ],
-            body,
-            margin:{left:12,right:12},
-            theme:'grid',
-            styles:{fontSize:5.1,cellPadding:.75,minCellHeight:7.2,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0],halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'normal',fontSize:4.9,lineColor:[0,0,0],lineWidth:.14},
+            body,margin:{left:12,right:12,bottom:23},theme:'grid',rowPageBreak:'avoid',
+            styles:{fontSize:4.8,cellPadding:.55,minCellHeight:5.5,lineColor:line,lineWidth:.11,textColor:ink,halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',fontSize:4.6,lineColor:line,lineWidth:.12},
             columnStyles:Object.fromEntries(widths.map((w,i)=>[i,{cellWidth:w,halign:i===1?'left':'center'}])),
             didDrawCell:data=>markGrid(data,map)
           });
-          wiringKey();
+          wiringKey(Math.min(190,doc.lastAutoTable.finalY+3));
 
-          yy=simpleHeader('GENERIC SCHEDULE OF TEST RESULTS');
-          yy=drawTestBoardBox(b,bi,yy);
-          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('TEST RESULTS',148.5,yy,{align:'center'});yy+=2;
-
+          y=newPage('SCHEDULE OF TEST RESULTS · '+b.ref);
+          y=boardBox(b,bi,y,true);y=scheduleTitle('SCHEDULE OF TEST RESULTS',y);
           const tcols=[
-            ['17','Circuit number','circuitNo'],['18','r1 (line)','r1'],['19','rn (neutral)','rn'],['20','r2 (CPC)','r2'],
-            ['21','(R1 + R2)','r1r2'],['22','R2','r2only'],['23','Test voltage V','irVoltage'],
-            ['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],
-            ['27','Maximum measured Zs (Ω)','zs'],['28','Disconnection time (ms)','rcdTime'],
-            ['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],
-            ['31','Remarks','remarks']
+            ['17','Circuit','circuitNo'],['18','r1 Ω','r1'],['19','rn Ω','rn'],['20','r2 Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
+            ['23','IR V','irVoltage'],['24','L-L MΩ','irLL'],['25','L-E MΩ','irLE'],['26','Polarity','polarity'],['27','Zs Ω','zs'],
+            ['28','RCD ms','rcdTime'],['29','RCD test','rcdButton'],['30','AFDD test','afddButton'],['31','Remarks','remarks']
           ];
-          const twidths=[10,13,13,13,15,12,14,16,16,14,15,18,18,18,54];
+          const twidths=[10,12,12,12,14,11,13,15,15,13,14,16,16,16,60];
           const tbody=[],tmap=[];
-          for(let local=0;local<perPage;local++){
-            if(local<count){
-              const gi=offset+first+local,row=cert.tables?.tests?.[gi]||{};
-              tbody.push(tcols.map(c=>String(row[c[2]]??'')));
-              tmap.push(tcols.map(c=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===c[2])||null));
-            }else{
-              tbody.push(tcols.map(()=>''));tmap.push(tcols.map(()=>null));
-            }
+          for(let local=0;local<count;local++){
+            const gi=offset+first+local,row=cert.tables?.tests?.[gi]||{};
+            tbody.push(tcols.map(c=>String(row[c[2]]??'')));
+            tmap.push(tcols.map(c=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===c[2])||null));
           }
           doc.autoTable({
-            startY:yy,
+            startY:y,
             head:[
-              [
-                {content:'',colSpan:1},
-                {content:'Continuity (Ω)',colSpan:5,styles:{halign:'center'}},
-                {content:'Insulation resistance',colSpan:3,styles:{halign:'center'}},
-                {content:'',colSpan:2},
-                {content:'RCD',colSpan:2,styles:{halign:'center'}},
-                {content:'AFDD',colSpan:1,styles:{halign:'center'}},
-                {content:'',colSpan:1}
-              ],
-              tcols.map(c=>c[0]+'  '+c[1])
+              [{content:'',colSpan:1},{content:'Continuity',colSpan:5,styles:{halign:'center'}},
+               {content:'Insulation resistance',colSpan:3,styles:{halign:'center'}},{content:'',colSpan:2},
+               {content:'RCD',colSpan:2,styles:{halign:'center'}},{content:'AFDD',colSpan:1,styles:{halign:'center'}},{content:'',colSpan:1}],
+              tcols.map(c=>c[0]+' '+c[1])
             ],
-            body:tbody,
-            margin:{left:12,right:12},
-            theme:'grid',
-            styles:{fontSize:5.1,cellPadding:.75,minCellHeight:7.2,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0],halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'normal',fontSize:4.9,lineColor:[0,0,0],lineWidth:.14},
+            body:tbody,margin:{left:12,right:12,bottom:27},theme:'grid',rowPageBreak:'avoid',
+            styles:{fontSize:4.9,cellPadding:.55,minCellHeight:5.5,lineColor:line,lineWidth:.11,textColor:ink,halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:pale,textColor:ink,fontStyle:'bold',fontSize:4.6,lineColor:line,lineWidth:.12},
             columnStyles:Object.fromEntries(twidths.map((w,i)=>[i,{cellWidth:w,halign:i===14?'left':'center'}])),
             didDrawCell:data=>markGrid(data,tmap)
           });
-          instrumentBox(Math.min(187,doc.lastAutoTable.finalY+5));
+          instrumentBox(Math.min(187,doc.lastAutoTable.finalY+3));
         }
       });
     }
 
-    p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);
+    p.descriptors=descs;p.pages=doc.getNumberOfPages();p.updatedAt=new Date().toISOString();updateStoredPlan(p);
     const total=doc.getNumberOfPages();
     for(let i=1;i<=total;i++){
-      doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(70);
-      doc.text('Sperin Services · Site worksheet '+p.id+' · Page '+i+' of '+total,148.5,207,{align:'center'});
+      doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(90);
+      doc.text('Sperin Services · '+p.id+' · Page '+i+' of '+total,148.5,206.5,{align:'center'});
     }
-    const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';
+    const name='Sperin-Site-Sheet-'+schema.code+'-'+p.id+'.pdf';
     if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}
     else{doc.save(name);toast('Site sheet PDF created');}
   }
