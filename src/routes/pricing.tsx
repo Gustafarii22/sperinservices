@@ -197,7 +197,9 @@ function Pricing() {
             <span className="eyebrow">Tap + to add</span>
             <h2 className="mt-1 text-xl font-semibold sm:text-2xl">Choose your work</h2>
           </div>
-          <p className="text-xs text-muted-foreground">One visit allowance covers multiple small jobs.</p>\n        </div>\n        <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
+          <p className="text-xs text-muted-foreground">One visit allowance covers multiple small jobs.</p>
+        </div>
+        <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
           <div>
             {["replacements", "packages"].map((group) => (
               <div key={group} className="mb-5">
@@ -257,7 +259,9 @@ function Pricing() {
                       </div>
                     </div>
                   </article>
-                ))}</div>\n              </div>\n            ))}
+                ))}</div>
+              </div>
+            ))}
             <p className="text-sm leading-relaxed text-muted-foreground">
               Consumer-unit replacements need assessment first. Existing faults, bonding upgrades
               and moving the board cost extra. New circuits, new socket positions, rewires, larger
