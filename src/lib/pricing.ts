@@ -10,35 +10,35 @@ export type Job = {
 export const JOBS: Job[] = [
   {
     id: "switch",
-    name: "Standard light switch replacement",
+    name: "Light switch",
     price: 80,
     additional: 15,
     detail: "Standard white switch supplied. Same position and suitable existing wiring.",
   },
   {
     id: "socket",
-    name: "Standard double socket replacement",
+    name: "Double socket",
     price: 85,
     additional: 20,
     detail: "Standard white socket supplied. Decorative, USB and smart accessories extra.",
   },
   {
     id: "fcu",
-    name: "Fused connection unit replacement",
+    name: "Fused spur / FCU",
     price: 85,
     additional: 20,
     detail: "Standard white fused connection unit supplied.",
   },
   {
     id: "pendant",
-    name: "Pendant and rose replacement",
+    name: "Pendant & rose",
     price: 85,
     additional: 25,
     detail: "Standard pendant and ceiling rose supplied.",
   },
   {
     id: "light",
-    name: "Ceiling or wall light fitting",
+    name: "Light fitting",
     price: 75,
     additional: 25,
     detail:
@@ -46,28 +46,28 @@ export const JOBS: Job[] = [
   },
   {
     id: "external",
-    name: "External light replacement",
+    name: "External light",
     price: 90,
     additional: 35,
     detail: "Customer supplies light. Existing position, suitable wiring and normal safe access.",
   },
   {
     id: "oven",
-    name: "Replacement oven connection",
+    name: "Oven connection",
     price: 90,
     detail:
       "Customer supplies oven. Suitable existing connection; additional ovens assessed separately.",
   },
   {
     id: "fan",
-    name: "Extractor fan replacement",
+    name: "Extractor fan",
     price: 100,
     detail:
       "Customer supplies fan. Existing opening and suitable wiring; additional fans assessed separately.",
   },
   {
     id: "alarm",
-    name: "Smoke or heat alarm replacement",
+    name: "Smoke / heat alarm",
     price: 75,
     additional: 20,
     detail:
@@ -75,63 +75,63 @@ export const JOBS: Job[] = [
   },
   {
     id: "doorbell",
-    name: "Wired doorbell installation",
+    name: "Wired doorbell",
     price: 90,
     detail:
       "Customer supplies doorbell. Suitable existing wiring and transformer required; additional units assessed separately.",
   },
   {
     id: "usb-socket",
-    name: "USB double socket replacement",
+    name: "USB double socket",
     price: 100,
     additional: 35,
     detail: "Standard USB double socket supplied. Same position and suitable existing wiring.",
   },
   {
     id: "dimmer",
-    name: "LED dimmer switch replacement",
+    name: "LED dimmer",
     price: 95,
     additional: 30,
     detail: "Standard compatible LED dimmer supplied. Existing lamps and wiring must be suitable.",
   },
   {
     id: "outside-socket",
-    name: "External weatherproof double socket",
+    name: "Outdoor socket",
     price: 0,
     detail: "New external socket installation. Route, circuit protection and cable length assessed before a fixed quotation.",
     quoteOnly: true,
   },
   {
     id: "new-point",
-    name: "New socket or lighting point",
+    name: "New socket / light point",
     price: 0,
     detail: "New point from existing or new circuit. Cable route, wall construction and circuit capacity assessed first.",
     quoteOnly: true,
   },
   {
     id: "rewire",
-    name: "Full or part rewire",
+    name: "Full / part rewire",
     price: 0,
     detail: "Survey required. Add this to your request and upload photos or plans where available.",
     quoteOnly: true,
   },
   {
     id: "ev-charger",
-    name: "EV charger installation",
+    name: "EV charger",
     price: 0,
     detail: "Survey required for supply, earthing, cable route, load assessment, DNO requirements and charger model.",
     quoteOnly: true,
   },
   {
     id: "commercial-work",
-    name: "Commercial electrical work",
+    name: "Commercial work",
     price: 0,
     detail: "For schools, offices, shops and other premises. Scope is assessed before quotation.",
     quoteOnly: true,
   },
   {
     id: "eicr6",
-    name: "Domestic EICR — up to 6 circuits",
+    name: "EICR — up to 6 circuits",
     price: 130,
     group: "eicr",
     detail:
@@ -139,7 +139,7 @@ export const JOBS: Job[] = [
   },
   {
     id: "eicr10",
-    name: "Domestic EICR — 7–10 circuits",
+    name: "EICR — 7–10 circuits",
     price: 180,
     group: "eicr",
     detail:
@@ -147,7 +147,7 @@ export const JOBS: Job[] = [
   },
   {
     id: "board6",
-    name: "FuseBox consumer unit — up to 6 circuits",
+    name: "Consumer unit — up to 6 circuits",
     price: 650,
     group: "board",
     detail:
@@ -155,7 +155,7 @@ export const JOBS: Job[] = [
   },
   {
     id: "board10",
-    name: "FuseBox consumer unit — 7–10 circuits",
+    name: "Consumer unit — 7–10 circuits",
     price: 800,
     group: "board",
     detail:
