@@ -28,19 +28,19 @@ export function Header() {
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
         <div
-          className={`relative mx-auto flex max-w-7xl items-center justify-center px-4 transition-all lg:justify-between lg:gap-5 lg:px-8 ${
+          className={`relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 transition-all lg:grid-cols-[auto_1fr_auto] lg:gap-5 lg:px-8 ${
             scrolled ? "min-h-[80px] lg:min-h-[74px]" : "min-h-[90px] lg:min-h-[86px]"
           }`}
         >
           <Link
             to="/"
-            className="flex shrink-0 items-center justify-center"
+            className="col-start-2 flex shrink-0 items-center justify-center lg:col-start-1"
             aria-label="Sperin Services home"
           >
-            <Logo className="h-[68px] w-auto max-w-[72vw] sm:h-[74px] lg:h-[72px] lg:max-w-none" />
+            <Logo className="h-[76px] w-auto max-w-[76vw] sm:h-[82px] lg:h-[82px] lg:max-w-[310px]" />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+          <nav className="hidden items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
             <ServicesDropdown />
             {NAV.map((item) => (
               <NavItem key={item.to} to={item.to} label={item.label} />

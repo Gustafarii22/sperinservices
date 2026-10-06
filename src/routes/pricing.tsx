@@ -205,29 +205,7 @@ function Pricing() {
           </p>
         </div>
 
-        <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          {[
-            ["£75", "First hour on site", "Local weekday visit, including attendance."],
-            ["£50", "Each further hour", "Billed at £25 per started half-hour."],
-            ["£350", "Eight-hour day", "Pre-booked electrician. Mate +£200/day."],
-          ].map(([price, title, detail]) => (
-            <div key={title} className="py-6 sm:px-6 first:sm:pl-0">
-              <div className="text-4xl font-semibold tracking-tight">{price}</div>
-              <h2 className="mt-2 font-semibold">{title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-            </div>
-          ))}
-        </div>
-        <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
-          <summary className="cursor-pointer font-semibold text-foreground/86">
-            Hourly, evening & weekend rates
-          </summary>
-          <p className="mt-3 leading-relaxed">
-            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:{" "}
-            <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>. A
-            pre-booked day rate replaces hourly attendance charges.
-          </p>
-        </details>
+        
       </section>
       <section id="calculator" className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -462,6 +440,36 @@ function Pricing() {
               Request this booking <ArrowRight size={17} />
             </a>
           </aside>
+        </div>
+      </section>
+      <section className="mx-auto mt-14 max-w-7xl px-4 lg:px-8">
+        <div className="border-t border-white/20 pt-8">
+          <span className="eyebrow">02 / Other ways we charge</span>
+          <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Hourly & day rates</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">These rates are mainly for fault finding, uncertain scope and work that cannot reasonably be priced in advance. If you selected a defined job above, you do not pay these rates on top.</p>
+          <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {[
+            ["£75", "First hour on site", "Local weekday visit, including attendance."],
+            ["£50", "Each further hour", "Billed at £25 per started half-hour."],
+            ["£350", "Eight-hour day", "Pre-booked electrician. Mate +£200/day."],
+          ].map(([price, title, detail]) => (
+            <div key={title} className="py-6 sm:px-6 first:sm:pl-0">
+              <div className="text-4xl font-semibold tracking-tight">{price}</div>
+              <h2 className="mt-2 font-semibold">{title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+            </div>
+          ))}
+        </div>
+        <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
+          <summary className="cursor-pointer font-semibold text-foreground/86">
+            Hourly, evening & weekend rates
+          </summary>
+          <p className="mt-3 leading-relaxed">
+            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:{" "}
+            <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>. A
+            pre-booked day rate replaces hourly attendance charges.
+          </p>
+        </details>
         </div>
       </section>
       <section id="booking" className="mx-auto mt-16 max-w-7xl scroll-mt-28 px-4 lg:px-8">
