@@ -25,6 +25,12 @@ assert(missingDynamic.length===0,'Missing dynamic action handlers: '+missingDyna
 assert(!appSource.includes('data-action="circuit-copy"'),'Copy Details button must be removed');
 assert(appSource.includes('SperinIetForms.build'),'Certificate app is not using the shared IET-style renderer');
 assert(ietSource.includes("orientation:'portrait'"),'IET-style certificate renderer must start on portrait A4');
+assert(ietSource.includes('function pdfText'),'PDF glyph-safety normalizer missing');
+assert(ietSource.includes('MARK ONE BOX WITH X'),'Worksheet X-mark instruction missing');
+assert(ietSource.includes('SPERIN SHEET'),'Machine-readable site sheet footer ID missing');
+assert(!ietSource.includes("cols.map(c=>c[0]+' '+c[1])"),'Circuit schedule column numbers were reintroduced');
+assert(!ietSource.includes("tcols.map(c=>c[0]+' '+c[1])"),'Test schedule column numbers were reintroduced');
+assert(!ietSource.includes('Outcome ✓ / N/A'),'Unsupported check glyph remains in printed inspection heading');
 assert(appSource.includes('Installation inspection checklist'),'Detailed EIC inspection checklist missing');
 assert(appSource.includes('Printable Site Worksheet'),'Printable Site Worksheet label missing');
 assert(appSource.includes('Voice Fill'),'Voice Fill label missing');
@@ -395,11 +401,13 @@ const zsDescriptor=plan.descriptors.find(d=>d.code==='B01C01-ZS');
 assert(zsDescriptor,'Zs scan descriptor missing');
 await page.evaluate(({id,pageNo})=>{
   window.sperinSheetScanResult('',JSON.stringify({
-    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'\\nB01C01-ZS Zs 0.44',
+    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'\\nB01C01-ZS Zs 0.44\\nEarthing arrangement X TN-S',
     width:2000,height:1400,
     lines:[
       {text:'SPERIN SHEET '+id+' PAGE '+pageNo,left:20,top:20,right:900,bottom:60},
-      {text:'B01C01-ZS Zs 0.44',left:50,top:200,right:700,bottom:250}
+      {text:'B01C01-ZS Zs 0.44',left:50,top:200,right:700,bottom:250},
+      {text:'Earthing arrangement',left:50,top:320,right:420,bottom:360},
+      {text:'X TN-S',left:430,top:320,right:650,bottom:360}
     ]
   }),'');
 },{id:plan.id,pageNo:zsDescriptor.page||1});
@@ -410,6 +418,7 @@ await page.waitForSelector('.circuit-list');
 stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
 linkedAfter=stored.certificates.find(c=>c.siteSheetId===plan.id);
 assert(linkedAfter.tables.tests[0].zs==='0.44','Photo scan did not apply Zs to the exact linked circuit');
+assert(linkedAfter.fields.earthingArrangement==='TN-S','Photo scan did not recognise the single X-marked multiple-choice option');
 console.log('PHOTO_SCAN_MAPPING_PASS');
 
 // Backup browser fallback should create JSON.
