@@ -3,8 +3,10 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.5.0';
+  const VERSION = '1.6.0';
   const TODAY = new Date().toISOString().slice(0, 10);
+  const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
+  const SHEET_TEMPLATES_KEY = 'sperin-certificates-site-sheet-templates-v1';
 
   const OPTIONS = {
     yesNo: ['Yes', 'No'],
@@ -60,10 +62,25 @@
   const section = (title, fields = [], opts = {}) => ({ type: 'section', title, fields, ...opts });
   const select = (key, label, options, opts = {}) => f(key, label, 'select', { options, ...opts });
 
+  const boardColumns = [
+    { key:'ref', label:'Board ref.' },
+    { key:'location', label:'Location' },
+    { key:'suppliedFrom', label:'Supplied from' },
+    { key:'zdb', label:'Zdb Ω' },
+    { key:'ipf', label:'Ipf kA' },
+    { key:'mainSwitch', label:'Main switch / device' },
+    { key:'rcd', label:'RCD / RCBO details' },
+    { key:'spd', label:'SPD' },
+    { key:'polarity', label:'Polarity', type:'select', options:OPTIONS.yesNoNA },
+    { key:'phaseSequence', label:'Phase sequence', type:'select', options:OPTIONS.yesNoNA }
+  ];
+
   const circuitColumns = [
+    { key: 'boardRef', label: 'Board ref.' },
     { key: 'circuitNo', label: 'Circuit no.' },
     { key: 'description', label: 'Circuit description' },
     { key: 'wiringType', label: 'Wiring type', type: 'select', options: OPTIONS.wiringType },
+    { key: 'installMethod', label: 'Installation / containment' },
     { key: 'refMethod', label: 'Reference method', type: 'select', options: OPTIONS.refMethod },
     { key: 'points', label: 'Points' },
     { key: 'liveCsa', label: 'Live mm²' },
@@ -101,9 +118,11 @@
 
   const CIRCUIT_DETAIL_GROUPS = [
     { title: 'Circuit', fields: [
+      { key:'boardRef', label:'Distribution board / CU reference' },
       { key:'circuitNo', label:'Circuit number' },
       { key:'description', label:'Circuit description', span:'full' },
       { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
+      { key:'installMethod', label:'Installation / containment method', span:'full' },
       { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
       { key:'points', label:'Number of points served' },
       { key:'liveCsa', label:'Live conductor csa (mm²)', options:OPTIONS.conductorCsa },
@@ -158,16 +177,23 @@
     cert.tables.circuits=cert.tables.circuits.map(row=>isRecord(row)?row:{});
     cert.tables.tests=cert.tables.tests.map(row=>isRecord(row)?row:{});
     cert.tables.circuits.forEach((row,i)=>{
+      row.boardRef = row.boardRef || cert.tables.tests[i]?.boardRef || 'DB1';
       row.circuitNo = row.circuitNo || cert.tables.tests[i]?.circuitNo || String(i+1);
+      cert.tables.tests[i].boardRef = row.boardRef;
       cert.tables.tests[i].circuitNo = row.circuitNo;
     });
   }
 
   function renumberCircuits(cert) {
     syncCircuitRows(cert);
+    const counts={};
     cert.tables.circuits.forEach((row,i)=>{
-      const no=String(i+1);
+      const board=String(row.boardRef||'DB1');
+      counts[board]=(counts[board]||0)+1;
+      const no=String(counts[board]);
+      row.boardRef=board;
       row.circuitNo=no;
+      cert.tables.tests[i].boardRef=board;
       cert.tables.tests[i].circuitNo=no;
     });
   }
@@ -514,8 +540,9 @@
         ], eicInspectionRows),
         section('I · Existing installation comments', [f('existingComments', 'Comments on existing installation (for additions/alterations)', 'textarea', { span: 'full' })]),
         section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
-        table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
-        table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
+        table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
+        table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         section('Test instrument', [
           f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
           f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
@@ -554,8 +581,9 @@
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }, { key: 'comment', label: 'Comment' }
         ], eicrInspectionRows),
         section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
-        table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
-        table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
+        table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
+        table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         section('Test instrument', [
           f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
           f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
