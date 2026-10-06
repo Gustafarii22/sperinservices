@@ -33,7 +33,9 @@ export function Header() {
             aria-label="Sperin Services home"
             className="flex min-w-0 flex-1 items-center justify-center lg:flex-none lg:justify-start"
           >
-            <Logo className="h-[64px] w-auto max-w-[calc(100vw-58px)] sm:h-[68px] sm:max-w-[440px] lg:h-[76px] lg:max-w-[350px]" />
+            <span className="flex h-[66px] w-full max-w-[calc(100vw-52px)] items-center justify-center overflow-hidden sm:max-w-[460px] lg:h-[80px] lg:max-w-[360px] lg:justify-start">
+              <Logo className="h-[92px] w-auto max-w-none sm:h-[100px] lg:h-[108px]" />
+            </span>
           </Link>
 
           <nav className="ml-auto hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
