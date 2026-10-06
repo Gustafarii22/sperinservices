@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.2.0';
+  const VERSION = '1.2.2';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -1019,31 +1019,24 @@
     return true;
   }
 
-  function webSpeakAndListen(prompt, done) {
+  function webListen(done) {
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){done('','Speech recognition is not available on this device');return;}
-    const startRecognition=function(){
-      try{
-        const r=new SR(); r.lang='en-GB'; r.interimResults=false; r.maxAlternatives=3;
-        r.onresult=function(e){done((e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript)||'','');};
-        r.onerror=function(e){done('',e.error||'Speech recognition error');};
-        r.start();
-      }catch(err){done('',err.message||'Speech recognition error');}
-    };
-    if('speechSynthesis' in window){
-      window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(prompt);u.lang='en-GB';u.rate=.95;u.onend=startRecognition;u.onerror=startRecognition;
-      window.speechSynthesis.speak(u);
-    } else startRecognition();
+    try{
+      const r=new SR(); r.lang='en-GB'; r.interimResults=false; r.maxAlternatives=3;
+      r.onresult=function(e){done((e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript)||'','');};
+      r.onerror=function(e){done('',e.error||'Speech recognition error');};
+      r.start();
+    }catch(err){done('',err.message||'Speech recognition error');}
   }
 
   function voiceAsk(prompt, done) {
     const token='voice-'+(++voiceSeq);
     voiceHandlers.set(token,done);
-    if(window.Android && window.Android.speakAndListen){
-      try{window.Android.speakAndListen(token,prompt);return;}catch(err){}
+    if(window.Android && window.Android.listen){
+      try{window.Android.listen(token);return;}catch(err){}
     }
-    webSpeakAndListen(prompt,function(text,error){window.sperinVoiceResult(token,text,error);});
+    webListen(function(text,error){window.sperinVoiceResult(token,text,error);});
   }
 
   function voiceSay(text) {
@@ -1071,7 +1064,7 @@
     if(panel) return panel;
     panel=document.createElement('div');
     panel.className='voice-panel';
-    panel.innerHTML='<div class="voice-panel-top"><div><strong>🎙 Voice questionnaire</strong><div class="meta" data-voice-progress></div></div><button class="btn small" data-action="voice-stop">Stop</button></div><div class="voice-question" data-voice-question></div><div class="voice-heard" data-voice-heard>Listening…</div><div class="voice-actions"><button class="btn small" data-action="voice-back">← Back</button><button class="btn small" data-action="voice-repeat">Repeat</button><button class="btn small" data-action="voice-skip">Skip →</button></div>';
+    panel.innerHTML='<div class="voice-panel-top"><div><strong>🎙 Speak your answers</strong><div class="meta" data-voice-progress></div></div><button class="btn small" data-action="voice-stop">Stop</button></div><div class="voice-question" data-voice-question></div><div class="voice-heard" data-voice-heard>Listening for your answer…</div><div class="voice-actions"><button class="btn small" data-action="voice-back">← Back</button><button class="btn small" data-action="voice-repeat">Listen again</button><button class="btn small" data-action="voice-skip">Skip →</button><button class="btn small" data-action="voice-read">🔊 Read question</button></div>';
     document.body.appendChild(panel);
     return panel;
   }
@@ -1090,7 +1083,7 @@
     if(!guidedVoiceState || !guidedVoiceState.active) return;
     const controls=guidedControls();
     if(!controls.length){stopGuidedVoice('No voice-fillable fields on this page',false);return;}
-    if(guidedVoiceState.index>=controls.length){stopGuidedVoice('Page questionnaire complete',true);return;}
+    if(guidedVoiceState.index>=controls.length){stopGuidedVoice('Page questionnaire complete',false);return;}
     guidedVoiceState.index=Math.max(0,guidedVoiceState.index);
     const el=controls[guidedVoiceState.index];
     const holder=el.closest('.field,td');
@@ -1099,7 +1092,7 @@
     panel.querySelector('[data-voice-progress]').textContent=(guidedVoiceState.index+1)+' of '+controls.length;
     const question=voiceQuestion(el);
     panel.querySelector('[data-voice-question]').textContent=question;
-    panel.querySelector('[data-voice-heard]').textContent='Listening…';
+    panel.querySelector('[data-voice-heard]').textContent='Listening for your answer…';
     voiceAsk(question,function(text,error){
       if(!guidedVoiceState || !guidedVoiceState.active) return;
       const heard=String(text||'').trim();
@@ -1107,12 +1100,11 @@
       if(error || !heard) return;
       const command=voiceNormalise(heard);
       if(['stop','stop voice','finish','finish voice'].includes(command)){stopGuidedVoice('Voice questionnaire stopped',false);return;}
-      if(['repeat','say again'].includes(command)){guidedStep();return;}
+      if(['repeat','listen again'].includes(command)){guidedStep();return;}
       if(['back','previous','go back'].includes(command)){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();return;}
       if(['skip','next','keep','keep answer','keep it'].includes(command)){guidedVoiceState.index++;guidedStep();return;}
       if(!applyVoiceValue(el,heard)){
-        voiceSay('I could not match '+heard+' for '+voiceLabel(el)+'. Please try again.');
-        setTimeout(guidedStep,900);
+        panel.querySelector('[data-voice-heard]').textContent='Could not match that answer. Tap Listen again or use the mic.';
         return;
       }
       guidedVoiceState.index++;
@@ -1138,7 +1130,7 @@
     voiceAsk(prompt,function(text,error){
       if(error||!text){toast(error||'Nothing heard');return;}
       if(applyVoiceValue(el,text)) toast(voiceLabel(el)+' filled by voice');
-      else {toast('Could not match that answer');voiceSay('I could not match that answer. Please try again.');}
+      else {toast('Could not match that answer');}
     });
   }
 
@@ -1218,6 +1210,13 @@
       startSingleVoice(holder && holder.querySelector('[data-field],[data-table-input],[data-circuit-input]'));
     }
     else if (action === 'voice-repeat') { if(guidedVoiceState && guidedVoiceState.active) guidedStep(); }
+    else if (action === 'voice-read') {
+      if(guidedVoiceState && guidedVoiceState.active){
+        const controls=guidedControls();
+        const el=controls[guidedVoiceState.index];
+        if(el) voiceSay(voiceQuestion(el));
+      }
+    }
     else if (action === 'voice-skip') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index++;guidedStep();} }
     else if (action === 'voice-back') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();} }
     else if (action === 'voice-stop') stopGuidedVoice('Voice questionnaire stopped',false);
