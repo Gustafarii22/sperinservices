@@ -11,13 +11,16 @@ function assert(condition, message) {
 }
 
 // Static route map: every rendered action must have a click handler.
-const actions=[...new Set([...appSource.matchAll(/data-action="([^"]+)"/g)].map(m=>m[1]))];
+const actions=[...new Set([...appSource.matchAll(/data-action="([^"]+)"/g)].map(m=>m[1]).filter(a=>!/[+'?]/.test(a)))];
 const handlers=[...new Set([
   ...[...appSource.matchAll(/action === '([^']+)'/g)].map(m=>m[1]),
   ...[...appSource.matchAll(/action==='([^']+)'/g)].map(m=>m[1])
 ])];
 const missingActions=actions.filter(a=>!handlers.includes(a));
+const dynamicActions=['site-read-plan','site-scan-plan','sheet-read-start','sheet-read-stop'];
+const missingDynamic=dynamicActions.filter(a=>!handlers.includes(a));
 assert(missingActions.length===0,'Missing action handlers: '+missingActions.join(', '));
+assert(missingDynamic.length===0,'Missing dynamic action handlers: '+missingDynamic.join(', '));
 assert(!appSource.includes('data-action="circuit-copy"'),'Copy Details button must be removed');
 assert(appSource.includes("orientation: 'landscape'"),'Certificate PDF must be landscape');
 assert(appSource.includes('Installation inspection checklist'),'Detailed EIC inspection checklist missing');
