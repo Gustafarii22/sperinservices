@@ -606,6 +606,12 @@
     }
   }
 
+  function saveNow() {
+    clearTimeout(autosaveTimer);
+    persist();
+    updateSaveState('Saved');
+  }
+
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
   function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[ch])); }
   function fmtDate(v) { if (!v) return ''; const d = new Date(v + (v.length === 10 ? 'T12:00:00' : '')); return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString('en-GB'); }
@@ -1403,6 +1409,7 @@
 
   function assistantNext() {
     if(!guidedVoiceState||!guidedVoiceState.active) return;
+    saveNow();
     const meta=ensureVoiceMeta(getCurrent());
     (guidedVoiceState.currentKeys||[]).forEach(key=>{
       const el=controlByVoiceKey(key);
@@ -1509,10 +1516,15 @@
   document.addEventListener('change', e => {
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) {
       e.target.dispatchEvent(new Event('input', { bubbles: true }));
+      saveNow();
       if(e.target.matches('[data-field="signatoryMode"]')){
         const y=window.scrollY; render(); requestAnimationFrame(()=>window.scrollTo(0,y));
       }
     }
+  });
+
+  document.addEventListener('focusout', e => {
+    if(e.target.matches?.('[data-field],[data-table-input],[data-circuit-input],[data-setting]')) saveNow();
   });
 
   document.addEventListener('change', e => {
@@ -1560,7 +1572,7 @@
     else if (action === 'edit') openCertificate(button.dataset.id)
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
-    else if (action === 'home') { persist(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
+    else if (action === 'home') { saveNow(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'pdf') downloadPDF();
     else if (action === 'complete-pdf') { if(cert){cert.status='Complete';syncSingleSignatory(cert);persist();render();downloadPDF();} }
     else if (action === 'print') printCertificate();
@@ -1584,9 +1596,9 @@
     else if(action==='circuit-delete' && cert){
       const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);persist();render();}
     }
-    else if(action==='circuit-next' && cert){persist();view.circuitStep='tests';render();goTop();}
-    else if(action==='circuit-prev' && cert){persist();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){persist();view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
+    else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
+    else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
+    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
     else if(action==='circuit-recalc' && cert){const i=Number(button.dataset.index);recalculateCircuitZs(cert,i,true);persist();render();}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); cert.tables[key].splice(ri, 1); persist(); render(); }
