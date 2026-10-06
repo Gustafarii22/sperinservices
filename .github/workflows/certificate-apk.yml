@@ -78,7 +78,8 @@ jobs:
           mkdir -p certificate-android/app/src/main/assets/certificates
           cp public/certificates/index.html certificate-android/app/src/main/assets/certificates/
           cp public/certificates/styles.css certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/\n          cp public/certificates/iet-forms.js certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/iet-forms.js certificate-android/app/src/main/assets/certificates/
           cp public/certificates/manifest.webmanifest certificate-android/app/src/main/assets/certificates/
           cp public/certificates/icon.svg certificate-android/app/src/main/assets/certificates/
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
