@@ -55,7 +55,7 @@ await context.addInitScript(() => {
         { circuitNo:'1', description:'Lighting', ocpdBs:'BS EN 60898-1', ocpdType:'B', ocpdRating:'6' },
         { circuitNo:'2', description:'Sockets', ocpdBs:'BS EN 60898-1', ocpdType:'B', ocpdRating:'32' }
       ],
-      tests: [{circuitNo:'1'},{circuitNo:'2'}],
+      tests: [{circuitNo:'1',zs:'1.11'},{circuitNo:'2',zs:'0.22'}],
       eicInspection: [
         {item:'1.0',description:'Legacy inspection row',outcome:'✓'}
       ]
@@ -186,7 +186,7 @@ assert(beforeOrder[0].includes('Lighting') && beforeOrder[1].includes('Sockets')
 await page.locator('[data-action="circuit-move-down"]').first().click();
 await page.waitForTimeout(60);
 const afterOrder=await page.locator('.circuit-card .circuit-main').allTextContents();
-assert(afterOrder[0].includes('Sockets') && afterOrder[1].includes('Lighting'),'Circuit reorder failed');
+assert(afterOrder[0].includes('Sockets') && afterOrder[0].includes('Zs 0.22') && afterOrder[1].includes('Lighting') && afterOrder[1].includes('Zs 1.11'),'Circuit reorder failed or test rows were not kept with their circuits');
 
 // Open reordered B32 circuit and verify max Zs, next/back save and return position.
 await page.locator('.circuit-card').first().locator('[data-action="circuit-open"]').click();
