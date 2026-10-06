@@ -96,7 +96,7 @@ await page.route('https://api.ideal-postcodes.co.uk/**', async route => {
     code:2000,
     message:'Success'
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(payload)});
+  await route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(payload)});
 });
 
 await page.goto(base, { waitUntil: 'domcontentloaded' });
