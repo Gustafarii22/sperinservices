@@ -69,10 +69,11 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.2.2");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.3.2");
 
         setupVoice();
 
@@ -115,7 +116,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(LIVE_URL);
+        webView.loadUrl(LIVE_URL + "?native=1.3.2");
     }
 
     private void setupVoice() {
