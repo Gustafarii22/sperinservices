@@ -891,6 +891,7 @@
         </div>
       </section>
       <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
+      ${siteWorkflowHome()}
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Tap anywhere on a row to open it.</p></div><div class="saved-cert-list">${rows}</div></section>
     </main>`;
@@ -908,7 +909,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>A paper-friendly question list to take around site, write on, then enter or dictate back into the certificate later.</span></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>A paper-friendly question list to take around site, write on, then enter or dictate back into the certificate later.</span></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1005,7 +1006,7 @@
     return `<section class="card form-section circuit-list"><h3>Schedule of circuits</h3><div class="circuit-list-body">${cards||'<div class="empty">No circuits added.</div>'}</div><div class="table-tools"><button class="btn primary" data-action="circuit-add">+ Add circuit</button></div></section>`;
   }
 
-  function editorInput(scope,index,field,value){
+  function editorInput(cert,scope,index,field,value){
     const id=`dl-${scope}-${index}-${field.key}`;
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
@@ -1013,7 +1014,8 @@
     else if(field.options) control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
     else control=`<input ${attrs} value="${esc(value||'')}"/>`;
     const extra=field.suffix==='zs' ? `<button class="btn small" type="button" data-action="circuit-recalc" data-index="${index}">Recalculate</button><div class="meta">Auto for BS EN 60898-1 / 61009-1 B, C or D devices; manual entry remains available.</div>` : '';
-    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button></div>${extra}</div>`;
+    const auto=cert.autoMeta?.['circuit:'+index+':'+field.key] ? `<button class="auto-derived-badge" type="button" data-action="auto-info" data-index="${index}" data-key="${esc(field.key)}">Auto</button>` : '';
+    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)} ${auto}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${warningButton(cert,index,field.key)}</div>${extra}</div>`;
   }
 
   function circuitEditorView(cert){
@@ -1026,7 +1028,7 @@
     const step=view.circuitStep==='tests'?'tests':'details';
     const groups=(step==='details'?CIRCUIT_DETAIL_GROUPS:CIRCUIT_TEST_GROUPS).map(g=>{
       const source=step==='details'?circuit:test;
-      return `<section class="card form-section"><h3>${esc(g.title)}</h3><div class="fields">${g.fields.map(f=>editorInput(step,i,f,source[f.key]??'')).join('')}</div></section>`;
+      return `<section class="card form-section"><h3>${esc(g.title)}</h3><div class="fields">${g.fields.map(f=>editorInput(cert,step,i,f,source[f.key]??'')).join('')}</div></section>`;
     }).join('');
     const title=`Circuit ${esc(circuit.circuitNo||String(i+1))}`;
     const nav=step==='details'
@@ -2142,6 +2144,9 @@
   }
 
   window.sperinHandleBack=function(){
+    if(document.querySelector('.site-builder-backdrop')){closeSiteBuilder();return true;}
+    if(document.querySelector('.sheet-read-backdrop')){if(siteReadState)siteReadState.listening=false;document.querySelector('.sheet-read-backdrop')?.remove();siteReadState=null;return true;}
+    if(document.querySelector('.sheet-scan-backdrop')){document.querySelector('.sheet-scan-backdrop')?.remove();siteScanState=null;return true;}
     if(document.querySelector('.postcode-backdrop')){closeModal();return true;}
     if(document.querySelector('.rapid-backdrop')){closeRapidEntry();return true;}
     if(document.querySelector('.voice-panel')){stopGuidedVoice('');return true;}
@@ -2181,14 +2186,37 @@
         if(col==='maxZs') target.maxZsManual=true;
         if(['ocpdBs','ocpdType','ocpdRating'].includes(col)) recalculateCircuitZs(cert,i);
         if(col==='circuitNo') cert.tables.tests[i].circuitNo=e.target.value;
+        if(col==='boardRef') cert.tables.tests[i].boardRef=e.target.value;
       }
       scheduleAutosave();
     }
     if (e.target.matches('[data-setting]')) settings[e.target.dataset.setting] = e.target.value;
+    if(e.target.matches('[data-site-builder]') && siteBuilderState){
+      const key=e.target.dataset.siteBuilder;
+      siteBuilderState[key]=e.target.value;
+    }
+    if(e.target.matches('[data-site-board]') && siteBuilderState){
+      const i=Number(e.target.dataset.siteBoard),key=e.target.dataset.siteBoardKey;
+      if(siteBuilderState.boards[i]) siteBuilderState.boards[i][key]=key==='circuits'?Math.max(1,Math.min(72,parseInt(e.target.value,10)||1)):e.target.value;
+    }
+    if(e.target.matches('[data-scan-value]') && siteScanState){
+      const i=Number(e.target.dataset.scanValue),r=siteScanState.results[i];
+      if(r){r.value=e.target.value;if(String(e.target.value).trim()){r.accepted=true;if(r.confidence==='missing')r.confidence='check';}}
+    }
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) markVoiceDone(e.target);
   });
 
   document.addEventListener('change', e => {
+    if(e.target.matches('[data-site-builder="type"]') && siteBuilderState){
+      if((siteBuilderState.type==='eic'||siteBuilderState.type==='eicr')&&!siteBuilderState.boards.length) siteBuilderState.boards=[{ref:'DB1',location:'',circuits:12}];
+      renderSiteBuilder();
+      return;
+    }
+    if(e.target.matches('[data-sheet-scan-files]') && siteScanState){
+      queueScanFiles(Array.from(e.target.files||[]));
+      e.target.value='';
+      return;
+    }
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) {
       e.target.dispatchEvent(new Event('input', { bubbles: true }));
       saveNow();
@@ -2229,7 +2257,38 @@
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if (action === 'postcode-find') postcodeLookup(button.dataset.postcodeKey);
+    if(action==='site-builder') openSiteSheetBuilder();
+    else if(action==='site-builder-close') closeSiteBuilder();
+    else if(action==='site-board-add' && siteBuilderState){
+      siteBuilderState.boards.push({ref:'DB'+(siteBuilderState.boards.length+1),location:'',circuits:12});renderSiteBuilder();
+    }
+    else if(action==='site-board-remove' && siteBuilderState){
+      const i=Number(button.dataset.index);if(siteBuilderState.boards.length>1)siteBuilderState.boards.splice(i,1);renderSiteBuilder();
+    }
+    else if(action==='site-template-save') saveCurrentSheetTemplate();
+    else if(action==='site-template-load') loadSheetTemplate(button.dataset.templateId);
+    else if(action==='site-generate') generateSiteSheetFromBuilder();
+    else if(action==='site-read') planPicker('read');
+    else if(action==='site-scan') planPicker('scan');
+    else if(action==='site-read-plan') openSheetRead(button.dataset.planId);
+    else if(action==='site-scan-plan') openSheetScan(button.dataset.planId);
+    else if(action==='sheet-read-close'){if(siteReadState)siteReadState.listening=false;document.querySelector('.sheet-read-backdrop')?.remove();siteReadState=null;}
+    else if(action==='sheet-read-start' && siteReadState){siteReadState.listening=true;renderSheetRead();sheetReadLoop();}
+    else if(action==='sheet-read-stop' && siteReadState){siteReadState.listening=false;renderSheetRead();}
+    else if(action==='sheet-read-process' && siteReadState){const v=document.querySelector('[data-sheet-read-text]')?.value||'';parseSheetSpeech(v);renderSheetRead();}
+    else if(action==='sheet-read-open-cert' && siteReadState){const id=siteReadState.cert.id;siteReadState.listening=false;document.querySelector('.sheet-read-backdrop')?.remove();siteReadState=null;openCertificate(id);}
+    else if(action==='sheet-scan-close'){document.querySelector('.sheet-scan-backdrop')?.remove();siteScanState=null;}
+    else if(action==='sheet-scan-camera' && siteScanState){
+      if(window.Android&&typeof window.Android.captureAndScanSheet==='function'){const token=nextScanToken();siteScanState.pendingToken=token;window.Android.captureAndScanSheet(token);}
+      else document.querySelector('[data-sheet-scan-files]')?.click();
+    }
+    else if(action==='scan-accept' && siteScanState){const r=siteScanState.results[Number(button.dataset.index)];if(r){r.accepted=!r.accepted;renderSheetScan();}}
+    else if(action==='scan-speak' && siteScanState){const i=Number(button.dataset.index),r=siteScanState.results[i];if(r)voiceAsk(r.label,(text,error)=>{if(text){r.value=text;r.accepted=true;if(r.confidence==='missing')r.confidence='check';}if(error&&!text)toast(error);renderSheetScan();});}
+    else if(action==='scan-apply') applyScanResults();
+    else if(action==='warning-open') openWarningModal(button.dataset.scope,button.dataset.index,button.dataset.key);
+    else if(action==='warnings-list') openWarningModal('all',0,'');
+    else if(action==='auto-info' && cert){const meta=cert.autoMeta?.['circuit:'+button.dataset.index+':'+button.dataset.key];if(meta)alert('Auto-filled\n\n'+meta.reason+'\n\nYou can overwrite this value manually.');}
+    else if (action === 'postcode-find') postcodeLookup(button.dataset.postcodeKey);
     else if (action === 'postcode-select') selectPostcodeAddress(button.dataset.postcodeKey,button.dataset.addressIndex);
     else if (action === 'share-backup') shareBackup();
     else if (action === 'rapid-entry') openRapidEntry(false);
@@ -2273,7 +2332,7 @@
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
     else if(action==='circuit-add' && cert){
       syncCircuitRows(cert);const no=nextCircuitNumber(cert);
-      cert.tables.circuits.push({circuitNo:no});cert.tables.tests.push({circuitNo:no});
+      const board=cert.tables.circuits.at(-1)?.boardRef||'DB1';cert.tables.circuits.push({boardRef:board,circuitNo:no});cert.tables.tests.push({boardRef:board,circuitNo:no});
       view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-move-up' && cert){moveCircuit(cert,Number(button.dataset.index),-1);}
