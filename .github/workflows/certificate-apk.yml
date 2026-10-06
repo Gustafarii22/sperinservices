@@ -78,7 +78,7 @@ jobs:
           mkdir -p certificate-android/app/src/main/assets/certificates
           cp public/certificates/index.html certificate-android/app/src/main/assets/certificates/
           cp public/certificates/styles.css certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/\n          cp public/certificates/iet-forms.js certificate-android/app/src/main/assets/certificates/
           cp public/certificates/manifest.webmanifest certificate-android/app/src/main/assets/certificates/
           cp public/certificates/icon.svg certificate-android/app/src/main/assets/certificates/
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
@@ -91,13 +91,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.6.0.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.6.0
-          path: certificate-android/dist/Sperin-Certificates-v1.6.0.apk
+          name: Sperin-Certificates-v1.7.0
+          path: certificate-android/dist/Sperin-Certificates-v1.7.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -105,10 +105,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.6.0"
-          APK="certificate-android/dist/Sperin-Certificates-v1.6.0.apk"
+          TAG="certificates-v1.7.0"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.0.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.6.0" --notes "Field workflow release: configurable whole-certificate Site Sheets with board and circuit counts, reusable templates, fixed-order voice read-back, machine-readable Sheet IDs and field codes, bundled on-device photo text recognition with review states, Twin & Earth CPC derivation, reference-method safeguards, and tappable technical warning checks."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.0" --notes "Form reset release: EIC, EICR and Minor Works outputs rebuilt around the current BS 7671:2018+A4:2026 IET model-form structure with the IET logo omitted and restrained Sperin Services branding. Printable site worksheets use the same form renderer. Emergency lighting and smoke-alarm certificates use the same Sperin form styling."
           fi
