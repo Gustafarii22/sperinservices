@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.2.2';
+  const VERSION = '1.3.2';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -645,7 +645,7 @@
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
     else if (field.type === 'select') control = `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
-    return `<div class="field ${span}"><label>${esc(field.label)}</label>${control}</div>`;
+    return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button></div></div>`;
   }
 
   function renderCircuitList(cert){
@@ -668,7 +668,7 @@
     else if(field.options) control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
     else control=`<input ${attrs} value="${esc(value||'')}"/>`;
     const extra=field.suffix==='zs' ? `<button class="btn small" type="button" data-action="circuit-recalc" data-index="${index}">Recalculate</button><div class="meta">Auto for BS EN 60898-1 / 61009-1 B, C or D devices; manual entry remains available.</div>` : '';
-    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)}</label>${control}${extra}</div>`;
+    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button></div>${extra}</div>`;
   }
 
   function circuitEditorView(cert){
@@ -700,8 +700,8 @@
   function renderTableControl(tableKey, rowIndex, col, value) {
     if (col.readonly) return `<span>${esc(value)}</span>`;
     const attrs = `data-table-input="${tableKey}" data-row="${rowIndex}" data-col="${col.key}"`;
-    if (col.type === 'select') return `<select ${attrs}><option value=""></option>${(col.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    return `<input ${attrs} value="${esc(value)}" />`;
+    if (col.type === 'select') return `<div class="voice-control table-voice"><select ${attrs}><option value=""></option>${(col.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
+    return `<div class="voice-control table-voice"><input ${attrs} value="${esc(value)}" /><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
   }
 
   function openSettings() {
@@ -1138,9 +1138,11 @@
     const controls=document.querySelectorAll('#app [data-field],#app [data-table-input],#app [data-circuit-input]');
     controls.forEach(function(el){
       if(el.dataset.voiceDecorated==='1') return;
+      const existing=el.parentElement && el.parentElement.querySelector(':scope > .voice-mic');
+      if(existing){el.dataset.voiceDecorated='1';return;}
       el.dataset.voiceDecorated='1';
       const mic=document.createElement('button');
-      mic.type='button';mic.className='voice-mic';mic.dataset.action='voice-one';mic.textContent='🎙';mic.setAttribute('aria-label','Speak '+voiceLabel(el));
+      mic.type='button';mic.className='voice-mic';mic.dataset.action='voice-one';mic.innerHTML='🎙 <span>Speak</span>';mic.setAttribute('aria-label','Speak answer for '+voiceLabel(el));
       if(el.type==='checkbox'){
         const field=el.closest('.field');
         if(field) field.appendChild(mic);
