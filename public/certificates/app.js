@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -30,7 +30,10 @@
     smokeCategory: ['LD1', 'LD2', 'LD3', 'PD1', 'PD2', 'Other'],
     alarmType: ['Optical smoke', 'Ionisation smoke', 'Heat', 'Multi-sensor', 'CO', 'Sounder', 'Strobe / visual alarm', 'Vibrating pad', 'Control / relay', 'Other'],
     interlink: ['Hard-wired', 'Radio-linked', 'Hybrid', 'Standalone', 'Other'],
-    testResult: ['Pass', 'Fail', 'N/A']
+    testResult: ['Pass', 'Fail', 'N/A'],
+    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 3036', 'BS 1361', 'Other'],
+    ocpdRating: ['2', '4', '6', '10', '16', '20', '25', '32', '40', '50', '63', '80', '100', '125'],
+    testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other']
   };
 
   const f = (key, label, type = 'text', opts = {}) => ({ key, label, type, ...opts });
@@ -74,6 +77,144 @@
     { key: 'afddButton', label: 'AFDD test', type: 'select', options: OPTIONS.testResult },
     { key: 'remarks', label: 'Remarks' }
   ];
+
+
+
+  const CIRCUIT_DETAIL_GROUPS = [
+    { title: 'Circuit', fields: [
+      { key:'circuitNo', label:'Circuit number' },
+      { key:'description', label:'Circuit description', span:'full' },
+      { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
+      { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
+      { key:'points', label:'Number of points served' },
+      { key:'liveCsa', label:'Live conductor csa (mm²)' },
+      { key:'cpcCsa', label:'CPC csa (mm²)' }
+    ]},
+    { title: 'Overcurrent protective device', fields: [
+      { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
+      { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
+      { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
+      { key:'breakingCapacity', label:'Breaking capacity (kA)' },
+      { key:'maxZs', label:'Maximum permitted Zs (Ω)', suffix:'zs' }
+    ]},
+    { title: 'RCD', fields: [
+      { key:'rcdBs', label:'BS (EN)', options:['BS EN 61008-1','BS EN 61009-1','Other'] },
+      { key:'rcdType', label:'Type', options:OPTIONS.rcdType },
+      { key:'rcdIdn', label:'IΔn (mA)', options:['10','30','100','300','500'] },
+      { key:'rcdRating', label:'Rating (A)', options:OPTIONS.ocpdRating }
+    ]}
+  ];
+
+  const CIRCUIT_TEST_GROUPS = [
+    { title:'Continuity', fields:[
+      { key:'r1', label:'r1 (line) Ω' }, { key:'rn', label:'rn (neutral) Ω' }, { key:'r2', label:'r2 (CPC) Ω' },
+      { key:'r1r2', label:'R1 + R2 (Ω)' }, { key:'r2only', label:'R2 (Ω)' }
+    ]},
+    { title:'Insulation resistance', fields:[
+      { key:'irVoltage', label:'Test voltage (V)', options:['250','500','1000'] },
+      { key:'irLL', label:'Live–Live (MΩ)' }, { key:'irLE', label:'Live–Earth (MΩ)' }
+    ]},
+    { title:'Final tests', fields:[
+      { key:'polarity', label:'Polarity', options:OPTIONS.testResult },
+      { key:'zs', label:'Maximum measured Zs (Ω)' },
+      { key:'rcdTime', label:'RCD disconnection time (ms)' },
+      { key:'rcdButton', label:'RCD test button', options:OPTIONS.testResult },
+      { key:'afddButton', label:'AFDD manual test button', options:OPTIONS.testResult },
+      { key:'remarks', label:'Remarks', span:'full', textarea:true }
+    ]}
+  ];
+
+  function nextCircuitNumber(cert) {
+    const nums=(cert.tables?.circuits||[]).map(r=>parseInt(r.circuitNo,10)).filter(Number.isFinite);
+    return String((nums.length ? Math.max(...nums) : 0)+1);
+  }
+
+  function syncCircuitRows(cert) {
+    if (!cert?.tables) return;
+    cert.tables.circuits = Array.isArray(cert.tables.circuits) ? cert.tables.circuits : [];
+    cert.tables.tests = Array.isArray(cert.tables.tests) ? cert.tables.tests : [];
+    const total=Math.max(cert.tables.circuits.length,cert.tables.tests.length);
+    while(cert.tables.circuits.length<total) cert.tables.circuits.push({});
+    while(cert.tables.tests.length<total) cert.tables.tests.push({});
+    cert.tables.circuits.forEach((row,i)=>{
+      row.circuitNo = row.circuitNo || cert.tables.tests[i]?.circuitNo || String(i+1);
+      cert.tables.tests[i].circuitNo = row.circuitNo;
+    });
+  }
+
+  function calculateMaxZs(row, cert) {
+    const curve=String(row?.ocpdType||'').trim().toUpperCase();
+    const factor={B:5,C:10,D:20}[curve];
+    const rating=parseFloat(row?.ocpdRating);
+    const standard=String(row?.ocpdBs||'');
+    if(!factor || !Number.isFinite(rating) || rating<=0 || !/60898|61009/.test(standard)) return '';
+    const rawU=String(cert?.fields?.nominalVoltage||'230').match(/\d+(?:\.\d+)?/g)||['230'];
+    let u0=Math.min(...rawU.map(Number).filter(Number.isFinite));
+    if(!Number.isFinite(u0) || u0>300) u0=230;
+    const zs=(0.95*u0)/(factor*rating);
+    return zs>=10 ? zs.toFixed(1) : zs.toFixed(2);
+  }
+
+  function recalculateCircuitZs(cert,index,force=false) {
+    const row=cert?.tables?.circuits?.[index]; if(!row) return;
+    if(force) row.maxZsManual=false;
+    if(row.maxZsManual) return;
+    const calc=calculateMaxZs(row,cert);
+    if(calc) row.maxZs=calc;
+  }
+
+  function singleSignatoryMode(cert) {
+    return cert?.fields?.signatoryMode === 'One person — design, construction & inspection';
+  }
+
+  function syncSingleSignatory(cert) {
+    if(!cert || cert.type!=='eic' || !singleSignatoryMode(cert)) return;
+    const f=cert.fields;
+    const name=f.singleSignatoryName||'';
+    const company=f.singleSignatoryCompany||'';
+    const address=f.singleSignatoryAddress||'';
+    const signature=f.singleSignatorySignature||'';
+    const date=f.singleSignatoryDate||'';
+    f.designer1=name; f.constructor=name; f.inspector=name;
+    f.designerCompany=company; f.constructorCompany=company; f.inspectorCompany=company;
+    f.designerAddress=address; f.constructorAddress=address; f.inspectorAddress=address;
+    f.designer1Signature=signature; f.constructorSignature=signature; f.inspectorSignature=signature;
+    f.designer1Date=date; f.constructorDate=date; f.inspectionDate=date;
+  }
+
+  function migrateCertificate(cert) {
+    cert.fields = cert.fields || {};
+    cert.tables = cert.tables || {};
+    if(cert.type==='eic'){
+      const f=cert.fields;
+      if(!f.signatoryMode){
+        const same=f.designer1 && f.designer1===f.constructor && f.designer1===f.inspector;
+        f.signatoryMode=same ? 'One person — design, construction & inspection' : 'Separate people';
+      }
+      if(f.signatoryMode==='One person — design, construction & inspection'){
+        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||settings?.engineerName||'';
+        f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||settings?.companyName||'';
+        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||settings?.address||'';
+        f.singleSignatorySignature=f.singleSignatorySignature||f.designer1Signature||f.constructorSignature||f.inspectorSignature||'';
+        f.singleSignatoryDate=f.singleSignatoryDate||f.designer1Date||f.constructorDate||f.inspectionDate||'';
+        syncSingleSignatory(cert);
+      }
+    }
+    if(cert.type==='eic'||cert.type==='eicr'){
+      syncCircuitRows(cert);
+      const f=cert.fields;
+      f.testerMake=f.testerMake||'';
+      f.testerModel=f.testerModel||'';
+      f.testerSerial=f.testerSerial||f.instrumentMft||'';
+      if(f.testerMft===undefined) f.testerMft=Boolean(f.instrumentMft);
+      ['testerLowOhm','testerInsulation','testerLoop','testerRcd','testerEarth','testerVoltage'].forEach(k=>{if(f[k]===undefined)f[k]=false;});
+    }
+    return cert;
+  }
+
+  function goTop() {
+    requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
+  }
 
   const eicInspectionRows = [
     ['1.0', 'Condition of consumer’s intake equipment (visual inspection only)'],
@@ -171,9 +312,35 @@
       sections: [
         section('A · Client details', [f('clientName', 'Client / person ordering the work', 'text', { span: 'full' }), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date')]),
         section('B · Installation details', [f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), f('description', 'Description of installation', 'textarea', { span: 'full' }), select('workType', 'Type of work', OPTIONS.workType), f('extent', 'Extent of installation covered by this certificate', 'textarea', { span: 'full' })]),
-        section('C · Certification signatories', [f('designDepartures', 'Design: departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('designer1', 'Designer 1 name'), f('designer1Date', 'Designer 1 date', 'date'), f('designer2', 'Designer 2 name'), f('designer2Date', 'Designer 2 date', 'date'), f('constructor', 'Constructor name'), f('constructorDate', 'Construction date', 'date'), f('inspector', 'Inspector name'), f('inspectionDate', 'Inspection & testing date', 'date'), f('constructionDepartures', 'Construction: departures from BS 7671', 'textarea', { span: 'full' }), f('inspectionDepartures', 'Inspection & testing: departures from BS 7671', 'textarea', { span: 'full' })]),
+        section('C · Certification & signatories', [
+          select('signatoryMode', 'Responsibility', ['One person — design, construction & inspection', 'Separate people']),
+          f('singleSignatoryName', 'Name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryCompany', 'For/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryAddress', 'Address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatorySignature', 'Signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryDate', 'Date', 'date', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('designer1', 'Designer name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designerCompany', 'Designer — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designerAddress', 'Designer address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designer1Signature', 'Designer signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designer1Date', 'Designer date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructor', 'Constructor name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorCompany', 'Constructor — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorAddress', 'Constructor address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorSignature', 'Constructor signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorDate', 'Construction date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspector', 'Inspector name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorCompany', 'Inspector — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorAddress', 'Inspector address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorSignature', 'Inspector signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectionDate', 'Inspection & testing date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designDepartures', 'Design departures from BS 7671', 'textarea', { span:'full' }),
+          f('constructionDepartures', 'Construction departures from BS 7671', 'textarea', { span:'full' }),
+          f('inspectionDepartures', 'Inspection & testing departures from BS 7671', 'textarea', { span:'full' }),
+          f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span:'full' }),
+          select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA)
+        ]),
         section('D · Next inspection', [f('nextInspectionInterval', 'Recommended interval before next inspection (years/months)', 'text', { span: 'full' })]),
-        section('E · Signatory particulars', [f('designerCompany', 'Designer — for/on behalf of'), f('designerAddress', 'Designer address', 'textarea'), f('constructorCompany', 'Constructor — for/on behalf of'), f('constructorAddress', 'Constructor address', 'textarea'), f('inspectorCompany', 'Inspector — for/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea')]),
         section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), f('nominalVoltage', 'Nominal voltage U/U0 (V)'), f('frequency', 'Nominal frequency (Hz)'), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), f('supplyDeviceBs', 'Supply protective device BS (EN)'), f('supplyDeviceType', 'Supply protective device type'), f('supplyDeviceRating', 'Rated current (A)'), f('supplyBreakingCapacity', 'Breaking capacity (kA)'), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
         section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Maximum demand unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type'), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), f('earthingConductorMaterial', 'Earthing conductor material'), f('earthingConductorCsa', 'Earthing conductor csa (mm²)'), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), f('bondingMaterial', 'Main bonding conductor material'), f('bondingCsa', 'Main bonding conductor csa (mm²)'), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), f('mainSwitchPoles', 'No. of poles'), f('mainSwitchCurrent', 'Current rating (A)'), f('mainSwitchVoltage', 'Voltage rating (V)'), f('mainSwitchDeviceType', 'Overcurrent device type / setting'), f('mainSwitchBreaking', 'Breaking capacity (kA)'), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdIdn', 'RCD IΔn (mA)'), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
         table('eicInspection', 'H · Schedule of inspections', [
@@ -183,7 +350,17 @@
         section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), f('dbSpd', 'SPD details / type(s)'), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
-        section('Test instruments', [f('instrumentContinuity', 'Continuity tester serial/asset no.'), f('instrumentInsulation', 'Insulation resistance tester serial/asset no.'), f('instrumentLoop', 'Earth fault loop tester serial/asset no.'), f('instrumentRcd', 'RCD tester serial/asset no.'), f('instrumentEarth', 'Earth electrode tester serial/asset no.'), f('instrumentMft', 'Multifunction tester serial/asset no.'), f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')])
+        section('Test instrument', [
+          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
+          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
+          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
+          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
+          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
+          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
+          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
+          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
+          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
+        ])
       ]
     },
 
@@ -213,7 +390,17 @@
         section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), f('dbSpd', 'SPD details / type(s)'), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
-        section('Test instruments', [f('instrumentContinuity', 'Continuity tester serial/asset no.'), f('instrumentInsulation', 'Insulation resistance tester serial/asset no.'), f('instrumentLoop', 'Earth fault loop tester serial/asset no.'), f('instrumentRcd', 'RCD tester serial/asset no.'), f('instrumentEarth', 'Earth electrode tester serial/asset no.'), f('instrumentMft', 'Multifunction tester serial/asset no.'), f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')])
+        section('Test instrument', [
+          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
+          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
+          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
+          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
+          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
+          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
+          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
+          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
+          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
+        ])
       ]
     },
 
@@ -270,13 +457,14 @@
 
   let state = loadState();
   let settings = loadSettings();
-  let view = { page: 'home', currentId: null };
+  let view = { page: 'home', currentId: null, circuitIndex: null, circuitStep: 'details' };
   let autosaveTimer = null;
 
   function loadState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return { certificates: Array.isArray(parsed.certificates) ? parsed.certificates : [] };
+      const certificates = Array.isArray(parsed.certificates) ? parsed.certificates : [];
+      return { certificates: certificates.map(migrateCertificate) };
     } catch { return { certificates: [] }; }
   }
 
@@ -311,6 +499,7 @@
 
   function defaultFor(field) {
     if (field.defaultValue !== undefined) return field.defaultValue;
+    if (field.type === 'checkbox') return false;
     if (field.type === 'date' && /date|Date/.test(field.key)) return '';
     return '';
   }
@@ -338,15 +527,25 @@
     if ('installerCompany' in fields) fields.installerCompany = settings.companyName;
     if ('verifierCompany' in fields) fields.verifierCompany = settings.companyName;
     if ('commissionerCompany' in fields) fields.commissionerCompany = settings.companyName;
-    return { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
+    if ('signatoryMode' in fields) {
+      fields.signatoryMode = 'One person — design, construction & inspection';
+      fields.singleSignatoryName = settings.engineerName;
+      fields.singleSignatoryCompany = settings.companyName;
+      fields.singleSignatoryAddress = [settings.address, settings.postcode].filter(Boolean).join('\n');
+    }
+    if ('testerMft' in fields) fields.testerMft = true;
+    const cert = { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
+    migrateCertificate(cert);
+    syncSingleSignatory(cert);
+    return cert;
   }
 
   function newCertificate(type) {
     const cert = makeCertificate(type);
     state.certificates.unshift(cert);
-    view = { page: 'form', currentId: cert.id };
+    view = { page: 'form', currentId: cert.id, circuitIndex: null, circuitStep: 'details' };
     persist();
-    render();
+    render(); goTop();
     toast('New certificate created');
   }
 
@@ -386,33 +585,90 @@
     const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
     const cards = Object.entries(SCHEMAS).map(([key, s]) => `<div class="card cert-card"><div class="cert-icon">${s.icon}</div><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><span class="pill">${esc(s.standard)}</span><button class="btn primary" data-action="new" data-type="${key}">Start certificate</button></div>`).join('');
     const rows = state.certificates.length ? state.certificates.map(c => {
-      const s = SCHEMAS[c.type];
+      const sch = SCHEMAS[c.type];
       const addr = c.fields.installationAddress || c.fields.premisesAddress || c.fields.clientName || c.fields.premisesName || 'No address entered';
-      return `<div class="card draft"><div><div class="draft-title">${s.icon} ${esc(c.number || s.name)}</div><div class="draft-sub">${esc(s.name)} · ${esc(String(addr).replace(/\n/g, ', '))}</div></div><div><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span><div class="draft-sub">Updated ${new Date(c.updatedAt).toLocaleString('en-GB')}</div></div><div class="toolbar"><button class="btn small primary" data-action="edit" data-id="${c.id}">Open</button><button class="btn small" data-action="duplicate" data-id="${c.id}">Duplicate</button><button class="btn small danger" data-action="delete" data-id="${c.id}">Delete</button></div></div>`;
+      return `<div class="card draft"><div><div class="draft-title">${sch.icon} ${esc(c.number || sch.name)}</div><div class="draft-sub">${esc(sch.name)} · ${esc(String(addr).replace(/\n/g, ', '))}</div></div><div><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span><div class="draft-sub">Updated ${new Date(c.updatedAt).toLocaleString('en-GB')}</div></div><div class="toolbar"><button class="btn small primary" data-action="edit" data-id="${c.id}">Open</button><button class="btn small" data-action="duplicate" data-id="${c.id}">Duplicate</button><button class="btn small danger" data-action="delete" data-id="${c.id}">Delete</button></div></div>`;
     }).join('') : `<div class="card empty">No certificates yet. Choose a certificate type above to start.</div>`;
-    return `<div class="hero"><div class="card hero-main"><div class="eyebrow">Field certification app</div><h2>Complete certificates on-site, save drafts and export PDFs.</h2><p>Built around the current UK technical certificate data. Entries stay on this device by default, so you can continue working even without a backend subscription.</p></div><div class="card hero-side"><div><div class="meta">Certificates stored on this device</div><strong>${state.certificates.length}</strong></div><div class="toolbar"><span class="pill">${drafts} draft</span><span class="pill">${completed} complete</span></div></div></div><div class="grid">${cards}</div><div class="section-head"><h2>Saved certificates</h2><div class="meta">Autosaved locally</div></div><div class="list">${rows}</div><div class="footer-note">Independent certificate software. It does not issue NICEIC-branded certificates or claim NICEIC approval. Electrical workflows are based on current BS 7671 model-form information; you remain responsible for inspection, testing, coding, competence and the technical accuracy of issued records.</div>`;
+    return `<div class="hero"><div class="card hero-main"><div class="eyebrow">Field certification app</div><h2>Complete certificates on-site, save drafts and export PDFs.</h2><p>Entries stay on this device and are autosaved while you work.</p></div><div class="card hero-side"><div><div class="meta">Certificates stored on this device</div><strong>${state.certificates.length}</strong></div><div class="toolbar"><span class="pill">${drafts} draft</span><span class="pill">${completed} complete</span></div></div></div><div class="grid">${cards}</div><div class="section-head"><h2>Saved certificates</h2><div class="meta">Autosaved locally</div></div><div class="list">${rows}</div><div class="footer-note">Independent certificate software. Electrical workflows follow current BS 7671 model-form information; the person signing remains responsible for technical accuracy, inspection, testing and competence.</div>`;
   }
 
   function formView() {
-    const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null }; return homeView(); }
+    const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
+    migrateCertificate(cert);
+    if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
-    const sections = schema.sections.map(part => part.type === 'section' ? renderSection(part, cert) : renderTable(part, cert)).join('');
-    return `<div class="form-head"><button class="btn back" data-action="home">←</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print / Save PDF</button><button class="btn primary" data-action="pdf">Download PDF</button></div></div><div class="note warning">This is an independent certificate layout, not an official NICEIC-branded form. Use the data only where you are competent and authorised to certify the work.</div>${sections}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Done</button><button class="btn small primary" data-action="pdf">Download PDF</button></div></div>`;
+    const sections = schema.sections.map(part => {
+      if(part.type==='section') return renderSection(part,cert);
+      if(part.key==='circuits') return renderCircuitList(cert);
+      if(part.key==='tests') return '';
+      return renderTable(part,cert);
+    }).join('');
+    const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+  }
+
+  function fieldVisible(field,cert){
+    if(!field.showWhen) return true;
+    return String(cert.fields[field.showWhen.key]||'')===String(field.showWhen.value);
   }
 
   function renderSection(part, cert) {
-    const fields = part.fields.map(field => renderField(field, cert.fields[field.key] ?? '')).join('');
+    const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}<div class="fields">${fields}</div></section>`;
   }
 
-  function renderField(field, value) {
+  function renderField(field, value, cert) {
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
     let control = '';
-    if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
+    if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
+    else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
     else if (field.type === 'select') control = `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     return `<div class="field ${span}"><label>${esc(field.label)}</label>${control}</div>`;
+  }
+
+  function renderCircuitList(cert){
+    syncCircuitRows(cert);
+    const rows=cert.tables.circuits;
+    const cards=rows.map((row,i)=>{
+      const test=cert.tables.tests[i]||{};
+      const title=row.circuitNo ? `Circuit ${esc(row.circuitNo)}` : `Circuit ${i+1}`;
+      const details=[row.description,row.ocpdType&&row.ocpdRating?`${row.ocpdType}${row.ocpdRating} A`:row.ocpdRating?`${row.ocpdRating} A`:'',test.zs?`Zs ${test.zs} Ω`:''].filter(Boolean).join(' · ');
+      return `<div class="circuit-card"><button class="circuit-main" data-action="circuit-open" data-index="${i}"><strong>${title}</strong><span>${esc(details||'Tap to enter circuit details')}</span></button><div class="circuit-actions"><button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small" data-action="circuit-copy" data-index="${i}">Copy details</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button></div></div>`;
+    }).join('');
+    return `<section class="card form-section circuit-list"><h3>Schedule of circuits</h3><div class="circuit-list-body">${cards||'<div class="empty">No circuits added.</div>'}</div><div class="table-tools"><button class="btn primary" data-action="circuit-add">+ Add circuit</button></div></section>`;
+  }
+
+  function editorInput(scope,index,field,value){
+    const id=`dl-${scope}-${index}-${field.key}`;
+    const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
+    let control;
+    if(field.textarea) control=`<textarea ${attrs}>${esc(value||'')}</textarea>`;
+    else if(field.options) control=`<><input style="display:none"></>`;
+    if(field.options){
+      control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
+    } else if(!field.textarea) control=`<input ${attrs} value="${esc(value||'')}"/>`;
+    const extra=field.suffix==='zs' ? `<button class="btn small" type="button" data-action="circuit-recalc" data-index="${index}">Recalculate</button><div class="meta">Auto for BS EN 60898-1 / 61009-1 B, C or D devices; manual entry remains available.</div>` : '';
+    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)}</label>${control}${extra}</div>`;
+  }
+
+  function circuitEditorView(cert){
+    syncCircuitRows(cert);
+    const i=Math.max(0,Math.min(Number(view.circuitIndex)||0,cert.tables.circuits.length-1));
+    view.circuitIndex=i;
+    const circuit=cert.tables.circuits[i]||{};
+    const test=cert.tables.tests[i]||{};
+    const step=view.circuitStep==='tests'?'tests':'details';
+    const groups=(step==='details'?CIRCUIT_DETAIL_GROUPS:CIRCUIT_TEST_GROUPS).map(g=>{
+      const source=step==='details'?circuit:test;
+      return `<section class="card form-section"><h3>${esc(g.title)}</h3><div class="fields">${g.fields.map(f=>editorInput(step,i,f,source[f.key]??'')).join('')}</div></section>`;
+    }).join('');
+    const title=`Circuit ${esc(circuit.circuitNo||String(i+1))}`;
+    const nav=step==='details'
+      ? `<button class="btn primary" data-action="circuit-next">Next · Test results →</button>`
+      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-list">Save circuit</button>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions"><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list">Circuits</button></div></div>`;
   }
 
   function renderTable(part, cert) {
@@ -471,23 +727,32 @@
   function pdfSafeName(cert) { return `${cert.number || SCHEMAS[cert.type].code}-${(cert.fields.installationAddress || cert.fields.premisesAddress || '').split('\n')[0] || 'certificate'}`.replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-'); }
 
   function pdfHeader(doc, schema, cert) {
-    doc.setFillColor(7, 17, 31); doc.rect(0, 0, 210, 24, 'F');
+    const w=doc.internal.pageSize.getWidth();
+    doc.setFillColor(7, 17, 31); doc.rect(0, 0, w, 24, 'F');
     doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('SPERIN SERVICES', 14, 10);
     doc.setFontSize(10); doc.text(schema.name.toUpperCase(), 14, 17);
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(cert.number || '', 196, 10, { align: 'right' }); doc.text(schema.standard, 196, 17, { align: 'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(cert.number || '', w-14, 10, { align: 'right' }); doc.text(schema.standard, w-14, 17, { align: 'right' });
     doc.setTextColor(20,28,38);
   }
 
   function pdfFooter(doc) {
     const pages = doc.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
-      doc.setPage(i); doc.setFontSize(7); doc.setTextColor(100); doc.text(`Sperin Certificates · Independent certificate software · Page ${i} of ${pages}`, 105, 291, { align: 'center' });
+      doc.setPage(i);
+      const w=doc.internal.pageSize.getWidth(), h=doc.internal.pageSize.getHeight();
+      doc.setFontSize(7); doc.setTextColor(100);
+      doc.text(`Sperin Certificates · Independent certificate software · Page ${i} of ${pages}`, w/2, h-6, { align: 'center' });
     }
+  }
+
+  function hasPdfValue(field,value){
+    if(field.type==='checkbox') return value===true;
+    return value!==undefined && value!==null && String(value).trim()!=='';
   }
 
   async function downloadPDF() {
     const cert = getCurrent(); if (!cert) return;
-    persist();
+    syncSingleSignatory(cert); persist();
     const schema = SCHEMAS[cert.type];
     const jsPDFCtor = window.jspdf?.jsPDF;
     if (!jsPDFCtor || typeof (new jsPDFCtor()).autoTable !== 'function') {
@@ -496,38 +761,50 @@
     }
     try {
       const doc = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      let orientation='portrait', y=30;
       pdfHeader(doc, schema, cert);
-      let y = 30;
-      const ensureSpace = (need = 25) => { if (y + need > 278) { doc.addPage(); pdfHeader(doc, schema, cert); y = 30; } };
-      const addSectionTitle = title => { ensureSpace(12); doc.setFillColor(235,242,250); doc.rect(12, y-5, 186, 8, 'F'); doc.setFont('helvetica','bold'); doc.setTextColor(20,40,62); doc.setFontSize(9); doc.text(title, 14, y); doc.setTextColor(20,28,38); y += 6; };
+      const newPage=(o=orientation)=>{doc.addPage('a4',o);orientation=o;pdfHeader(doc,schema,cert);y=30;};
+      const ensureSpace=(need=25)=>{const h=doc.internal.pageSize.getHeight();if(y+need>h-18)newPage(orientation);};
+      const addSectionTitle=title=>{ensureSpace(12);const w=doc.internal.pageSize.getWidth();doc.setFillColor(235,242,250);doc.rect(12,y-5,w-24,8,'F');doc.setFont('helvetica','bold');doc.setTextColor(20,40,62);doc.setFontSize(9);doc.text(title,14,y);doc.setTextColor(20,28,38);y+=6;};
+      const backToPortrait=()=>{if(orientation!=='portrait')newPage('portrait');};
 
       schema.sections.forEach(part => {
         if (part.type === 'section') {
+          backToPortrait();
+          const visible=part.fields.filter(field=>fieldVisible(field,cert)).filter(field=>hasPdfValue(field,cert.fields[field.key]));
+          if(!visible.length) return;
           addSectionTitle(part.title);
-          const body = part.fields.map(field => [field.label, formatPdfValue(field, cert.fields[field.key])]);
-          doc.autoTable({ startY: y, head: [], body, margin: { left: 12, right: 12, top: 30, bottom: 16 }, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 2, textColor: [25,33,43], lineColor: [190,202,217], lineWidth: .15 }, columnStyles: { 0: { cellWidth: 66, fontStyle: 'bold', fillColor: [248,250,252] }, 1: { cellWidth: 120 } }, didDrawPage: data => { if (data.pageNumber > 1) pdfHeader(doc, schema, cert); } });
-          y = doc.lastAutoTable.finalY + 7;
-        } else if (part.type === 'table') {
-          const rows = cert.tables[part.key] || [];
+          const body=visible.map(field=>[field.label,formatPdfValue(field,cert.fields[field.key])]);
+          doc.autoTable({ startY:y, head:[], body, margin:{left:12,right:12,top:30,bottom:16}, theme:'grid', styles:{fontSize:7.7,cellPadding:1.8,textColor:[25,33,43],lineColor:[205,214,225],lineWidth:.12}, columnStyles:{0:{cellWidth:62,fontStyle:'bold',fillColor:[248,250,252]},1:{cellWidth:124}}, didDrawPage:()=>pdfHeader(doc,schema,cert) });
+          y=doc.lastAutoTable.finalY+6;
+        } else if(part.type==='table') {
+          const rows=(cert.tables[part.key]||[]).filter(row=>Object.values(row).some(v=>v!==undefined&&v!==null&&String(v).trim()!==''));
+          if(!rows.length) return;
+          const schedule=part.key==='circuits'||part.key==='tests';
+          if(schedule){newPage('landscape');} else backToPortrait();
           addSectionTitle(part.title);
-          const head = [part.columns.map(c => c.label)];
-          const body = rows.map(row => part.columns.map(c => String(row[c.key] ?? '')));
-          doc.autoTable({ startY: y, head, body, margin: { left: 8, right: 8, top: 30, bottom: 16 }, theme: 'grid', styles: { fontSize: part.columns.length > 8 ? 5.2 : 6.5, cellPadding: 1.3, overflow: 'linebreak', lineColor: [190,202,217], lineWidth: .12 }, headStyles: { fillColor: [20,55,92], textColor: [255,255,255], fontStyle: 'bold' }, didDrawPage: data => { if (data.pageNumber > 1) pdfHeader(doc, schema, cert); } });
-          y = doc.lastAutoTable.finalY + 7;
+          const head=[part.columns.map(c=>c.label)], body=rows.map(row=>part.columns.map(c=>String(row[c.key]??'')));
+          doc.autoTable({startY:y,head,body,margin:{left:8,right:8,top:30,bottom:16},theme:'grid',
+            styles:{fontSize:schedule?6.5:(part.columns.length>8?5.7:7),cellPadding:schedule?1.5:1.3,overflow:'linebreak',lineColor:[195,205,216],lineWidth:.12},
+            headStyles:{fillColor:[20,55,92],textColor:[255,255,255],fontStyle:'bold'},
+            didDrawPage:()=>pdfHeader(doc,schema,cert)});
+          y=doc.lastAutoTable.finalY+6;
         }
       });
-
-      ensureSpace(20);
-      doc.setFontSize(7.2); doc.setTextColor(80); doc.text('Independent certificate record. Not an official NICEIC-branded certificate. Technical accuracy and competence remain the responsibility of the person(s) signing the certificate.', 12, y, { maxWidth: 186 });
+      backToPortrait();
+      ensureSpace(16);
+      doc.setFontSize(7.2); doc.setTextColor(80);
+      doc.text('Independent certificate record. Technical accuracy and competence remain the responsibility of the person(s) signing the certificate.',12,y,{maxWidth:186});
       pdfFooter(doc);
       doc.save(`${pdfSafeName(cert)}.pdf`);
-      toast('PDF downloaded');
+      toast('PDF created');
     } catch (err) {
       console.error(err); alert('PDF generation hit an error. The print-to-PDF screen will open instead.'); window.print();
     }
   }
 
   function formatPdfValue(field, value) {
+    if(field.type==='checkbox') return value ? 'Yes' : '';
     if (!value) return '';
     if (field.type === 'date') return fmtDate(value);
     return String(value);
@@ -541,8 +818,10 @@
   document.addEventListener('input', e => {
     const cert = getCurrent();
     if (e.target.matches('[data-field]') && cert) {
-      const key = e.target.dataset.field; cert.fields[key] = e.target.value;
-      if (key === 'certificateNo') cert.number = e.target.value;
+      const key=e.target.dataset.field;
+      cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
+      if(key==='certificateNo') cert.number=e.target.value;
+      if(key==='signatoryMode'||key.startsWith('singleSignatory')) syncSingleSignatory(cert);
       scheduleAutosave();
     }
     if (e.target.matches('[data-table-input]') && cert) {
@@ -551,32 +830,79 @@
       if (!cert.tables[tableInput][ri]) cert.tables[tableInput][ri] = {};
       cert.tables[tableInput][ri][col] = e.target.value; scheduleAutosave();
     }
+    if(e.target.matches('[data-circuit-input]')&&cert){
+      const scope=e.target.dataset.circuitInput, i=Number(e.target.dataset.index), col=e.target.dataset.col;
+      syncCircuitRows(cert);
+      const target=scope==='details'?cert.tables.circuits[i]:cert.tables.tests[i];
+      target[col]=e.target.value;
+      if(scope==='details'){
+        if(col==='maxZs') target.maxZsManual=true;
+        if(['ocpdBs','ocpdType','ocpdRating'].includes(col)) recalculateCircuitZs(cert,i);
+        if(col==='circuitNo') cert.tables.tests[i].circuitNo=e.target.value;
+      }
+      scheduleAutosave();
+    }
     if (e.target.matches('[data-setting]')) settings[e.target.dataset.setting] = e.target.value;
   });
 
   document.addEventListener('change', e => {
-    if (e.target.matches('[data-field],[data-table-input]')) e.target.dispatchEvent(new Event('input', { bubbles: true }));
+    if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) {
+      e.target.dispatchEvent(new Event('input', { bubbles: true }));
+      if(e.target.matches('[data-field="signatoryMode"]')){
+        const y=window.scrollY; render(); requestAnimationFrame(()=>window.scrollTo(0,y));
+      }
+    }
   });
 
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
+    const cert=getCurrent();
     if (action === 'new') newCertificate(button.dataset.type);
-    else if (action === 'edit') { view = { page: 'form', currentId: button.dataset.id }; render(); scrollTo(0,0); }
+    else if (action === 'edit') { view = { page: 'form', currentId: button.dataset.id, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
-    else if (action === 'home') { persist(); view = { page: 'home', currentId: null }; render(); scrollTo(0,0); }
+    else if (action === 'home') { persist(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'pdf') downloadPDF();
+    else if (action === 'complete-pdf') { if(cert){cert.status='Complete';syncSingleSignatory(cert);persist();render();downloadPDF();} }
     else if (action === 'print') printCertificate();
-    else if (action === 'status') { const c = getCurrent(); if (c) { c.status = c.status === 'Complete' ? 'Draft' : 'Complete'; persist(); render(); toast(`Marked ${c.status.toLowerCase()}`); } }
-    else if (action === 'row-add') { const c = getCurrent(); if (!c) return; const key = button.dataset.table; c.tables[key] = c.tables[key] || []; c.tables[key].push({}); persist(); render(); }
-    else if (action === 'row-delete') { const c = getCurrent(); if (!c) return; const key = button.dataset.table; const ri = Number(button.dataset.row); c.tables[key].splice(ri, 1); persist(); render(); }
+    else if (action === 'status') { if (cert) { cert.status = cert.status === 'Complete' ? 'Draft' : 'Complete'; persist(); render(); toast(`Marked ${cert.status.toLowerCase()}`); } }
+    else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
+    else if(action==='circuit-add' && cert){
+      syncCircuitRows(cert);const no=nextCircuitNumber(cert);
+      cert.tables.circuits.push({circuitNo:no});cert.tables.tests.push({circuitNo:no});
+      view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+    }
+    else if(action==='circuit-duplicate' && cert){
+      syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
+      const c=clone(cert.tables.circuits[i]||{}),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
+      cert.tables.circuits.push(c);cert.tables.tests.push(t);view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+    }
+    else if(action==='circuit-copy' && cert){
+      syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
+      const c=clone(cert.tables.circuits[i]||{});c.circuitNo=no;c.maxZsManual=false;cert.tables.circuits.push(c);cert.tables.tests.push({circuitNo:no});
+      view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+    }
+    else if(action==='circuit-delete' && cert){
+      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);persist();render();}
+    }
+    else if(action==='circuit-next' && cert){persist();view.circuitStep='tests';render();goTop();}
+    else if(action==='circuit-prev' && cert){persist();view.circuitStep='details';render();goTop();}
+    else if(action==='circuit-list' && cert){persist();view.circuitIndex=null;view.circuitStep='details';render();goTop();}
+    else if(action==='circuit-recalc' && cert){const i=Number(button.dataset.index);recalculateCircuitZs(cert,i,true);persist();render();}
+    else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
+    else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); cert.tables[key].splice(ri, 1); persist(); render(); }
     else if (action === 'settings') openSettings();
     else if (action === 'save-settings') { saveSettings(); closeModal(); toast('Settings saved'); }
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
     else if (action === 'backup') backup();
     else if (action === 'restore') restore();
   });
+
+  setInterval(()=>{ if(state.certificates.length) persist(); },30000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') persist(); });
+  window.addEventListener('pagehide',persist);
+  window.addEventListener('beforeunload',persist);
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
