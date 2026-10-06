@@ -50,11 +50,12 @@ export function Header() {
             className="absolute left-1/2 -translate-x-1/2"
             aria-label="Sperin Services home"
           >
-            <span className="relative block h-[64px] w-[210px] overflow-hidden sm:h-[72px] sm:w-[270px] lg:h-[76px] lg:w-[320px]">
+            <span className="relative block h-[64px] w-[220px] overflow-hidden sm:h-[72px] sm:w-[280px] lg:h-[76px] lg:w-[330px]">
               <img
                 src={logo}
                 alt="Sperin Services"
                 className="absolute right-0 top-1/2 h-[92px] w-auto max-w-none -translate-y-1/2 sm:h-[100px] lg:h-[106px]"
+                style={{ clipPath: "inset(0 0 0 35%)" }}
                 draggable={false}
               />
             </span>
