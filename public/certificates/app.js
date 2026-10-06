@@ -249,7 +249,16 @@
       } else if(part.type==='table'){
         let rows=Array.isArray(cert.tables[part.key]) ? cert.tables[part.key] : [];
         rows=rows.filter(isRecord).map(row=>({...row}));
-        if(!rows.length && Array.isArray(part.defaultRows) && part.defaultRows.length) rows=clone(part.defaultRows);
+        if(Array.isArray(part.defaultRows) && part.defaultRows.length){
+          if(!rows.length) rows=clone(part.defaultRows);
+          else if(part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
+            const keyName=part.defaultRows.some(r=>r.item!==undefined)?'item':'ref';
+            const existing=new Map(rows.map(r=>[String(r[keyName]??''),r]));
+            rows=part.defaultRows.map(def=>({...clone(def),...(existing.get(String(def[keyName]??''))||{})}));
+            const known=new Set(part.defaultRows.map(r=>String(r[keyName]??'')));
+            rows.push(...Array.from(existing.entries()).filter(([k])=>k&&!known.has(k)).map(([,r])=>r));
+          }
+        }
         cert.tables[part.key]=rows;
       }
     });
@@ -808,10 +817,11 @@
       const fields=isRecord(c.fields)?c.fields:{};
       const customer=fields.clientName || fields.customerName || fields.personOrdering || fields.occupier || fields.responsiblePerson || fields.premisesName || 'Customer name not entered';
       const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
+      const postcode=fields.installationPostcode || fields.premisesPostcode || fields.clientPostcode || '';
       const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
       return `<div class="saved-cert-row" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
         <div class="saved-cert-accent">${sch.icon}</div>
-        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
+        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
         <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
         <div class="saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
       </div>`;
@@ -2012,7 +2022,7 @@
   });
 
   document.addEventListener('keydown', e => {
-    const card=e.target.closest?.('.saved-cert-card[data-action="edit"]');
+    const card=e.target.closest?.('.saved-cert-row[data-action="edit"]');
     if(!card || e.target.closest('button,input,select,textarea')) return;
     if(e.key==='Enter' || e.key===' '){e.preventDefault();openCertificate(card.dataset.id);}
   });
@@ -2076,7 +2086,7 @@
       cert.tables.circuits.push(c);cert.tables.tests.push(t);renumberCircuits(cert);view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
-      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);persist();render();}
+      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);saveNow();render();goCircuits();}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
