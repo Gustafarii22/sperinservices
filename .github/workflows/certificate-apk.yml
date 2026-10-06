@@ -81,6 +81,9 @@ jobs:
           cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/
           cp public/certificates/manifest.webmanifest certificate-android/app/src/main/assets/certificates/
           cp public/certificates/icon.svg certificate-android/app/src/main/assets/certificates/
+          mkdir -p certificate-android/app/src/main/assets/certificates/vendor
+          cp public/certificates/vendor/jspdf.umd.min.js certificate-android/app/src/main/assets/certificates/vendor/
+          cp public/certificates/vendor/jspdf.plugin.autotable.min.js certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build APK
         run: gradle -p certificate-android :app:assembleDebug --no-daemon --stacktrace
