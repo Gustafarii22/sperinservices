@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -843,6 +843,332 @@
     const el = document.createElement('div'); el.className = 'toast'; el.textContent = message; document.body.appendChild(el); setTimeout(() => el.remove(), 1800);
   }
 
+
+  let voiceSeq = 0;
+  const voiceHandlers = new Map();
+  let guidedVoiceState = null;
+
+  function voiceSupported() {
+    return !!((window.Android && window.Android.speakAndListen) || window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function voiceNormalise(value) {
+    return String(value || '').toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[–—-]/g, ' ')
+      .replace(/[^a-z0-9.]+/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  function spokenNumber(value) {
+    const raw = voiceNormalise(value)
+      .replace(/\b(amps?|amperes?|volts?|ohms?|milliohms?|megaohms?|megohms?|millimetres?|millimeters?|mm|kilowatts?|kw|milliamps?|ma|milliseconds?|ms|ka)\b/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    if (/^-?\d+(\.\d+)?$/.test(raw)) return raw;
+    const small={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+    const tens={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+    const parts=raw.split(' ').filter(Boolean);
+    if(!parts.length) return null;
+    let total=0,current=0,decimal='',afterPoint=false,seen=false;
+    for(const p of parts){
+      if(p==='and') continue;
+      if(p==='point'){afterPoint=true;seen=true;continue;}
+      if(afterPoint){
+        if(Object.prototype.hasOwnProperty.call(small,p) && small[p] < 10){decimal+=String(small[p]);seen=true;continue;}
+        if(/^\d$/.test(p)){decimal+=p;seen=true;continue;}
+        return null;
+      }
+      if(Object.prototype.hasOwnProperty.call(small,p)){current+=small[p];seen=true;continue;}
+      if(Object.prototype.hasOwnProperty.call(tens,p)){current+=tens[p];seen=true;continue;}
+      if(p==='hundred'){current=(current||1)*100;seen=true;continue;}
+      if(p==='thousand'){total+=(current||1)*1000;current=0;seen=true;continue;}
+      if(/^\d+$/.test(p)){current+=Number(p);seen=true;continue;}
+      return null;
+    }
+    if(!seen) return null;
+    const whole=total+current;
+    return decimal ? String(whole)+'.'+decimal : String(whole);
+  }
+
+  function voiceOptions(el) {
+    if(el.tagName==='SELECT') return Array.from(el.options).map(o=>o.value).filter(Boolean);
+    const listId=el.getAttribute('list');
+    if(listId){
+      const list=document.getElementById(listId);
+      if(list) return Array.from(list.querySelectorAll('option')).map(o=>o.value).filter(Boolean);
+    }
+    return [];
+  }
+
+  function matchVoiceOption(raw, options) {
+    if(!options.length) return null;
+    const n=voiceNormalise(raw);
+    const aliases={
+      'not applicable':'n a','na':'n a','n a':'n a',
+      'pme':'tn c s pme','tncs':'tn c s','tn c s':'tn c s',
+      'tns':'tn s','tn s':'tn s',
+      'passed':'pass','failed':'fail','tick':'pass','correct':'pass'
+    };
+    const target=aliases[n]||n;
+    const normalized=options.map(value=>({value:value,n:voiceNormalise(value)}));
+    let hit=normalized.find(o=>o.n===target);
+    if(hit) return hit.value;
+    if(target.startsWith('type ')){
+      const stripped=target.slice(5).trim();
+      hit=normalized.find(o=>o.n===stripped || o.n.endsWith(' '+stripped));
+      if(hit) return hit.value;
+    }
+    if(target==='yes'){
+      hit=normalized.find(o=>o.n==='yes'||o.n==='pass'||o.value==='✓');
+      if(hit) return hit.value;
+    }
+    if(target==='no'){
+      hit=normalized.find(o=>o.n==='no'||o.n==='fail');
+      if(hit) return hit.value;
+    }
+    if(target==='pass'){
+      hit=normalized.find(o=>o.n==='pass'||o.value==='✓');
+      if(hit) return hit.value;
+    }
+    if(target==='fail'){
+      hit=normalized.find(o=>o.n==='fail');
+      if(hit) return hit.value;
+    }
+    if(target==='n a'){
+      hit=normalized.find(o=>o.n==='n a'||o.n==='na'||o.n==='not applicable');
+      if(hit) return hit.value;
+    }
+    hit=normalized.find(o=>o.n.includes(target) || target.includes(o.n));
+    return hit ? hit.value : null;
+  }
+
+  function voiceLabel(el) {
+    const field=el.closest('.field');
+    if(field){
+      const labels=field.querySelectorAll('label');
+      if(labels.length) return labels[0].textContent.trim();
+    }
+    const td=el.closest('td');
+    const table=el.closest('table');
+    if(td && table){
+      const cells=Array.from(td.parentElement.children);
+      const index=cells.indexOf(td);
+      const th=table.querySelectorAll('thead th')[index];
+      const section=table.closest('.form-section');
+      const heading=section ? section.querySelector('h3') : null;
+      return [heading && heading.textContent.trim(),th && th.textContent.trim()].filter(Boolean).join(', ');
+    }
+    return el.dataset.col || el.dataset.field || 'Field';
+  }
+
+  function voiceCurrentValue(el) {
+    if(el.type==='checkbox') return el.checked ? 'Yes' : 'No';
+    return String(el.value||'').trim();
+  }
+
+  function voiceQuestion(el) {
+    const label=voiceLabel(el);
+    const current=voiceCurrentValue(el);
+    const opts=voiceOptions(el);
+    let q=label+'?';
+    if(current) q+=' Current answer is '+current+'. Say keep to leave it unchanged.';
+    if(opts.length && opts.length<=7) q+=' Choices: '+opts.join(', ')+'.';
+    q+=' You can also say skip, back, repeat, or stop.';
+    return q;
+  }
+
+  function parseSpokenDate(raw) {
+    const text=String(raw||'').trim();
+    const slash=text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+    if(slash){
+      const year=slash[3].length===2 ? '20'+slash[3] : slash[3];
+      return year+'-'+String(slash[2]).padStart(2,'0')+'-'+String(slash[1]).padStart(2,'0');
+    }
+    const d=new Date(text);
+    if(!Number.isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    return null;
+  }
+
+  function applyVoiceValue(el, raw) {
+    const text=String(raw||'').trim();
+    const label=voiceLabel(el);
+    if(el.type==='checkbox'){
+      const n=voiceNormalise(text);
+      if(/^(no|false|off|untick|unchecked)$/.test(n)) el.checked=false;
+      else if(/^(yes|true|on|tick|checked|pass)$/.test(n)) el.checked=true;
+      else return false;
+    } else if(el.type==='date'){
+      const parsed=parseSpokenDate(text);
+      if(!parsed) return false;
+      el.value=parsed;
+    } else if(el.tagName==='SELECT'){
+      const matched=matchVoiceOption(text,voiceOptions(el));
+      if(!matched) return false;
+      el.value=matched;
+    } else {
+      const opts=voiceOptions(el);
+      const matched=matchVoiceOption(text,opts);
+      if(matched) el.value=matched;
+      else {
+        const numeric=/rating|amps?|voltage|zs|ohm|csa|mm²|milliamps?|breaking|capacity|time|points|resistance|r1|r2|rn|frequency|prospective|ka\b/i.test(label);
+        const number=numeric ? spokenNumber(text) : null;
+        el.value=number!==null ? number : text;
+      }
+    }
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    return true;
+  }
+
+  function webSpeakAndListen(prompt, done) {
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){done('','Speech recognition is not available on this device');return;}
+    const startRecognition=function(){
+      try{
+        const r=new SR(); r.lang='en-GB'; r.interimResults=false; r.maxAlternatives=3;
+        r.onresult=function(e){done((e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript)||'','');};
+        r.onerror=function(e){done('',e.error||'Speech recognition error');};
+        r.start();
+      }catch(err){done('',err.message||'Speech recognition error');}
+    };
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(prompt);u.lang='en-GB';u.rate=.95;u.onend=startRecognition;u.onerror=startRecognition;
+      window.speechSynthesis.speak(u);
+    } else startRecognition();
+  }
+
+  function voiceAsk(prompt, done) {
+    const token='voice-'+(++voiceSeq);
+    voiceHandlers.set(token,done);
+    if(window.Android && window.Android.speakAndListen){
+      try{window.Android.speakAndListen(token,prompt);return;}catch(err){}
+    }
+    webSpeakAndListen(prompt,function(text,error){window.sperinVoiceResult(token,text,error);});
+  }
+
+  function voiceSay(text) {
+    if(window.Android && window.Android.speak){ try{window.Android.speak(text);return;}catch(err){} }
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';u.rate=.95;window.speechSynthesis.speak(u);
+    }
+  }
+
+  window.sperinVoiceResult=function(token,text,error){
+    const fn=voiceHandlers.get(String(token));
+    if(!fn) return;
+    voiceHandlers.delete(String(token));
+    fn(String(text||''),String(error||''));
+  };
+
+  function guidedControls() {
+    return Array.from(document.querySelectorAll('#app [data-field],#app [data-table-input],#app [data-circuit-input]'))
+      .filter(el=>!el.disabled && !el.readOnly && el.type!=='hidden' && el.offsetParent!==null);
+  }
+
+  function showVoicePanel() {
+    let panel=document.querySelector('.voice-panel');
+    if(panel) return panel;
+    panel=document.createElement('div');
+    panel.className='voice-panel';
+    panel.innerHTML='<div class="voice-panel-top"><div><strong>🎙 Voice questionnaire</strong><div class="meta" data-voice-progress></div></div><button class="btn small" data-action="voice-stop">Stop</button></div><div class="voice-question" data-voice-question></div><div class="voice-heard" data-voice-heard>Listening…</div><div class="voice-actions"><button class="btn small" data-action="voice-back">← Back</button><button class="btn small" data-action="voice-repeat">Repeat</button><button class="btn small" data-action="voice-skip">Skip →</button></div>';
+    document.body.appendChild(panel);
+    return panel;
+  }
+
+  function stopGuidedVoice(message,speak) {
+    guidedVoiceState=null;
+    if(window.Android && window.Android.stopVoice){try{window.Android.stopVoice();}catch(err){}}
+    const panel=document.querySelector('.voice-panel');
+    if(panel) panel.remove();
+    persist();
+    if(message) toast(message);
+    if(speak && message) voiceSay(message);
+  }
+
+  function guidedStep() {
+    if(!guidedVoiceState || !guidedVoiceState.active) return;
+    const controls=guidedControls();
+    if(!controls.length){stopGuidedVoice('No voice-fillable fields on this page',false);return;}
+    if(guidedVoiceState.index>=controls.length){stopGuidedVoice('Page questionnaire complete',true);return;}
+    guidedVoiceState.index=Math.max(0,guidedVoiceState.index);
+    const el=controls[guidedVoiceState.index];
+    const holder=el.closest('.field,td');
+    if(holder) holder.scrollIntoView({behavior:'smooth',block:'center'});
+    const panel=showVoicePanel();
+    panel.querySelector('[data-voice-progress]').textContent=(guidedVoiceState.index+1)+' of '+controls.length;
+    const question=voiceQuestion(el);
+    panel.querySelector('[data-voice-question]').textContent=question;
+    panel.querySelector('[data-voice-heard]').textContent='Listening…';
+    voiceAsk(question,function(text,error){
+      if(!guidedVoiceState || !guidedVoiceState.active) return;
+      const heard=String(text||'').trim();
+      panel.querySelector('[data-voice-heard]').textContent=error ? 'Not heard: '+error : heard ? 'Heard: “'+heard+'”' : 'Nothing heard';
+      if(error || !heard) return;
+      const command=voiceNormalise(heard);
+      if(['stop','stop voice','finish','finish voice'].includes(command)){stopGuidedVoice('Voice questionnaire stopped',false);return;}
+      if(['repeat','say again'].includes(command)){guidedStep();return;}
+      if(['back','previous','go back'].includes(command)){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();return;}
+      if(['skip','next','keep','keep answer','keep it'].includes(command)){guidedVoiceState.index++;guidedStep();return;}
+      if(!applyVoiceValue(el,heard)){
+        voiceSay('I could not match '+heard+' for '+voiceLabel(el)+'. Please try again.');
+        setTimeout(guidedStep,900);
+        return;
+      }
+      guidedVoiceState.index++;
+      setTimeout(guidedStep,250);
+    });
+  }
+
+  function startGuidedVoice() {
+    if(!voiceSupported()){alert('Voice recognition is not available on this device. Install the latest APK and allow microphone access.');return;}
+    const controls=guidedControls();
+    if(!controls.length){toast('No voice-fillable fields on this page');return;}
+    guidedVoiceState={active:true,index:0};
+    showVoicePanel();
+    guidedStep();
+  }
+
+  function startSingleVoice(el) {
+    if(!el) return;
+    if(!voiceSupported()){alert('Voice recognition is not available on this device.');return;}
+    const prompt=voiceQuestion(el);
+    const holder=el.closest('.field,td');
+    if(holder) holder.scrollIntoView({behavior:'smooth',block:'center'});
+    voiceAsk(prompt,function(text,error){
+      if(error||!text){toast(error||'Nothing heard');return;}
+      if(applyVoiceValue(el,text)) toast(voiceLabel(el)+' filled by voice');
+      else {toast('Could not match that answer');voiceSay('I could not match that answer. Please try again.');}
+    });
+  }
+
+  function decorateVoiceUI() {
+    const controls=document.querySelectorAll('#app [data-field],#app [data-table-input],#app [data-circuit-input]');
+    controls.forEach(function(el){
+      if(el.dataset.voiceDecorated==='1') return;
+      el.dataset.voiceDecorated='1';
+      const mic=document.createElement('button');
+      mic.type='button';mic.className='voice-mic';mic.dataset.action='voice-one';mic.textContent='🎙';mic.setAttribute('aria-label','Speak '+voiceLabel(el));
+      if(el.type==='checkbox'){
+        const field=el.closest('.field');
+        if(field) field.appendChild(mic);
+      } else {
+        const wrap=document.createElement('div');wrap.className='voice-control';
+        el.parentNode.insertBefore(wrap,el);wrap.appendChild(el);wrap.appendChild(mic);
+      }
+    });
+    document.querySelectorAll('.form-head .actions').forEach(function(actions){
+      if(actions.querySelector('[data-action="voice-guide"]')) return;
+      const b=document.createElement('button');b.type='button';b.className='btn voice-guide-btn';b.dataset.action='voice-guide';
+      b.textContent=view.circuitIndex!==null ? '🎙 Voice this page' : '🎙 Voice questionnaire';
+      actions.insertBefore(b,actions.firstChild);
+    });
+  }
+
+  const voiceObserver=new MutationObserver(function(){decorateVoiceUI();});
+  voiceObserver.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(decorateVoiceUI,0);
+
   document.addEventListener('input', e => {
     const cert = getCurrent();
     if (e.target.matches('[data-field]') && cert) {
@@ -886,7 +1212,16 @@
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if (action === 'new') newCertificate(button.dataset.type);
+    if (action === 'voice-guide') startGuidedVoice();
+    else if (action === 'voice-one') {
+      const holder=button.closest('.voice-control') || button.closest('.field') || button.closest('td');
+      startSingleVoice(holder && holder.querySelector('[data-field],[data-table-input],[data-circuit-input]'));
+    }
+    else if (action === 'voice-repeat') { if(guidedVoiceState && guidedVoiceState.active) guidedStep(); }
+    else if (action === 'voice-skip') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index++;guidedStep();} }
+    else if (action === 'voice-back') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();} }
+    else if (action === 'voice-stop') stopGuidedVoice('Voice questionnaire stopped',false);
+    else if (action === 'new') newCertificate(button.dataset.type);
     else if (action === 'edit') { view = { page: 'form', currentId: button.dataset.id, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
