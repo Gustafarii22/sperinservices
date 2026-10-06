@@ -1348,65 +1348,107 @@
     const descs=buildSiteDescriptors(p,cert);
     let pn=0;
 
-    const page=(title,sub='')=>{
+    const nextPage=()=>{
       if(pn)doc.addPage('a4','landscape');
       pn++;
-      sheetHeader(doc,p,pn,title);
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(20,40,62);
-      doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS.',14,29);
-      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(75);
-      doc.text(sub||'For voice read-back, read the printed heading first and then the handwritten answer. Say SKIP if not recorded.',14,34);
-      return 39;
+      doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(.2);
+      return {w:doc.internal.pageSize.getWidth(),h:doc.internal.pageSize.getHeight()};
+    };
+
+    const simpleHeader=(title)=>{
+      const {w}=nextPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(11);
+      doc.text('SPERIN SERVICES',12,12);
+      doc.setFontSize(12);doc.text(title,w/2,12,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+      doc.text('Certificate/Report No.: '+String(cert.number||''),w-12,12,{align:'right'});
+      doc.line(12,15,w-12,15);
+      return 19;
+    };
+
+    const generalPage=(title)=>{
+      const {w}=nextPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('SPERIN SERVICES',12,11);
+      doc.setFontSize(11);doc.text(title,w/2,11,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Certificate/Report No.: '+String(cert.number||''),w-12,11,{align:'right'});
+      doc.line(12,14,w-12,14);
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS.',12,20);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+      doc.text('For voice read-back, read the printed heading then the answer. Say SKIP if not recorded.',12,25);
+      return 30;
     };
 
     const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table)));
     const groups=new Map();
     general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});
-    let y=page(SCHEMAS[p.type].code+' SITE WORKSHEET');
+    let y=generalPage(SCHEMAS[p.type].name.toUpperCase()+' · SITE WORKSHEET');
     for(const [name,items] of groups){
-      if(y>168)y=page(SCHEMAS[p.type].code+' SITE WORKSHEET');
-      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(20,55,92);doc.text(name,14,y);y+=3;
+      if(y>168)y=generalPage(SCHEMAS[p.type].name.toUpperCase()+' · SITE WORKSHEET');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(name.toUpperCase(),12,y);y+=2.5;
       items.forEach(d=>d.page=pn);
       doc.autoTable({
         startY:y,
-        head:[['Field','Answer','Printed choices']],
+        head:[['Field','Answer','Choices']],
         body:items.map(d=>[d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),
-        margin:{left:12,right:12,bottom:12},
-        styles:{fontSize:7.2,cellPadding:2,minCellHeight:7,lineColor:[185,195,207],lineWidth:.15},
-        headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
-        columnStyles:{0:{cellWidth:88,fontStyle:'bold'},1:{cellWidth:120},2:{cellWidth:67,fontSize:6.3}}
+        margin:{left:12,right:12,bottom:10},
+        theme:'grid',
+        styles:{fontSize:7,cellPadding:1.7,minCellHeight:6.5,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]},
+        headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'bold',lineColor:[0,0,0],lineWidth:.18},
+        columnStyles:{0:{cellWidth:90,fontStyle:'bold'},1:{cellWidth:125},2:{cellWidth:60,fontSize:6.2}}
       });
-      y=doc.lastAutoTable.finalY+6;
+      y=doc.lastAutoTable.finalY+5;
     }
 
-    const boardSummary=(b,bi)=>{
+    const boardRow=(b,bi)=>{
       const row=(cert.tables?.boards||[])[bi]||{};
-      return [
-        ['DB/CU reference',b.ref||row.ref||'','Location',b.location||row.location||''],
-        ['Supplied from',row.suppliedFrom||'','Zdb (Ω)',row.zdb||''],
-        ['Distribution circuit OCPD',row.mainSwitch||'','Ipf (kA)',row.ipf||''],
-        ['RCD / RCBO',row.rcd||'','SPD',row.spd||'']
-      ];
+      return {
+        ref:b.ref||row.ref||'',
+        location:b.location||row.location||'',
+        suppliedFrom:row.suppliedFrom||'',
+        zdb:row.zdb||'',
+        ipf:row.ipf||'',
+        mainSwitch:row.mainSwitch||'',
+        rcd:row.rcd||'',
+        spd:row.spd||''
+      };
     };
 
-    const drawBoardHeader=(b,bi,title)=>{
-      let yy=page(title,'Complete the schedule left to right for each circuit. These headings are the same headings used by voice read-back and photo import.');
-      const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');
-      bd.forEach(d=>d.page=pn);
-      doc.autoTable({
-        startY:yy,
-        body:boardSummary(b,bi),
-        margin:{left:12,right:12},
-        theme:'grid',
-        styles:{fontSize:7.5,cellPadding:1.6,minCellHeight:6.3,lineColor:[170,185,200],lineWidth:.15},
-        columnStyles:{0:{cellWidth:45,fontStyle:'bold',fillColor:[245,248,251]},1:{cellWidth:92},2:{cellWidth:40,fontStyle:'bold',fillColor:[245,248,251]},3:{cellWidth:98}}
-      });
-      return doc.lastAutoTable.finalY+5;
+    const drawCircuitBoardBox=(b,bi,y)=>{
+      const row=boardRow(b,bi),x=12,w=273,h=33;
+      doc.rect(x,y,w,h);
+      doc.setFont('helvetica','bold');doc.setFontSize(7.6);
+      doc.text('Distribution board/Consumer unit details',x+2,y+4);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+      doc.text('DB/CU reference: '+row.ref,x+2,y+10);
+      doc.text('Location: '+row.location,x+78,y+10);
+      doc.text('Supplied from: '+row.suppliedFrom,x+154,y+10);
+      doc.text('Distribution circuit OCPD: '+row.mainSwitch,x+2,y+17);
+      doc.text('SPD Details: '+row.spd,x+154,y+17);
+      doc.text('RCD: '+row.rcd,x+2,y+24);
+      doc.text('Zdb: '+row.zdb+' Ω',x+154,y+24);
+      doc.text('Ipf: '+row.ipf+' kA',x+213,y+24);
+      doc.text('Correct polarity  □    Phase sequence  □    SPD operational  □',x+154,y+30);
+      return y+h+3;
     };
 
-    const markGrid=(data,list)=>{
+    const drawTestBoardBox=(b,bi,y)=>{
+      const row=boardRow(b,bi),x=12,w=273,h=26;
+      doc.rect(x,y,w,h);
+      doc.setFont('helvetica','bold');doc.setFontSize(7.6);
+      doc.text('Distribution board/Consumer unit details',x+2,y+4);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+      doc.text('DB/CU reference: '+row.ref,x+2,y+10);
+      doc.text('Zdb: '+row.zdb+' Ω',x+82,y+10);
+      doc.text('Ipf: '+row.ipf+' kA',x+134,y+10);
+      doc.text('Correct polarity  □',x+2,y+18);
+      doc.text('Phase sequence  □',x+82,y+18);
+      doc.text('SPD operational status confirmed  □ / N/A □',x+154,y+18);
+      return y+h+3;
+    };
+
+    const markGrid=(data,map)=>{
       if(data.section!=='body')return;
-      const d=list[data.row.index]?.[data.column.index];
+      const d=map[data.row.index]?.[data.column.index];
       if(!d)return;
       d.page=pn;
       d.grid={
@@ -1417,64 +1459,152 @@
       };
     };
 
+    const wiringKey=()=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('CODES FOR TYPES OF WIRING',12,188);
+      const codes=[
+        ['A','Thermoplastic insulated/sheathed cables'],
+        ['B','Thermoplastic cables in metallic conduit'],
+        ['C','Thermoplastic cables in non-metallic conduit'],
+        ['D','Thermoplastic cables in metallic trunking'],
+        ['E','Thermoplastic cables in non-metallic trunking'],
+        ['F','Thermoplastic SWA cables'],
+        ['G','Thermosetting SWA cables'],
+        ['H','Mineral insulated cables'],
+        ['O','Other – please state']
+      ];
+      doc.autoTable({
+        startY:190,
+        head:[],
+        body:[codes.slice(0,5).map(x=>x[0]+'  '+x[1]),codes.slice(5).map(x=>x[0]+'  '+x[1])],
+        margin:{left:12,right:12},
+        theme:'grid',
+        styles:{fontSize:5.4,cellPadding:1.2,minCellHeight:6.4,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]},
+        columnStyles:{0:{cellWidth:54},1:{cellWidth:54},2:{cellWidth:54},3:{cellWidth:54},4:{cellWidth:54}}
+      });
+    };
+
+    const instrumentBox=(y)=>{
+      const f=cert.fields||{};
+      doc.setFont('helvetica','bold');doc.setFontSize(6.8);doc.text('DETAILS OF TEST INSTRUMENTS USED (SERIAL AND/OR ASSET NUMBERS)',12,y);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.2);
+      const cols=[
+        ['Multifunction',f.testerSerial||f.instrumentMft||''],
+        ['Continuity',f.testerLowOhmSerial||''],
+        ['Insulation resistance',f.testerInsulationSerial||''],
+        ['Earth fault loop impedance',f.testerLoopSerial||''],
+        ['RCD',f.testerRcdSerial||''],
+        ['Earth electrode resistance',f.testerEarthSerial||'']
+      ];
+      doc.autoTable({
+        startY:y+2,
+        head:[],
+        body:[cols.slice(0,3).map(x=>x[0]+': '+x[1]),cols.slice(3).map(x=>x[0]+': '+x[1])],
+        margin:{left:12,right:12},
+        theme:'grid',
+        styles:{fontSize:5.6,cellPadding:1.2,minCellHeight:6,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0]}
+      });
+      const yy=doc.lastAutoTable.finalY+3;
+      doc.text('Tested by name (Capitals): '+String(f.testedBy||'')+'    Signature: __________________________    Date: __________________',12,yy);
+      return yy+4;
+    };
+
     if(p.type==='eic'||p.type==='eicr'){
       (p.boards||[]).forEach((b,bi)=>{
         const offset=(p.boards||[]).slice(0,bi).reduce((n,x)=>n+x.circuits,0);
         const perPage=12;
         for(let first=0;first<b.circuits;first+=perPage){
           const count=Math.min(perPage,b.circuits-first);
-          let yy=drawBoardHeader(b,bi,'SCHEDULE OF CIRCUIT DETAILS · '+b.ref);
-          doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,40,62);
-          doc.text('CIRCUIT DETAILS',14,yy);yy+=3;
+
+          let yy=simpleHeader('GENERIC SCHEDULE OF CIRCUIT DETAILS');
+          yy=drawCircuitBoardBox(b,bi,yy);
+          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('CIRCUIT DETAILS',148.5,yy,{align:'center'});yy+=2;
 
           const cols=[
-            ['Circuit','circuitNo'],['Circuit description','description'],['Type of wiring','wiringType'],['Ref. method','refMethod'],
-            ['Points','points'],['Live mm²','liveCsa'],['CPC mm²','cpcCsa'],['BS (EN)','ocpdBs'],
-            ['Type','ocpdType'],['Rating A','ocpdRating'],['Breaking kA','breakingCapacity'],['Max Zs Ω','maxZs'],
-            ['RCD BS (EN)','rcdBs'],['RCD type','rcdType'],['IΔn mA','rcdIdn'],['RCD A','rcdRating']
+            ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],
+            ['4','Reference method','refMethod'],['5','Number of points served','points'],
+            ['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],
+            ['8','BS (EN)','ocpdBs'],['9','Type','ocpdType'],['10','Rating (A)','ocpdRating'],
+            ['11','Breaking capacity (kA)','breakingCapacity'],['12','Maximum permitted Zs (Ω)','maxZs'],
+            ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
           ];
-          const widths=[10,36,16,16,14,13,13,22,11,13,16,16,20,13,12,12];
-          const mapRows=[];
-          const body=[];
-          for(let local=0;local<count;local++){
-            const gi=offset+first+local;
-            const row=cert.tables?.circuits?.[gi]||{};
-            body.push(cols.map(([,key])=>String(row[key]??'')));
-            mapRows.push(cols.map(([,key])=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===key)||null));
+          const widths=[10,42,15,15,14,13,13,20,11,12,16,16,19,12,12,12];
+          const body=[],map=[];
+          for(let local=0;local<perPage;local++){
+            if(local<count){
+              const gi=offset+first+local,row=cert.tables?.circuits?.[gi]||{};
+              body.push(cols.map(c=>String(row[c[2]]??'')));
+              map.push(cols.map(c=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===c[2])||null));
+            }else{
+              body.push(cols.map(()=>''));map.push(cols.map(()=>null));
+            }
           }
           doc.autoTable({
-            startY:yy,head:[cols.map(c=>c[0])],body,
-            margin:{left:12,right:12,bottom:14},theme:'grid',
-            styles:{fontSize:5.8,cellPadding:1,minCellHeight:8,lineColor:[150,165,180],lineWidth:.14,halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:[235,241,247],textColor:[20,35,50],fontStyle:'bold',fontSize:5.6},
+            startY:yy,
+            head:[
+              [
+                {content:'',colSpan:2},
+                {content:'Conductor details',colSpan:5,styles:{halign:'center'}},
+                {content:'Overcurrent protective device',colSpan:5,styles:{halign:'center'}},
+                {content:'RCD',colSpan:4,styles:{halign:'center'}}
+              ],
+              cols.map(c=>c[0]+'  '+c[1])
+            ],
+            body,
+            margin:{left:12,right:12},
+            theme:'grid',
+            styles:{fontSize:5.1,cellPadding:.75,minCellHeight:7.2,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0],halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'normal',fontSize:4.9,lineColor:[0,0,0],lineWidth:.14},
             columnStyles:Object.fromEntries(widths.map((w,i)=>[i,{cellWidth:w,halign:i===1?'left':'center'}])),
-            didDrawCell:data=>markGrid(data,mapRows)
+            didDrawCell:data=>markGrid(data,map)
           });
+          wiringKey();
 
-          yy=drawBoardHeader(b,bi,'SCHEDULE OF TEST RESULTS · '+b.ref);
-          doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,40,62);
-          doc.text('TEST RESULTS',14,yy);yy+=3;
+          yy=simpleHeader('GENERIC SCHEDULE OF TEST RESULTS');
+          yy=drawTestBoardBox(b,bi,yy);
+          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('TEST RESULTS',148.5,yy,{align:'center'});yy+=2;
+
           const tcols=[
-            ['Circuit','circuitNo'],['r1 Ω','r1'],['rn Ω','rn'],['r2 Ω','r2'],['R1+R2 Ω','r1r2'],['R2 Ω','r2only'],
-            ['IR V','irVoltage'],['L-L MΩ','irLL'],['L-E MΩ','irLE'],['Polarity','polarity'],['Zs Ω','zs'],
-            ['RCD time ms','rcdTime'],['RCD test','rcdButton'],['AFDD test','afddButton'],['Remarks','remarks']
+            ['17','Circuit number','circuitNo'],['18','r1 (line)','r1'],['19','rn (neutral)','rn'],['20','r2 (CPC)','r2'],
+            ['21','(R1 + R2)','r1r2'],['22','R2','r2only'],['23','Test voltage V','irVoltage'],
+            ['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],
+            ['27','Maximum measured Zs (Ω)','zs'],['28','Disconnection time (ms)','rcdTime'],
+            ['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],
+            ['31','Remarks','remarks']
           ];
-          const twidths=[10,13,13,13,15,12,14,16,16,14,14,18,16,16,56];
+          const twidths=[10,13,13,13,15,12,14,16,16,14,15,18,18,18,54];
           const tbody=[],tmap=[];
-          for(let local=0;local<count;local++){
-            const gi=offset+first+local;
-            const row=cert.tables?.tests?.[gi]||{};
-            tbody.push(tcols.map(([,key])=>String(row[key]??'')));
-            tmap.push(tcols.map(([,key])=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===key)||null));
+          for(let local=0;local<perPage;local++){
+            if(local<count){
+              const gi=offset+first+local,row=cert.tables?.tests?.[gi]||{};
+              tbody.push(tcols.map(c=>String(row[c[2]]??'')));
+              tmap.push(tcols.map(c=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===c[2])||null));
+            }else{
+              tbody.push(tcols.map(()=>''));tmap.push(tcols.map(()=>null));
+            }
           }
           doc.autoTable({
-            startY:yy,head:[tcols.map(c=>c[0])],body:tbody,
-            margin:{left:12,right:12,bottom:14},theme:'grid',
-            styles:{fontSize:5.9,cellPadding:1,minCellHeight:8,lineColor:[150,165,180],lineWidth:.14,halign:'center',valign:'middle',overflow:'linebreak'},
-            headStyles:{fillColor:[235,241,247],textColor:[20,35,50],fontStyle:'bold',fontSize:5.6},
+            startY:yy,
+            head:[
+              [
+                {content:'',colSpan:1},
+                {content:'Continuity (Ω)',colSpan:5,styles:{halign:'center'}},
+                {content:'Insulation resistance',colSpan:3,styles:{halign:'center'}},
+                {content:'',colSpan:2},
+                {content:'RCD',colSpan:2,styles:{halign:'center'}},
+                {content:'AFDD',colSpan:1,styles:{halign:'center'}},
+                {content:'',colSpan:1}
+              ],
+              tcols.map(c=>c[0]+'  '+c[1])
+            ],
+            body:tbody,
+            margin:{left:12,right:12},
+            theme:'grid',
+            styles:{fontSize:5.1,cellPadding:.75,minCellHeight:7.2,lineColor:[0,0,0],lineWidth:.12,textColor:[0,0,0],halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:[255,255,255],textColor:[0,0,0],fontStyle:'normal',fontSize:4.9,lineColor:[0,0,0],lineWidth:.14},
             columnStyles:Object.fromEntries(twidths.map((w,i)=>[i,{cellWidth:w,halign:i===14?'left':'center'}])),
             didDrawCell:data=>markGrid(data,tmap)
           });
+          instrumentBox(Math.min(187,doc.lastAutoTable.finalY+5));
         }
       });
     }
@@ -1482,8 +1612,8 @@
     p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);
     const total=doc.getNumberOfPages();
     for(let i=1;i<=total;i++){
-      doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(95);
-      doc.text('Sperin Site Sheet · '+p.id+' · Page '+i+' of '+total,doc.internal.pageSize.getWidth()/2,doc.internal.pageSize.getHeight()-6,{align:'center'});
+      doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(70);
+      doc.text('Sperin Services · Site worksheet '+p.id+' · Page '+i+' of '+total,148.5,207,{align:'center'});
     }
     const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';
     if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}
