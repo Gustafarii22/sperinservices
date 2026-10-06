@@ -27,14 +27,14 @@ export function Header() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl lg:grid lg:min-h-[86px] lg:grid-cols-[1fr_auto] lg:items-center lg:px-8">
-          <div className="flex min-h-[92px] items-center justify-center px-3 lg:min-h-0 lg:justify-start lg:px-0">
-            <Link to="/" aria-label="Sperin Services home" className="flex w-full items-center justify-center lg:w-auto">
-              <Logo className="h-auto w-full max-w-[430px] sm:max-w-[500px] lg:h-[84px] lg:w-auto lg:max-w-[360px]" />
+        <div className="mx-auto max-w-7xl px-4 lg:grid lg:min-h-[86px] lg:grid-cols-[minmax(260px,360px)_1fr] lg:items-center lg:gap-6 lg:px-8">
+          <div className="flex min-h-[88px] items-center justify-center sm:min-h-[94px] lg:min-h-0 lg:justify-start">
+            <Link to="/" aria-label="Sperin Services home" className="flex w-full items-center justify-center lg:justify-start">
+              <Logo className="h-auto w-full max-w-[390px] sm:max-w-[440px] lg:h-[76px] lg:w-auto lg:max-w-[350px]" />
             </Link>
           </div>
 
-          <div className="flex min-h-[58px] items-center justify-end border-t border-white/10 px-4 lg:min-h-0 lg:border-t-0 lg:px-0">
+          <div className="flex h-12 items-center justify-end border-t border-white/[0.07] lg:h-auto lg:border-t-0">
             <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
               <ServicesDropdown />
               {NAV.map((item) => (
@@ -46,9 +46,10 @@ export function Header() {
               <button
                 type="button"
                 aria-label="Open menu"
-                className="mobile-menu-trigger inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
+                className="mobile-menu-trigger inline-flex h-9 items-center gap-2 rounded-md border border-white/12 bg-white/[0.025] px-3 text-xs font-semibold tracking-wide text-foreground/85 transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
               >
-                <Menu className="h-5 w-5" />
+                <span>Menu</span>
+                <Menu className="h-4 w-4" />
               </button>
             </DialogTrigger>
           </div>
