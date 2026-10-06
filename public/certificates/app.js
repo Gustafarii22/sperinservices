@@ -192,9 +192,9 @@
         f.signatoryMode=same ? 'One person — design, construction & inspection' : 'Separate people';
       }
       if(f.signatoryMode==='One person — design, construction & inspection'){
-        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||settings?.engineerName||'';
-        f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||settings?.companyName||'';
-        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||settings?.address||'';
+        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||'';
+        f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||'';
+        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||'';
         f.singleSignatorySignature=f.singleSignatorySignature||f.designer1Signature||f.constructorSignature||f.inspectorSignature||'';
         f.singleSignatoryDate=f.singleSignatoryDate||f.designer1Date||f.constructorDate||f.inspectionDate||'';
         syncSingleSignatory(cert);
