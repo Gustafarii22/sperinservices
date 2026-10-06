@@ -577,7 +577,7 @@
           head:[
             [{content:'CIRCUIT DETAILS',colSpan:16,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
-            cols.map(c=>c[1])
+            cols.map(c=>pdfText(c[1]))
           ],
           body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',
           styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
@@ -612,8 +612,8 @@
           startY:y+18,
           head:[
             [{content:'TEST RESULTS',colSpan:15,styles:{fontStyle:'bold',fontSize:7}}],
-            [{content:'',colSpan:1},{content:'Continuity Ω',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
-            tcols.map(c=>c[1])
+            [{content:'',colSpan:1},{content:'Continuity (Ohms)',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
+            tcols.map(c=>pdfText(c[1]))
           ],
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
           styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
