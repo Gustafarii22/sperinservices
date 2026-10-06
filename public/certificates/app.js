@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.6.0';
+  const VERSION = '1.7.0';
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
   const SHEET_TEMPLATES_KEY = 'sperin-certificates-site-sheet-templates-v1';
@@ -366,52 +366,21 @@
   }
 
   const eicInspectionRows = [
-    ['1.1', 'Incoming supply equipment visually checked; no obvious damage or overheating'],
-    ['1.2', 'Earthing arrangement identified and recorded'],
-    ['1.3', 'Meter tails / consumer conductors correctly sized, routed and terminated'],
-    ['1.4', 'Other or alternative sources of supply identified and safely integrated where applicable'],
-    ['2.1', 'Main earthing conductor present, correctly sized and securely connected'],
-    ['2.2', 'Main protective bonding provided where required and correctly sized'],
-    ['2.3', 'Main earthing terminal accessible and connections secure'],
-    ['2.4', 'Earthing / bonding identification and labels provided where required'],
-    ['3.1', 'Consumer unit / distribution board securely fixed and suitably located'],
-    ['3.2', 'Enclosure provides suitable IP protection and appropriate fire performance'],
-    ['3.3', 'Main switch / linked isolation provided and operates correctly'],
-    ['3.4', 'Protective devices compatible with the board and correctly rated for the circuits'],
-    ['3.5', 'Circuit identification / schedule is complete, legible and matches installed circuits'],
-    ['3.6', 'RCD / RCBO protection provided where required and devices operate correctly'],
-    ['3.7', 'SPD provided where required / selected risk assessment recorded, and status indication satisfactory'],
-    ['3.8', 'AFDDs provided where required or selected, and manual status/test indication satisfactory'],
-    ['3.9', 'Required warning, test and identification labels are fitted and legible'],
-    ['3.10', 'Internal conductors correctly located in terminals; connections secure with no exposed copper'],
-    ['4.1', 'Circuit conductors are correctly identified throughout the installation'],
-    ['4.2', 'Cable type, conductor size and installation method are suitable for load and external influences'],
-    ['4.3', 'Cables are adequately supported and protected against mechanical damage'],
-    ['4.4', 'Concealed cables are in permitted zones or otherwise suitably protected'],
-    ['4.5', 'Protective conductor / CPC provided and continuous throughout each circuit'],
-    ['4.6', 'Overcurrent protection is correctly coordinated with conductor current-carrying capacity'],
-    ['4.7', '30 mA additional RCD protection is provided where required'],
-    ['4.8', 'Fire stopping / sealing is maintained where wiring passes through fire-resisting construction'],
-    ['4.9', 'Segregation from other voltage bands, communications and non-electrical services is adequate'],
-    ['4.10', 'Cable entries, glands, bushes and terminations provide suitable mechanical and IP protection'],
-    ['5.1', 'Accessories and enclosures are securely fixed and suitable for the environment'],
-    ['5.2', 'Switches / protective devices interrupt the line conductor as required'],
-    ['5.3', 'Socket-outlets, switches and connection units show no damage or exposed live parts'],
-    ['5.4', 'Permanently connected equipment has suitable local isolation where required'],
-    ['5.5', 'Equipment ratings, connection methods and manufacturer requirements are satisfied'],
-    ['6.1', 'Polarity verified throughout the installation'],
-    ['6.2', 'Continuity of protective conductors and bonding verified'],
-    ['6.3', 'Insulation resistance testing completed with satisfactory results'],
-    ['6.4', 'Earth fault loop impedance results are within permitted values'],
-    ['6.5', 'RCD operating times / functional tests completed where applicable'],
-    ['6.6', 'Prospective fault current and protective-device breaking capacity are compatible'],
-    ['6.7', 'Phase sequence verified where applicable'],
-    ['7.1', 'Bath / shower locations comply with zoning, IP and additional-protection requirements where applicable'],
-    ['7.2', 'Other special installations / locations have been checked against the applicable Part 7 requirements'],
-    ['8.1', 'Required drawings, schedules, circuit information and user instructions are complete / handed over'],
-    ['8.2', 'Any permitted departures, exceptions or design risk assessments are recorded on the certificate'],
-    ['8.3', 'Installation is suitable to be energised and the completed work has been inspected and tested']
-  ].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));
+    ['1.0', 'Condition of consumer’s intake equipment (visual inspection only)'],
+    ['2.0', 'Parallel or switched alternative sources of supply'],
+    ['3.0', 'Protective measure: Automatic Disconnection of Supply (ADS)'],
+    ['4.0', 'Basic protection'],
+    ['5.0', 'Protective measures other than ADS'],
+    ['6.0', 'Additional protection'],
+    ['7.0', 'Distribution equipment'],
+    ['8.0', 'Circuits (Distribution and Final)'],
+    ['9.0', 'Isolation and switching'],
+    ['10.0', 'Current-using equipment (permanently connected)'],
+    ['11.0', 'Identification and notices'],
+    ['12.0', 'Location(s) containing a bath or shower'],
+    ['13.0', 'Other special installations or locations'],
+    ['14.0', 'Prosumer’s low voltage electrical installation(s)']
+  ].map(([item, description]) => ({ item, description, outcome: '' }));
 
   const eicrInspectionRows = [
     ['1.1', 'Distributor/supplier intake equipment — service cable, service head, earthing arrangement, meter tails, metering equipment and means of isolation'],
@@ -577,7 +546,7 @@
           { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
         ], [{ item: '1' }]),
         table('eicrInspection', 'Condition report schedule of inspection', [
-          { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }, { key: 'comment', label: 'Comment' }
+          { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }
         ], eicrInspectionRows),
         section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
