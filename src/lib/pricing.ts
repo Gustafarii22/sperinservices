@@ -5,6 +5,7 @@ export type Job = {
   additional?: number;
   detail: string;
   group?: "eicr" | "board";
+  quoteOnly?: boolean;
 };
 export const JOBS: Job[] = [
   {
@@ -80,6 +81,55 @@ export const JOBS: Job[] = [
       "Customer supplies doorbell. Suitable existing wiring and transformer required; additional units assessed separately.",
   },
   {
+    id: "usb-socket",
+    name: "USB double socket replacement",
+    price: 100,
+    additional: 35,
+    detail: "Standard USB double socket supplied. Same position and suitable existing wiring.",
+  },
+  {
+    id: "dimmer",
+    name: "LED dimmer switch replacement",
+    price: 95,
+    additional: 30,
+    detail: "Standard compatible LED dimmer supplied. Existing lamps and wiring must be suitable.",
+  },
+  {
+    id: "outside-socket",
+    name: "External weatherproof double socket",
+    price: 0,
+    detail: "New external socket installation. Route, circuit protection and cable length assessed before a fixed quotation.",
+    quoteOnly: true,
+  },
+  {
+    id: "new-point",
+    name: "New socket or lighting point",
+    price: 0,
+    detail: "New point from existing or new circuit. Cable route, wall construction and circuit capacity assessed first.",
+    quoteOnly: true,
+  },
+  {
+    id: "rewire",
+    name: "Full or part rewire",
+    price: 0,
+    detail: "Survey required. Add this to your request and upload photos or plans where available.",
+    quoteOnly: true,
+  },
+  {
+    id: "ev-charger",
+    name: "EV charger installation",
+    price: 0,
+    detail: "Survey required for supply, earthing, cable route, load assessment, DNO requirements and charger model.",
+    quoteOnly: true,
+  },
+  {
+    id: "commercial-work",
+    name: "Commercial electrical work",
+    price: 0,
+    detail: "For schools, offices, shops and other premises. Scope is assessed before quotation.",
+    quoteOnly: true,
+  },
+  {
     id: "eicr6",
     name: "Domestic EICR — up to 6 circuits",
     price: 130,
@@ -145,7 +195,8 @@ export function estimate(selection: Selection) {
   const unknown = small
     .filter(
       (j) =>
-        j.additional === undefined && (packages.length || small.length > 1 || selection[j.id] > 1),
+        j.quoteOnly ||
+        (j.additional === undefined && (packages.length || small.length > 1 || selection[j.id] > 1)),
     )
     .map((j) => j.id);
   // Individually priced items do not establish an attendance allowance when mixed.
@@ -153,9 +204,9 @@ export function estimate(selection: Selection) {
     ? 0
     : Math.max(
         0,
-        ...small.filter((j) => j.additional !== undefined).map((j) => j.price - j.additional!),
+        ...small.filter((j) => j.additional !== undefined && !j.quoteOnly).map((j) => j.price - j.additional!),
       );
-  const visit = small.some((j) => j.additional !== undefined) ? actualAllowance : 0;
+  const visit = small.some((j) => j.additional !== undefined && !j.quoteOnly) ? actualAllowance : 0;
   const subtotal = rows.reduce((sum, j) => sum + j.amount, 0) + visit;
   return {
     rows,
