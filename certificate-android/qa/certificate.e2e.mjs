@@ -30,6 +30,14 @@ assert(javaSource.includes('shareBackup'),'Backup sharing route missing');
 assert(javaSource.includes('sperinHandleBack'),'Android back bridge missing');
 assert(manifestSource.includes('POST_NOTIFICATIONS'),'Notification permission missing');
 assert(manifestSource.includes('FileProvider'),'FileProvider missing');
+assert(appSource.includes('Blank Site Sheets'),'Blank Site Sheets workflow missing');
+assert(appSource.includes('Read Completed Site Sheet'),'Fixed-order site-sheet readback missing');
+assert(appSource.includes('Scan Completed Sheets'),'Photo site-sheet workflow missing');
+assert(appSource.includes('validationWarnings'),'Technical warning engine missing');
+assert(appSource.includes('tneCpc'),'Twin & earth CPC derivation missing');
+assert(javaSource.includes('TextRecognition.getClient'),'Bundled ML Kit text recognition missing');
+assert(javaSource.includes('captureAndScanSheet'),'Native camera sheet scan missing');
+assert(javaSource.includes('scanSheetImageBase64'),'Gallery/base64 sheet scan missing');
 console.log('STATIC_ROUTE_NATIVE_PASS');
 
 const browser = await chromium.launch({ headless: true });
@@ -116,6 +124,8 @@ assert(await page.locator('.home-hero').count()===1,'Premium home hero missing')
 assert((await page.locator('.home-hero h2').textContent()).includes('Professional electrical certification'),'Home heading unclear');
 assert(await page.locator('.home-visual').count()===1,'Home visual treatment missing');
 assert(await page.locator('.cert-launch').count()===5,'Certificate launch list incomplete');
+assert(await page.locator('.workflow-card').count()===3,'Site field workflow must show blank sheets, voice readback and photo scan');
+assert((await page.locator('.site-workflow').textContent()).includes('Paper, voice or camera'),'Site field workflow explanation missing');
 
 const saved = page.locator('.saved-cert-row').first();
 const savedText=await saved.textContent();
@@ -267,6 +277,136 @@ await page.locator('.brand-home').click();
 await page.waitForSelector('.home-page');
 console.log('PROFILE_HOME_PASS');
 
+// Build a whole-certificate blank site pack with exactly two boards and 3 total circuit slots.
+await page.locator('[data-action="site-builder"]').click();
+await page.waitForSelector('.site-builder-modal');
+await page.locator('[data-site-builder="name"]').fill('Test two-board EIC');
+await page.locator('[data-site-board="0"][data-site-board-key="ref"]').fill('DB1');
+await page.locator('[data-site-board="0"][data-site-board-key="location"]').fill('Main hall');
+await page.locator('[data-site-board="0"][data-site-board-key="circuits"]').fill('2');
+await page.locator('[data-action="site-board-add"]').click();
+await page.locator('[data-site-board="1"][data-site-board-key="ref"]').fill('DB2');
+await page.locator('[data-site-board="1"][data-site-board-key="location"]').fill('Garage');
+await page.locator('[data-site-board="1"][data-site-board-key="circuits"]').fill('1');
+await page.locator('[data-action="site-template-save"]').click();
+let templates=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-site-sheet-templates-v1')||'[]'));
+assert(templates.length===1 && templates[0].boards.length===2,'Site sheet template was not saved');
+
+const sitePdfPromise=page.waitForEvent('download');
+await page.locator('[data-action="site-generate"]').click();
+const sitePdf=await sitePdfPromise;
+const sitePdfPath=await sitePdf.path();
+assert(sitePdfPath && fs.existsSync(sitePdfPath),'Configured blank site-sheet PDF missing');
+const sitePdfBytes=fs.readFileSync(sitePdfPath);
+assert(sitePdfBytes.subarray(0,4).toString()==='%PDF','Configured site sheet is not a real PDF');
+const sitePdfText=sitePdfBytes.toString('latin1');
+const siteMedia=sitePdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
+assert(siteMedia && Number(siteMedia[1])>Number(siteMedia[2]),'Configured site sheet PDF is not landscape');
+
+let plans=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-site-sheets-v1')||'[]'));
+assert(plans.length>0,'Generated site sheet plan was not stored');
+const plan=plans[0];
+assert(plan.boards.length===2 && plan.boards[0].circuits===2 && plan.boards[1].circuits===1,'Board/circuit quantities were not preserved in the site sheet plan');
+assert(plan.descriptors.some(d=>d.kind==='field'&&d.key==='clientName'),'Whole-certificate site sheet is missing general certificate fields');
+assert(plan.descriptors.some(d=>d.table==='boards'&&d.boardIndex===1),'Whole-certificate site sheet is missing second board fields');
+assert(plan.descriptors.some(d=>d.code==='B01C01-ZS'),'Circuit field codes are missing from generated site sheet');
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+const linked=stored.certificates.find(c=>c.siteSheetId===plan.id);
+assert(linked,'Site sheet did not create a linked draft certificate');
+assert(linked.tables.boards.length===2 && linked.tables.circuits.length===3 && linked.tables.tests.length===3,'Linked draft did not get exact board/circuit counts');
+console.log('CONFIGURABLE_SITE_SHEET_PASS');
+
+// Read the completed sheet using printed headings. Field-first/value-second must map values to exact fields.
+await page.locator('[data-action="site-read"]').click();
+await page.waitForSelector('.sheet-picker');
+await page.locator('[data-action="site-read-plan"][data-plan-id="'+plan.id+'"]').click();
+await page.waitForSelector('.sheet-read-modal');
+const spokenSheet=[
+  'Circuit 1',
+  'Description kitchen sockets',
+  'Points 7',
+  'Cable 2.5 twin and earth',
+  'Installation surface trunking on masonry wall',
+  'Reference method B',
+  'Protective device 61009',
+  'Curve B',
+  'Rating 32',
+  'RCD type type A',
+  'I delta n 30',
+  'Insulation test voltage 500',
+  'Live to live 200',
+  'Live to earth 200',
+  'R1 plus R2 0.27',
+  'Zs 0.36',
+  'Polarity pass',
+  'RCD time 23.9'
+].join('. ');
+await page.locator('[data-sheet-read-text]').fill(spokenSheet);
+await page.locator('[data-action="sheet-read-process"]').click();
+await page.waitForTimeout(120);
+await page.locator('[data-action="sheet-read-open-cert"]').click();
+await page.waitForSelector('.circuit-list');
+
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+let linkedAfter=stored.certificates.find(c=>c.siteSheetId===plan.id);
+assert(linkedAfter.tables.circuits[0].points==='7','Voice readback put points in wrong field');
+assert(linkedAfter.tables.circuits[0].liveCsa==='2.5','Voice readback did not extract T&E live CSA');
+assert(linkedAfter.tables.circuits[0].wiringType==='Twin & earth (flat)','Voice readback did not identify twin & earth');
+assert(linkedAfter.tables.circuits[0].cpcCsa==='1.5','Standard 2.5 T&E CPC was not derived as 1.5 mm²');
+assert(linkedAfter.tables.circuits[0].refMethod==='B','Surface trunking on masonry wall did not map to Reference Method B');
+assert(linkedAfter.tables.circuits[0].ocpdBs==='BS EN 61009-1','61009 speech was not normalised');
+assert(linkedAfter.tables.circuits[0].ocpdType==='B','Breaker curve B was not kept separate');
+assert(linkedAfter.tables.circuits[0].rcdType==='A','RCD Type A was not kept separate from breaker curve');
+assert(linkedAfter.tables.tests[0].r1r2==='0.27','R1+R2 value went to wrong field');
+assert(linkedAfter.tables.tests[0].zs==='0.36','Zs value went to wrong field');
+assert(linkedAfter.tables.tests[0].rcdTime==='23.9','RCD time went to wrong field');
+assert(linkedAfter.autoMeta?.['circuit:0:cpcCsa'],'Derived CPC is not marked as auto-filled');
+console.log('FIXED_ORDER_VOICE_READBACK_PASS');
+
+// Technical values remain as entered and a warning triangle explains a failure instead of changing it.
+await page.locator('.circuit-card').first().locator('[data-action="circuit-open"]').click();
+await page.locator('[data-action="circuit-next"]').click();
+await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill('2.00');
+await page.locator('[data-action="circuit-list"]').click();
+await page.waitForSelector('.validation-banner.warn');
+assert((await page.locator('.validation-banner.warn').textContent()).includes('need checking'),'Out-of-range Zs did not create a warning');
+await page.locator('.validation-banner.warn').click();
+await page.waitForSelector('.warning-modal');
+assert((await page.locator('.warning-modal').textContent()).includes('Zs exceeds configured maximum'),'Warning does not explain Zs issue');
+await page.locator('.warning-modal [data-action="close-modal"]').click();
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+linkedAfter=stored.certificates.find(c=>c.siteSheetId===plan.id);
+assert(linkedAfter.tables.tests[0].zs==='2.00','Validation must never change the electrician\'s measured value');
+console.log('TECHNICAL_WARNING_PASS');
+
+// Feed a synthetic on-device OCR result through the exact photo-review path.
+await page.locator('.brand-home').click();
+await page.waitForSelector('.home-page');
+await page.locator('[data-action="site-scan"]').click();
+await page.waitForSelector('.sheet-picker');
+await page.locator('[data-action="site-scan-plan"][data-plan-id="'+plan.id+'"]').click();
+await page.waitForSelector('.sheet-scan-modal');
+const zsDescriptor=plan.descriptors.find(d=>d.code==='B01C01-ZS');
+assert(zsDescriptor,'Zs scan descriptor missing');
+await page.evaluate(({id,pageNo})=>{
+  window.sperinSheetScanResult('',JSON.stringify({
+    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'\\nB01C01-ZS Zs 0.44',
+    width:2000,height:1400,
+    lines:[
+      {text:'SPERIN SHEET '+id+' PAGE '+pageNo,left:20,top:20,right:900,bottom:60},
+      {text:'B01C01-ZS Zs 0.44',left:50,top:200,right:700,bottom:250}
+    ]
+  }),'');
+},{id:plan.id,pageNo:zsDescriptor.page||1});
+await page.waitForSelector('.scan-review-row');
+assert((await page.locator('.scan-summary').textContent()).includes('clear'),'Exact field-code OCR was not marked clear');
+await page.locator('[data-action="scan-apply"]').click();
+await page.waitForSelector('.circuit-list');
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+linkedAfter=stored.certificates.find(c=>c.siteSheetId===plan.id);
+assert(linkedAfter.tables.tests[0].zs==='0.44','Photo scan did not apply Zs to the exact linked circuit');
+console.log('PHOTO_SCAN_MAPPING_PASS');
+
 // Backup browser fallback should create JSON.
 const backupPromise=page.waitForEvent('download');
 await page.locator('[data-action="backup"]').click();
@@ -305,6 +445,10 @@ console.log(JSON.stringify({
   appBack:true,
   profileDefaults:true,
   backup:true,
+  configurableSiteSheets:true,
+  fixedOrderVoiceReadback:true,
+  photoScanMapping:true,
+  technicalWarnings:true,
   allCertificateTypes:true
 }));
 
