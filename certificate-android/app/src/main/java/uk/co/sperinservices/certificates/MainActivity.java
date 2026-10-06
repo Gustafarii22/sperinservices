@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.2.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.2.2");
 
         setupVoice();
 
@@ -326,6 +326,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void saveTextFile(String content, String fileName, String mime) {
             saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, mime == null ? "text/plain" : mime);
+        }
+
+        @JavascriptInterface
+        public void listen(String token) {
+            runOnUiThread(() -> {
+                pendingVoiceToken = token == null ? "" : token;
+                pendingVoicePrompt = "";
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                        checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST);
+                } else {
+                    startRecognitionNow();
+                }
+            });
         }
 
         @JavascriptInterface
