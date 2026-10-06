@@ -560,8 +560,21 @@
         try {
           const cert=migrateCertificate(raw);
           if(cert) cleaned.push(cert);
+          else if(isRecord(raw)) {
+            cleaned.push({
+              ...raw,
+              id:String(raw.id||uid()),
+              fields:isRecord(raw.fields)?raw.fields:{},
+              tables:isRecord(raw.tables)?raw.tables:{},
+              status:raw.status==='Complete'?'Complete':'Draft',
+              createdAt:raw.createdAt||raw.updatedAt||new Date().toISOString(),
+              updatedAt:raw.updatedAt||raw.createdAt||new Date().toISOString(),
+              _unsupportedFormat:true
+            });
+          }
         } catch(err) {
-          console.error('Skipped damaged saved certificate',err,raw);
+          console.error('Preserved damaged saved certificate without migration',err,raw);
+          if(isRecord(raw)) cleaned.push({...raw,_unsupportedFormat:true});
         }
       });
       return { certificates: cleaned };
