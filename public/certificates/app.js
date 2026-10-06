@@ -773,7 +773,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">⚡ Rapid dictation</button><button class="btn" data-action="rapid-sheet">Read-back sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -996,6 +996,265 @@
   let voiceSeq = 0;
   const voiceHandlers = new Map();
   let guidedVoiceState = null;
+
+  let rapidState = null;
+
+  function rapidDescriptors(cert) {
+    if(!cert || !SCHEMAS[cert.type]) return [];
+    const schema=SCHEMAS[cert.type];
+    const result=[];
+    schema.sections.forEach(part=>{
+      if(part.type==='section'){
+        part.fields.forEach(field=>{
+          if(!fieldVisible(field,cert)) return;
+          result.push({
+            kind:'field',
+            section:part.title,
+            label:field.label,
+            key:field.key,
+            type:field.type||'text',
+            options:field.options||[]
+          });
+        });
+      } else if(part.type==='table'){
+        const rows=Array.isArray(cert.tables?.[part.key]) ? cert.tables[part.key] : [];
+        rows.forEach((row,ri)=>{
+          part.columns.forEach(col=>{
+            if(col.readonly) return;
+            result.push({
+              kind:'table',
+              section:part.title,
+              label:'Row '+(ri+1)+' · '+col.label,
+              table:part.key,
+              row:ri,
+              key:col.key,
+              type:col.type||'text',
+              options:col.options||[]
+            });
+          });
+        });
+      }
+    });
+    return result.map((d,i)=>({...d,no:i+1}));
+  }
+
+  function rapidDescriptorId(d) {
+    if(d.kind==='field') return 'field:'+d.key;
+    if(d.table==='circuits') return 'circuit:details:'+d.row+':'+d.key;
+    if(d.table==='tests') return 'circuit:tests:'+d.row+':'+d.key;
+    return 'table:'+d.table+':'+d.row+':'+d.key;
+  }
+
+  function rapidGetValue(cert,d) {
+    if(d.kind==='field') return cert.fields?.[d.key] ?? '';
+    return cert.tables?.[d.table]?.[d.row]?.[d.key] ?? '';
+  }
+
+  function rapidSetValue(cert,d,value) {
+    if(d.kind==='field'){
+      cert.fields[d.key]=value;
+      if(d.key==='certificateNo') cert.number=String(value||'');
+      if(d.key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)) cert.tables.circuits.forEach((_,i)=>recalculateCircuitZs(cert,i));
+      if(d.key==='signatoryMode'||d.key.startsWith('singleSignatory')) syncSingleSignatory(cert);
+    } else {
+      cert.tables[d.table]=Array.isArray(cert.tables[d.table])?cert.tables[d.table]:[];
+      while(cert.tables[d.table].length<=d.row) cert.tables[d.table].push({});
+      if(!isRecord(cert.tables[d.table][d.row])) cert.tables[d.table][d.row]={};
+      cert.tables[d.table][d.row][d.key]=value;
+      if(d.table==='circuits'){
+        syncCircuitRows(cert);
+        if(d.key==='circuitNo') cert.tables.tests[d.row].circuitNo=String(value||'');
+        if(['ocpdBs','ocpdType','ocpdRating'].includes(d.key)) recalculateCircuitZs(cert,d.row);
+      }
+    }
+    const meta=ensureVoiceMeta(cert);
+    const statusKey=rapidDescriptorId(d);
+    delete meta.later[statusKey];
+    delete meta.dismissed[statusKey];
+    meta.completed[statusKey]=true;
+  }
+
+  function rapidCoerceValue(d,raw) {
+    const text=String(raw||'').trim();
+    if(!text) return {ok:false};
+    const normalized=voiceNormalise(text);
+    if(['later','come back later','skip','skip field'].includes(normalized)) return {ok:true,status:'later'};
+    if(['dismiss','dismiss field','ignore','ignore field'].includes(normalized)) return {ok:true,status:'dismissed'};
+    if(d.type==='checkbox'){
+      if(/^(yes|true|on|tick|checked|pass)$/.test(normalized)) return {ok:true,value:true};
+      if(/^(no|false|off|untick|unchecked|fail)$/.test(normalized)) return {ok:true,value:false};
+      return {ok:false};
+    }
+    if(d.type==='date'){
+      const date=parseSpokenDate(text);
+      return date ? {ok:true,value:date} : {ok:false};
+    }
+    if(d.options?.length){
+      const matched=matchVoiceOption(text,d.options);
+      if(matched!==null) return {ok:true,value:matched};
+      return {ok:false};
+    }
+    const numeric=/rating|amps?|voltage|zs|ohm|csa|mm²|milliamps?|breaking|capacity|time|points|resistance|r1|r2|rn|frequency|prospective|ka\b/i.test(d.label);
+    const number=numeric ? spokenNumber(text) : null;
+    return {ok:true,value:number!==null?number:text};
+  }
+
+  function rapidFirstUnfilled(cert,descs) {
+    const meta=ensureVoiceMeta(cert);
+    const found=descs.findIndex(d=>{
+      const id=rapidDescriptorId(d);
+      if(meta.completed[id]||meta.dismissed[id]) return false;
+      const v=rapidGetValue(cert,d);
+      return v===undefined||v===null||String(v).trim()==='';
+    });
+    return found<0 ? 0 : found;
+  }
+
+  function splitRapidTranscript(text) {
+    return String(text||'')
+      .split(/\b(?:next field|next question|next box|next item)\b/gi)
+      .map(s=>s.replace(/^[,.;:\s]+|[,.;:\s]+$/g,'').trim())
+      .filter(Boolean);
+  }
+
+  function processRapidTranscript(text) {
+    const cert=getCurrent(); if(!cert||!rapidState) return {filled:0,failed:[]};
+    const descs=rapidDescriptors(cert);
+    const chunks=splitRapidTranscript(text);
+    let filled=0;
+    const failed=[];
+    for(const chunk of chunks){
+      if(rapidState.cursor>=descs.length) break;
+      const d=descs[rapidState.cursor];
+      const parsed=rapidCoerceValue(d,chunk);
+      if(!parsed.ok){
+        failed.push({no:d.no,label:d.label,text:chunk});
+        break;
+      }
+      const id=rapidDescriptorId(d);
+      if(parsed.status){
+        setVoiceStatus(id,parsed.status);
+      } else {
+        rapidSetValue(cert,d,parsed.value);
+        filled++;
+      }
+      rapidState.cursor++;
+    }
+    cert.rapidCursor=rapidState.cursor;
+    saveNow();
+    return {filled,failed};
+  }
+
+  function rapidCurrentSummary() {
+    const cert=getCurrent(); if(!cert||!rapidState) return null;
+    const descs=rapidDescriptors(cert);
+    const current=descs[rapidState.cursor]||null;
+    return {descs,current,total:descs.length};
+  }
+
+  function renderRapidEntry() {
+    const cert=getCurrent(); if(!cert||!rapidState) return;
+    let modal=document.querySelector('.rapid-backdrop');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.className='modal-backdrop rapid-backdrop';
+      modal.innerHTML='<div class="card modal rapid-modal" data-modal><div data-rapid-body></div></div>';
+      document.body.appendChild(modal);
+    }
+    const body=modal.querySelector('[data-rapid-body]');
+    const info=rapidCurrentSummary();
+    if(!info.current){
+      body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Rapid Dictation</div><h2>Read-back complete</h2></div><button class="btn" data-action="rapid-close">Close</button></div><div class="note">You have reached the end of the current certificate fields. Review the certificate before completing it.</div><div class="toolbar" style="margin-top:14px"><button class="btn primary" data-action="rapid-start-top">Start again from top</button><button class="btn" data-action="rapid-sheet">Download read-back sheet</button></div>';
+      return;
+    }
+    const d=info.current;
+    const upcoming=info.descs.slice(rapidState.cursor,rapidState.cursor+5);
+    body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Rapid Dictation</div><h2>Read your handwritten sheet back</h2><p>Say each answer, then say <strong>NEXT FIELD</strong>. Read several answers in one go.</p></div><button class="btn" data-action="rapid-close">Close</button></div>'+
+      '<div class="rapid-progress"><strong>Field '+d.no+' of '+info.total+'</strong><span>'+esc(d.section)+'</span></div>'+
+      '<div class="rapid-current"><div class="meta">Current field</div><strong>'+esc(d.label)+'</strong>'+(d.options?.length?'<div class="rapid-options">Choices: '+esc(d.options.join(' · '))+'</div>':'')+'</div>'+
+      '<div class="rapid-upcoming"><div class="meta">Coming next</div>'+upcoming.map(x=>'<div><span>'+x.no+'</span> '+esc(x.label)+'</div>').join('')+'</div>'+
+      '<textarea class="rapid-transcript" data-rapid-transcript placeholder="Your speech transcript appears here. You can also type or paste a read-back transcript."></textarea>'+
+      '<div class="rapid-actions"><button class="voice-speak-big rapid-mic" data-action="rapid-listen">🎙 <span>Record read-back</span></button><button class="btn primary" data-action="rapid-process">Process transcript</button></div>'+
+      '<div class="toolbar rapid-nav"><button class="btn" data-action="rapid-prev">← Previous field</button><button class="btn" data-action="rapid-later">Come back later</button><button class="btn danger" data-action="rapid-dismiss">Dismiss field</button></div>'+
+      '<div class="toolbar rapid-secondary"><button class="btn" data-action="rapid-start-top">Start from top</button><button class="btn" data-action="rapid-sheet">Download read-back sheet</button></div>'+
+      '<div class="note">For a long read-back: speak “next field” between answers. If the phone stops listening, press Record read-back again and carry on from the field shown here.</div>';
+  }
+
+  function openRapidEntry(fromTop=false) {
+    const cert=getCurrent(); if(!cert) return;
+    const descs=rapidDescriptors(cert);
+    const saved=Number(cert.rapidCursor);
+    const cursor=fromTop ? 0 : (Number.isFinite(saved)&&saved>=0&&saved<descs.length ? saved : rapidFirstUnfilled(cert,descs));
+    rapidState={cursor};
+    renderRapidEntry();
+  }
+
+  function closeRapidEntry() {
+    saveNow();
+    rapidState=null;
+    document.querySelector('.rapid-backdrop')?.remove();
+    render();
+  }
+
+  function rapidListen() {
+    if(!rapidState) return;
+    if(!voiceSupported()){alert('Voice recognition is not available on this device. Allow microphone access and try again.');return;}
+    const box=document.querySelector('[data-rapid-transcript]');
+    if(box) box.value='Listening…';
+    voiceAsk('Rapid dictation',function(text,error){
+      if(!rapidState) return;
+      const transcript=document.querySelector('[data-rapid-transcript]');
+      if(error||!text){
+        if(transcript) transcript.value='';
+        toast(error||'Nothing heard');
+        return;
+      }
+      if(transcript) transcript.value=text;
+      const result=processRapidTranscript(text);
+      toast(result.failed.length ? 'Stopped at a field that needs checking' : result.filled+' field'+(result.filled===1?'':'s')+' filled');
+      renderRapidEntry();
+    });
+  }
+
+  function downloadRapidSheet() {
+    const cert=getCurrent(); if(!cert) return;
+    const descs=rapidDescriptors(cert);
+    const jsPDFCtor=window.jspdf?.jsPDF;
+    if(!jsPDFCtor || typeof (new jsPDFCtor()).autoTable!=='function'){
+      alert('The PDF engine is not available. Reopen the app and try again.');
+      return;
+    }
+    const doc=new jsPDFCtor({unit:'mm',format:'a4',orientation:'portrait'});
+    pdfHeader(doc,SCHEMAS[cert.type],cert);
+    doc.setTextColor(25,33,43);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('READ-BACK / RAPID ENTRY SHEET',14,32);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text('Write answers on site. Later use Rapid Dictation and read them in number order. Say “NEXT FIELD” between each answer.',14,38,{maxWidth:180});
+    const rows=descs.map(d=>{
+      const value=rapidGetValue(cert,d);
+      const choices=d.options?.length ? d.options.join(' / ') : '';
+      return [String(d.no),d.section,d.label,String(value??''),choices];
+    });
+    doc.autoTable({
+      startY:44,
+      head:[['No.','Section','Field','Handwritten / current value','Quick choices']],
+      body:rows,
+      margin:{left:8,right:8,top:28,bottom:14},
+      styles:{fontSize:6.5,cellPadding:1.4,overflow:'linebreak'},
+      headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
+      columnStyles:{0:{cellWidth:10},1:{cellWidth:38},2:{cellWidth:48},3:{cellWidth:47},4:{cellWidth:47}}
+    });
+    pdfFooter(doc);
+    const name='Sperin-Read-Back-'+(cert.number||cert.type||'certificate').replace(/[^a-z0-9-_]+/gi,'-')+'.pdf';
+    if(window.Android && typeof window.Android.savePdfBase64==='function'){
+      window.Android.savePdfBase64(doc.output('datauristring'),name);
+      toast('Read-back sheet saved to Downloads');
+    } else {
+      doc.save(name);
+      toast('Read-back sheet created');
+    }
+  }
+
 
   function voiceSupported() {
     return !!((window.Android && window.Android.speakAndListen) || window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -1561,7 +1820,21 @@
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if (action === 'voice-guide') startGuidedVoice('main');
+    if (action === 'rapid-entry') openRapidEntry(false);
+    else if (action === 'rapid-sheet') downloadRapidSheet();
+    else if (action === 'rapid-listen') rapidListen();
+    else if (action === 'rapid-process') {
+      const box=document.querySelector('[data-rapid-transcript]');
+      const result=processRapidTranscript(box?.value||'');
+      toast(result.failed.length ? 'Stopped at a field that needs checking' : result.filled+' field'+(result.filled===1?'':'s')+' filled');
+      renderRapidEntry();
+    }
+    else if (action === 'rapid-prev') { if(rapidState){saveNow();rapidState.cursor=Math.max(0,rapidState.cursor-1);getCurrent().rapidCursor=rapidState.cursor;renderRapidEntry();} }
+    else if (action === 'rapid-later') { if(rapidState){const info=rapidCurrentSummary();if(info?.current){setVoiceStatus(rapidDescriptorId(info.current),'later');rapidState.cursor++;getCurrent().rapidCursor=rapidState.cursor;saveNow();renderRapidEntry();}} }
+    else if (action === 'rapid-dismiss') { if(rapidState){const info=rapidCurrentSummary();if(info?.current){setVoiceStatus(rapidDescriptorId(info.current),'dismissed');rapidState.cursor++;getCurrent().rapidCursor=rapidState.cursor;saveNow();renderRapidEntry();}} }
+    else if (action === 'rapid-start-top') { if(rapidState){rapidState.cursor=0;getCurrent().rapidCursor=0;saveNow();renderRapidEntry();} else openRapidEntry(true); }
+    else if (action === 'rapid-close') closeRapidEntry();
+    else if (action === 'voice-guide') startGuidedVoice('main');
     else if (action === 'voice-review-later') startGuidedVoice('later');
     else if (action === 'voice-one') {
       const holder=button.closest('.voice-control') || button.closest('.field') || button.closest('td');
