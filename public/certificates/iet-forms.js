@@ -24,9 +24,19 @@
     const a=String(value||'').toLowerCase(),b=String(choice||'').toLowerCase();
     return a===b || (choice==='✓'&&['yes','pass','satisfactory','true','✓'].includes(a));
   }
+  function pdfText(value){
+    return String(value??'')
+      .replaceAll('✓','X')
+      .replaceAll('✕','X')
+      .replaceAll('Ω',' Ohms')
+      .replaceAll('²','2')
+      .replaceAll('Δ','delta')
+      .replaceAll('·',' - ')
+      .replace(/[–—]/g,'-');
+  }
   function clip(doc,text,w,fontSize=7){
     doc.setFontSize(fontSize);
-    const lines=doc.splitTextToSize(String(text||''),Math.max(5,w));
+    const lines=doc.splitTextToSize(pdfText(text),Math.max(5,w));
     return lines;
   }
   function write(doc,text,x,y,w,opts={}){
@@ -66,7 +76,12 @@
   function footer(doc,page,total){
     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
     doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
-    doc.text(BRAND+' · Page '+page+' of '+total,w/2,h-7,{align:'center'});
+    if(doc.__sperinWorksheet){
+      doc.setTextColor(...BLUE);doc.setFont('helvetica','bold');doc.setFontSize(5.4);
+      doc.text('MULTIPLE CHOICE: MARK ONE BOX WITH X. DO NOT CIRCLE OR CROSS OUT THE OTHER OPTIONS.',w/2,h-10,{align:'center'});
+    }
+    doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
+    doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7,{align:'center'});
   }
   function box(doc,x,y,w,h,title,opts={}){
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);doc.rect(x,y,w,h);
@@ -266,10 +281,10 @@
     const rows=safeRows(cert.tables?.eicInspection);
     doc.autoTable({
       startY:top+1,
-      head:[['Item No.','Description','Outcome ✓ / N/A','Item No.','Description','Outcome ✓ / N/A']],
+      head:[['Item No.','Description','Outcome: Satisfactory / N/A','Item No.','Description','Outcome: Satisfactory / N/A']],
       body:Array.from({length:7},(_,r)=>{
         const a=rows[r]||{},b=rows[r+7]||{};
-        return [a.item||'',a.description||'',worksheet?'':(a.outcome||''),b.item||'',b.description||'',worksheet?'':(b.outcome||'')];
+        return [a.item||'',a.description||'',worksheet?'':pdfText(a.outcome||''),b.item||'',b.description||'',worksheet?'':pdfText(b.outcome||'')];
       }),
       margin:{left:x,right:210-(x+w)},tableWidth:w,theme:'grid',
       styles:{fontSize:5.3,cellPadding:.8,minCellHeight:6.2,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
@@ -461,7 +476,7 @@
       head:[['Item No.','Observation(s)','Classification code','Schedule ref.']],
       body:Array.from({length:6},(_,idx)=>{
         const r=obs[idx]||{};
-        return [worksheet?'':(r.item||''),worksheet?'':(r.observation||''),worksheet?'':(r.code||''),worksheet?'':(r.scheduleRef||'')];
+        return [worksheet?'':pdfText(r.item||''),worksheet?'':pdfText(r.observation||''),worksheet?'':pdfText(r.code||''),worksheet?'':pdfText(r.scheduleRef||'')];
       }),
       margin:{left:x,right:210-(x+w)},tableWidth:w,theme:'grid',
       styles:{fontSize:5.8,cellPadding:1,minCellHeight:8,lineColor:LINE,lineWidth:.12,textColor:INK},
@@ -482,7 +497,7 @@
         [{content:'CONDITION REPORT SCHEDULE OF INSPECTION',colSpan:3,styles:{fontStyle:'bold',fontSize:8}}],
         ['Item No.','Description','Outcome']
       ],
-      body:rows.map(r=>[r.item||'',r.description||'',worksheet?'':(r.outcome||'')]),
+      body:rows.map(r=>[pdfText(r.item||''),pdfText(r.description||''),worksheet?'':pdfText(r.outcome||'')]),
       margin:{left:10,right:10,top:31,bottom:12},
       theme:'grid',
       rowPageBreak:'avoid',
@@ -492,7 +507,7 @@
       didDrawPage:()=>{
         pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard);
         if(first){
-          write(doc,'Outcomes: ✓ Acceptable · C1/C2 Unacceptable · C3 Improvement recommended · FI Further investigation · N/V Not verified · LIM Limitation · N/A Not applicable',10,27,190,{size:5.4});
+          write(doc,'Outcomes: S = Satisfactory; C1/C2 = Unacceptable; C3 = Improvement recommended; FI = Further investigation; N/V = Not verified; LIM = Limitation; N/A = Not applicable',10,27,190,{size:5.4});
           first=false;
         }
       }
@@ -535,7 +550,7 @@
           rows.push(cols.map(c=>{
             let z=item[c[2]];
             if(c[2]==='wiringType') z=wiringCode(z);
-            return worksheet?'':String(z||'');
+            return worksheet?'':pdfText(z||'');
           }));
         }
         doc.autoTable({
@@ -543,7 +558,7 @@
           head:[
             [{content:'CIRCUIT DETAILS',colSpan:16,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
-            cols.map(c=>c[0]+' '+c[1])
+            cols.map(c=>c[1])
           ],
           body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',
           styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
@@ -572,14 +587,14 @@
         for(let r=0;r<12;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
-          trows.push(tcols.map(c=>worksheet?'':String(merged[c[2]]||'')));
+          trows.push(tcols.map(c=>worksheet?'':pdfText(merged[c[2]]||'')));
         }
         doc.autoTable({
           startY:y+18,
           head:[
             [{content:'TEST RESULTS',colSpan:15,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:1},{content:'Continuity Ω',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
-            tcols.map(c=>c[0]+' '+c[1])
+            tcols.map(c=>c[1])
           ],
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
           styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
@@ -627,7 +642,7 @@
         doc.autoTable({
           startY:y,
           head:[[...part.columns.map(c=>c.label)]],
-          body:rows.map(r=>part.columns.map(c=>worksheet?'':String(r?.[c.key]||''))),
+          body:rows.map(r=>part.columns.map(c=>worksheet?'':pdfText(r?.[c.key]||''))),
           margin:{left:x,right:10,top:26,bottom:12},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:5.6,cellPadding:1,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK},
           headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
@@ -643,6 +658,7 @@
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
+    doc.__sperinWorksheet=!!worksheet;
     const opts={worksheet,settings};
     if(cert.type==='eic')renderEic(doc,cert,schema,opts);
     else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
