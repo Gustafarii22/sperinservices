@@ -163,6 +163,30 @@
     });
   }
 
+  function renumberCircuits(cert) {
+    syncCircuitRows(cert);
+    cert.tables.circuits.forEach((row,i)=>{
+      const no=String(i+1);
+      row.circuitNo=no;
+      cert.tables.tests[i].circuitNo=no;
+    });
+  }
+
+  function moveCircuit(cert,index,direction) {
+    syncCircuitRows(cert);
+    const from=Number(index);
+    const to=from+Number(direction);
+    if(!Number.isInteger(from)||!Number.isInteger(to)||from<0||to<0||from>=cert.tables.circuits.length||to>=cert.tables.circuits.length) return;
+    const circuit=cert.tables.circuits.splice(from,1)[0];
+    const test=cert.tables.tests.splice(from,1)[0];
+    cert.tables.circuits.splice(to,0,circuit);
+    cert.tables.tests.splice(to,0,test);
+    renumberCircuits(cert);
+    saveNow();
+    render();
+    goCircuits();
+  }
+
   function calculateMaxZs(row, cert) {
     const curve=String(row?.ocpdType||'').trim().toUpperCase();
     const factor={B:5,C:10,D:20}[curve];
