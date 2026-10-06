@@ -173,11 +173,15 @@
     const name=f.singleSignatoryName||'';
     const company=f.singleSignatoryCompany||'';
     const address=f.singleSignatoryAddress||'';
+    const postcode=f.singleSignatoryPostcode||'';
+    const phone=f.singleSignatoryPhone||'';
     const signature=f.singleSignatorySignature||'';
     const date=f.singleSignatoryDate||'';
     f.designer1=name; f.constructor=name; f.inspector=name;
     f.designerCompany=company; f.constructorCompany=company; f.inspectorCompany=company;
     f.designerAddress=address; f.constructorAddress=address; f.inspectorAddress=address;
+    f.designerPostcode=postcode; f.constructorPostcode=postcode; f.inspectorPostcode=postcode;
+    f.designerPhone=phone; f.constructorPhone=phone; f.inspectorPhone=phone;
     f.designer1Signature=signature; f.constructorSignature=signature; f.inspectorSignature=signature;
     f.designer1Date=date; f.constructorDate=date; f.inspectionDate=date;
   }
@@ -195,7 +199,10 @@
       if(f.signatoryMode==='One person — design, construction & inspection'){
         f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||settings.engineerName||'';
         f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||settings.companyName||'';
-        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||[settings.address,settings.postcode].filter(Boolean).join('\n');
+        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||settings.address||'';
+        f.singleSignatoryPostcode=f.singleSignatoryPostcode||f.designerPostcode||f.constructorPostcode||f.inspectorPostcode||settings.postcode||'';
+        f.singleSignatoryPhone=f.singleSignatoryPhone||f.designerPhone||f.constructorPhone||f.inspectorPhone||settings.phone||'';
+        f.singleSignatoryQualification=f.singleSignatoryQualification||settings.qualification||'';
         f.singleSignatorySignature=f.singleSignatorySignature||f.designer1Signature||f.constructorSignature||f.inspectorSignature||'';
         f.singleSignatoryDate=f.singleSignatoryDate||f.designer1Date||f.constructorDate||f.inspectionDate||'';
         syncSingleSignatory(cert);
@@ -318,21 +325,30 @@
           f('singleSignatoryName', 'Name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryCompany', 'For/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryAddress', 'Address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryPostcode', 'Postcode', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryPhone', 'Telephone', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryQualification', 'Qualification / role', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatorySignature', 'Signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryDate', 'Date', 'date', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('designer1', 'Designer name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designerCompany', 'Designer — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designerAddress', 'Designer address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designerPostcode', 'Designer postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designerPhone', 'Designer telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designer1Signature', 'Designer signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designer1Date', 'Designer date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
-          f('constructor', 'Constructor name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructor', 'Installer / constructor name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorCompany', 'Constructor — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
-          f('constructorAddress', 'Constructor address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorAddress', 'Installer / constructor address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorPostcode', 'Installer / constructor postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorPhone', 'Installer / constructor telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorSignature', 'Constructor signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorDate', 'Construction date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspector', 'Inspector name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorCompany', 'Inspector — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorAddress', 'Inspector address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorPostcode', 'Inspector postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorPhone', 'Inspector telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorSignature', 'Inspector signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectionDate', 'Inspection & testing date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designDepartures', 'Design departures from BS 7671', 'textarea', { span:'full' }),
@@ -532,7 +548,10 @@
       fields.signatoryMode = 'One person — design, construction & inspection';
       fields.singleSignatoryName = settings.engineerName;
       fields.singleSignatoryCompany = settings.companyName;
-      fields.singleSignatoryAddress = [settings.address, settings.postcode].filter(Boolean).join('\n');
+      fields.singleSignatoryAddress = settings.address;
+      fields.singleSignatoryPostcode = settings.postcode;
+      fields.singleSignatoryPhone = settings.phone;
+      fields.singleSignatoryQualification = settings.qualification;
     }
     if ('testerMft' in fields) fields.testerMft = true;
     const cert = { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
