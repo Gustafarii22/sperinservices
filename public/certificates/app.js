@@ -1344,6 +1344,24 @@
   function pageNoFromText(t){const m=String(t||'').match(/PAGE\s+(\d+)/i);return m?Number(m[1]):null;}
   function replaceOnceCI(text,needle){const s=String(text||''),n=String(needle||'');const i=s.toLowerCase().indexOf(n.toLowerCase());return i<0?s:(s.slice(0,i)+' '+s.slice(i+n.length));}
   function stripOcrLabel(text,d){let v=replaceOnceCI(text,d.code);[d.label,...(d.aliases||[])].sort((a,b)=>String(b).length-String(a).length).forEach(l=>{v=replaceOnceCI(v,l);});return v.replace(/[_|:[\]{}]+/g,' ').replace(/\s+/g,' ').trim();}
+  function extractMarkedChoice(d,line,lines){
+    if(!line||!Array.isArray(d.options)||!d.options.length)return null;
+    const cy=((line.top||0)+(line.bottom||0))/2,h=Math.max(10,(line.bottom||0)-(line.top||0));
+    const nearby=lines.filter(x=>{
+      const y=((x.top||0)+(x.bottom||0))/2;
+      return Math.abs(y-cy)<=h*2.2;
+    }).sort((a,b)=>(a.left||0)-(b.left||0));
+    const text=' '+voiceNormalise(nearby.map(x=>x.text||'').join(' '))+' ';
+    const hits=d.options.filter(option=>{
+      const o=voiceNormalise(option);
+      if(!o)return false;
+      const escaped=o.replace(/[.*+?^$()|[\]{}\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+      return new RegExp('(?:\\bx\\b\\s*(?:in\\s*)?(?:the\\s*)?'+escaped+'\\b|\\b'+escaped+'\\b\\s*\\bx\\b)','i').test(text);
+    });
+    if(hits.length===1)return {value:hits[0],confidence:'high'};
+    if(hits.length>1)return {value:'',confidence:'check'};
+    return null;
+  }
   function extractOcrValue(d,lines,data){
     const code=String(d.code||'').toUpperCase();
     let line=code?lines.find(l=>String(l.text||'').toUpperCase().includes(code)):null;
@@ -1352,6 +1370,8 @@
       line=lines.find(l=>{const n=voiceNormalise(l.text||'');return aliases.some(a=>a&&n.includes(a));});
     }
     if(line){
+      const marked=extractMarkedChoice(d,line,lines);
+      if(marked)return marked;
       let v=stripOcrLabel(line.text,d);
       if(v)return {value:v,confidence:'high'};
       const cy=((line.top||0)+(line.bottom||0))/2,h=Math.max(10,(line.bottom||0)-(line.top||0));
