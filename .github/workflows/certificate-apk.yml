@@ -1,0 +1,68 @@
+name: Build Sperin Certificates APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "public/certificates/**"
+      - "certificate-android/**"
+      - ".github/workflows/certificate-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Bundle certificate web app
+        run: |
+          rm -rf certificate-android/app/src/main/assets/certificates
+          mkdir -p certificate-android/app/src/main/assets/certificates
+          cp public/certificates/index.html certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/styles.css certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/manifest.webmanifest certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/icon.svg certificate-android/app/src/main/assets/certificates/
+
+      - name: Build APK
+        run: gradle -p certificate-android :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK
+        run: |
+          mkdir -p certificate-android/dist
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.1.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v1.1.0
+          path: certificate-android/dist/Sperin-Certificates-v1.1.0.apk
+          if-no-files-found: error
+          retention-days: 30
