@@ -27,35 +27,31 @@ export function Header() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
-        <div
-          className={`relative mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 transition-all lg:gap-5 lg:px-8 ${
-            scrolled ? "min-h-[80px] lg:min-h-[74px]" : "min-h-[90px] lg:min-h-[86px]"
-          }`}
-        >
-          <Link
-            to="/"
-            className="absolute left-1/2 -translate-x-1/2"
-            aria-label="Sperin Services home"
-          >
-            <Logo className="h-[76px] w-auto max-w-[62vw] sm:h-[82px] lg:h-[84px] lg:max-w-[420px]" />
-          </Link>
+        <div className="mx-auto max-w-7xl lg:grid lg:min-h-[86px] lg:grid-cols-[1fr_auto] lg:items-center lg:px-8">
+          <div className="flex min-h-[92px] items-center justify-center px-3 lg:min-h-0 lg:justify-start lg:px-0">
+            <Link to="/" aria-label="Sperin Services home" className="flex w-full items-center justify-center lg:w-auto">
+              <Logo className="h-auto w-full max-w-[430px] sm:max-w-[500px] lg:h-[84px] lg:w-auto lg:max-w-[360px]" />
+            </Link>
+          </div>
 
-          <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
-            <ServicesDropdown />
-            {NAV.map((item) => (
-              <NavItem key={item.to} to={item.to} label={item.label} />
-            ))}
-          </nav>
+          <div className="flex min-h-[58px] items-center justify-end border-t border-white/10 px-4 lg:min-h-0 lg:border-t-0 lg:px-0">
+            <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
+              <ServicesDropdown />
+              {NAV.map((item) => (
+                <NavItem key={item.to} to={item.to} label={item.label} />
+              ))}
+            </nav>
 
-          <DialogTrigger asChild>
-            <button
-              type="button"
-              aria-label="Open menu"
-              className="mobile-menu-trigger absolute right-4 inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:static"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </DialogTrigger>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open menu"
+                className="mobile-menu-trigger inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/15 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </DialogTrigger>
+          </div>
         </div>
 
         <DialogContent
