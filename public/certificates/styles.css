@@ -80,3 +80,31 @@ html{scroll-padding-top:92px}
   .voice-page-nav .btn{width:100%}
   .voice-mic{min-width:92px}
 }
+
+/* v1.4 saved certificate cards */
+.saved-cert-card{grid-template-columns:minmax(0,1.7fr) minmax(170px,.55fr) auto;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.saved-cert-card:hover,.saved-cert-card:focus-visible{border-color:#3b6d9f;background:linear-gradient(180deg,rgba(18,37,62,.98),rgba(11,25,43,.99));outline:none}
+.saved-cert-card:active{transform:scale(.997)}
+.saved-cert-main{min-width:0;display:grid;gap:8px}
+.saved-cert-topline{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.saved-cert-icon{font-size:22px;line-height:1}
+.saved-cert-customer{font-size:17px;font-weight:850;line-height:1.2;color:#f5f9ff}
+.saved-cert-type{margin-top:3px;font-size:11px;color:#8fa7c1}
+.saved-cert-address{font-size:13px;line-height:1.45;color:#c7d6e8;white-space:normal;overflow-wrap:anywhere}
+.saved-cert-meta{display:grid;gap:8px;align-content:center}
+.saved-cert-meta strong{font-size:13px}
+.saved-cert-actions{justify-content:flex-end;align-items:center}
+.saved-cert-actions .btn{min-height:44px;padding:10px 14px;font-size:13px}
+.app-error{padding:20px;margin:18px 0}
+.app-error h2{margin:0 0 8px}
+.app-error p{color:var(--muted);line-height:1.5}
+@media(max-width:900px){
+  .saved-cert-card{grid-template-columns:1fr}
+  .saved-cert-meta{grid-template-columns:auto 1fr;align-items:center}
+  .saved-cert-actions{justify-content:flex-start}
+}
+@media(max-width:560px){
+  .saved-cert-customer{font-size:16px}
+  .saved-cert-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .saved-cert-actions .btn{width:100%;min-height:46px}
+}
