@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.3.2';
+  const VERSION = '1.4.0';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -33,7 +33,25 @@
     testResult: ['Pass', 'Fail', 'N/A'],
     ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 3036', 'BS 1361', 'Other'],
     ocpdRating: ['2', '4', '6', '10', '16', '20', '25', '32', '40', '50', '63', '80', '100', '125'],
-    testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other']
+    testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other'],
+    nominalVoltage: ['230', '230/400', '400/230', '400', 'Other'],
+    frequency: ['50', '60', 'Other'],
+    breakingCapacity: ['3', '4.5', '6', '10', '16', '25', '36', '50', 'Other'],
+    conductorCsa: ['1', '1.5', '2.5', '4', '6', '10', '16', '25', '35', '50', '70', '95', '120', '150', '185', '240', 'Other'],
+    conductorMaterial: ['Copper', 'Aluminium', 'Other'],
+    poles: ['1', '2', '3', '4'],
+    rcdIdn: ['10', '30', '100', '300', '500', 'Other'],
+    earthElectrodeType: ['Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
+    supplyDeviceBs: ['BS 88-2', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
+    spdType: [
+      'No SPD / N/A',
+      'Type 1 — BS EN IEC 61643-11',
+      'Type 2 — BS EN IEC 61643-11',
+      'Type 1+2 — BS EN IEC 61643-11',
+      'Type 2+3 — BS EN IEC 61643-11',
+      'Type 3 — BS EN IEC 61643-11',
+      'Other'
+    ]
   };
 
   const f = (key, label, type = 'text', opts = {}) => ({ key, label, type, ...opts });
@@ -49,15 +67,15 @@
     { key: 'points', label: 'Points' },
     { key: 'liveCsa', label: 'Live mm²' },
     { key: 'cpcCsa', label: 'CPC mm²' },
-    { key: 'ocpdBs', label: 'OCPD BS (EN)' },
+    { key: 'ocpdBs', label: 'OCPD BS (EN)', type: 'select', options: OPTIONS.ocpdBs },
     { key: 'ocpdType', label: 'OCPD type', type: 'select', options: OPTIONS.ocpdType },
-    { key: 'ocpdRating', label: 'Rating A' },
-    { key: 'breakingCapacity', label: 'Breaking kA' },
+    { key: 'ocpdRating', label: 'Rating A', type: 'select', options: OPTIONS.ocpdRating },
+    { key: 'breakingCapacity', label: 'Breaking kA', type: 'select', options: OPTIONS.breakingCapacity },
     { key: 'maxZs', label: 'Max Zs Ω' },
-    { key: 'rcdBs', label: 'RCD BS (EN)' },
+    { key: 'rcdBs', label: 'RCD BS (EN)', type: 'select', options: ['BS EN 61008-1','BS EN 61009-1','Other'] },
     { key: 'rcdType', label: 'RCD type', type: 'select', options: OPTIONS.rcdType },
-    { key: 'rcdIdn', label: 'IΔn mA' },
-    { key: 'rcdRating', label: 'RCD A' }
+    { key: 'rcdIdn', label: 'IΔn mA', type: 'select', options: OPTIONS.rcdIdn },
+    { key: 'rcdRating', label: 'RCD A', type: 'select', options: OPTIONS.ocpdRating }
   ];
 
   const testColumns = [
@@ -87,20 +105,20 @@
       { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
       { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
       { key:'points', label:'Number of points served' },
-      { key:'liveCsa', label:'Live conductor csa (mm²)' },
-      { key:'cpcCsa', label:'CPC csa (mm²)' }
+      { key:'liveCsa', label:'Live conductor csa (mm²)', options:OPTIONS.conductorCsa },
+      { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
-      { key:'breakingCapacity', label:'Breaking capacity (kA)' },
+      { key:'breakingCapacity', label:'Breaking capacity (kA)', options:OPTIONS.breakingCapacity },
       { key:'maxZs', label:'Maximum permitted Zs (Ω)', suffix:'zs' }
     ]},
     { title: 'RCD', fields: [
       { key:'rcdBs', label:'BS (EN)', options:['BS EN 61008-1','BS EN 61009-1','Other'] },
       { key:'rcdType', label:'Type', options:OPTIONS.rcdType },
-      { key:'rcdIdn', label:'IΔn (mA)', options:['10','30','100','300','500'] },
+      { key:'rcdIdn', label:'IΔn (mA)', options:OPTIONS.rcdIdn },
       { key:'rcdRating', label:'Rating (A)', options:OPTIONS.ocpdRating }
     ]}
   ];
@@ -136,6 +154,8 @@
     const total=Math.max(cert.tables.circuits.length,cert.tables.tests.length);
     while(cert.tables.circuits.length<total) cert.tables.circuits.push({});
     while(cert.tables.tests.length<total) cert.tables.tests.push({});
+    cert.tables.circuits=cert.tables.circuits.map(row=>isRecord(row)?row:{});
+    cert.tables.tests=cert.tables.tests.map(row=>isRecord(row)?row:{});
     cert.tables.circuits.forEach((row,i)=>{
       row.circuitNo = row.circuitNo || cert.tables.tests[i]?.circuitNo || String(i+1);
       cert.tables.tests[i].circuitNo = row.circuitNo;
@@ -186,9 +206,63 @@
     f.designer1Date=date; f.constructorDate=date; f.inspectionDate=date;
   }
 
+  function isRecord(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function normaliseCertificateShape(cert) {
+    if(!isRecord(cert)) return null;
+    const legacyTypeMap = {
+      electricalInstallationCertificate:'eic',
+      electrical_installation_certificate:'eic',
+      conditionReport:'eicr',
+      electricalInstallationConditionReport:'eicr',
+      electrical_installation_condition_report:'eicr',
+      minorWorks:'minor',
+      minor_works:'minor',
+      emergencyLighting:'emergency',
+      emergency_lighting:'emergency',
+      smokeAlarm:'smoke',
+      smoke_alarm:'smoke'
+    };
+    if(!SCHEMAS[cert.type] && legacyTypeMap[cert.type]) cert.type=legacyTypeMap[cert.type];
+    if(!SCHEMAS[cert.type]) return null;
+
+    cert.id = String(cert.id || uid());
+    cert.fields = isRecord(cert.fields) ? cert.fields : {};
+    cert.tables = isRecord(cert.tables) ? cert.tables : {};
+    cert.status = cert.status === 'Complete' ? 'Complete' : 'Draft';
+    cert.createdAt = cert.createdAt || cert.updatedAt || new Date().toISOString();
+    cert.updatedAt = cert.updatedAt || cert.createdAt || new Date().toISOString();
+    cert.voiceMeta = isRecord(cert.voiceMeta) ? cert.voiceMeta : {};
+    cert.voiceMeta.completed = isRecord(cert.voiceMeta.completed) ? cert.voiceMeta.completed : {};
+    cert.voiceMeta.later = isRecord(cert.voiceMeta.later) ? cert.voiceMeta.later : {};
+    cert.voiceMeta.dismissed = isRecord(cert.voiceMeta.dismissed) ? cert.voiceMeta.dismissed : {};
+
+    const schema=SCHEMAS[cert.type];
+    schema.sections.forEach(part=>{
+      if(part.type==='section'){
+        part.fields.forEach(field=>{
+          if(!(field.key in cert.fields)) cert.fields[field.key]=defaultFor(field);
+        });
+      } else if(part.type==='table'){
+        let rows=Array.isArray(cert.tables[part.key]) ? cert.tables[part.key] : [];
+        rows=rows.filter(isRecord).map(row=>({...row}));
+        if(!rows.length && Array.isArray(part.defaultRows) && part.defaultRows.length) rows=clone(part.defaultRows);
+        cert.tables[part.key]=rows;
+      }
+    });
+
+    if(!cert.number) cert.number=cert.fields.certificateNo || '';
+    if(!cert.fields.certificateNo && cert.number) cert.fields.certificateNo=cert.number;
+    return cert;
+  }
+
   function migrateCertificate(cert) {
-    cert.fields = cert.fields || {};
-    cert.tables = cert.tables || {};
+    cert = normaliseCertificateShape(cert);
+    if(!cert) return null;
+    cert.fields = isRecord(cert.fields) ? cert.fields : {};
+    cert.tables = isRecord(cert.tables) ? cert.tables : {};
     if(cert.type==='eic'){
       const f=cert.fields;
       if(!f.signatoryMode){
@@ -358,13 +432,13 @@
           select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA)
         ]),
         section('D · Next inspection', [f('nextInspectionInterval', 'Recommended interval before next inspection (years/months)', 'text', { span: 'full' })]),
-        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), f('nominalVoltage', 'Nominal voltage U/U0 (V)'), f('frequency', 'Nominal frequency (Hz)'), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), f('supplyDeviceBs', 'Supply protective device BS (EN)'), f('supplyDeviceType', 'Supply protective device type'), f('supplyDeviceRating', 'Rated current (A)'), f('supplyBreakingCapacity', 'Breaking capacity (kA)'), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Maximum demand unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type'), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), f('earthingConductorMaterial', 'Earthing conductor material'), f('earthingConductorCsa', 'Earthing conductor csa (mm²)'), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), f('bondingMaterial', 'Main bonding conductor material'), f('bondingCsa', 'Main bonding conductor csa (mm²)'), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), f('mainSwitchPoles', 'No. of poles'), f('mainSwitchCurrent', 'Current rating (A)'), f('mainSwitchVoltage', 'Voltage rating (V)'), f('mainSwitchDeviceType', 'Overcurrent device type / setting'), f('mainSwitchBreaking', 'Breaking capacity (kA)'), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdIdn', 'RCD IΔn (mA)'), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
+        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
         table('eicInspection', 'H · Schedule of inspections', [
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.passNA }
         ], eicInspectionRows),
         section('I · Existing installation comments', [f('existingComments', 'Comments on existing installation (for additions/alterations)', 'textarea', { span: 'full' })]),
-        section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), f('dbSpd', 'SPD details / type(s)'), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
+        section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
         section('Test instrument', [
@@ -396,15 +470,15 @@
         section('F · Recommendation for next inspection', [f('nextInspectionDate', 'Further inspection recommended before', 'date'), f('nextInspectionReason', 'Reason for recommended interval', 'textarea', { span: 'full' })]),
         section('G · Declaration', [f('inspectedBy', 'Inspected and tested by'), f('inspectorPosition', 'Position'), f('inspectorCompany', 'For/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea'), f('inspectorSignature', 'Inspector signature / typed name'), f('inspectorDate', 'Inspector date', 'date'), f('authorisedBy', 'Report authorised for issue by'), f('authoriserPosition', 'Authoriser position'), f('authoriserCompany', 'For/on behalf of'), f('authoriserAddress', 'Authoriser address', 'textarea'), f('authoriserSignature', 'Authoriser signature / typed name'), f('authoriserDate', 'Authoriser date', 'date')]),
         section('H · Schedules attached', [f('continuationSheets', 'Continuation sheets / sections'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
-        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), f('nominalVoltage', 'Nominal voltage U/U0 (V)'), f('frequency', 'Nominal frequency (Hz)'), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), f('supplyDeviceBs', 'Supply protective device BS (EN)'), f('supplyDeviceType', 'Supply protective device type'), f('supplyDeviceRating', 'Rated current (A)'), f('supplyBreakingCapacity', 'Breaking capacity (kA)'), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('J · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type'), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), f('earthingConductorMaterial', 'Earthing conductor material'), f('earthingConductorCsa', 'Earthing conductor csa (mm²)'), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), f('bondingMaterial', 'Main bonding conductor material'), f('bondingCsa', 'Main bonding conductor csa (mm²)'), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main protective bonding to', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), f('mainSwitchPoles', 'No. of poles'), f('mainSwitchCurrent', 'Current rating (A)'), f('mainSwitchVoltage', 'Voltage rating (V)'), f('mainSwitchDeviceType', 'Overcurrent device type / setting'), f('mainSwitchBreaking', 'Breaking capacity (kA)'), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdIdn', 'RCD IΔn (mA)'), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
+        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('J · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main protective bonding to', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
         table('observations', 'K · Observations', [
           { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
         ], [{ item: '1' }]),
         table('eicrInspection', 'Condition report schedule of inspection', [
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }, { key: 'comment', label: 'Comment' }
         ], eicrInspectionRows),
-        section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), f('dbSpd', 'SPD details / type(s)'), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
+        section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ circuitNo: '1' }]),
         section('Test instrument', [
@@ -481,8 +555,20 @@
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       const certificates = Array.isArray(parsed.certificates) ? parsed.certificates : [];
-      return { certificates: certificates.map(migrateCertificate) };
-    } catch { return { certificates: [] }; }
+      const cleaned=[];
+      certificates.forEach(raw=>{
+        try {
+          const cert=migrateCertificate(raw);
+          if(cert) cleaned.push(cert);
+        } catch(err) {
+          console.error('Skipped damaged saved certificate',err,raw);
+        }
+      });
+      return { certificates: cleaned };
+    } catch(err) {
+      console.error('Could not load certificate storage',err);
+      return { certificates: [] };
+    }
   }
 
   function loadSettings() {
@@ -560,6 +646,24 @@
     return cert;
   }
 
+  function openCertificate(id) {
+    const cert=state.certificates.find(c=>c.id===id);
+    if(!cert){toast('Certificate not found');return;}
+    try {
+      const migrated=migrateCertificate(cert);
+      if(!migrated) throw new Error('Unsupported certificate format');
+      view = { page: 'form', currentId: migrated.id, circuitIndex:null, circuitStep:'details' };
+      persist();
+      render();
+      goTop();
+    } catch(err) {
+      console.error('Could not open saved certificate',err);
+      view = { page: 'home', currentId:null, circuitIndex:null, circuitStep:'details' };
+      render();
+      alert('This saved certificate could not be opened safely. Your saved data has been kept. Create a backup before making further changes.');
+    }
+  }
+
   function newCertificate(type) {
     const cert = makeCertificate(type);
     state.certificates.unshift(cert);
@@ -571,7 +675,8 @@
 
   function duplicateCertificate(id) {
     const original = state.certificates.find(c => c.id === id); if (!original) return;
-    const copy = clone(original); copy.id = uid(); copy.number = certificateNumber(copy.type); copy.fields.certificateNo = copy.number; copy.status = 'Draft'; copy.createdAt = copy.updatedAt = new Date().toISOString();
+    const safe=migrateCertificate(original); if(!safe || !SCHEMAS[safe.type]) { toast('Cannot duplicate this older certificate format'); return; }
+    const copy = clone(safe); copy.id = uid(); copy.number = certificateNumber(copy.type); copy.fields.certificateNo = copy.number; copy.status = 'Draft'; copy.createdAt = copy.updatedAt = new Date().toISOString();
     state.certificates.unshift(copy); persist(); render(); toast('Certificate duplicated');
   }
 
@@ -592,8 +697,15 @@
   function updateSaveState(text) { const el = document.querySelector('[data-save-state]'); if (el) el.textContent = text; }
 
   function render() {
-    const app = document.getElementById('app');
-    app.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : formView()}</div>`;
+    const root = document.getElementById('app');
+    try {
+      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : formView()}</div>`;
+      requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } });
+    } catch(err) {
+      console.error('Certificate render failed',err);
+      view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' };
+      root.innerHTML = `<div class="shell">${topbar()}<div class="card app-error"><h2>Certificate could not be opened</h2><p>A saved item contained older or damaged data. Your certificates have not been deleted.</p><button class="btn primary" data-action="home">Return to saved certificates</button></div></div>`;
+    }
   }
 
   function topbar() {
@@ -605,9 +717,19 @@
     const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
     const cards = Object.entries(SCHEMAS).map(([key, s]) => `<div class="card cert-card"><div class="cert-icon">${s.icon}</div><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><span class="pill">${esc(s.standard)}</span><button class="btn primary" data-action="new" data-type="${key}">Start certificate</button></div>`).join('');
     const rows = state.certificates.length ? state.certificates.map(c => {
-      const sch = SCHEMAS[c.type];
-      const addr = c.fields.installationAddress || c.fields.premisesAddress || c.fields.clientName || c.fields.premisesName || 'No address entered';
-      return `<div class="card draft"><div><div class="draft-title">${sch.icon} ${esc(c.number || sch.name)}</div><div class="draft-sub">${esc(sch.name)} · ${esc(String(addr).replace(/\n/g, ', '))}</div></div><div><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span><div class="draft-sub">Updated ${new Date(c.updatedAt).toLocaleString('en-GB')}</div></div><div class="toolbar"><button class="btn small primary" data-action="edit" data-id="${c.id}">Open</button><button class="btn small" data-action="duplicate" data-id="${c.id}">Duplicate</button><button class="btn small danger" data-action="delete" data-id="${c.id}">Delete</button></div></div>`;
+      const sch = SCHEMAS[c.type] || {icon:'📄',name:'Certificate'};
+      const fields=isRecord(c.fields)?c.fields:{};
+      const customer=fields.clientName || fields.customerName || fields.personOrdering || fields.occupier || fields.responsiblePerson || fields.premisesName || 'Customer name not entered';
+      const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
+      const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
+      return `<div class="card draft saved-cert-card" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
+        <div class="saved-cert-main">
+          <div class="saved-cert-topline"><span class="saved-cert-icon">${sch.icon}</span><div><div class="saved-cert-customer">${esc(customer)}</div><div class="saved-cert-type">${esc(sch.name)} · ${esc(c.number || '')}</div></div></div>
+          <div class="saved-cert-address">${esc(String(address).replace(/\n/g, ', '))}</div>
+        </div>
+        <div class="saved-cert-meta"><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span><div><strong>${esc(fmtDate(date))}</strong><div class="draft-sub">Updated ${esc(new Date(c.updatedAt).toLocaleString('en-GB'))}</div></div></div>
+        <div class="toolbar saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
+      </div>`;
     }).join('') : `<div class="card empty">No certificates yet. Choose a certificate type above to start.</div>`;
     return `<div class="hero"><div class="card hero-main"><div class="eyebrow">Field certification app</div><h2>Complete certificates on-site, save drafts and export PDFs.</h2><p>Entries stay on this device and are autosaved while you work.</p></div><div class="card hero-side"><div><div class="meta">Certificates stored on this device</div><strong>${state.certificates.length}</strong></div><div class="toolbar"><span class="pill">${drafts} draft</span><span class="pill">${completed} complete</span></div></div></div><div class="grid">${cards}</div><div class="section-head"><h2>Saved certificates</h2><div class="meta">Autosaved locally</div></div><div class="list">${rows}</div><div class="footer-note">Independent certificate software. Electrical workflows follow current BS 7671 model-form information; the person signing remains responsible for technical accuracy, inspection, testing and competence.</div>`;
   }
@@ -1325,16 +1447,13 @@
     refreshVoiceToolbar();
   }
 
-  const voiceObserver=new MutationObserver(function(){decorateVoiceUI();});
-  voiceObserver.observe(document.documentElement,{childList:true,subtree:true});
-  setTimeout(decorateVoiceUI,0);
-
   document.addEventListener('input', e => {
     const cert = getCurrent();
     if (e.target.matches('[data-field]') && cert) {
       const key=e.target.dataset.field;
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
       if(key==='certificateNo') cert.number=e.target.value;
+      if(key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)) cert.tables.circuits.forEach((_,i)=>recalculateCircuitZs(cert,i));
       if(key==='signatoryMode'||key.startsWith('singleSignatory')) syncSingleSignatory(cert);
       scheduleAutosave();
     }
@@ -1386,6 +1505,12 @@
     renderAssistantPage();
   });
 
+  document.addEventListener('keydown', e => {
+    const card=e.target.closest?.('.saved-cert-card[data-action="edit"]');
+    if(!card || e.target.closest('button,input,select,textarea')) return;
+    if(e.key==='Enter' || e.key===' '){e.preventDefault();openCertificate(card.dataset.id);}
+  });
+
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
@@ -1405,7 +1530,7 @@
     else if (action === 'voice-next') assistantNext();
     else if (action === 'voice-stop') stopGuidedVoice('Certificate assistant closed');
     else if (action === 'new') newCertificate(button.dataset.type);
-    else if (action === 'edit') { view = { page: 'form', currentId: button.dataset.id, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
+    else if (action === 'edit') openCertificate(button.dataset.id)
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
     else if (action === 'home') { persist(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
