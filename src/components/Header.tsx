@@ -28,19 +28,21 @@ export function Header() {
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
         <div
-          className={`relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 transition-all lg:grid-cols-[auto_1fr_auto] lg:gap-5 lg:px-8 ${
+          className={`relative mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 transition-all lg:gap-5 lg:px-8 ${
             scrolled ? "min-h-[80px] lg:min-h-[74px]" : "min-h-[90px] lg:min-h-[86px]"
           }`}
         >
           <Link
             to="/"
-            className="col-start-2 flex shrink-0 items-center justify-center lg:col-start-1"
+            className="flex shrink-0 items-center justify-start"
             aria-label="Sperin Services home"
           >
-            <Logo className="h-[76px] w-auto max-w-[76vw] sm:h-[82px] lg:h-[82px] lg:max-w-[310px]" />
+            <Logo className="h-[84px] w-[92px] object-left sm:h-[92px] sm:w-[104px] lg:h-[96px] lg:w-[112px]" />
           </Link>
 
-          <nav className="hidden items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
+          <Link to="/" className="pointer-events-auto absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[1.65rem] font-bold tracking-[-0.045em] text-foreground sm:text-[2.05rem] lg:text-[2.35rem]" aria-label="Sperin Services home">Sperin Services</Link>
+
+          <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
             <ServicesDropdown />
             {NAV.map((item) => (
               <NavItem key={item.to} to={item.to} label={item.label} />
