@@ -2,14 +2,23 @@ package uk.co.sperinservices.certificates;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -27,20 +36,27 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
+
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.4.1";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.5.0";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
+    private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
     private ValueCallback<Uri[]> fileChooserCallback;
@@ -50,6 +66,9 @@ public class MainActivity extends Activity {
     private boolean ttsReady = false;
     private String pendingVoiceToken = "";
     private String pendingVoicePrompt = "";
+    private Uri pendingNotificationUri;
+    private String pendingNotificationName;
+    private String pendingNotificationMime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +76,7 @@ public class MainActivity extends Activity {
 
         getWindow().setStatusBarColor(Color.rgb(7, 17, 31));
         getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
+        createNotificationChannel();
 
         webView = new WebView(this);
         webView.clearCache(true);
@@ -74,7 +94,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.4.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.5.0");
 
         setupVoice();
 
@@ -117,7 +137,18 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(LIVE_URL + "?native=1.3.2");
+        webView.loadUrl(LIVE_URL);
+    }
+
+    private void createNotificationChannel() {
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel = new NotificationChannel(
+                DOWNLOAD_CHANNEL,
+                "Certificate downloads",
+                NotificationManager.IMPORTANCE_DEFAULT
+        );
+        channel.setDescription("PDF and certificate file downloads");
+        manager.createNotificationChannel(channel);
     }
 
     private void setupVoice() {
@@ -149,10 +180,7 @@ public class MainActivity extends Activity {
                 @Override public void onPartialResults(Bundle partialResults) {}
                 @Override public void onEvent(int eventType, Bundle params) {}
 
-                @Override
-                public void onError(int error) {
-                    sendVoiceResult("", speechError(error));
-                }
+                @Override public void onError(int error) { sendVoiceResult("", speechError(error)); }
 
                 @Override
                 public void onResults(Bundle results) {
@@ -190,9 +218,7 @@ public class MainActivity extends Activity {
         if (ttsReady && !pendingVoicePrompt.isEmpty()) {
             textToSpeech.stop();
             textToSpeech.speak(pendingVoicePrompt, TextToSpeech.QUEUE_FLUSH, null, "VOICE_QUESTION");
-        } else {
-            startRecognitionNow();
-        }
+        } else startRecognitionNow();
     }
 
     private void startRecognitionNow() {
@@ -237,9 +263,15 @@ public class MainActivity extends Activity {
         if (requestCode == AUDIO_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startSpeakAndListen(pendingVoiceToken, pendingVoicePrompt);
-            } else {
-                sendVoiceResult("", "Microphone permission was not granted");
+            } else sendVoiceResult("", "Microphone permission was not granted");
+        } else if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                    pendingNotificationUri != null) {
+                showFileNotification(pendingNotificationUri, pendingNotificationName, pendingNotificationMime);
             }
+            pendingNotificationUri = null;
+            pendingNotificationName = null;
+            pendingNotificationMime = null;
         }
     }
 
@@ -260,8 +292,18 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        if (webView == null) {
+            super.onBackPressed();
+            return;
+        }
+        webView.evaluateJavascript(
+                "(window.sperinHandleBack ? window.sperinHandleBack() : false)",
+                value -> {
+                    if ("true".equals(value)) return;
+                    if (webView.canGoBack()) webView.goBack();
+                    else MainActivity.super.onBackPressed();
+                }
+        );
     }
 
     private String safeName(String name, String fallback) {
@@ -269,16 +311,17 @@ public class MainActivity extends Activity {
         return value.isEmpty() ? fallback : value;
     }
 
-    private void saveBytes(byte[] bytes, String requestedName, String mime) {
+    private Uri saveBytes(byte[] bytes, String requestedName, String mime, boolean notify) {
         final String fileName = safeName(requestedName, "Sperin-Certificate.pdf");
         try {
+            Uri uri;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
                 values.put(MediaStore.Downloads.MIME_TYPE, mime);
                 values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Sperin Certificates");
                 values.put(MediaStore.Downloads.IS_PENDING, 1);
-                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                 if (uri == null) throw new IllegalStateException("Could not create Downloads file");
                 try (OutputStream out = getContentResolver().openOutputStream(uri)) {
                     if (out == null) throw new IllegalStateException("Could not open Downloads file");
@@ -290,14 +333,146 @@ public class MainActivity extends Activity {
             } else {
                 File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "Sperin Certificates");
                 if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Could not create Downloads folder");
-                try (OutputStream out = new FileOutputStream(new File(dir, fileName))) {
-                    out.write(bytes);
-                }
+                File file = new File(dir, fileName);
+                try (OutputStream out = new FileOutputStream(file)) { out.write(bytes); }
+                uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
             }
+            Uri finalUri = uri;
             runOnUiThread(() -> Toast.makeText(MainActivity.this, fileName + " saved", Toast.LENGTH_LONG).show());
+            if (notify) requestFileNotification(uri, fileName, mime);
+            return finalUri;
         } catch (Exception ex) {
             runOnUiThread(() -> Toast.makeText(MainActivity.this, "Save failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+            return null;
         }
+    }
+
+    private void requestFileNotification(Uri uri, String fileName, String mime) {
+        if (uri == null) return;
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            pendingNotificationUri = uri;
+            pendingNotificationName = fileName;
+            pendingNotificationMime = mime;
+            runOnUiThread(() -> requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST
+            ));
+            return;
+        }
+        showFileNotification(uri, fileName, mime);
+    }
+
+    private void showFileNotification(Uri uri, String fileName, String mime) {
+        try {
+            Intent openIntent = new Intent(Intent.ACTION_VIEW);
+            openIntent.setDataAndType(uri, mime);
+            openIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            PendingIntent openPending = PendingIntent.getActivity(
+                    this,
+                    (int) (System.currentTimeMillis() & 0xfffffff),
+                    openIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            Notification notification = new Notification.Builder(this, DOWNLOAD_CHANNEL)
+                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setContentTitle("PDF ready")
+                    .setContentText(fileName + " — tap to open")
+                    .setAutoCancel(true)
+                    .setContentIntent(openPending)
+                    .addAction(new Notification.Action.Builder(null, "Open PDF", openPending).build())
+                    .build();
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            manager.notify((int) (System.currentTimeMillis() & 0x7fffffff), notification);
+        } catch (Exception ex) {
+            runOnUiThread(() -> Toast.makeText(this, "PDF saved to Downloads", Toast.LENGTH_LONG).show());
+        }
+    }
+
+    private File backupDir() {
+        File dir = new File(getFilesDir(), "backups");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private void writeInternalBackup(String content) throws Exception {
+        File file = new File(backupDir(), "latest.json");
+        try (OutputStream out = new FileOutputStream(file)) {
+            out.write(content.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private String readFile(InputStream input) throws Exception {
+        try (InputStream in = input; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int n;
+            while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+            return out.toString(StandardCharsets.UTF_8.name());
+        }
+    }
+
+    private String readLatestBackup() throws Exception {
+        File internal = new File(backupDir(), "latest.json");
+        if (internal.exists()) return readFile(new FileInputStream(internal));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            String[] projection = {
+                    MediaStore.Downloads._ID,
+                    MediaStore.Downloads.DISPLAY_NAME,
+                    MediaStore.Downloads.DATE_MODIFIED
+            };
+            String selection = MediaStore.Downloads.DISPLAY_NAME + " LIKE ?";
+            String[] args = new String[]{"sperin-certificates-backup-%"};
+            try (Cursor cursor = getContentResolver().query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    projection,
+                    selection,
+                    args,
+                    MediaStore.Downloads.DATE_MODIFIED + " DESC"
+            )) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID));
+                    Uri uri = ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id);
+                    InputStream in = getContentResolver().openInputStream(uri);
+                    if (in != null) {
+                        String json = readFile(in);
+                        writeInternalBackup(json);
+                        return json;
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("No Sperin Certificates backup was found");
+    }
+
+    private void sendBackupResult(String json, String error) {
+        String js = "window.sperinRestoreBackup(" +
+                JSONObject.quote(json == null ? "" : json) + "," +
+                JSONObject.quote(error == null ? "" : error) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(js, null));
+    }
+
+    private void shareBackupFile(String content, String requestedName) {
+        try {
+            File file = new File(getCacheDir(), safeName(requestedName, "sperin-certificates-backup.json"));
+            try (OutputStream out = new FileOutputStream(file)) {
+                out.write(content.getBytes(StandardCharsets.UTF_8));
+            }
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("application/json");
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(share, "Share certificate backup"));
+        } catch (Exception ex) {
+            Toast.makeText(this, "Could not share backup: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void printCurrentPage() {
+        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+        PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter("Sperin Certificate");
+        printManager.print("Sperin Certificate", adapter, null);
     }
 
     @Override
@@ -319,7 +494,7 @@ public class MainActivity extends Activity {
             try {
                 int comma = dataUri.indexOf(',');
                 String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
-                saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf");
+                saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
             }
@@ -327,7 +502,36 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void saveTextFile(String content, String fileName, String mime) {
-            saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, mime == null ? "text/plain" : mime);
+            saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, mime == null ? "text/plain" : mime, false);
+        }
+
+        @JavascriptInterface
+        public void saveBackup(String content, String fileName) {
+            try {
+                writeInternalBackup(content);
+                saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved automatically", Toast.LENGTH_LONG).show());
+            } catch (Exception ex) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }
+
+        @JavascriptInterface
+        public void restoreLatestBackup() {
+            new Thread(() -> {
+                try { sendBackupResult(readLatestBackup(), ""); }
+                catch (Exception ex) { sendBackupResult("", ex.getMessage()); }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void shareBackup(String content, String fileName) {
+            runOnUiThread(() -> shareBackupFile(content, fileName));
+        }
+
+        @JavascriptInterface
+        public void printPage() {
+            runOnUiThread(MainActivity.this::printCurrentPage);
         }
 
         @JavascriptInterface
@@ -338,9 +542,7 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                         checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST);
-                } else {
-                    startRecognitionNow();
-                }
+                } else startRecognitionNow();
             });
         }
 
