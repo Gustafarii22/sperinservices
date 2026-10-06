@@ -13,6 +13,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: sperin-certificates-apk-signing
+  cancel-in-progress: false
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -41,11 +45,21 @@ jobs:
         with:
           gradle-version: "8.10.2"
 
-      - name: Cache stable debug signing key
+      - name: Restore permanent signing key
+        id: signing-cache
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: sperin-certificates-debug-keystore-v1
+          path: ~/.android/sperin-certificates-stable.jks
+          key: sperin-certificates-signing-key-v1
+
+      - name: Create signing key on first run only
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/sperin-certificates-stable.jks" ]; then
+            keytool -genkeypair               -keystore "$HOME/.android/sperin-certificates-stable.jks"               -storepass android               -keypass android               -alias sperincertificates               -keyalg RSA               -keysize 3072               -validity 10000               -dname "CN=Sperin Services Certificates, OU=Sperin Services, O=Sperin Services, L=Birmingham, C=GB"
+          fi
+          test -f "$HOME/.android/sperin-certificates-stable.jks"
+          keytool -list -v             -keystore "$HOME/.android/sperin-certificates-stable.jks"             -storepass android             -alias sperincertificates | grep "SHA256:" | head -1
 
       - name: Bundle certificate web app
         run: |
@@ -63,13 +77,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.2.2.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.3.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.2.2
-          path: certificate-android/dist/Sperin-Certificates-v1.2.2.apk
+          name: Sperin-Certificates-v1.3.0
+          path: certificate-android/dist/Sperin-Certificates-v1.3.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -77,10 +91,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.2.2"
-          APK="certificate-android/dist/Sperin-Certificates-v1.2.2.apk"
+          TAG="certificates-v1.3.0"
+          APK="certificate-android/dist/Sperin-Certificates-v1.3.0.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.2.2" --notes "Listen-first voice questionnaire Android build. Speak answers directly into fields; question read-out is optional."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.3.0" --notes "Stable-signing migration build with listen-first voice entry."
           fi
