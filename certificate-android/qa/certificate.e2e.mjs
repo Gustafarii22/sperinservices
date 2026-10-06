@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const base = process.env.CERT_BASE_URL || 'http://127.0.0.1:4173/certificates/';
-const appSource = fs.readFileSync('public/certificates/app.js','utf8');
+const appSource = fs.readFileSync('public/certificates/app.js','utf8');\nconst ietSource = fs.readFileSync('public/certificates/iet-forms.js','utf8');
 const javaSource = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java','utf8');
 const manifestSource = fs.readFileSync('certificate-android/app/src/main/AndroidManifest.xml','utf8');
 
@@ -22,7 +22,7 @@ const missingDynamic=dynamicActions.filter(a=>!handlers.includes(a));
 assert(missingActions.length===0,'Missing action handlers: '+missingActions.join(', '));
 assert(missingDynamic.length===0,'Missing dynamic action handlers: '+missingDynamic.join(', '));
 assert(!appSource.includes('data-action="circuit-copy"'),'Copy Details button must be removed');
-assert(appSource.includes("orientation: 'landscape'"),'Certificate PDF must be landscape');
+assert(appSource.includes('SperinIetForms.build'),'Certificate app is not using the shared IET-style renderer');\nassert(ietSource.includes("orientation:'portrait'"),'IET-style certificate renderer must start on portrait A4');
 assert(appSource.includes('Installation inspection checklist'),'Detailed EIC inspection checklist missing');
 assert(appSource.includes('Printable Site Worksheet'),'Printable Site Worksheet label missing');
 assert(appSource.includes('Voice Fill'),'Voice Fill label missing');
@@ -153,7 +153,7 @@ assert(explainer.includes('paper-friendly question list') || explainer.includes(
 const inspection = page.locator('.form-section').filter({hasText:'Installation inspection checklist'});
 assert(await inspection.count()===1,'EIC inspection checklist section missing');
 const inspectionRows=inspection.locator('tbody tr');
-assert(await inspectionRows.count()>=40,'EIC inspection checklist is not detailed enough');
+assert(await inspectionRows.count()>=14,'EIC model-form inspection schedule is incomplete');
 assert((await inspection.textContent()).includes('Main earthing conductor'),'Earthing inspection checks missing');
 assert((await inspection.textContent()).includes('RCD'),'RCD inspection checks missing');
 
@@ -242,7 +242,7 @@ const worksheetPath=await worksheet.path();
 const worksheetBytes=fs.readFileSync(worksheetPath);
 const worksheetText=worksheetBytes.toString('latin1');
 const worksheetMedia=worksheetText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
-assert(worksheetMedia && Number(worksheetMedia[1])>Number(worksheetMedia[2]),'Site worksheet is not landscape');
+assert(worksheetMedia && Number(worksheetMedia[1])<Number(worksheetMedia[2]),'Site worksheet first page is not portrait like the certificate');
 
 // Print browser fallback.
 await page.evaluate(()=>{window.__printCalled=false;window.print=()=>{window.__printCalled=true;};});
@@ -304,7 +304,7 @@ const sitePdfBytes=fs.readFileSync(sitePdfPath);
 assert(sitePdfBytes.subarray(0,4).toString()==='%PDF','Configured site sheet is not a real PDF');
 const sitePdfText=sitePdfBytes.toString('latin1');
 const siteMedia=sitePdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
-assert(siteMedia && Number(siteMedia[1])>Number(siteMedia[2]),'Configured site sheet PDF is not landscape');
+assert(siteMedia && Number(siteMedia[1])<Number(siteMedia[2]),'Configured site sheet first page is not portrait like the certificate');
 
 let plans=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-site-sheets-v1')||'[]'));
 assert(plans.length>0,'Generated site sheet plan was not stored');
@@ -445,7 +445,7 @@ console.log(JSON.stringify({
   circuitReorder:true,
   autoZsB32:maxZs,
   circuitReturnPosition:true,
-  landscapePdf:true,
+  ietStylePdf:true,
   worksheet:true,
   print:true,
   appBack:true,
