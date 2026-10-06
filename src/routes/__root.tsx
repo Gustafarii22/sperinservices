@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -126,10 +127,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const status = useRouterState({ select: (state) => state.status });
+  const locationKey = useRouterState({ select: (state) => state.location.href });
   return (
     <QueryClientProvider client={queryClient}>
+      {status === "pending" ? <div className="route-progress" role="progressbar" aria-label="Loading page" /> : null}
       <SiteLayout>
-        <Outlet />
+        <div key={locationKey} className="page-enter">
+          <Outlet />
+        </div>
       </SiteLayout>
     </QueryClientProvider>
   );
