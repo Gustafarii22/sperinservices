@@ -417,6 +417,9 @@ const backupDownload=await backupPromise;
 assert(backupDownload.suggestedFilename().endsWith('.json'),'Backup is not JSON');
 console.log('BACKUP_PASS');
 
+await page.locator('.brand-home').click();
+await page.waitForSelector('.home-page');
+
 // Every certificate type must open without render errors and include voice controls.
 for (const type of ['eic','eicr','minor','emergency','smoke']) {
   await page.locator('button[data-action="new"][data-type="'+type+'"]').click();
