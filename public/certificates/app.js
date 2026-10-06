@@ -1404,7 +1404,14 @@
     progress.textContent=section+' · '+doneCount+' done · '+laterCount+' later';
     body.innerHTML='<div class="voice-assist-page"><div class="voice-assist-section">'+esc(section)+'</div>'+
       batch.keys.map(key=>{const el=controlByVoiceKey(key);return el?assistantControlHtml(el,key):'';}).join('')+
-      '<div class="voice-page-nav"><button class="btn primary voice-next-btn" data-action="voice-next">Next →</button></div></div>';
+      '<div class="voice-page-nav"><button class="btn" data-action="voice-page-back">← Back</button><button class="btn primary voice-next-btn" data-action="voice-next">Next →</button></div></div>';
+  }
+
+  function assistantBack() {
+    if(!guidedVoiceState||!guidedVoiceState.active) return;
+    saveNow();
+    guidedVoiceState.cursor=Math.max(0,(guidedVoiceState.cursor||0)-3);
+    renderAssistantPage();
   }
 
   function assistantNext() {
@@ -1566,6 +1573,7 @@
     }
     else if (action === 'voice-later') { setVoiceStatus(button.dataset.voiceKey,'later'); renderAssistantPage(); }
     else if (action === 'voice-dismiss') { setVoiceStatus(button.dataset.voiceKey,'dismissed'); renderAssistantPage(); }
+    else if (action === 'voice-page-back') assistantBack();
     else if (action === 'voice-next') assistantNext();
     else if (action === 'voice-stop') stopGuidedVoice('Certificate assistant closed');
     else if (action === 'new') newCertificate(button.dataset.type);
