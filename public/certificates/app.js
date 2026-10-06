@@ -299,6 +299,13 @@
     requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
   }
 
+  function goCircuits() {
+    requestAnimationFrame(()=>{
+      const target=document.querySelector('.circuit-list');
+      if(target) target.scrollIntoView({behavior:'auto',block:'start'});
+    });
+  }
+
   const eicInspectionRows = [
     ['1.0', 'Condition of consumer’s intake equipment (visual inspection only)'],
     ['2.0', 'Parallel or switched alternative sources of supply'],
@@ -1579,7 +1586,7 @@
     }
     else if(action==='circuit-next' && cert){persist();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){persist();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){persist();view.circuitIndex=null;view.circuitStep='details';render();goTop();}
+    else if(action==='circuit-list' && cert){persist();view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
     else if(action==='circuit-recalc' && cert){const i=Number(button.dataset.index);recalculateCircuitZs(cert,i,true);persist();render();}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); cert.tables[key].splice(ri, 1); persist(); render(); }
