@@ -27,32 +27,31 @@ export function Header() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 lg:grid lg:min-h-[86px] lg:grid-cols-[minmax(260px,360px)_1fr] lg:items-center lg:gap-6 lg:px-8">
-          <div className="flex min-h-[88px] items-center justify-center sm:min-h-[94px] lg:min-h-0 lg:justify-start">
-            <Link to="/" aria-label="Sperin Services home" className="flex w-full items-center justify-center lg:justify-start">
-              <Logo className="h-auto w-full max-w-[390px] sm:max-w-[440px] lg:h-[76px] lg:w-auto lg:max-w-[350px]" />
-            </Link>
-          </div>
+        <div className="mx-auto flex h-[68px] max-w-7xl items-center gap-3 px-4 sm:h-[72px] lg:h-[82px] lg:px-8">
+          <Link
+            to="/"
+            aria-label="Sperin Services home"
+            className="flex min-w-0 flex-1 items-center justify-center lg:flex-none lg:justify-start"
+          >
+            <Logo className="h-[54px] w-auto max-w-[calc(100vw-88px)] sm:h-[58px] lg:h-[68px] lg:max-w-[300px]" />
+          </Link>
 
-          <div className="flex h-12 items-center justify-end border-t border-white/[0.07] lg:h-auto lg:border-t-0">
-            <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
-              <ServicesDropdown />
-              {NAV.map((item) => (
-                <NavItem key={item.to} to={item.to} label={item.label} />
-              ))}
-            </nav>
+          <nav className="ml-auto hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
+            <ServicesDropdown />
+            {NAV.map((item) => (
+              <NavItem key={item.to} to={item.to} label={item.label} />
+            ))}
+          </nav>
 
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                aria-label="Open menu"
-                className="mobile-menu-trigger inline-flex h-9 items-center gap-2 rounded-md border border-white/12 bg-white/[0.025] px-3 text-xs font-semibold tracking-wide text-foreground/85 transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
-              >
-                <span>Menu</span>
-                <Menu className="h-4 w-4" />
-              </button>
-            </DialogTrigger>
-          </div>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              aria-label="Open menu"
+              className="mobile-menu-trigger ml-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </DialogTrigger>
         </div>
 
         <DialogContent
