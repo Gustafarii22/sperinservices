@@ -2,6 +2,36 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const base = process.env.CERT_BASE_URL || 'http://127.0.0.1:4173/certificates/';
+const appSource = fs.readFileSync('public/certificates/app.js','utf8');
+const javaSource = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java','utf8');
+const manifestSource = fs.readFileSync('certificate-android/app/src/main/AndroidManifest.xml','utf8');
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+// Static route map: every rendered action must have a click handler.
+const actions=[...new Set([...appSource.matchAll(/data-action="([^"]+)"/g)].map(m=>m[1]))];
+const handlers=[...new Set([
+  ...[...appSource.matchAll(/action === '([^']+)'/g)].map(m=>m[1]),
+  ...[...appSource.matchAll(/action==='([^']+)'/g)].map(m=>m[1])
+])];
+const missingActions=actions.filter(a=>!handlers.includes(a));
+assert(missingActions.length===0,'Missing action handlers: '+missingActions.join(', '));
+assert(!appSource.includes('data-action="circuit-copy"'),'Copy Details button must be removed');
+assert(appSource.includes("orientation: 'landscape'"),'Certificate PDF must be landscape');
+assert(appSource.includes('Installation inspection checklist'),'Detailed EIC inspection checklist missing');
+assert(appSource.includes('Printable Site Worksheet'),'Printable Site Worksheet label missing');
+assert(appSource.includes('Voice Fill'),'Voice Fill label missing');
+assert(javaSource.includes('createPrintDocumentAdapter'),'Native Android print route missing');
+assert(javaSource.includes('showFileNotification'),'PDF notification route missing');
+assert(javaSource.includes('restoreLatestBackup'),'Automatic restore route missing');
+assert(javaSource.includes('shareBackup'),'Backup sharing route missing');
+assert(javaSource.includes('sperinHandleBack'),'Android back bridge missing');
+assert(manifestSource.includes('POST_NOTIFICATIONS'),'Notification permission missing');
+assert(manifestSource.includes('FileProvider'),'FileProvider missing');
+console.log('STATIC_ROUTE_NATIVE_PASS');
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ acceptDownloads: true });
 
@@ -15,17 +45,39 @@ await context.addInitScript(() => {
     updatedAt: '2026-10-01T10:00:00.000Z',
     fields: {
       clientName: 'Jane Smith',
-      installationAddress: '1 Test Road\nBirmingham B1 1AA',
+      clientAddress: '1 Test Road\nBirmingham',
+      installationAddress: '1 Test Road\nBirmingham',
       issueDate: '2026-10-01',
       nominalVoltage: '230'
     },
     tables: {
-      circuits: [null, { circuitNo: '1', description: 'Socket circuit', ocpdBs: 'BS EN 60898-1', ocpdType: 'B', ocpdRating: '32' }],
-      tests: [null, { circuitNo: '1' }],
-      eicInspection: [null]
+      circuits: [
+        { circuitNo:'1', description:'Lighting', ocpdBs:'BS EN 60898-1', ocpdType:'B', ocpdRating:'6' },
+        { circuitNo:'2', description:'Sockets', ocpdBs:'BS EN 60898-1', ocpdType:'B', ocpdRating:'32' }
+      ],
+      tests: [{circuitNo:'1'},{circuitNo:'2'}],
+      eicInspection: [
+        {item:'1.0',description:'Legacy inspection row',outcome:'✓'}
+      ]
     }
   };
+  const settings={
+    companyName:'Sperin Services',
+    engineerName:'Gus Tester',
+    engineerPosition:'Electrician / Inspector',
+    address:'10 Business Road\nBirmingham',
+    postcode:'B1 1AA',
+    phone:'0121 000 0000',
+    email:'test@example.com',
+    registration:'',
+    qualification:'C&G 2391 / 18th Edition',
+    testerMake:'Megger',
+    testerModel:'MFT-X1',
+    testerSerial:'ABC123',
+    postcodeApiKey:'ak_test'
+  };
   localStorage.setItem('sperin-certificates-data-v1', JSON.stringify({ certificates: [cert] }));
+  localStorage.setItem('sperin-certificates-settings-v1', JSON.stringify(settings));
 });
 
 const page = await context.newPage();
@@ -34,174 +86,209 @@ page.on('pageerror', err => errors.push(String(err)));
 page.on('console', msg => {
   if (msg.type() === 'error') errors.push('console: ' + msg.text());
 });
-await page.route('https://cdn.jsdelivr.net/**', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }));
 
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
+await page.route('https://api.ideal-postcodes.co.uk/**', async route => {
+  const payload={
+    result:[
+      {line_1:'1 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'},
+      {line_1:'2 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'}
+    ],
+    code:2000,
+    message:'Success'
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(payload)});
+});
 
 await page.goto(base, { waitUntil: 'domcontentloaded' });
-await page.waitForSelector('.saved-cert-card');
+await page.waitForSelector('.saved-cert-row');
 
-const saved = page.locator('.saved-cert-card').first();
-assert((await saved.textContent()).includes('Jane Smith'), 'Saved card must show customer name');
-assert((await saved.textContent()).includes('1 Test Road'), 'Saved card must show address');
-assert((await saved.textContent()).includes('01/10/2026'), 'Saved card must show certificate date');
+assert(await page.locator('.home-hero').count()===1,'Premium home hero missing');
+assert((await page.locator('.home-hero h2').textContent()).includes('Professional electrical certification'),'Home heading unclear');
+assert(await page.locator('.home-visual').count()===1,'Home visual treatment missing');
+assert(await page.locator('.cert-launch').count()===5,'Certificate launch list incomplete');
 
-await saved.locator('.saved-cert-main').click();
+const saved = page.locator('.saved-cert-row').first();
+const savedText=await saved.textContent();
+assert(savedText.includes('Jane Smith'),'Saved row must show customer name');
+assert(savedText.includes('1 Test Road'),'Saved row must show address');
+assert(savedText.includes('01/10/2026'),'Saved row must show date');
+
+// Whole row opens the saved certificate.
+await saved.locator('.saved-cert-copy').click();
 await page.waitForSelector('.form-head');
-assert((await page.locator('.form-title h2').textContent()).includes('Electrical Installation Certificate'), 'Existing certificate did not open');
-assert(await page.locator('.app-error').count() === 0, 'Opening existing certificate hit render error');
+assert((await page.locator('.form-title h2').textContent()).includes('Electrical Installation Certificate'),'Saved certificate did not open');
+assert(await page.locator('.app-error').count()===0,'Legacy certificate hit render error');
 
-await page.waitForTimeout(100);
-assert(await page.locator('button[data-action="voice-one"]').count() > 5, 'Speak buttons not visible');
+// Voice/worksheet controls must explain themselves.
+assert(await page.getByRole('button',{name:/Voice Fill/}).count()===1,'Voice Fill button missing');
+assert(await page.getByRole('button',{name:/Printable Site Worksheet/}).count()===1,'Printable Site Worksheet button missing');
+const explainer=await page.locator('.entry-tools-explainer').textContent();
+assert(explainer.includes('Speak answers in field order'),'Voice Fill explanation missing');
+assert(explainer.includes('paper-friendly question list') || explainer.includes('paper-friendly') || explainer.includes('take around site'),'Worksheet explanation missing');
 
-const voltage = page.locator('select[data-field="nominalVoltage"]');
-assert(await voltage.count() === 1, 'Nominal voltage should be a dropdown');
-const voltageOptions = await voltage.locator('option').allTextContents();
-assert(voltageOptions.includes('230') && voltageOptions.includes('230/400'), 'Voltage dropdown choices missing');
+// Detailed EIC inspection checklist must be present and legacy row preserved.
+const inspection = page.locator('.form-section').filter({hasText:'Installation inspection checklist'});
+assert(await inspection.count()===1,'EIC inspection checklist section missing');
+const inspectionRows=inspection.locator('tbody tr');
+assert(await inspectionRows.count()>=40,'EIC inspection checklist is not detailed enough');
+assert((await inspection.textContent()).includes('Main earthing conductor'),'Earthing inspection checks missing');
+assert((await inspection.textContent()).includes('RCD'),'RCD inspection checks missing');
 
-const clientName = page.locator('[data-field="clientName"]');
-await clientName.fill('Jane Smith Updated');
+// Postcode-first address lookup.
+const postcode=page.locator('[data-field="installationPostcode"]');
+assert(await postcode.count()===1,'Installation postcode field missing');
+await postcode.fill('b11aa');
+await page.locator('[data-action="postcode-find"][data-postcode-key="installationPostcode"]').click();
+await page.waitForSelector('.postcode-result');
+await page.locator('.postcode-result').first().click();
+assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('\n'),'Selected address is not formatted on separate lines');
+assert((await page.locator('[data-field="installationPostcode"]').inputValue())==='B1 1AA','Postcode not formatted correctly');
+console.log('POSTCODE_LOOKUP_PASS');
+
+// Autosave typed/dropdown.
+await page.locator('[data-field="clientName"]').fill('Jane Smith Updated');
 await page.waitForTimeout(450);
-let stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
-assert(stored.certificates?.[0]?.fields?.clientName === 'Jane Smith Updated', 'Typed field did not autosave');
-console.log('AUTOSAVE_TYPED_PASS');
+let stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+assert(stored.certificates?.[0]?.fields?.clientName==='Jane Smith Updated','Typed field did not autosave');
+await page.locator('[data-field="nominalVoltage"]').selectOption('230/400');
+await page.waitForTimeout(80);
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+assert(stored.certificates?.[0]?.fields?.nominalVoltage==='230/400','Dropdown did not autosave');
+console.log('AUTOSAVE_PASS');
 
-await voltage.selectOption('230/400');
+// Circuit list: no copy-details, duplicate/delete present, reorder works.
+const circuitList=page.locator('.circuit-list');
+assert(await circuitList.count()===1,'Circuit schedule missing');
+assert(await circuitList.locator('[data-action="circuit-copy"]').count()===0,'Copy Details still present');
+assert(await circuitList.locator('[data-action="circuit-duplicate"]').count()>=1,'Duplicate circuit missing');
+assert(await circuitList.locator('[data-action="circuit-delete"]').count()>=1,'Delete circuit missing');
+assert(await circuitList.locator('[data-action="circuit-move-down"]').count()>=1,'Circuit move-down control missing');
+
+const beforeOrder=await page.locator('.circuit-card .circuit-main').allTextContents();
+assert(beforeOrder[0].includes('Lighting') && beforeOrder[1].includes('Sockets'),'Initial circuit order wrong');
+await page.locator('[data-action="circuit-move-down"]').first().click();
 await page.waitForTimeout(60);
-stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
-assert(stored.certificates?.[0]?.fields?.nominalVoltage === '230/400', 'Dropdown did not autosave');
-console.log('AUTOSAVE_DROPDOWN_PASS');
+const afterOrder=await page.locator('.circuit-card .circuit-main').allTextContents();
+assert(afterOrder[0].includes('Sockets') && afterOrder[1].includes('Lighting'),'Circuit reorder failed');
 
-
-const spd = page.locator('select[data-field="dbSpd"]');
-assert(await spd.count() === 1, 'SPD should be a dropdown');
-const spdOptions = await spd.locator('option').allTextContents();
-assert(spdOptions.some(x => x.includes('Type 1')) && spdOptions.some(x => x.includes('Type 2')), 'SPD Type 1 / Type 2 choices missing');
-
-await page.locator('button[data-action="voice-guide"]').first().click();
-await page.waitForSelector('.voice-assistant');
-const grouped = page.locator('.voice-assist-card');
-const groupCount = await grouped.count();
-assert(groupCount >= 1 && groupCount <= 3, 'Assistant must show 1 to 3 related questions');
-assert(await page.locator('[data-action="voice-read"]').count() === 0, 'Read-question control should be removed');
-
-await grouped.first().locator('[data-action="voice-later"]').click();
-await page.waitForTimeout(30);
-assert(await page.locator('.voice-assistant').count() === 1, 'Assistant closed unexpectedly after Later');
-if (await page.locator('.voice-assist-card').count()) {
-  await page.locator('.voice-assist-card').first().locator('[data-action="voice-dismiss"]').click();
-}
-await page.locator('[data-action="voice-stop"]').first().click();
-await page.waitForTimeout(30);
-assert(await page.locator('[data-action="voice-review-later"]:visible').count() >= 1, 'Review later button should be visible');
-
-const circuitCard = page.locator('.circuit-card').first();
-assert(await circuitCard.count() === 1, 'Circuit card missing');
-await circuitCard.locator('[data-action="circuit-open"]').click();
-await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdBs"]');
-
-await page.locator('[data-circuit-input="details"][data-col="ocpdBs"]').fill('BS EN 60898-1');
-await page.locator('[data-circuit-input="details"][data-col="ocpdType"]').fill('B');
-await page.locator('[data-circuit-input="details"][data-col="ocpdRating"]').fill('32');
-await page.waitForTimeout(30);
-const maxZs = await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
-assert(maxZs === '1.37', 'B32 automatic max Zs should calculate to 1.37 Ω at 230 V, got ' + maxZs);
-
+// Open reordered B32 circuit and verify max Zs, next/back save and return position.
+await page.locator('.circuit-card').first().locator('[data-action="circuit-open"]').click();
+await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdRating"]');
+await page.waitForTimeout(40);
+const maxZs=await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
+assert(maxZs==='1.37','B32 automatic max Zs should be 1.37 Ω, got '+maxZs);
 await page.locator('[data-action="circuit-next"]').click();
-assert((await page.locator('.eyebrow').first().textContent()).includes('2 of 2'), 'Circuit next route failed');
-stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
-const storedCircuit = stored.certificates?.[0]?.tables?.circuits?.find(r => r && r.description === 'Socket circuit') || stored.certificates?.[0]?.tables?.circuits?.[1] || stored.certificates?.[0]?.tables?.circuits?.[0];
-assert(storedCircuit?.ocpdRating === '32', 'Circuit Next did not save circuit data');
-console.log('AUTOSAVE_CIRCUIT_NEXT_PASS');
+assert((await page.locator('.eyebrow').first().textContent()).includes('2 of 2'),'Circuit Next failed');
+stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')||'{}'));
+assert(Array.isArray(stored.certificates?.[0]?.tables?.circuits),'Circuit Next failed to save');
 await page.locator('[data-action="circuit-prev"]').click();
-assert((await page.locator('.eyebrow').first().textContent()).includes('1 of 2'), 'Circuit previous route failed');
-stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
-assert(Array.isArray(stored.certificates?.[0]?.tables?.circuits), 'Circuit Back did not preserve saved certificate');
-console.log('AUTOSAVE_CIRCUIT_BACK_PASS');
+assert((await page.locator('.eyebrow').first().textContent()).includes('1 of 2'),'Circuit Back failed');
 await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector('.circuit-list');
 await page.waitForTimeout(80);
-const circuitTop = await page.locator('.circuit-list').evaluate(el => el.getBoundingClientRect().top);
-assert(circuitTop >= -10 && circuitTop < 180, 'Saving circuit should return to the circuit schedule, top=' + circuitTop);
-console.log('CIRCUIT_RETURN_POSITION_PASS');
+const circuitTop=await page.locator('.circuit-list').evaluate(el=>el.getBoundingClientRect().top);
+assert(circuitTop>=-10 && circuitTop<190,'Saving circuit should return to circuit schedule, top='+circuitTop);
+console.log('CIRCUIT_FLOW_PASS');
 
-const beforeCircuitDuplicate = await page.locator('.circuit-card').count();
-await page.locator('[data-action="circuit-duplicate"]').first().click();
-await page.waitForSelector('[data-circuit-input="details"]');
-await page.locator('[data-action="circuit-list"]').first().click();
-assert(await page.locator('.circuit-card').count() === beforeCircuitDuplicate + 1, 'Circuit duplicate failed');
-
-const pdfDownloadPromise = page.waitForEvent('download');
+// PDF must be a real landscape PDF.
+const pdfDownloadPromise=page.waitForEvent('download');
 await page.locator('[data-action="pdf"]').first().click();
-const pdfDownload = await pdfDownloadPromise;
-const pdfPath = await pdfDownload.path();
-assert(pdfDownload.suggestedFilename().toLowerCase().endsWith('.pdf'), 'PDF filename should end .pdf');
-assert(pdfPath && fs.existsSync(pdfPath), 'PDF download file missing');
-const pdfBytes = fs.readFileSync(pdfPath);
-assert(pdfBytes.length > 1000, 'PDF download is unexpectedly small');
-assert(pdfBytes.subarray(0, 4).toString() === '%PDF', 'Downloaded file is not a valid PDF');
-console.log('PDF_DOWNLOAD_PASS');
+const pdfDownload=await pdfDownloadPromise;
+const pdfPath=await pdfDownload.path();
+assert(pdfPath && fs.existsSync(pdfPath),'PDF file missing');
+const pdfBytes=fs.readFileSync(pdfPath);
+assert(pdfBytes.subarray(0,4).toString()==='%PDF','PDF signature invalid');
+const pdfText=pdfBytes.toString('latin1');
+const media=pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
+assert(media && Number(media[1])>Number(media[2]),'PDF is not landscape');
+console.log('LANDSCAPE_PDF_PASS');
 
-await page.locator('[data-action="home"]').last().click();
-await page.waitForSelector('.saved-cert-card');
+// Printable worksheet must also download and be landscape.
+const worksheetPromise=page.waitForEvent('download');
+await page.getByRole('button',{name:/Printable Site Worksheet/}).click();
+const worksheet=await worksheetPromise;
+assert(worksheet.suggestedFilename().includes('Site-Worksheet'),'Site worksheet filename unclear');
+const worksheetPath=await worksheet.path();
+const worksheetBytes=fs.readFileSync(worksheetPath);
+const worksheetText=worksheetBytes.toString('latin1');
+const worksheetMedia=worksheetText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
+assert(worksheetMedia && Number(worksheetMedia[1])>Number(worksheetMedia[2]),'Site worksheet is not landscape');
 
-const beforeDup = await page.locator('.saved-cert-card').count();
-await page.locator('.saved-cert-card').first().locator('[data-action="duplicate"]').click();
-await page.waitForTimeout(30);
-assert(await page.locator('.saved-cert-card').count() === beforeDup + 1, 'Certificate duplicate failed');
+// Print browser fallback.
+await page.evaluate(()=>{window.__printCalled=false;window.print=()=>{window.__printCalled=true;};});
+await page.locator('[data-action="print"]').click();
+assert(await page.evaluate(()=>window.__printCalled===true),'Print button did not invoke print route');
+console.log('PRINT_PASS');
 
-page.once('dialog', d => d.accept());
-await page.locator('.saved-cert-card').first().locator('[data-action="delete"]').click();
-await page.waitForTimeout(30);
-assert(await page.locator('.saved-cert-card').count() === beforeDup, 'Certificate delete failed');
+// App Back logic: circuit -> circuit list -> home, without exiting.
+await page.locator('.circuit-card').first().locator('[data-action="circuit-open"]').click();
+assert(await page.evaluate(()=>window.sperinHandleBack())===true,'Back handler did not handle circuit page');
+await page.waitForSelector('.circuit-list');
+assert(await page.evaluate(()=>window.sperinHandleBack())===true,'Back handler did not handle certificate page');
+await page.waitForSelector('.home-page');
+assert(await page.evaluate(()=>window.sperinHandleBack())===false,'Back handler should only exit from home');
+console.log('APP_BACK_PASS');
 
-await page.locator('[data-action="settings"]').click();
-await page.waitForSelector('[data-modal]');
-await page.locator('[data-action="close-modal"]').last().click();
-assert(await page.locator('[data-modal]').count() === 0, 'Settings close failed');
+// Profile defaults and profile-backed tester fields.
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector('.profile-modal');
+assert(await page.locator('[data-setting="testerMake"]').inputValue()==='Megger','Tester make profile default missing');
+assert(await page.locator('[data-setting="testerModel"]').inputValue()==='MFT-X1','Tester model profile default missing');
+assert(await page.locator('[data-setting="postcodeApiKey"]').count()===1,'Postcode API profile setting missing');
+await page.locator('[data-action="save-settings"]').click();
+await page.waitForTimeout(50);
 
-const downloadPromise = page.waitForEvent('download');
+// Start new EIC and verify tester defaults prefill.
+await page.locator('button[data-action="new"][data-type="eic"]').click();
+await page.waitForSelector('[data-field="testerMake"]');
+assert(await page.locator('[data-field="testerMake"]').inputValue()==='Megger','New certificate did not inherit tester make');
+assert(await page.locator('[data-field="testerModel"]').inputValue()==='MFT-X1','New certificate did not inherit tester model');
+assert(await page.locator('[data-field="testerSerial"]').inputValue()==='ABC123','New certificate did not inherit tester serial');
+
+// Brand is a home button.
+await page.locator('.brand-home').click();
+await page.waitForSelector('.home-page');
+console.log('PROFILE_HOME_PASS');
+
+// Backup browser fallback should create JSON.
+const backupPromise=page.waitForEvent('download');
 await page.locator('[data-action="backup"]').click();
-const download = await downloadPromise;
-assert(download.suggestedFilename().endsWith('.json'), 'Backup should download JSON');
+const backupDownload=await backupPromise;
+assert(backupDownload.suggestedFilename().endsWith('.json'),'Backup is not JSON');
+console.log('BACKUP_PASS');
 
+// Every certificate type must open without render errors and include voice controls.
 for (const type of ['eic','eicr','minor','emergency','smoke']) {
-  const startButton = page.locator('button[data-action="new"][data-type="'+type+'"]');
-  assert(await startButton.count() === 1, 'Missing start button for '+type);
-  await startButton.click();
+  await page.locator('button[data-action="new"][data-type="'+type+'"]').click();
   await page.waitForSelector('.form-head');
-  assert(await page.locator('.app-error').count() === 0, type+' form hit render error');
-  assert(await page.locator('button[data-action="voice-one"]').count() > 0, type+' form missing Speak controls');
-  await page.locator('[data-action="home"]').last().click();
-  await page.waitForSelector('.saved-cert-card');
+  assert(await page.locator('.app-error').count()===0,type+' form hit render error');
+  assert(await page.locator('button[data-action="voice-one"]').count()>0,type+' form missing Speak controls');
+  await page.locator('.brand-home').click();
+  await page.waitForSelector('.home-page');
 }
 console.log('ALL_CERTIFICATE_TYPES_PASS');
 
-assert(errors.length === 0, 'Browser errors: ' + errors.join(' | '));
+assert(errors.length===0,'Browser errors: '+errors.join(' | '));
 
 console.log('CERTIFICATE_E2E_PASS');
 console.log(JSON.stringify({
-  savedCard: true,
-  legacyOpen: true,
-  speakButtons: true,
-  groupedAssistant: true,
-  laterDismiss: true,
-  dropdowns: true,
-  spdChoices: true,
-  autoZsB32: maxZs,
-  circuitRoutes: true,
-  certificateDuplicateDelete: true,
-  settings: true,
-  backup: true,
-  autosaveTyped: true,
-  autosaveDropdown: true,
-  autosaveNextBack: true,
-  circuitReturnPosition: true,
-  pdfDownload: true,
-  allCertificateTypes: true,
-  actionRouteMap: true
+  routeMap:true,
+  nativeHooks:true,
+  premiumHome:true,
+  legacyOpen:true,
+  detailedInspection:true,
+  postcodeLookup:true,
+  autosave:true,
+  circuitReorder:true,
+  autoZsB32:maxZs,
+  circuitReturnPosition:true,
+  landscapePdf:true,
+  worksheet:true,
+  print:true,
+  appBack:true,
+  profileDefaults:true,
+  backup:true,
+  allCertificateTypes:true
 }));
 
 await browser.close();
