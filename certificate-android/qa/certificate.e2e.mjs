@@ -82,7 +82,6 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 const errors = [];
-let lookupHit=0;
 const dialogs=[];
 page.on('pageerror', err => errors.push(String(err)));
 page.on('dialog', async d => { dialogs.push(d.message()); console.log('DIALOG:',d.message()); await d.dismiss(); });
@@ -90,18 +89,25 @@ page.on('console', msg => {
   if (msg.type() === 'error') errors.push('console: ' + msg.text());
 });
 
-await page.route('https://api.ideal-postcodes.co.uk/**', async route => {
-  lookupHit++; console.log('LOOKUP_REQUEST:',route.request().url());
-  const payload={
-    result:[
-      {line_1:'1 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'},
-      {line_1:'2 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'}
-    ],
-    code:2000,
-    message:'Success'
+await page.addInitScript(() => {
+  const realFetch=window.fetch.bind(window);
+  window.fetch=async (input,init)=>{
+    const url=String(typeof input==='string'?input:input?.url||'');
+    if(url.includes('api.ideal-postcodes.co.uk/v1/postcodes/')){
+      window.__postcodeLookupHits=(window.__postcodeLookupHits||0)+1;
+      return new Response(JSON.stringify({
+        result:[
+          {line_1:'1 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'},
+          {line_1:'2 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'}
+        ],
+        code:2000,
+        message:'Success'
+      }),{status:200,headers:{'Content-Type':'application/json'}});
+    }
+    return realFetch(input,init);
   };
-  await route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(payload)});
 });
+
 
 await page.goto(base, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.saved-cert-row');
@@ -144,6 +150,7 @@ assert(await postcode.count()===1,'Installation postcode field missing');
 await postcode.fill('b11aa');
 await page.locator('[data-action="postcode-find"][data-postcode-key="installationPostcode"]').click();
 await page.waitForTimeout(700);
+const lookupHit=await page.evaluate(()=>window.__postcodeLookupHits||0);
 console.log('LOOKUP_HITS:',lookupHit);
 console.log('LOOKUP_DIALOGS:',JSON.stringify(dialogs));
 console.log('POSTCODE_MODAL_COUNT:',await page.locator('.postcode-backdrop').count());
