@@ -58,10 +58,8 @@ await context.addInitScript(() => {
     updatedAt: '2026-10-01T10:00:00.000Z',
     fields: {
       clientName: 'Jane Smith',
-      clientAddress: '1 Test Road
-Birmingham',
-      installationAddress: '1 Test Road
-Birmingham',
+      clientAddress: '1 Test Road\nBirmingham',
+      installationAddress: '1 Test Road\nBirmingham',
       issueDate: '2026-10-01',
       nominalVoltage: '230'
     },
@@ -80,8 +78,7 @@ Birmingham',
     companyName:'Sperin Services',
     engineerName:'Gus Tester',
     engineerPosition:'Electrician / Inspector',
-    address:'10 Business Road
-Birmingham',
+    address:'10 Business Road\nBirmingham',
     postcode:'B1 1AA',
     phone:'0121 000 0000',
     email:'test@example.com',
@@ -159,8 +156,8 @@ const inspection = page.locator('.form-section').filter({hasText:'Installation i
 assert(await inspection.count()===1,'EIC inspection checklist section missing');
 const inspectionRows=inspection.locator('tbody tr');
 assert(await inspectionRows.count()>=14,'EIC model-form inspection schedule is incomplete');
-assert((await inspection.textContent()).includes('Main earthing conductor'),'Earthing inspection checks missing');
-assert((await inspection.textContent()).includes('RCD'),'RCD inspection checks missing');
+assert((await inspection.textContent()).includes('Automatic Disconnection of Supply'),'IET EIC inspection categories missing');
+assert((await inspection.textContent()).includes('Prosumer'),'IET EIC inspection categories incomplete');
 
 // Postcode-first address lookup.
 const postcode=page.locator('[data-field="installationPostcode"]');
@@ -176,8 +173,7 @@ console.log('POSTCODE_BUTTON_COUNT:',await page.locator('.postcode-result').coun
 assert(lookupHit>0,'Postcode button did not issue an address lookup request');
 assert(await page.locator('.postcode-result').count()>0,'Postcode request returned but address selector did not render');
 await page.locator('.postcode-result').first().click();
-assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('
-'),'Selected address is not formatted on separate lines');
+assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('\n'),'Selected address is not formatted on separate lines');
 assert((await page.locator('[data-field="installationPostcode"]').inputValue())==='B1 1AA','Postcode not formatted correctly');
 console.log('POSTCODE_LOOKUP_PASS');
 
@@ -236,8 +232,8 @@ const pdfBytes=fs.readFileSync(pdfPath);
 assert(pdfBytes.subarray(0,4).toString()==='%PDF','PDF signature invalid');
 const pdfText=pdfBytes.toString('latin1');
 const media=pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
-assert(media && Number(media[1])>Number(media[2]),'PDF is not landscape');
-console.log('LANDSCAPE_PDF_PASS');
+assert(media && Number(media[1])<Number(media[2]),'EIC certificate first page is not portrait like the IET model form');
+console.log('IET_STYLE_PDF_PASS');
 
 // Printable worksheet must also download and be landscape.
 const worksheetPromise=page.waitForEvent('download');
@@ -399,8 +395,7 @@ const zsDescriptor=plan.descriptors.find(d=>d.code==='B01C01-ZS');
 assert(zsDescriptor,'Zs scan descriptor missing');
 await page.evaluate(({id,pageNo})=>{
   window.sperinSheetScanResult('',JSON.stringify({
-    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'
-B01C01-ZS Zs 0.44',
+    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'\\nB01C01-ZS Zs 0.44',
     width:2000,height:1400,
     lines:[
       {text:'SPERIN SHEET '+id+' PAGE '+pageNo,left:20,top:20,right:900,bottom:60},
