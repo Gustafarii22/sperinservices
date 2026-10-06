@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.4.0';
+  const VERSION = '1.4.1';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
