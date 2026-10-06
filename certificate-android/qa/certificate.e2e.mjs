@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import fs from 'node:fs';
 
 const base = process.env.CERT_BASE_URL || 'http://127.0.0.1:4173/certificates/';
 const browser = await chromium.launch({ headless: true });
@@ -60,6 +61,20 @@ assert(await voltage.count() === 1, 'Nominal voltage should be a dropdown');
 const voltageOptions = await voltage.locator('option').allTextContents();
 assert(voltageOptions.includes('230') && voltageOptions.includes('230/400'), 'Voltage dropdown choices missing');
 
+const clientName = page.locator('[data-field="clientName"]');
+await clientName.fill('Jane Smith Updated');
+await page.waitForTimeout(450);
+let stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
+assert(stored.certificates?.[0]?.fields?.clientName === 'Jane Smith Updated', 'Typed field did not autosave');
+console.log('AUTOSAVE_TYPED_PASS');
+
+await voltage.selectOption('230/400');
+await page.waitForTimeout(60);
+stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
+assert(stored.certificates?.[0]?.fields?.nominalVoltage === '230/400', 'Dropdown did not autosave');
+console.log('AUTOSAVE_DROPDOWN_PASS');
+
+
 const spd = page.locator('select[data-field="dbSpd"]');
 assert(await spd.count() === 1, 'SPD should be a dropdown');
 const spdOptions = await spd.locator('option').allTextContents();
@@ -96,16 +111,38 @@ assert(maxZs === '1.37', 'B32 automatic max Zs should calculate to 1.37 Ω at 23
 
 await page.locator('[data-action="circuit-next"]').click();
 assert((await page.locator('.eyebrow').first().textContent()).includes('2 of 2'), 'Circuit next route failed');
+stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
+const storedCircuit = stored.certificates?.[0]?.tables?.circuits?.find(r => r && r.description === 'Socket circuit') || stored.certificates?.[0]?.tables?.circuits?.[1] || stored.certificates?.[0]?.tables?.circuits?.[0];
+assert(storedCircuit?.ocpdRating === '32', 'Circuit Next did not save circuit data');
+console.log('AUTOSAVE_CIRCUIT_NEXT_PASS');
 await page.locator('[data-action="circuit-prev"]').click();
 assert((await page.locator('.eyebrow').first().textContent()).includes('1 of 2'), 'Circuit previous route failed');
+stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1') || '{}'));
+assert(Array.isArray(stored.certificates?.[0]?.tables?.circuits), 'Circuit Back did not preserve saved certificate');
+console.log('AUTOSAVE_CIRCUIT_BACK_PASS');
 await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector('.circuit-list');
+await page.waitForTimeout(80);
+const circuitTop = await page.locator('.circuit-list').evaluate(el => el.getBoundingClientRect().top);
+assert(circuitTop >= -10 && circuitTop < 180, 'Saving circuit should return to the circuit schedule, top=' + circuitTop);
+console.log('CIRCUIT_RETURN_POSITION_PASS');
 
 const beforeCircuitDuplicate = await page.locator('.circuit-card').count();
 await page.locator('[data-action="circuit-duplicate"]').first().click();
 await page.waitForSelector('[data-circuit-input="details"]');
 await page.locator('[data-action="circuit-list"]').first().click();
 assert(await page.locator('.circuit-card').count() === beforeCircuitDuplicate + 1, 'Circuit duplicate failed');
+
+const pdfDownloadPromise = page.waitForEvent('download');
+await page.locator('[data-action="pdf"]').first().click();
+const pdfDownload = await pdfDownloadPromise;
+const pdfPath = await pdfDownload.path();
+assert(pdfDownload.suggestedFilename().toLowerCase().endsWith('.pdf'), 'PDF filename should end .pdf');
+assert(pdfPath && fs.existsSync(pdfPath), 'PDF download file missing');
+const pdfBytes = fs.readFileSync(pdfPath);
+assert(pdfBytes.length > 1000, 'PDF download is unexpectedly small');
+assert(pdfBytes.subarray(0, 4).toString() === '%PDF', 'Downloaded file is not a valid PDF');
+console.log('PDF_DOWNLOAD_PASS');
 
 await page.locator('[data-action="home"]').last().click();
 await page.waitForSelector('.saved-cert-card');
@@ -145,7 +182,12 @@ console.log(JSON.stringify({
   circuitRoutes: true,
   certificateDuplicateDelete: true,
   settings: true,
-  backup: true
+  backup: true,
+  autosaveTyped: true,
+  autosaveDropdown: true,
+  autosaveNextBack: true,
+  circuitReturnPosition: true,
+  pdfDownload: true
 }));
 
 await browser.close();
