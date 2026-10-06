@@ -393,7 +393,8 @@ const zsDescriptor=plan.descriptors.find(d=>d.code==='B01C01-ZS');
 assert(zsDescriptor,'Zs scan descriptor missing');
 await page.evaluate(({id,pageNo})=>{
   window.sperinSheetScanResult('',JSON.stringify({
-    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'\\nB01C01-ZS Zs 0.44',
+    fullText:'SPERIN SHEET '+id+' PAGE '+pageNo+'
+B01C01-ZS Zs 0.44',
     width:2000,height:1400,
     lines:[
       {text:'SPERIN SHEET '+id+' PAGE '+pageNo,left:20,top:20,right:900,bottom:60},
