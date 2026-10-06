@@ -61,6 +61,21 @@
   function dotted(doc,x1,y,x2){
     doc.setDrawColor(...LINE);doc.setLineWidth(.12);doc.setLineDashPattern([.45,.45],0);doc.line(x1,y,x2,y);doc.setLineDashPattern([],0);
   }
+  function choiceLine(doc,label,choices,value,worksheet,x,y,w,opts={}){
+    const labelW=opts.labelW||30;
+    write(doc,label,x,y,labelW-1,{size:opts.size||6.1,bold:true,maxLines:2});
+    let cx=x+labelW;
+    const available=Math.max(20,w-labelW);
+    const step=available/Math.max(1,choices.length);
+    choices.forEach((choice,idx)=>{
+      checkbox(doc,cx,y,!worksheet&&String(value||'')===String(choice),pdfText(choice),{
+        size:opts.boxSize||3,
+        fontSize:opts.optionSize||5.5,
+        labelWidth:Math.max(10,step-4)
+      });
+      cx+=step;
+    });
+  }
   function pageFrame(doc,title,number,standard){
     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
     doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(5,5,w-10,h-10);
@@ -79,6 +94,10 @@
     if(doc.__sperinWorksheet){
       doc.setTextColor(...BLUE);doc.setFont('helvetica','bold');doc.setFontSize(5.4);
       doc.text('MULTIPLE CHOICE: MARK ONE BOX WITH X. DO NOT CIRCLE OR CROSS OUT THE OTHER OPTIONS.',w/2,h-10,{align:'center'});
+      if(doc.__sperinSheetId){
+        doc.setFont('helvetica','normal');doc.setFontSize(4.6);doc.setTextColor(...GREY);
+        doc.text('SPERIN SHEET '+doc.__sperinSheetId+' PAGE '+page,w-10,h-7,{align:'right'});
+      }
     }
     doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
     doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7,{align:'center'});
@@ -234,9 +253,9 @@
     y+=50;
 
     top=box(doc,x,y,w,47,'SECTION F: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS');
-    labelValue(doc,'Earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+6,43,{labelW:24});
-    labelValue(doc,'Number and type of live conductors',display(f.liveConductors,worksheet),x+47,top+6,58,{labelW:31});
-    labelValue(doc,'Supply',display(f.supplyACDC,worksheet),x+107,top+6,30,{labelW:12});
+    choiceLine(doc,'Earthing arrangement',['TN-C','TN-S','TN-C-S PME','TN-C-S PNB','TT','IT'],String(f.earthingArrangement||'').replace(' (PME)',' PME').replace(' (PNB)',' PNB'),worksheet,x+2,top+6,92,{labelW:25,optionSize:4.6});
+    choiceLine(doc,'Supply',['AC','DC'],f.supplyACDC,worksheet,x+96,top+6,42,{labelW:14,optionSize:5.4});
+    labelValue(doc,'Number/type of live conductors',display(f.liveConductors,worksheet),x+140,top+6,48,{labelW:28,maxLines:1});
     labelValue(doc,'Nominal voltage U/U0 (V)',display(f.nominalVoltage,worksheet),x+2,top+15,52,{labelW:31});
     labelValue(doc,'Nominal frequency (Hz)',display(f.frequency,worksheet),x+56,top+15,45,{labelW:28});
     labelValue(doc,'Prospective fault current Ipf (kA)',display(f.ipf,worksheet),x+103,top+15,45,{labelW:31});
@@ -246,12 +265,12 @@
     labelValue(doc,'Type',display(f.supplyDeviceType,worksheet),x+50,top+31,35,{labelW:10});
     labelValue(doc,'Rated current (A)',display(f.supplyDeviceRating,worksheet),x+87,top+31,45,{labelW:23});
     labelValue(doc,'Breaking capacity (kA)',display(f.supplyBreakingCapacity,worksheet),x+134,top+31,54,{labelW:28});
-    labelValue(doc,'Confirmation of supply polarity',display(f.supplyPolarity,worksheet),x+2,top+40,90,{labelW:39});
-    labelValue(doc,'Other sources of supply',display(f.otherSources,worksheet),x+96,top+40,92,{labelW:32});
+    choiceLine(doc,'Supply polarity confirmed',['Yes','No'],f.supplyPolarity,worksheet,x+2,top+40,90,{labelW:36});
+    choiceLine(doc,'Other sources of supply',['Yes','No'],f.otherSources,worksheet,x+96,top+40,92,{labelW:35});
     y+=48;
 
     top=box(doc,x,y,w,74,'SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE');
-    labelValue(doc,'Means of earthing',display(f.meansOfEarthing,worksheet),x+2,top+6,57,{labelW:26});
+    choiceLine(doc,'Means of earthing',['Distributor','Earth electrode','Both','Other'],String(f.meansOfEarthing||'').replace('Distributor’s facility','Distributor').replace('Installation earth electrode','Earth electrode'),worksheet,x+2,top+6,88,{labelW:25,optionSize:5});
     labelValue(doc,'Maximum demand',display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet),x+61,top+6,56,{labelW:27});
     labelValue(doc,'Earth electrode type',display(f.earthElectrodeType,worksheet),x+119,top+6,69,{labelW:27});
     labelValue(doc,'Earth electrode location',display(f.earthElectrodeLocation,worksheet),x+2,top+13,92,{labelW:31});
@@ -427,9 +446,9 @@
     labelValue(doc,'Circuit Details / Test Results',display(f.circuitSchedules,worksheet),x+126,top+6,62,{labelW:39});y+=19;
 
     top=box(doc,x,y,w,47,'SECTION I: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS');
-    labelValue(doc,'Earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+6,43,{labelW:24});
-    labelValue(doc,'Number and type of live conductors',display(f.liveConductors,worksheet),x+47,top+6,58,{labelW:31});
-    labelValue(doc,'Supply',display(f.supplyACDC,worksheet),x+107,top+6,30,{labelW:12});
+    choiceLine(doc,'Earthing arrangement',['TN-C','TN-S','TN-C-S PME','TN-C-S PNB','TT','IT'],String(f.earthingArrangement||'').replace(' (PME)',' PME').replace(' (PNB)',' PNB'),worksheet,x+2,top+6,92,{labelW:25,optionSize:4.6});
+    choiceLine(doc,'Supply',['AC','DC'],f.supplyACDC,worksheet,x+96,top+6,42,{labelW:14,optionSize:5.4});
+    labelValue(doc,'Number/type of live conductors',display(f.liveConductors,worksheet),x+140,top+6,48,{labelW:28,maxLines:1});
     labelValue(doc,'Nominal voltage U/U0 (V)',display(f.nominalVoltage,worksheet),x+2,top+15,52,{labelW:31});
     labelValue(doc,'Nominal frequency (Hz)',display(f.frequency,worksheet),x+56,top+15,45,{labelW:28});
     labelValue(doc,'Prospective fault current Ipf (kA)',display(f.ipf,worksheet),x+103,top+15,45,{labelW:31});
@@ -439,11 +458,11 @@
     labelValue(doc,'Type',display(f.supplyDeviceType,worksheet),x+50,top+31,35,{labelW:10});
     labelValue(doc,'Rated current (A)',display(f.supplyDeviceRating,worksheet),x+87,top+31,45,{labelW:23});
     labelValue(doc,'Breaking capacity (kA)',display(f.supplyBreakingCapacity,worksheet),x+134,top+31,54,{labelW:28});
-    labelValue(doc,'Confirmation of supply polarity',display(f.supplyPolarity,worksheet),x+2,top+40,90,{labelW:39});
-    labelValue(doc,'Other sources of supply',display(f.otherSources,worksheet),x+96,top+40,92,{labelW:32});y+=48;
+    choiceLine(doc,'Supply polarity confirmed',['Yes','No'],f.supplyPolarity,worksheet,x+2,top+40,90,{labelW:36});
+    choiceLine(doc,'Other sources of supply',['Yes','No'],f.otherSources,worksheet,x+96,top+40,92,{labelW:35});y+=48;
 
     top=box(doc,x,y,w,76,'SECTION J: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE');
-    labelValue(doc,'Means of earthing',display(f.meansOfEarthing,worksheet),x+2,top+6,57,{labelW:26});
+    choiceLine(doc,'Means of earthing',['Distributor','Earth electrode','Both','Other'],String(f.meansOfEarthing||'').replace('Distributor’s facility','Distributor').replace('Installation earth electrode','Earth electrode'),worksheet,x+2,top+6,88,{labelW:25,optionSize:5});
     labelValue(doc,'Maximum demand',display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet),x+61,top+6,56,{labelW:27});
     labelValue(doc,'Earth electrode type',display(f.earthElectrodeType,worksheet),x+119,top+6,69,{labelW:27});
     labelValue(doc,'Earth electrode location',display(f.earthElectrodeLocation,worksheet),x+2,top+13,92,{labelW:31});
@@ -617,8 +636,11 @@
     schema.sections.forEach(part=>{
       if(part.type==='section'){
         const rows=part.fields.map(field=>{
-          const value=worksheet?'':(field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||''));
-          return [field.label,value];
+          const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||'');
+          const value=worksheet && field.type==='select' && Array.isArray(field.options) && field.options.length<=8
+            ? field.options.map(o=>'[ ] '+pdfText(o)).join('   ')
+            : (worksheet?'':pdfText(current));
+          return [pdfText(field.label),value];
         });
         const needed=9+rows.length*7;
         if(y+Math.min(needed,55)>281){
@@ -659,6 +681,7 @@
     const doc=new C({unit:'mm',format:'a4',orientation:'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     doc.__sperinWorksheet=!!worksheet;
+    doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
     const opts={worksheet,settings};
     if(cert.type==='eic')renderEic(doc,cert,schema,opts);
     else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
