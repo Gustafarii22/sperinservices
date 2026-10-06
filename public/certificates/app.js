@@ -535,8 +535,7 @@
         table('eicInspection', 'H · Installation inspection checklist', [
           { key: 'item', label: 'Item', readonly: true },
           { key: 'description', label: 'Check', readonly: true },
-          { key: 'outcome', label: 'Result', type: 'select', options: OPTIONS.passNA },
-          { key: 'comment', label: 'Comment / N/A reason' }
+          { key: 'outcome', label: 'Result', type: 'select', options: OPTIONS.passNA }
         ], eicInspectionRows),
         section('I · Existing installation comments', [f('existingComments', 'Comments on existing installation (for additions/alterations)', 'textarea', { span: 'full' })]),
         section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
