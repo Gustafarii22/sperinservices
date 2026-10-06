@@ -1059,84 +1059,243 @@
       .filter(el=>!el.disabled && !el.readOnly && el.type!=='hidden' && el.offsetParent!==null);
   }
 
+  function ensureVoiceMeta(cert) {
+    if(!cert) return {completed:{},later:{},dismissed:{}};
+    cert.voiceMeta=cert.voiceMeta||{};
+    cert.voiceMeta.completed=cert.voiceMeta.completed||{};
+    cert.voiceMeta.later=cert.voiceMeta.later||{};
+    cert.voiceMeta.dismissed=cert.voiceMeta.dismissed||{};
+    return cert.voiceMeta;
+  }
+
+  function voiceControlKey(el) {
+    if(!el) return '';
+    if(el.dataset.field) return 'field:'+el.dataset.field;
+    if(el.dataset.tableInput) return 'table:'+el.dataset.tableInput+':'+el.dataset.row+':'+el.dataset.col;
+    if(el.dataset.circuitInput) return 'circuit:'+el.dataset.circuitInput+':'+el.dataset.index+':'+el.dataset.col;
+    return '';
+  }
+
+  function controlByVoiceKey(key) {
+    return guidedControls().find(el=>voiceControlKey(el)===key)||null;
+  }
+
+  function voiceStatusFor(key) {
+    const meta=ensureVoiceMeta(getCurrent());
+    if(meta.completed[key]) return 'done';
+    if(meta.later[key]) return 'later';
+    if(meta.dismissed[key]) return 'dismissed';
+    return '';
+  }
+
+  function setVoiceStatus(key,status) {
+    const cert=getCurrent(); if(!cert||!key) return;
+    const meta=ensureVoiceMeta(cert);
+    delete meta.completed[key]; delete meta.later[key]; delete meta.dismissed[key];
+    if(status==='done') meta.completed[key]=true;
+    if(status==='later') meta.later[key]=true;
+    if(status==='dismissed') meta.dismissed[key]=true;
+    persist();
+    applyVoiceStatusClasses();
+    refreshVoiceToolbar();
+  }
+
+  function markVoiceDone(el) {
+    if(!el) return;
+    const key=voiceControlKey(el); if(!key) return;
+    if(el.type==='checkbox' || voiceCurrentValue(el)!=='') setVoiceStatus(key,'done');
+    else {
+      const meta=ensureVoiceMeta(getCurrent());
+      delete meta.completed[key];
+      persist();
+      applyVoiceStatusClasses();
+      refreshVoiceToolbar();
+    }
+  }
+
+  function voiceSectionKey(el) {
+    const section=el.closest('.form-section');
+    if(section){
+      const h=section.querySelector('h3');
+      if(h) return h.textContent.trim();
+    }
+    return 'Current section';
+  }
+
+  function visibleLaterCount() {
+    const meta=ensureVoiceMeta(getCurrent());
+    return guidedControls().filter(el=>meta.later[voiceControlKey(el)]).length;
+  }
+
+  function applyVoiceStatusClasses() {
+    const cert=getCurrent(); if(!cert) return;
+    const meta=ensureVoiceMeta(cert);
+    guidedControls().forEach(el=>{
+      const key=voiceControlKey(el);
+      const holder=el.closest('.field')||el.closest('td');
+      if(!holder) return;
+      holder.classList.remove('voice-done','voice-later','voice-dismissed');
+      if(meta.completed[key]) holder.classList.add('voice-done');
+      else if(meta.later[key]) holder.classList.add('voice-later');
+      else if(meta.dismissed[key]) holder.classList.add('voice-dismissed');
+    });
+  }
+
+  function refreshVoiceToolbar() {
+    const count=visibleLaterCount();
+    document.querySelectorAll('[data-action="voice-review-later"]').forEach(b=>{
+      b.textContent='🟠 Review later ('+count+')';
+      b.hidden=count===0;
+    });
+  }
+
+  function assistantQueue(mode) {
+    const meta=ensureVoiceMeta(getCurrent());
+    return guidedControls()
+      .map(el=>voiceControlKey(el))
+      .filter(Boolean)
+      .filter(key=>!meta.dismissed[key])
+      .filter(key=>mode==='later' ? !!meta.later[key] : !meta.later[key] && !meta.completed[key]);
+  }
+
+  function assistantBatchFrom(queue,startIndex) {
+    let firstIndex=-1, first=null;
+    for(let i=Math.max(0,startIndex||0);i<queue.length;i++){
+      const el=controlByVoiceKey(queue[i]);
+      if(el){firstIndex=i;first=el;break;}
+    }
+    if(!first) return {keys:[],nextIndex:queue.length};
+    const section=voiceSectionKey(first);
+    const keys=[queue[firstIndex]];
+    let i=firstIndex+1;
+    for(;i<queue.length && keys.length<3;i++){
+      const el=controlByVoiceKey(queue[i]);
+      if(!el) continue;
+      if(voiceSectionKey(el)!==section) break;
+      keys.push(queue[i]);
+    }
+    return {keys,nextIndex:i,section};
+  }
+
+  function assistantControlHtml(el,key) {
+    const label=voiceLabel(el);
+    const options=voiceOptions(el);
+    const value=voiceCurrentValue(el);
+    const status=voiceStatusFor(key);
+    const statusText=status==='done'?'Done':status==='later'?'Later':status==='dismissed'?'Dismissed':'To do';
+    let input='';
+    if(options.length){
+      input='<select data-assist-value="'+esc(key)+'"><option value="">Select…</option>'+options.map(o=>'<option value="'+esc(o)+'" '+(String(o)===String(value)?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+    } else if(el.type==='checkbox') {
+      input='<select data-assist-value="'+esc(key)+'"><option value="">Select…</option><option value="yes" '+(el.checked?'selected':'')+'>Yes</option><option value="no" '+(!el.checked&&status==='done'?'selected':'')+'>No</option></select>';
+    } else {
+      const type=el.type==='date'?'date':'text';
+      input='<input data-assist-value="'+esc(key)+'" type="'+type+'" value="'+esc(value)+'" placeholder="Type or use Speak" />';
+    }
+    return '<div class="voice-assist-card '+(status?'status-'+status:'')+'" data-assist-card="'+esc(key)+'">'+
+      '<div class="voice-assist-head"><div><div class="voice-assist-label">'+esc(label)+'</div><div class="meta">'+esc(voiceSectionKey(el))+'</div></div><span class="voice-status-chip">'+statusText+'</span></div>'+
+      '<div class="voice-assist-entry">'+input+'<button class="voice-speak-big" type="button" data-action="voice-assist-speak" data-voice-key="'+esc(key)+'">🎙 <span>Speak</span></button></div>'+
+      '<div class="voice-assist-actions"><button class="btn small" type="button" data-action="voice-later" data-voice-key="'+esc(key)+'">Come back later</button><button class="btn small danger" type="button" data-action="voice-dismiss" data-voice-key="'+esc(key)+'">Dismiss</button></div>'+
+      '</div>';
+  }
+
   function showVoicePanel() {
     let panel=document.querySelector('.voice-panel');
     if(panel) return panel;
     panel=document.createElement('div');
-    panel.className='voice-panel';
-    panel.innerHTML='<div class="voice-panel-top"><div><strong>🎙 Speak your answers</strong><div class="meta" data-voice-progress></div></div><button class="btn small" data-action="voice-stop">Stop</button></div><div class="voice-question" data-voice-question></div><div class="voice-heard" data-voice-heard>Listening for your answer…</div><div class="voice-actions"><button class="btn small" data-action="voice-back">← Back</button><button class="btn small" data-action="voice-repeat">Listen again</button><button class="btn small" data-action="voice-skip">Skip →</button><button class="btn small" data-action="voice-read">🔊 Read question</button></div>';
+    panel.className='voice-panel voice-assistant';
+    panel.innerHTML='<div class="voice-panel-top"><div><strong>🎙 Certificate assistant</strong><div class="meta" data-voice-progress></div></div><button class="btn small" data-action="voice-stop">Close</button></div><div data-voice-assistant-body></div>';
     document.body.appendChild(panel);
     return panel;
   }
 
-  function stopGuidedVoice(message,speak) {
+  function stopGuidedVoice(message) {
     guidedVoiceState=null;
     if(window.Android && window.Android.stopVoice){try{window.Android.stopVoice();}catch(err){}}
     const panel=document.querySelector('.voice-panel');
     if(panel) panel.remove();
     persist();
     if(message) toast(message);
-    if(speak && message) voiceSay(message);
   }
 
-  function guidedStep() {
-    if(!guidedVoiceState || !guidedVoiceState.active) return;
-    const controls=guidedControls();
-    if(!controls.length){stopGuidedVoice('No voice-fillable fields on this page',false);return;}
-    if(guidedVoiceState.index>=controls.length){stopGuidedVoice('Page questionnaire complete',false);return;}
-    guidedVoiceState.index=Math.max(0,guidedVoiceState.index);
-    const el=controls[guidedVoiceState.index];
-    const holder=el.closest('.field,td');
-    if(holder) holder.scrollIntoView({behavior:'smooth',block:'center'});
+  function renderAssistantPage() {
+    if(!guidedVoiceState||!guidedVoiceState.active) return;
     const panel=showVoicePanel();
-    panel.querySelector('[data-voice-progress]').textContent=(guidedVoiceState.index+1)+' of '+controls.length;
-    const question=voiceQuestion(el);
-    panel.querySelector('[data-voice-question]').textContent=question;
-    panel.querySelector('[data-voice-heard]').textContent='Listening for your answer…';
-    voiceAsk(question,function(text,error){
-      if(!guidedVoiceState || !guidedVoiceState.active) return;
-      const heard=String(text||'').trim();
-      panel.querySelector('[data-voice-heard]').textContent=error ? 'Not heard: '+error : heard ? 'Heard: “'+heard+'”' : 'Nothing heard';
-      if(error || !heard) return;
-      const command=voiceNormalise(heard);
-      if(['stop','stop voice','finish','finish voice'].includes(command)){stopGuidedVoice('Voice questionnaire stopped',false);return;}
-      if(['repeat','listen again'].includes(command)){guidedStep();return;}
-      if(['back','previous','go back'].includes(command)){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();return;}
-      if(['skip','next','keep','keep answer','keep it'].includes(command)){guidedVoiceState.index++;guidedStep();return;}
-      if(!applyVoiceValue(el,heard)){
-        panel.querySelector('[data-voice-heard]').textContent='Could not match that answer. Tap Listen again or use the mic.';
-        return;
+    const mode=guidedVoiceState.mode||'main';
+    const queue=assistantQueue(mode);
+    if(!guidedVoiceState.queue || guidedVoiceState.queueMode!==mode){
+      guidedVoiceState.queue=queue.slice();
+      guidedVoiceState.queueMode=mode;
+      guidedVoiceState.cursor=0;
+    } else {
+      guidedVoiceState.queue=guidedVoiceState.queue.filter(key=>controlByVoiceKey(key));
+    }
+    const batch=assistantBatchFrom(guidedVoiceState.queue,guidedVoiceState.cursor||0);
+    guidedVoiceState.currentKeys=batch.keys;
+    guidedVoiceState.nextIndex=batch.nextIndex;
+    const body=panel.querySelector('[data-voice-assistant-body]');
+    const progress=panel.querySelector('[data-voice-progress]');
+    if(!batch.keys.length){
+      const later=visibleLaterCount();
+      progress.textContent=mode==='later'?'Later items reviewed':'Main questions complete';
+      body.innerHTML='<div class="voice-assist-summary"><strong>'+ (mode==='later'?'Review complete':'Main questions complete') +'</strong><p>'+ (later ? later+' item'+(later===1?'':'s')+' still flagged to fill in later.' : 'No items are waiting for later.') +'</p>'+
+        (later && mode!=='later'?'<button class="btn primary" data-action="voice-review-later">Review later items now</button>':'')+
+        '<button class="btn" data-action="voice-stop">Return to certificate</button></div>';
+      return;
+    }
+    const section=batch.section||'Current section';
+    const doneCount=Object.keys(ensureVoiceMeta(getCurrent()).completed).length;
+    const laterCount=visibleLaterCount();
+    progress.textContent=section+' · '+doneCount+' done · '+laterCount+' later';
+    body.innerHTML='<div class="voice-assist-page"><div class="voice-assist-section">'+esc(section)+'</div>'+
+      batch.keys.map(key=>{const el=controlByVoiceKey(key);return el?assistantControlHtml(el,key):'';}).join('')+
+      '<div class="voice-page-nav"><button class="btn primary voice-next-btn" data-action="voice-next">Next →</button></div></div>';
+  }
+
+  function assistantNext() {
+    if(!guidedVoiceState||!guidedVoiceState.active) return;
+    const meta=ensureVoiceMeta(getCurrent());
+    (guidedVoiceState.currentKeys||[]).forEach(key=>{
+      const el=controlByVoiceKey(key);
+      if(!el) return;
+      if(!meta.completed[key]&&!meta.later[key]&&!meta.dismissed[key]){
+        if(el.type==='checkbox' || voiceCurrentValue(el)!=='') setVoiceStatus(key,'done');
+        else setVoiceStatus(key,'later');
       }
-      guidedVoiceState.index++;
-      setTimeout(guidedStep,250);
     });
+    guidedVoiceState.cursor=guidedVoiceState.nextIndex||0;
+    renderAssistantPage();
   }
 
-  function startGuidedVoice() {
-    if(!voiceSupported()){alert('Voice recognition is not available on this device. Install the latest APK and allow microphone access.');return;}
+  function startGuidedVoice(mode) {
     const controls=guidedControls();
-    if(!controls.length){toast('No voice-fillable fields on this page');return;}
-    guidedVoiceState={active:true,index:0};
+    if(!controls.length){toast('No fillable fields on this page');return;}
+    guidedVoiceState={active:true,mode:mode==='later'?'later':'main',cursor:0,queue:null,queueMode:null,currentKeys:[]};
     showVoicePanel();
-    guidedStep();
+    renderAssistantPage();
   }
 
-  function startSingleVoice(el) {
+  function startSingleVoice(el,after) {
     if(!el) return;
-    if(!voiceSupported()){alert('Voice recognition is not available on this device.');return;}
-    const prompt=voiceQuestion(el);
+    if(!voiceSupported()){alert('Voice recognition is not available on this device. Allow microphone access and try again.');return;}
     const holder=el.closest('.field,td');
-    if(holder) holder.scrollIntoView({behavior:'smooth',block:'center'});
-    voiceAsk(prompt,function(text,error){
+    if(holder && !document.querySelector('.voice-panel')) holder.scrollIntoView({behavior:'smooth',block:'center'});
+    toast('Listening…');
+    voiceAsk(voiceQuestion(el),function(text,error){
       if(error||!text){toast(error||'Nothing heard');return;}
-      if(applyVoiceValue(el,text)) toast(voiceLabel(el)+' filled by voice');
-      else {toast('Could not match that answer');}
+      if(applyVoiceValue(el,text)){
+        markVoiceDone(el);
+        toast(voiceLabel(el)+' completed');
+        if(typeof after==='function') after(text);
+      } else toast('Could not match that answer');
     });
   }
 
   function decorateVoiceUI() {
     const controls=document.querySelectorAll('#app [data-field],#app [data-table-input],#app [data-circuit-input]');
     controls.forEach(function(el){
+      const key=voiceControlKey(el);
+      if(key) el.dataset.voiceKey=key;
       if(el.dataset.voiceDecorated==='1') return;
       const existing=el.parentElement && el.parentElement.querySelector(':scope > .voice-mic');
       if(existing){el.dataset.voiceDecorated='1';return;}
@@ -1152,11 +1311,18 @@
       }
     });
     document.querySelectorAll('.form-head .actions').forEach(function(actions){
-      if(actions.querySelector('[data-action="voice-guide"]')) return;
-      const b=document.createElement('button');b.type='button';b.className='btn voice-guide-btn';b.dataset.action='voice-guide';
-      b.textContent=view.circuitIndex!==null ? '🎙 Voice this page' : '🎙 Voice questionnaire';
-      actions.insertBefore(b,actions.firstChild);
+      if(!actions.querySelector('[data-action="voice-guide"]')){
+        const b=document.createElement('button');b.type='button';b.className='btn voice-guide-btn';b.dataset.action='voice-guide';
+        b.textContent=view.circuitIndex!==null ? '🎙 Fill this page' : '🎙 Fill certificate';
+        actions.insertBefore(b,actions.firstChild);
+      }
+      if(!actions.querySelector('[data-action="voice-review-later"]')){
+        const later=document.createElement('button');later.type='button';later.className='btn voice-later-btn';later.dataset.action='voice-review-later';
+        actions.insertBefore(later,actions.firstChild);
+      }
     });
+    applyVoiceStatusClasses();
+    refreshVoiceToolbar();
   }
 
   const voiceObserver=new MutationObserver(function(){decorateVoiceUI();});
@@ -1191,6 +1357,7 @@
       scheduleAutosave();
     }
     if (e.target.matches('[data-setting]')) settings[e.target.dataset.setting] = e.target.value;
+    if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) markVoiceDone(e.target);
   });
 
   document.addEventListener('change', e => {
@@ -1202,26 +1369,41 @@
     }
   });
 
+  document.addEventListener('change', e => {
+    if(!e.target.matches('[data-assist-value]')) return;
+    const key=e.target.dataset.assistValue;
+    const el=controlByVoiceKey(key); if(!el) return;
+    if(el.type==='checkbox'){
+      if(e.target.value==='yes') el.checked=true;
+      else if(e.target.value==='no') el.checked=false;
+      else return;
+    } else {
+      el.value=e.target.value;
+    }
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    markVoiceDone(el);
+    renderAssistantPage();
+  });
+
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if (action === 'voice-guide') startGuidedVoice();
+    if (action === 'voice-guide') startGuidedVoice('main');
+    else if (action === 'voice-review-later') startGuidedVoice('later');
     else if (action === 'voice-one') {
       const holder=button.closest('.voice-control') || button.closest('.field') || button.closest('td');
       startSingleVoice(holder && holder.querySelector('[data-field],[data-table-input],[data-circuit-input]'));
     }
-    else if (action === 'voice-repeat') { if(guidedVoiceState && guidedVoiceState.active) guidedStep(); }
-    else if (action === 'voice-read') {
-      if(guidedVoiceState && guidedVoiceState.active){
-        const controls=guidedControls();
-        const el=controls[guidedVoiceState.index];
-        if(el) voiceSay(voiceQuestion(el));
-      }
+    else if (action === 'voice-assist-speak') {
+      const el=controlByVoiceKey(button.dataset.voiceKey);
+      startSingleVoice(el,function(){renderAssistantPage();});
     }
-    else if (action === 'voice-skip') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index++;guidedStep();} }
-    else if (action === 'voice-back') { if(guidedVoiceState && guidedVoiceState.active){guidedVoiceState.index=Math.max(0,guidedVoiceState.index-1);guidedStep();} }
-    else if (action === 'voice-stop') stopGuidedVoice('Voice questionnaire stopped',false);
+    else if (action === 'voice-later') { setVoiceStatus(button.dataset.voiceKey,'later'); renderAssistantPage(); }
+    else if (action === 'voice-dismiss') { setVoiceStatus(button.dataset.voiceKey,'dismissed'); renderAssistantPage(); }
+    else if (action === 'voice-next') assistantNext();
+    else if (action === 'voice-stop') stopGuidedVoice('Certificate assistant closed');
     else if (action === 'new') newCertificate(button.dataset.type);
     else if (action === 'edit') { view = { page: 'form', currentId: button.dataset.id, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
