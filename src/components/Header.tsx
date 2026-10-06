@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Calculator, ChevronDown, Images, Mail, Menu, Star, UserRound, Zap } from "lucide-react";
-import logo from "@/assets/sperin-logo.png";
 import { Logo } from "./Logo";
 import { SERVICES } from "@/lib/site";
 
@@ -33,32 +32,12 @@ export function Header() {
             scrolled ? "min-h-[80px] lg:min-h-[74px]" : "min-h-[90px] lg:min-h-[86px]"
           }`}
         >
-          <Link to="/" className="shrink-0" aria-label="Sperin Services home">
-            <span className="relative block h-[72px] w-[76px] overflow-hidden sm:h-[78px] sm:w-[84px] lg:h-[82px] lg:w-[90px]">
-              <img
-                src={logo}
-                alt=""
-                aria-hidden="true"
-                className="absolute left-0 top-1/2 h-[92px] w-auto max-w-none -translate-y-1/2 sm:h-[100px] lg:h-[106px]"
-                draggable={false}
-              />
-            </span>
-          </Link>
-
           <Link
             to="/"
             className="absolute left-1/2 -translate-x-1/2"
             aria-label="Sperin Services home"
           >
-            <span className="relative block h-[64px] w-[220px] overflow-hidden sm:h-[72px] sm:w-[280px] lg:h-[76px] lg:w-[330px]">
-              <img
-                src={logo}
-                alt="Sperin Services"
-                className="absolute right-0 top-1/2 h-[92px] w-auto max-w-none -translate-y-1/2 sm:h-[100px] lg:h-[106px]"
-                style={{ clipPath: "inset(0 0 0 35%)" }}
-                draggable={false}
-              />
-            </span>
+            <Logo className="h-[76px] w-auto max-w-[62vw] sm:h-[82px] lg:h-[84px] lg:max-w-[420px]" />
           </Link>
 
           <nav className="hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
