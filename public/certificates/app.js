@@ -1343,55 +1343,152 @@
 
   function sheetHeader(doc,p,no,type){const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setFillColor(7,17,31);doc.rect(0,0,w,22,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('SPERIN CERTIFICATES · SITE SHEET',14,9);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text('SPERIN SHEET '+p.id+' | PAGE '+no+' | '+type,14,16);doc.text('PLAN '+planSummary(p),w-14,16,{align:'right'});doc.setFillColor(0);[[4,4],[w-8,4],[4,h-8],[w-8,h-8]].forEach(q=>doc.rect(q[0],q[1],4,4,'F'));doc.setTextColor(20,28,38);}
   function generateSiteSheetPdf(p,cert){
-    const C=window.jspdf?.jsPDF;if(!C||typeof(new C()).autoTable!=='function'){alert('PDF engine unavailable');return;}const doc=new C({unit:'mm',format:'a4',orientation:'landscape'}),descs=buildSiteDescriptors(p,cert);let pn=0;
-    const page=t=>{if(pn)doc.addPage('a4','landscape');pn++;sheetHeader(doc,p,pn,t);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(20,40,62);doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS. KEEP WRITING INSIDE THE ANSWER BOXES.',14,29);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(70);doc.text('For voice read-back: read each printed heading followed by its answer. Say SKIP if not recorded.',14,34);return 39;};
-    const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table))),groups=new Map();general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});let y=page(SCHEMAS[p.type].code+' GENERAL');
-    for(const [name,items] of groups){if(y>168)y=page(SCHEMAS[p.type].code+' GENERAL');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(20,55,92);doc.text(name,14,y);y+=3;items.forEach(d=>d.page=pn);doc.autoTable({startY:y,head:[['Code','Field','Answer','Printed choices']],body:items.map(d=>[d.code,d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),margin:{left:12,right:12,bottom:12},styles:{fontSize:7.2,cellPadding:2,minCellHeight:7},headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},columnStyles:{0:{cellWidth:18,fontStyle:'bold'},1:{cellWidth:88,fontStyle:'bold'},2:{cellWidth:108},3:{cellWidth:55,fontSize:6.3}}});y=doc.lastAutoTable.finalY+6;}
+    const C=window.jspdf?.jsPDF;
+    if(!C||typeof(new C()).autoTable!=='function'){alert('PDF engine unavailable');return;}
+    const doc=new C({unit:'mm',format:'a4',orientation:'landscape'});
+    const descs=buildSiteDescriptors(p,cert);
+    let pn=0;
+
+    const page=(title,sub='')=>{
+      if(pn)doc.addPage('a4','landscape');
+      pn++;
+      sheetHeader(doc,p,pn,title);
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(20,40,62);
+      doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS.',14,29);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(75);
+      doc.text(sub||'For voice read-back, read the printed heading first and then the handwritten answer. Say SKIP if not recorded.',14,34);
+      return 39;
+    };
+
+    const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table)));
+    const groups=new Map();
+    general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});
+    let y=page(SCHEMAS[p.type].code+' SITE WORKSHEET');
+    for(const [name,items] of groups){
+      if(y>168)y=page(SCHEMAS[p.type].code+' SITE WORKSHEET');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(20,55,92);doc.text(name,14,y);y+=3;
+      items.forEach(d=>d.page=pn);
+      doc.autoTable({
+        startY:y,
+        head:[['Field','Answer','Printed choices']],
+        body:items.map(d=>[d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),
+        margin:{left:12,right:12,bottom:12},
+        styles:{fontSize:7.2,cellPadding:2,minCellHeight:7,lineColor:[185,195,207],lineWidth:.15},
+        headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
+        columnStyles:{0:{cellWidth:88,fontStyle:'bold'},1:{cellWidth:120},2:{cellWidth:67,fontSize:6.3}}
+      });
+      y=doc.lastAutoTable.finalY+6;
+    }
+
+    const boardSummary=(b,bi)=>{
+      const row=(cert.tables?.boards||[])[bi]||{};
+      return [
+        ['DB/CU reference',b.ref||row.ref||'','Location',b.location||row.location||''],
+        ['Supplied from',row.suppliedFrom||'','Zdb (Ω)',row.zdb||''],
+        ['Distribution circuit OCPD',row.mainSwitch||'','Ipf (kA)',row.ipf||''],
+        ['RCD / RCBO',row.rcd||'','SPD',row.spd||'']
+      ];
+    };
+
+    const drawBoardHeader=(b,bi,title)=>{
+      let yy=page(title,'Complete the schedule left to right for each circuit. These headings are the same headings used by voice read-back and photo import.');
+      const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');
+      bd.forEach(d=>d.page=pn);
+      doc.autoTable({
+        startY:yy,
+        body:boardSummary(b,bi),
+        margin:{left:12,right:12},
+        theme:'grid',
+        styles:{fontSize:7.5,cellPadding:1.6,minCellHeight:6.3,lineColor:[170,185,200],lineWidth:.15},
+        columnStyles:{0:{cellWidth:45,fontStyle:'bold',fillColor:[245,248,251]},1:{cellWidth:92},2:{cellWidth:40,fontStyle:'bold',fillColor:[245,248,251]},3:{cellWidth:98}}
+      });
+      return doc.lastAutoTable.finalY+5;
+    };
+
+    const markGrid=(data,list)=>{
+      if(data.section!=='body')return;
+      const d=list[data.row.index]?.[data.column.index];
+      if(!d)return;
+      d.page=pn;
+      d.grid={
+        x1:data.cell.x/doc.internal.pageSize.getWidth(),
+        y1:data.cell.y/doc.internal.pageSize.getHeight(),
+        x2:(data.cell.x+data.cell.width)/doc.internal.pageSize.getWidth(),
+        y2:(data.cell.y+data.cell.height)/doc.internal.pageSize.getHeight()
+      };
+    };
+
     if(p.type==='eic'||p.type==='eicr'){
       (p.boards||[]).forEach((b,bi)=>{
-        y=page('BOARD '+b.ref);
-        const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');
-        bd.forEach(d=>d.page=pn);
-        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,55,92);doc.text('Distribution board / consumer unit: '+b.ref,14,y);y+=4;
-        doc.autoTable({
-          startY:y,head:[['Code','Board field','Answer']],body:bd.map(d=>[d.code,d.label,descValue(cert,d)||'']),
-          margin:{left:12,right:12,bottom:12},styles:{fontSize:8,cellPadding:2.2,minCellHeight:8.2,lineColor:[180,194,207],lineWidth:.14},
-          headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
-          columnStyles:{0:{cellWidth:25,fontStyle:'bold'},1:{cellWidth:90,fontStyle:'bold'},2:{cellWidth:160}}
-        });
+        const offset=(p.boards||[]).slice(0,bi).reduce((n,x)=>n+x.circuits,0);
+        const perPage=12;
+        for(let first=0;first<b.circuits;first+=perPage){
+          const count=Math.min(perPage,b.circuits-first);
+          let yy=drawBoardHeader(b,bi,'SCHEDULE OF CIRCUIT DETAILS · '+b.ref);
+          doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,40,62);
+          doc.text('CIRCUIT DETAILS',14,yy);yy+=3;
 
-        for(let ci=0;ci<b.circuits;ci++){
-          if(ci%2===0) y=page(b.ref+' CIRCUITS '+(ci+1)+'–'+Math.min(b.circuits,ci+2));
-          const cd=descs.filter(d=>d.boardIndex===bi&&d.circuitIndex===ci&&d.table!=='boards');
-          cd.forEach(d=>d.page=pn);
-          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20,55,92);
-          doc.text(b.ref+' · Circuit '+(ci+1),14,y);y+=3;
-          const paired=[];
-          for(let j=0;j<cd.length;j+=2){
-            const a=cd[j],c=cd[j+1];
-            paired.push([
-              a?.code||'',a?.label||'',a?String(descValue(cert,a)||''):'',
-              c?.code||'',c?.label||'',c?String(descValue(cert,c)||''):''
-            ]);
+          const cols=[
+            ['Circuit','circuitNo'],['Circuit description','description'],['Type of wiring','wiringType'],['Ref. method','refMethod'],
+            ['Points','points'],['Live mm²','liveCsa'],['CPC mm²','cpcCsa'],['BS (EN)','ocpdBs'],
+            ['Type','ocpdType'],['Rating A','ocpdRating'],['Breaking kA','breakingCapacity'],['Max Zs Ω','maxZs'],
+            ['RCD BS (EN)','rcdBs'],['RCD type','rcdType'],['IΔn mA','rcdIdn'],['RCD A','rcdRating']
+          ];
+          const widths=[10,36,16,16,14,13,13,22,11,13,16,16,20,13,12,12];
+          const mapRows=[];
+          const body=[];
+          for(let local=0;local<count;local++){
+            const gi=offset+first+local;
+            const row=cert.tables?.circuits?.[gi]||{};
+            body.push(cols.map(([,key])=>String(row[key]??'')));
+            mapRows.push(cols.map(([,key])=>descs.find(d=>d.row===gi&&d.table==='circuits'&&d.key===key)||null));
           }
           doc.autoTable({
-            startY:y,body:paired,margin:{left:12,right:12,bottom:12},
-            styles:{fontSize:6.8,cellPadding:1.2,minCellHeight:6,lineColor:[185,198,211],lineWidth:.13,overflow:'linebreak'},
-            columnStyles:{
-              0:{cellWidth:20,fontStyle:'bold'},1:{cellWidth:42,fontStyle:'bold'},2:{cellWidth:70},
-              3:{cellWidth:20,fontStyle:'bold'},4:{cellWidth:42,fontStyle:'bold'},5:{cellWidth:70}
-            },
-            didDrawCell:(data)=>{
-              if(data.section==='body'&&(data.column.index===2||data.column.index===5)){
-                const c=data.cell;doc.setDrawColor(120);doc.line(c.x+2,c.y+c.height-1.5,c.x+c.width-2,c.y+c.height-1.5);
-              }
-            }
+            startY:yy,head:[cols.map(c=>c[0])],body,
+            margin:{left:12,right:12,bottom:14},theme:'grid',
+            styles:{fontSize:5.8,cellPadding:1,minCellHeight:8,lineColor:[150,165,180],lineWidth:.14,halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:[235,241,247],textColor:[20,35,50],fontStyle:'bold',fontSize:5.6},
+            columnStyles:Object.fromEntries(widths.map((w,i)=>[i,{cellWidth:w,halign:i===1?'left':'center'}])),
+            didDrawCell:data=>markGrid(data,mapRows)
           });
-          y=doc.lastAutoTable.finalY+7;
+
+          yy=drawBoardHeader(b,bi,'SCHEDULE OF TEST RESULTS · '+b.ref);
+          doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,40,62);
+          doc.text('TEST RESULTS',14,yy);yy+=3;
+          const tcols=[
+            ['Circuit','circuitNo'],['r1 Ω','r1'],['rn Ω','rn'],['r2 Ω','r2'],['R1+R2 Ω','r1r2'],['R2 Ω','r2only'],
+            ['IR V','irVoltage'],['L-L MΩ','irLL'],['L-E MΩ','irLE'],['Polarity','polarity'],['Zs Ω','zs'],
+            ['RCD time ms','rcdTime'],['RCD test','rcdButton'],['AFDD test','afddButton'],['Remarks','remarks']
+          ];
+          const twidths=[10,13,13,13,15,12,14,16,16,14,14,18,16,16,56];
+          const tbody=[],tmap=[];
+          for(let local=0;local<count;local++){
+            const gi=offset+first+local;
+            const row=cert.tables?.tests?.[gi]||{};
+            tbody.push(tcols.map(([,key])=>String(row[key]??'')));
+            tmap.push(tcols.map(([,key])=>descs.find(d=>d.row===gi&&d.table==='tests'&&d.key===key)||null));
+          }
+          doc.autoTable({
+            startY:yy,head:[tcols.map(c=>c[0])],body:tbody,
+            margin:{left:12,right:12,bottom:14},theme:'grid',
+            styles:{fontSize:5.9,cellPadding:1,minCellHeight:8,lineColor:[150,165,180],lineWidth:.14,halign:'center',valign:'middle',overflow:'linebreak'},
+            headStyles:{fillColor:[235,241,247],textColor:[20,35,50],fontStyle:'bold',fontSize:5.6},
+            columnStyles:Object.fromEntries(twidths.map((w,i)=>[i,{cellWidth:w,halign:i===14?'left':'center'}])),
+            didDrawCell:data=>markGrid(data,tmap)
+          });
         }
       });
     }
-    p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);const total=doc.getNumberOfPages();for(let i=1;i<=total;i++){doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(95);doc.text('Sperin Site Sheet · '+p.id+' · Page '+i+' of '+total,doc.internal.pageSize.getWidth()/2,doc.internal.pageSize.getHeight()-6,{align:'center'});}const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}else{doc.save(name);toast('Site sheet PDF created');}
+
+    p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);
+    const total=doc.getNumberOfPages();
+    for(let i=1;i<=total;i++){
+      doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(95);
+      doc.text('Sperin Site Sheet · '+p.id+' · Page '+i+' of '+total,doc.internal.pageSize.getWidth()/2,doc.internal.pageSize.getHeight()-6,{align:'center'});
+    }
+    const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';
+    if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}
+    else{doc.save(name);toast('Site sheet PDF created');}
   }
 
   function renderSiteBuilder(){let m=document.querySelector('.site-builder-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop site-builder-backdrop';m.innerHTML='<div class="card modal site-builder-modal" data-modal><div data-site-builder-body></div></div>';document.body.appendChild(m);}const s=siteBuilderState,boards=s.type==='eic'||s.type==='eicr',templates=siteTemplates();m.querySelector('[data-site-builder-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">BLANK SITE SHEETS</div><h2>Build exactly the paper pack you need</h2><p>The whole certificate is included, with exactly the boards and circuit slots you choose.</p></div><button class="btn" data-action="site-builder-close">Close</button></div><section class="profile-section"><div class="settings-grid"><div class="field"><label>Certificate type</label><select data-site-builder="type">'+Object.entries(SCHEMAS).map(e=>'<option value="'+esc(e[0])+'" '+(s.type===e[0]?'selected':'')+'>'+esc(e[1].name)+'</option>').join('')+'</select></div><div class="field"><label>Template name (optional)</label><input data-site-builder="name" value="'+esc(s.name||'')+'"/></div></div></section>'+(boards?'<section class="profile-section"><div class="sheet-builder-title"><div><h3>Distribution boards / consumer units</h3><p class="profile-help">Set the exact number of circuit spaces to print.</p></div><button class="btn" data-action="site-board-add">+ Add board</button></div><div class="sheet-board-list">'+s.boards.map((b,i)=>'<div class="sheet-board-row"><div class="field"><label>Board reference</label><input data-site-board="'+i+'" data-site-board-key="ref" value="'+esc(b.ref)+'"/></div><div class="field"><label>Location</label><input data-site-board="'+i+'" data-site-board-key="location" value="'+esc(b.location||'')+'"/></div><div class="field"><label>Circuits to print</label><input type="number" min="1" max="72" data-site-board="'+i+'" data-site-board-key="circuits" value="'+esc(b.circuits)+'"/></div><button class="btn danger" data-action="site-board-remove" data-index="'+i+'" '+(s.boards.length===1?'disabled':'')+'>Remove</button></div>').join('')+'</div></section>':'<section class="profile-section"><p class="profile-help">The complete blank certificate will be generated.</p></section>')+(templates.length?'<section class="profile-section"><h3>Saved templates</h3><div class="sheet-template-list">'+templates.map(t=>'<button class="btn" data-action="site-template-load" data-template-id="'+esc(t.id)+'">'+esc(t.name)+'</button>').join('')+'</div></section>':'')+'<div class="profile-footer"><button class="btn" data-action="site-template-save">Save as template</button><button class="btn primary" data-action="site-generate">Create draft & download site PDF</button></div>';}
@@ -1406,7 +1503,7 @@
   function aliasesFor(d){return [...new Set([...(d.aliases||[]),d.label].filter(Boolean).map(x=>voiceNormalise(x)).filter(Boolean))].sort((a,b)=>b.length-a.length);}
   function openSheetRead(id){closeModal();const p=sitePlans().find(x=>x.id===id);if(!p)return;const x=ensurePlan(p);siteReadState={plan:x.p,cert:x.cert,cursor:0,listening:false,transcript:'',filled:0,issues:[]};renderSheetRead();}
   function parseSheetSpeech(text){if(!siteReadState)return {filled:0};const ds=siteReadState.plan.descriptors||[],n=voiceNormalise(text),matches=[];if(!n)return {filled:0};for(let i=0;i<ds.length;i++)for(const a of aliasesFor(ds[i])){const pos=n.indexOf(a);if(pos>=0)matches.push({pos,end:pos+a.length,i,a});}matches.sort((a,b)=>a.pos-b.pos||b.a.length-a.a.length);const chosen=[];for(const m of matches)if(!chosen.some(x=>m.pos>=x.pos&&m.pos<x.end))chosen.push(m);let filled=0;if(!chosen.length){const d=ds[siteReadState.cursor];if(d&&setSiteValue(siteReadState.cert,d,text)){filled++;siteReadState.cursor++;}}else chosen.forEach((m,j)=>{const d=ds[m.i],next=chosen[j+1];let v=n.slice(m.end,next?next.pos:n.length).replace(/^(is|equals|equal to|reading|value)\s+/,'').trim();if(v&&setSiteValue(siteReadState.cert,d,v)){filled++;siteReadState.cursor=Math.max(siteReadState.cursor,m.i+1);}});siteReadState.transcript+=(siteReadState.transcript?'\n':'')+String(text).trim();siteReadState.filled+=filled;saveNow();return {filled};}
-  function renderSheetRead(){if(!siteReadState)return;let m=document.querySelector('.sheet-read-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop sheet-read-backdrop';m.innerHTML='<div class="card modal sheet-read-modal" data-modal><div data-sheet-read-body></div></div>';document.body.appendChild(m);}const ds=siteReadState.plan.descriptors||[],d=ds[siteReadState.cursor];m.querySelector('[data-sheet-read-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">READ COMPLETED SITE SHEET</div><h2>'+esc(siteReadState.plan.name||SCHEMAS[siteReadState.plan.type].name)+'</h2><p>Read the printed heading, then its answer, from top to bottom. Say SKIP for an empty box.</p></div><button class="btn" data-action="sheet-read-close">Close</button></div><section class="sheet-read-progress"><div><strong>'+siteReadState.filled+'</strong><span>answers filled</span></div><div><strong>'+siteReadState.cursor+' / '+ds.length+'</strong><span>position</span></div></section>'+(d?'<section class="sheet-read-next"><span>Expected next</span><strong>'+esc(d.label)+'</strong><small>'+esc(d.code)+' · '+esc(d.section)+'</small></section>':'<section class="sheet-read-next done"><strong>Read-back complete</strong></section>')+'<section class="profile-section"><textarea class="sheet-read-transcript" data-sheet-read-text>'+esc(siteReadState.transcript)+'</textarea><div class="toolbar"><button class="btn primary" data-action="'+(siteReadState.listening?'sheet-read-stop':'sheet-read-start')+'">'+(siteReadState.listening?'■ Stop listening':'🎙 Start reading sheet')+'</button><button class="btn" data-action="sheet-read-process">Process typed text</button><button class="btn" data-action="sheet-read-open-cert">Open certificate</button></div></section><div class="note">Use field first, value second: “Zs, zero point three six. R1 plus R2, zero point two seven.” Values are never swapped to make them look plausible.</div>';}
+  function renderSheetRead(){if(!siteReadState)return;let m=document.querySelector('.sheet-read-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop sheet-read-backdrop';m.innerHTML='<div class="card modal sheet-read-modal" data-modal><div data-sheet-read-body></div></div>';document.body.appendChild(m);}const ds=siteReadState.plan.descriptors||[],d=ds[siteReadState.cursor];m.querySelector('[data-sheet-read-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">READ COMPLETED SITE SHEET</div><h2>'+esc(siteReadState.plan.name||SCHEMAS[siteReadState.plan.type].name)+'</h2><p>Read the printed heading, then its answer, from top to bottom. Say SKIP for an empty box.</p></div><button class="btn" data-action="sheet-read-close">Close</button></div><section class="sheet-read-progress"><div><strong>'+siteReadState.filled+'</strong><span>answers filled</span></div><div><strong>'+siteReadState.cursor+' / '+ds.length+'</strong><span>position</span></div></section>'+(d?'<section class="sheet-read-next"><span>Expected next</span><strong>'+esc(d.label)+'</strong><small>'+esc(d.section)+'</small></section>':'<section class="sheet-read-next done"><strong>Read-back complete</strong></section>')+'<section class="profile-section"><textarea class="sheet-read-transcript" data-sheet-read-text>'+esc(siteReadState.transcript)+'</textarea><div class="toolbar"><button class="btn primary" data-action="'+(siteReadState.listening?'sheet-read-stop':'sheet-read-start')+'">'+(siteReadState.listening?'■ Stop listening':'🎙 Start reading sheet')+'</button><button class="btn" data-action="sheet-read-process">Process typed text</button><button class="btn" data-action="sheet-read-open-cert">Open certificate</button></div></section><div class="note">Use field first, value second: “Zs, zero point three six. R1 plus R2, zero point two seven.” Values are never swapped to make them look plausible.</div>';}
   function sheetReadLoop(){if(!siteReadState?.listening)return;voiceAsk('Read site sheet',(text,error)=>{if(!siteReadState?.listening)return;if(text)parseSheetSpeech(text);if(error&&!/no speech|nothing/i.test(error))siteReadState.issues.push(error);renderSheetRead();if(siteReadState?.listening&&siteReadState.cursor<(siteReadState.plan.descriptors||[]).length)setTimeout(sheetReadLoop,300);else if(siteReadState){siteReadState.listening=false;renderSheetRead();}});}
 
 
@@ -1443,8 +1540,34 @@
   function pageNoFromText(t){const m=String(t||'').match(/PAGE\s+(\d+)/i);return m?Number(m[1]):null;}
   function replaceOnceCI(text,needle){const s=String(text||''),n=String(needle||'');const i=s.toLowerCase().indexOf(n.toLowerCase());return i<0?s:(s.slice(0,i)+' '+s.slice(i+n.length));}
   function stripOcrLabel(text,d){let v=replaceOnceCI(text,d.code);[d.label,...(d.aliases||[])].sort((a,b)=>String(b).length-String(a).length).forEach(l=>{v=replaceOnceCI(v,l);});return v.replace(/[_|:[\]{}]+/g,' ').replace(/\s+/g,' ').trim();}
-  function extractOcrValue(d,lines){const code=String(d.code).toUpperCase(),line=lines.find(l=>String(l.text||'').toUpperCase().includes(code));if(!line)return {value:'',confidence:'missing'};let v=stripOcrLabel(line.text,d);if(v)return {value:v,confidence:'high'};const cy=((line.top||0)+(line.bottom||0))/2,h=Math.max(10,(line.bottom||0)-(line.top||0));const near=lines.filter(x=>x!==line).filter(x=>Math.abs((((x.top||0)+(x.bottom||0))/2)-cy)<=h*1.5).filter(x=>(x.left||0)>=(line.left||0)).sort((a,b)=>(a.left||0)-(b.left||0))[0];if(near){v=String(near.text||'').trim();if(v&&!/SPERIN SHEET|PLAN |PAGE /i.test(v))return {value:v,confidence:'check'};}return {value:'',confidence:'missing'};}
-  function parseScannedPage(data){const full=String(data?.fullText||''),id=(full.match(/SPERIN\s+SHEET\s+([A-Z0-9-]+)/i)||[])[1];if(id&&id!==siteScanState.plan.id){siteScanState.errors.push('Wrong sheet '+id);alert('This page belongs to '+id+', not '+siteScanState.plan.id+'. Nothing was applied.');return;}const pn=pageNoFromText(full),lines=Array.isArray(data?.lines)?data.lines:[],ds=(siteScanState.plan.descriptors||[]);ds.forEach(d=>{const x=extractOcrValue(d,lines),row={...d,value:x.value,confidence:x.confidence,accepted:x.confidence==='high',page:pn||d.page||null},old=siteScanState.results.find(r=>r.code===d.code);if(old){if(old.confidence!=='high'||row.confidence==='high')Object.assign(old,row);}else siteScanState.results.push(row);});siteScanState.results.sort((a,b)=>(a.page||0)-(b.page||0)||String(a.code).localeCompare(String(b.code)));}
+  function extractOcrValue(d,lines,data){
+    const code=String(d.code||'').toUpperCase();
+    let line=code?lines.find(l=>String(l.text||'').toUpperCase().includes(code)):null;
+    if(!line){
+      const aliases=[d.label,...(d.aliases||[])].filter(Boolean).map(x=>voiceNormalise(x));
+      line=lines.find(l=>{const n=voiceNormalise(l.text||'');return aliases.some(a=>a&&n.includes(a));});
+    }
+    if(line){
+      let v=stripOcrLabel(line.text,d);
+      if(v)return {value:v,confidence:'high'};
+      const cy=((line.top||0)+(line.bottom||0))/2,h=Math.max(10,(line.bottom||0)-(line.top||0));
+      const near=lines.filter(x=>x!==line).filter(x=>Math.abs((((x.top||0)+(x.bottom||0))/2)-cy)<=h*1.6).filter(x=>(x.left||0)>=(line.right||line.left||0)).sort((a,b)=>(a.left||0)-(b.left||0))[0];
+      if(near){v=String(near.text||'').trim();if(v&&!/SPERIN SHEET|PLAN |PAGE |SCHEDULE OF/i.test(v))return {value:v,confidence:'check'};}
+    }
+    if(d.grid&&data?.width&&data?.height){
+      const padX=.012,padY=.012;
+      const candidates=lines.filter(l=>{
+        const cx=(((l.left||0)+(l.right||0))/2)/data.width,cy=(((l.top||0)+(l.bottom||0))/2)/data.height;
+        return cx>=d.grid.x1-padX&&cx<=d.grid.x2+padX&&cy>=d.grid.y1-padY&&cy<=d.grid.y2+padY;
+      }).filter(l=>!/CIRCUIT DETAILS|TEST RESULTS|SPERIN|SCHEDULE OF/i.test(String(l.text||'')));
+      if(candidates.length){
+        const v=candidates.map(l=>String(l.text||'').trim()).filter(Boolean).join(' ').trim();
+        if(v)return {value:v,confidence:'check'};
+      }
+    }
+    return {value:'',confidence:'missing'};
+  }
+  function parseScannedPage(data){const full=String(data?.fullText||''),id=(full.match(/SPERIN\s+SHEET\s+([A-Z0-9-]+)/i)||[])[1];if(id&&id!==siteScanState.plan.id){siteScanState.errors.push('Wrong sheet '+id);alert('This page belongs to '+id+', not '+siteScanState.plan.id+'. Nothing was applied.');return;}const pn=pageNoFromText(full),lines=Array.isArray(data?.lines)?data.lines:[],ds=(siteScanState.plan.descriptors||[]);ds.forEach(d=>{const x=extractOcrValue(d,lines,data),row={...d,value:x.value,confidence:x.confidence,accepted:x.confidence==='high',page:pn||d.page||null},old=siteScanState.results.find(r=>r.code===d.code);if(old){if(old.confidence!=='high'||row.confidence==='high')Object.assign(old,row);}else siteScanState.results.push(row);});siteScanState.results.sort((a,b)=>(a.page||0)-(b.page||0)||String(a.code).localeCompare(String(b.code)));}
   function applyScanResults(){if(!siteScanState)return;let applied=0,skipped=0;siteScanState.results.forEach(r=>{const v=String(r.value||'').trim();if(!v||(r.confidence!=='high'&&!r.accepted)){skipped++;return;}if(setSiteValue(siteScanState.cert,r,v))applied++;else skipped++;});saveNow();const id=siteScanState.cert.id;document.querySelector('.sheet-scan-backdrop')?.remove();siteScanState=null;openCertificate(id);toast(applied+' scanned values applied; '+skipped+' left for review');}
 
   function warningForCircuit(cert,index,key){
