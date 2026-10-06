@@ -1350,7 +1350,13 @@
       guidedVoiceState.queueMode=mode;
       guidedVoiceState.cursor=0;
     } else {
-      guidedVoiceState.queue=guidedVoiceState.queue.filter(key=>controlByVoiceKey(key));
+      const meta=ensureVoiceMeta(getCurrent());
+      guidedVoiceState.queue=guidedVoiceState.queue.filter(key=>{
+        if(!controlByVoiceKey(key)) return false;
+        if(mode==='later') return !!meta.later[key] && !meta.dismissed[key];
+        return !meta.later[key] && !meta.completed[key] && !meta.dismissed[key];
+      });
+      guidedVoiceState.cursor=Math.min(guidedVoiceState.cursor||0,guidedVoiceState.queue.length);
     }
     const batch=assistantBatchFrom(guidedVoiceState.queue,guidedVoiceState.cursor||0);
     guidedVoiceState.currentKeys=batch.keys;
