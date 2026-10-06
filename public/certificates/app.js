@@ -1341,7 +1341,50 @@
     const page=t=>{if(pn)doc.addPage('a4','landscape');pn++;sheetHeader(doc,p,pn,t);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(20,40,62);doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS. KEEP WRITING INSIDE THE ANSWER BOXES.',14,29);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(70);doc.text('For voice read-back: read each printed heading followed by its answer. Say SKIP if not recorded.',14,34);return 39;};
     const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table))),groups=new Map();general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});let y=page(SCHEMAS[p.type].code+' GENERAL');
     for(const [name,items] of groups){if(y>168)y=page(SCHEMAS[p.type].code+' GENERAL');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(20,55,92);doc.text(name,14,y);y+=3;items.forEach(d=>d.page=pn);doc.autoTable({startY:y,head:[['Code','Field','Answer','Printed choices']],body:items.map(d=>[d.code,d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),margin:{left:12,right:12,bottom:12},styles:{fontSize:7.2,cellPadding:2,minCellHeight:7},headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},columnStyles:{0:{cellWidth:18,fontStyle:'bold'},1:{cellWidth:88,fontStyle:'bold'},2:{cellWidth:108},3:{cellWidth:55,fontSize:6.3}}});y=doc.lastAutoTable.finalY+6;}
-    if(p.type==='eic'||p.type==='eicr'){(p.boards||[]).forEach((b,bi)=>{y=page('BOARD '+b.ref);const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');bd.forEach(d=>d.page=pn);doc.autoTable({startY:y,head:[['Code','Board field','Answer']],body:bd.map(d=>[d.code,d.label,descValue(cert,d)||'']),margin:{left:12,right:12},styles:{fontSize:8,cellPadding:2.1,minCellHeight:8},headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},columnStyles:{0:{cellWidth:25,fontStyle:'bold'},1:{cellWidth:90,fontStyle:'bold'},2:{cellWidth:160}}});y=doc.lastAutoTable.finalY+8;for(let ci=0;ci<b.circuits;ci++){if(ci===0||y>107){if(ci>0)y=page(b.ref+' CIRCUITS '+(ci+1)+'–'+Math.min(b.circuits,ci+2));}const cd=descs.filter(d=>d.boardIndex===bi&&d.circuitIndex===ci&&d.table!=='boards');cd.forEach(d=>d.page=pn);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20,55,92);doc.text(b.ref+' · Circuit slot '+(ci+1),14,y);y+=2.5;doc.autoTable({startY:y,body:cd.map(d=>[d.code,d.label,descValue(cert,d)||'']),margin:{left:12,right:12},styles:{fontSize:7,cellPadding:1.4,minCellHeight:5.4},columnStyles:{0:{cellWidth:28,fontStyle:'bold'},1:{cellWidth:72,fontStyle:'bold'},2:{cellWidth:175}}});y=doc.lastAutoTable.finalY+7;}});}
+    if(p.type==='eic'||p.type==='eicr'){
+      (p.boards||[]).forEach((b,bi)=>{
+        y=page('BOARD '+b.ref);
+        const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');
+        bd.forEach(d=>d.page=pn);
+        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,55,92);doc.text('Distribution board / consumer unit: '+b.ref,14,y);y+=4;
+        doc.autoTable({
+          startY:y,head:[['Code','Board field','Answer']],body:bd.map(d=>[d.code,d.label,descValue(cert,d)||'']),
+          margin:{left:12,right:12,bottom:12},styles:{fontSize:8,cellPadding:2.2,minCellHeight:8.2,lineColor:[180,194,207],lineWidth:.14},
+          headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
+          columnStyles:{0:{cellWidth:25,fontStyle:'bold'},1:{cellWidth:90,fontStyle:'bold'},2:{cellWidth:160}}
+        });
+
+        for(let ci=0;ci<b.circuits;ci++){
+          if(ci%2===0) y=page(b.ref+' CIRCUITS '+(ci+1)+'–'+Math.min(b.circuits,ci+2));
+          const cd=descs.filter(d=>d.boardIndex===bi&&d.circuitIndex===ci&&d.table!=='boards');
+          cd.forEach(d=>d.page=pn);
+          doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20,55,92);
+          doc.text(b.ref+' · Circuit '+(ci+1),14,y);y+=3;
+          const paired=[];
+          for(let j=0;j<cd.length;j+=2){
+            const a=cd[j],c=cd[j+1];
+            paired.push([
+              a?.code||'',a?.label||'',a?String(descValue(cert,a)||''):'',
+              c?.code||'',c?.label||'',c?String(descValue(cert,c)||''):''
+            ]);
+          }
+          doc.autoTable({
+            startY:y,body:paired,margin:{left:12,right:12,bottom:12},
+            styles:{fontSize:6.8,cellPadding:1.2,minCellHeight:6,lineColor:[185,198,211],lineWidth:.13,overflow:'linebreak'},
+            columnStyles:{
+              0:{cellWidth:20,fontStyle:'bold'},1:{cellWidth:42,fontStyle:'bold'},2:{cellWidth:70},
+              3:{cellWidth:20,fontStyle:'bold'},4:{cellWidth:42,fontStyle:'bold'},5:{cellWidth:70}
+            },
+            didDrawCell:(data)=>{
+              if(data.section==='body'&&(data.column.index===2||data.column.index===5)){
+                const c=data.cell;doc.setDrawColor(120);doc.line(c.x+2,c.y+c.height-1.5,c.x+c.width-2,c.y+c.height-1.5);
+              }
+            }
+          });
+          y=doc.lastAutoTable.finalY+7;
+        }
+      });
+    }
     p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);const total=doc.getNumberOfPages();for(let i=1;i<=total;i++){doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(95);doc.text('Sperin Site Sheet · '+p.id+' · Page '+i+' of '+total,doc.internal.pageSize.getWidth()/2,doc.internal.pageSize.getHeight()-6,{align:'center'});}const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}else{doc.save(name);toast('Site sheet PDF created');}
   }
 
