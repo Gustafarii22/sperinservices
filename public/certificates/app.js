@@ -646,10 +646,8 @@
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
     if(field.textarea) control=`<textarea ${attrs}>${esc(value||'')}</textarea>`;
-    else if(field.options) control=`<><input style="display:none"></>`;
-    if(field.options){
-      control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
-    } else if(!field.textarea) control=`<input ${attrs} value="${esc(value||'')}"/>`;
+    else if(field.options) control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
+    else control=`<input ${attrs} value="${esc(value||'')}"/>`;
     const extra=field.suffix==='zs' ? `<button class="btn small" type="button" data-action="circuit-recalc" data-index="${index}">Recalculate</button><div class="meta">Auto for BS EN 60898-1 / 61009-1 B, C or D devices; manual entry remains available.</div>` : '';
     return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)}</label>${control}${extra}</div>`;
   }
@@ -658,6 +656,7 @@
     syncCircuitRows(cert);
     const i=Math.max(0,Math.min(Number(view.circuitIndex)||0,cert.tables.circuits.length-1));
     view.circuitIndex=i;
+    recalculateCircuitZs(cert,i);
     const circuit=cert.tables.circuits[i]||{};
     const test=cert.tables.tests[i]||{};
     const step=view.circuitStep==='tests'?'tests':'details';
