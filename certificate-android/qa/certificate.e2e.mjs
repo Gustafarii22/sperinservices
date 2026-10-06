@@ -370,7 +370,7 @@ console.log('FIXED_ORDER_VOICE_READBACK_PASS');
 await page.locator('.circuit-card').first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill('2.00');
-await page.locator('[data-action="circuit-list"]').click();
+await page.getByRole('button',{name:'Save circuit'}).click();
 await page.waitForSelector('.validation-banner.warn');
 assert((await page.locator('.validation-banner.warn').textContent()).includes('need checking'),'Out-of-range Zs did not create a warning');
 await page.locator('.validation-banner.warn').click();
