@@ -167,6 +167,18 @@ await page.locator('[data-action="backup"]').click();
 const download = await downloadPromise;
 assert(download.suggestedFilename().endsWith('.json'), 'Backup should download JSON');
 
+for (const type of ['eic','eicr','minor','emergency','smoke']) {
+  const startButton = page.locator('button[data-action="new"][data-type="'+type+'"]');
+  assert(await startButton.count() === 1, 'Missing start button for '+type);
+  await startButton.click();
+  await page.waitForSelector('.form-head');
+  assert(await page.locator('.app-error').count() === 0, type+' form hit render error');
+  assert(await page.locator('button[data-action="voice-one"]').count() > 0, type+' form missing Speak controls');
+  await page.locator('[data-action="home"]').last().click();
+  await page.waitForSelector('.saved-cert-card');
+}
+console.log('ALL_CERTIFICATE_TYPES_PASS');
+
 assert(errors.length === 0, 'Browser errors: ' + errors.join(' | '));
 
 console.log('CERTIFICATE_E2E_PASS');
@@ -187,7 +199,9 @@ console.log(JSON.stringify({
   autosaveDropdown: true,
   autosaveNextBack: true,
   circuitReturnPosition: true,
-  pdfDownload: true
+  pdfDownload: true,
+  allCertificateTypes: true,
+  actionRouteMap: true
 }));
 
 await browser.close();
