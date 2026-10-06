@@ -61,6 +61,17 @@ jobs:
           test -f "$HOME/.android/sperin-certificates-stable.jks"
           keytool -list -v             -keystore "$HOME/.android/sperin-certificates-stable.jks"             -storepass android             -alias sperincertificates | grep "SHA256:" | head -1
 
+      - name: Verify permanent signing fingerprint
+        run: |
+          EXPECTED="68:D9:F4:92:6E:DC:07:65:71:83:DE:10:03:9C:11:03:29:D8:94:D3:C6:87:4F:53:14:DF:CC:7C:D1:6B:F5:73"
+          ACTUAL="$(keytool -list -v -keystore "$HOME/.android/sperin-certificates-stable.jks" -storepass android -alias sperincertificates | awk '/SHA256:/{print $2; exit}')"
+          echo "Expected signer: $EXPECTED"
+          echo "Actual signer:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Certificate signing key changed. Refusing to publish an incompatible APK."
+            exit 1
+          fi
+
       - name: Bundle certificate web app
         run: |
           rm -rf certificate-android/app/src/main/assets/certificates
@@ -77,13 +88,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.3.0.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.3.1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.3.0
-          path: certificate-android/dist/Sperin-Certificates-v1.3.0.apk
+          name: Sperin-Certificates-v1.3.1
+          path: certificate-android/dist/Sperin-Certificates-v1.3.1.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -91,10 +102,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.3.0"
-          APK="certificate-android/dist/Sperin-Certificates-v1.3.0.apk"
+          TAG="certificates-v1.3.1"
+          APK="certificate-android/dist/Sperin-Certificates-v1.3.1.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.3.0" --notes "Stable-signing migration build with listen-first voice entry."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.3.1" --notes "Permanent-signed listen-first voice build. Future updates use the same locked signing certificate."
           fi
