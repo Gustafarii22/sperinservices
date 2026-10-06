@@ -180,55 +180,36 @@ function Pricing() {
   }
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-9 pt-8 lg:px-8 lg:pt-12">
-        <span className="eyebrow">Job price calculator</span>
-        <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
-          <h1 className="display-title max-w-3xl text-5xl sm:text-6xl">
-            Price your job.
-            <span className="block text-electric">See the total as you go.</span>
-          </h1>
-          <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-            Pick listed work, check travel and see the running price. Keep a PDF estimate if you
-            need one. No VAT is added.
+      <section className="mx-auto max-w-7xl px-4 pb-4 pt-5 lg:px-8 lg:pt-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <span className="eyebrow">Job calculator</span>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Build your price</h1>
+          </div>
+          <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            Standard white accessories unless stated. Suitable existing wiring and normal access assumed.
           </p>
         </div>
-
-        <div className="mt-7 border-l-2 border-electric bg-electric/[0.06] p-4 sm:p-5">
-          <p className="font-semibold text-foreground">How pricing works</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            <strong className="text-foreground">
-              Listed prices are the price for the defined standard jobs below.
-            </strong>{" "}
-            You do not pay the listed job price plus the hourly rate for the same work. Hourly rates
-            are used for fault finding, uncertain scope and work that cannot reasonably be priced in
-            advance.
-          </p>
-        </div>
-
-        
       </section>
       <section id="calculator" className="mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <span className="eyebrow">01 / Choose your work</span>
-            <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Choose your job</h2>
+            <span className="eyebrow">Tap + to add</span>
+            <h2 className="mt-1 text-xl font-semibold sm:text-2xl">Choose your work</h2>
           </div>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Weekday daytime guide prices. Multiple small jobs share one visit allowance — you don’t
-            pay a call-out for every item.
-          </p>
+          <p className="text-xs text-muted-foreground">One visit allowance covers multiple small jobs.</p>
         </div>
-        <div className="grid items-start gap-10 xl:grid-cols-[1fr_370px]">
+        <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
           <div>
             {["replacements", "packages"].map((group) => (
-              <div key={group} className="mb-10">
-                <h3 className="border-b border-white/20 pb-4 text-xl font-semibold">
+              <div key={group} className="mb-5">
+                <h3 className="mb-2 border-b border-white/15 pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {group === "replacements"
                     ? "Straightforward replacements"
                     : "Inspection & consumer units"}
                 </h3>
-                {JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
-                  <article key={j.id} className="border-b border-white/10 py-5">
+                <div className="grid gap-2 md:grid-cols-2">{JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
+                  <article key={j.id} className="rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h4 className="font-semibold leading-snug">{j.name}</h4>
@@ -256,13 +237,13 @@ function Pricing() {
                           aria-label={`Remove ${j.name}`}
                           disabled={!selection[j.id]}
                           onClick={() => change(j.id, -1)}
-                          className="p-3 disabled:opacity-30 hover:bg-white/10"
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.05] disabled:opacity-30 hover:bg-white/10"
                         >
                           <Minus size={18} />
                         </button>
                         <output
                           aria-label={`${j.name} quantity`}
-                          className="min-w-10 text-center font-semibold"
+                          className="min-w-8 text-center text-lg font-semibold"
                         >
                           {selection[j.id] || 0}
                         </output>
@@ -271,14 +252,14 @@ function Pricing() {
                           aria-label={`Add ${j.name}`}
                           disabled={selection[j.id] >= (j.group ? 1 : 20)}
                           onClick={() => change(j.id, 1)}
-                          className="p-3 disabled:opacity-30 hover:bg-white/10"
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-electric/15 text-electric disabled:opacity-30 hover:bg-electric/25"
                         >
                           <Plus size={18} />
                         </button>
                       </div>
                     </div>
                   </article>
-                ))}
+                ))}</div>
               </div>
             ))}
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -292,11 +273,11 @@ function Pricing() {
             </p>
           </div>
           <aside
-            className="border border-white/15 bg-white/[0.035] p-5 sm:p-7 xl:sticky xl:top-28"
+            className="rounded-2xl border border-white/15 bg-white/[0.035] p-4 sm:p-5 xl:sticky xl:top-24"
             aria-label="Your estimate"
           >
-            <span className="eyebrow">02 / Your estimate</span>
-            <h3 className="mt-3 text-2xl font-semibold">The work, itemised.</h3>
+            <span className="eyebrow">Your total</span>
+            <h3 className="mt-1 text-xl font-semibold">Your estimate</h3>
             {!e.count ? (
               <p className="mt-6 text-sm text-muted-foreground">
                 Use the quantity buttons to add your jobs. Your breakdown will appear here.
