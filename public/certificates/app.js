@@ -18,7 +18,7 @@
     acdc: ['AC', 'DC'],
     rcdType: ['AC', 'A', 'F', 'B', 'Other', 'N/A'],
     ocpdType: ['B', 'C', 'D', 'gG', 'gL', 'BS 88 fuse', 'MCCB', 'ACB', 'Other'],
-    wiringType: ['A - Thermoplastic insulated/sheathed', 'B - Thermoplastic in metallic conduit', 'C - Thermoplastic in non-metallic conduit', 'D - Thermoplastic in metallic trunking', 'E - Thermoplastic in non-metallic trunking', 'F - Thermoplastic SWA', 'G - Thermosetting SWA', 'H - Mineral insulated', 'O - Other'],
+    wiringType: ['Twin & earth (flat)', 'A - Thermoplastic insulated/sheathed', 'B - Thermoplastic in metallic conduit', 'C - Thermoplastic in non-metallic conduit', 'D - Thermoplastic in metallic trunking', 'E - Thermoplastic in non-metallic trunking', 'F - Thermoplastic SWA', 'G - Thermosetting SWA', 'H - Mineral insulated', 'O - Other'],
     refMethod: ['A1', 'A2', 'B', 'C', 'D1', 'D2', 'E', 'F', 'G', '100', '101', '102', '103', 'Other'],
     premises: ['Residential', 'Commercial', 'Industrial', 'Educational', 'Healthcare', 'Hospitality', 'Retail', 'HMO', 'Other'],
     workType: ['New installation', 'Addition to existing installation', 'Alteration to existing installation'],
@@ -1239,6 +1239,124 @@
     const el = document.createElement('div'); el.className = 'toast'; el.textContent = message; document.body.appendChild(el); setTimeout(() => el.remove(), 1800);
   }
 
+
+
+  // v1.6 machine-readable Site Sheet workflow.
+  let siteBuilderState=null, siteReadState=null, siteScanState=null, siteScanSeq=0;
+
+  const SITE_CIRCUIT_FIELDS=[
+    {s:'NO',l:'Circuit',k:'circuitNo',t:'circuits',a:['circuit number','circuit']},
+    {s:'DESC',l:'Description',k:'description',t:'circuits',a:['circuit description','description']},
+    {s:'PTS',l:'Points',k:'points',t:'circuits',a:['points served','number of points','points']},
+    {s:'CABLE',l:'Cable',kind:'cable',a:['cable size','cable type','cable']},
+    {s:'CPC',l:'CPC',k:'cpcCsa',t:'circuits',a:['c p c','cpc','earth conductor']},
+    {s:'INST',l:'Installation',kind:'installation',a:['installation method','containment','installation']},
+    {s:'REF',l:'Reference method',k:'refMethod',t:'circuits',a:['reference method','ref method']},
+    {s:'OCPD',l:'Protective device',k:'ocpdBs',t:'circuits',a:['protective device standard','protective device','ocpd']},
+    {s:'CURVE',l:'Curve',k:'ocpdType',t:'circuits',a:['breaker curve','curve']},
+    {s:'RATING',l:'Rating',k:'ocpdRating',t:'circuits',a:['device rating','breaker rating','rating']},
+    {s:'RCDTYPE',l:'RCD type',k:'rcdType',t:'circuits',a:['r c d type','rcd type']},
+    {s:'IDN',l:'IΔn',k:'rcdIdn',t:'circuits',a:['i delta n','rcd milliamps']},
+    {s:'IRV',l:'Insulation test voltage',k:'irVoltage',t:'tests',a:['insulation test voltage','test voltage']},
+    {s:'IRLL',l:'Live to live',k:'irLL',t:'tests',a:['live to live','line to line']},
+    {s:'IRLE',l:'Live to earth',k:'irLE',t:'tests',a:['live to earth','line to earth']},
+    {s:'R1R2',l:'R1 + R2',k:'r1r2',t:'tests',a:['r 1 plus r 2','r1 plus r2','r one plus r two']},
+    {s:'R2',l:'R2',k:'r2only',t:'tests',a:['r 2 only','r2 only']},
+    {s:'ZS',l:'Zs',k:'zs',t:'tests',a:['z s','zs','earth fault loop impedance']},
+    {s:'POL',l:'Polarity',k:'polarity',t:'tests',a:['polarity']},
+    {s:'RCDMS',l:'RCD time',k:'rcdTime',t:'tests',a:['r c d time','rcd time','trip time']},
+    {s:'REMARKS',l:'Remarks',k:'remarks',t:'tests',a:['remarks','notes']}
+  ];
+  const SITE_BOARD_FIELDS=[
+    {s:'REF',l:'Board reference',k:'ref',a:['board reference','board ref']},
+    {s:'LOC',l:'Board location',k:'location',a:['board location']},
+    {s:'FROM',l:'Supplied from',k:'suppliedFrom',a:['supplied from']},
+    {s:'ZDB',l:'Zdb',k:'zdb',a:['z d b','zdb']},{s:'IPF',l:'Ipf',k:'ipf',a:['i p f','ipf']},
+    {s:'MAIN',l:'Main switch / device',k:'mainSwitch',a:['main switch','main device']},
+    {s:'RCD',l:'RCD / RCBO details',k:'rcd',a:['board rcd','rcbo details']},
+    {s:'SPD',l:'SPD',k:'spd',a:['s p d','spd']},{s:'POL',l:'Board polarity',k:'polarity',a:['board polarity']},
+    {s:'PHASE',l:'Phase sequence',k:'phaseSequence',a:['phase sequence']}
+  ];
+  const FIELD_SPEECH_LABELS={clientName:'Client name',clientPostcode:'Client postcode',clientAddress:'Client address',
+    installationPostcode:'Installation postcode',installationAddress:'Installation address',premisesPostcode:'Premises postcode',
+    premisesAddress:'Premises address',certificateNo:'Certificate number',issueDate:'Issue date',description:'Installation description',
+    extent:'Extent of work',occupier:'Occupier',earthingArrangement:'Earthing arrangement',nominalVoltage:'Nominal voltage',
+    frequency:'Frequency',ipf:'Supply Ipf',ze:'Ze',maximumDemand:'Maximum demand',dbReference:'Primary board reference',
+    dbLocation:'Primary board location',testerMake:'Tester make',testerModel:'Tester model',testerSerial:'Tester serial number',testedBy:'Tested by'};
+
+  function readStore(k,fallback){try{const x=JSON.parse(localStorage.getItem(k)||'null');return x??fallback;}catch{return fallback;}}
+  function sitePlans(){const x=readStore(SHEET_PLANS_KEY,[]);return Array.isArray(x)?x:[];}
+  function saveSitePlans(x){localStorage.setItem(SHEET_PLANS_KEY,JSON.stringify(x.slice(0,40)));}
+  function siteTemplates(){const x=readStore(SHEET_TEMPLATES_KEY,[]);return Array.isArray(x)?x:[];}
+  function saveSiteTemplates(x){localStorage.setItem(SHEET_TEMPLATES_KEY,JSON.stringify(x.slice(0,20)));}
+  function siteSheetId(){return 'SS-'+TODAY.replace(/-/g,'').slice(2)+'-'+uid().replace(/[^a-z0-9]/gi,'').slice(-6).toUpperCase();}
+  function cleanBoardPlan(b,i){return {ref:String(b?.ref||('DB'+(i+1))).trim()||('DB'+(i+1)),location:String(b?.location||'').trim(),circuits:Math.max(1,Math.min(72,parseInt(b?.circuits,10)||12))};}
+  function makeSitePlan(type,boards,name){return {id:siteSheetId(),version:VERSION,type,name:String(name||'').trim(),createdAt:new Date().toISOString(),certificateId:null,boards:(type==='eic'||type==='eicr')?(boards||[{ref:'DB1',circuits:12}]).map(cleanBoardPlan):[],descriptors:[],pages:0};}
+  function planSummary(p){const code=SCHEMAS[p.type]?.code||String(p.type).toUpperCase();const b=(p.boards||[]).map(x=>x.ref+':'+x.circuits).join('|');return b?code+'|'+b:code;}
+  function updateStoredPlan(p){const x=sitePlans().filter(q=>q.id!==p.id);x.unshift(p);saveSitePlans(x);}
+
+  function plannedCertificate(p){
+    let cert=p.certificateId?state.certificates.find(c=>c.id===p.certificateId):null;
+    if(cert){migrateCertificate(cert);return cert;}
+    cert=makeCertificate(p.type);cert.siteSheetId=p.id;
+    if(p.type==='eic'||p.type==='eicr'){
+      cert.tables.boards=(p.boards||[]).map(b=>({ref:b.ref,location:b.location||''}));cert.tables.circuits=[];cert.tables.tests=[];
+      (p.boards||[]).forEach(b=>{for(let i=1;i<=b.circuits;i++){cert.tables.circuits.push({boardRef:b.ref,circuitNo:String(i)});cert.tables.tests.push({boardRef:b.ref,circuitNo:String(i)});}});
+    }
+    state.certificates.unshift(cert);p.certificateId=cert.id;persist();return cert;
+  }
+
+  function buildSiteDescriptors(p,cert){
+    const out=[];let fn=0,tn=0;const schema=SCHEMAS[p.type];
+    schema.sections.forEach(part=>{
+      if(part.type==='section')part.fields.forEach(field=>{if(!fieldVisible(field,cert))return;fn++;const label=FIELD_SPEECH_LABELS[field.key]||field.label;out.push({code:'F'+String(fn).padStart(3,'0'),kind:'field',key:field.key,section:part.title,label,type:field.type||'text',options:field.options||[],aliases:[label,field.label]});});
+      else if(part.type==='table'&&!['circuits','tests','boards'].includes(part.key)){
+        const rows=cert.tables?.[part.key]||part.defaultRows||[];
+        rows.forEach((row,ri)=>part.columns.forEach(col=>{if(col.readonly)return;tn++;const prefix=row.item||row.ref||('Row '+(ri+1));out.push({code:'T'+String(tn).padStart(3,'0'),kind:'table',table:part.key,row:ri,key:col.key,section:part.title,label:String(prefix)+' · '+col.label,type:col.type||'text',options:col.options||[],aliases:[String(prefix)+' '+col.label,col.label]});}));
+      }
+    });
+    if(p.type==='eic'||p.type==='eicr'){
+      let offset=0;(p.boards||[]).forEach((b,bi)=>{
+        SITE_BOARD_FIELDS.forEach(x=>out.push({code:'B'+String(bi+1).padStart(2,'0')+'-'+x.s,kind:'table',table:'boards',row:bi,key:x.k,section:'Distribution board '+b.ref,label:x.l,aliases:x.a,boardIndex:bi}));
+        for(let ci=0;ci<b.circuits;ci++){const row=offset+ci;SITE_CIRCUIT_FIELDS.forEach(x=>out.push({code:'B'+String(bi+1).padStart(2,'0')+'C'+String(ci+1).padStart(2,'0')+'-'+x.s,kind:x.kind||'table',table:x.t,row,key:x.k,section:b.ref+' · Circuit '+(ci+1),label:x.l,aliases:x.a,boardIndex:bi,circuitIndex:ci,boardRef:b.ref}));}offset+=b.circuits;
+      });
+    }
+    return out;
+  }
+
+  function descValue(cert,d){if(d.kind==='field')return cert.fields?.[d.key]??'';if(d.kind==='cable'){const r=cert.tables?.circuits?.[d.row]||{};return ((r.liveCsa?r.liveCsa+' mm² ':'')+(r.wiringType||'')).trim();}if(d.kind==='installation')return cert.tables?.circuits?.[d.row]?.installMethod??'';return cert.tables?.[d.table]?.[d.row]?.[d.key]??'';}
+  function tneCpc(size){return ({'1':'1','1.5':'1','2.5':'1.5','4':'1.5','6':'2.5','10':'4','16':'6'})[String(size||'')]||'';}
+  function markAuto(cert,path,reason){cert.autoMeta=isRecord(cert.autoMeta)?cert.autoMeta:{};cert.autoMeta[path]={reason,at:new Date().toISOString()};}
+  function parseCableSpec(cert,rowIndex,raw){const text=String(raw||'').trim(),row=cert.tables.circuits[rowIndex]||(cert.tables.circuits[rowIndex]={});const m=text.match(/\b(1(?:\.0)?|1\.5|2(?:\.5)?|4|6|10|16)\b/),size=m?String(Number(m[1])):'';const tne=/\b(twin\s*(?:and|&)\s*earth|t\s*&\s*e|twin earth)\b/i.test(text);if(size)row.liveCsa=size;if(tne)row.wiringType='Twin & earth (flat)';if(size&&tne){const c=tneCpc(size);if(c){row.cpcCsa=c;markAuto(cert,'circuit:'+rowIndex+':cpcCsa','Derived from standard flat twin & earth conductor pairing. Confirm actual cable construction.');}}if(!size)row.cableNotes=text;return !!text;}
+  function inferRef(raw){const n=voiceNormalise(raw);if(/\bclipped direct\b/.test(n))return {v:'C',c:'high',why:'Clipped direct'};if(/\b(surface|on wall|masonry wall)\b/.test(n)&&/\b(trunking|conduit)\b/.test(n))return {v:'B',c:'high',why:'Surface conduit/trunking on a wall'};if(/\b(trunking|conduit|buried)\b/.test(n))return {v:'',c:'check',why:'Containment alone is not enough to determine the reference method.'};return {v:'',c:'none',why:''};}
+  function normaliseStd(raw){const n=voiceNormalise(raw).replace(/\s/g,'');if(n.includes('61009'))return 'BS EN 61009-1';if(n.includes('60898'))return 'BS EN 60898-1';if(n.includes('61008'))return 'BS EN 61008-1';if(n.includes('60947'))return 'BS EN 60947-2';if(n.includes('bs88'))return 'BS 88-2';return String(raw||'').trim();}
+  function coerceSite(d,raw){const text=String(raw||'').trim(),n=voiceNormalise(text);if(!text)return {ok:false};if(/^(skip|blank|not recorded|leave blank)$/.test(n))return {ok:true,skip:true};if(/^(not applicable|n a|na)$/.test(n))return {ok:true,value:'N/A'};if(d.key==='ocpdBs'||d.key==='rcdBs')return {ok:true,value:normaliseStd(text)};if(d.key==='polarity'){if(/^(tick|pass|passed|yes|correct)$/.test(n))return {ok:true,value:'Pass'};if(/^(fail|failed|no|incorrect)$/.test(n))return {ok:true,value:'Fail'};}if(d.key==='ocpdType'){const m=n.match(/\btype\s+([bcd])\b/)||n.match(/\b([bcd])\b/);if(m)return {ok:true,value:m[1].toUpperCase()};}if(d.key==='rcdType'){const m=n.match(/\btype\s+(ac|a|f|b)\b/);if(m)return {ok:true,value:m[1].toUpperCase()};}if(['points','liveCsa','cpcCsa','ocpdRating','rcdIdn','irVoltage','irLL','irLE','r1r2','r2only','zs','rcdTime','zdb','ipf'].includes(d.key)){const num=spokenNumber(text),direct=text.match(/-?\d+(?:\.\d+)?/);if(num!==null)return {ok:true,value:num};if(direct)return {ok:true,value:direct[0]};}return {ok:true,value:text};}
+  function setSiteValue(cert,d,raw){if(d.kind==='cable')return parseCableSpec(cert,d.row,raw);if(d.kind==='installation'){const r=cert.tables.circuits[d.row]||(cert.tables.circuits[d.row]={});r.installMethod=String(raw||'').trim();const x=inferRef(raw);if(x.v&&!r.refMethod){r.refMethod=x.v;markAuto(cert,'circuit:'+d.row+':refMethod','Reference Method '+x.v+' inferred from "'+String(raw).trim()+'". Confirm actual installation conditions.');}return true;}const p=coerceSite(d,raw);if(!p.ok)return false;if(p.skip)return true;rapidSetValue(cert,d,p.value);return true;}
+
+  function sheetHeader(doc,p,no,type){const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setFillColor(7,17,31);doc.rect(0,0,w,22,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('SPERIN CERTIFICATES · SITE SHEET',14,9);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text('SPERIN SHEET '+p.id+' | PAGE '+no+' | '+type,14,16);doc.text('PLAN '+planSummary(p),w-14,16,{align:'right'});doc.setFillColor(0);[[4,4],[w-8,4],[4,h-8],[w-8,h-8]].forEach(q=>doc.rect(q[0],q[1],4,4,'F'));doc.setTextColor(20,28,38);}
+  function generateSiteSheetPdf(p,cert){
+    const C=window.jspdf?.jsPDF;if(!C||typeof(new C()).autoTable!=='function'){alert('PDF engine unavailable');return;}const doc=new C({unit:'mm',format:'a4',orientation:'landscape'}),descs=buildSiteDescriptors(p,cert);let pn=0;
+    const page=t=>{if(pn)doc.addPage('a4','landscape');pn++;sheetHeader(doc,p,pn,t);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(20,40,62);doc.text('WRITE IN CLEAR BLOCK CAPITALS / CLEAR NUMBERS. KEEP WRITING INSIDE THE ANSWER BOXES.',14,29);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(70);doc.text('For voice read-back: read each printed heading followed by its answer. Say SKIP if not recorded.',14,34);return 39;};
+    const general=descs.filter(d=>d.kind==='field'||(d.kind==='table'&&!['boards','circuits','tests'].includes(d.table))),groups=new Map();general.forEach(d=>{if(!groups.has(d.section))groups.set(d.section,[]);groups.get(d.section).push(d);});let y=page(SCHEMAS[p.type].code+' GENERAL');
+    for(const [name,items] of groups){if(y>168)y=page(SCHEMAS[p.type].code+' GENERAL');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(20,55,92);doc.text(name,14,y);y+=3;items.forEach(d=>d.page=pn);doc.autoTable({startY:y,head:[['Code','Field','Answer','Printed choices']],body:items.map(d=>[d.code,d.label,descValue(cert,d)||'',d.options?.length?d.options.join(' / '):'']),margin:{left:12,right:12,bottom:12},styles:{fontSize:7.2,cellPadding:2,minCellHeight:7},headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},columnStyles:{0:{cellWidth:18,fontStyle:'bold'},1:{cellWidth:88,fontStyle:'bold'},2:{cellWidth:108},3:{cellWidth:55,fontSize:6.3}}});y=doc.lastAutoTable.finalY+6;}
+    if(p.type==='eic'||p.type==='eicr'){(p.boards||[]).forEach((b,bi)=>{y=page('BOARD '+b.ref);const bd=descs.filter(d=>d.boardIndex===bi&&d.table==='boards');bd.forEach(d=>d.page=pn);doc.autoTable({startY:y,head:[['Code','Board field','Answer']],body:bd.map(d=>[d.code,d.label,descValue(cert,d)||'']),margin:{left:12,right:12},styles:{fontSize:8,cellPadding:2.1,minCellHeight:8},headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},columnStyles:{0:{cellWidth:25,fontStyle:'bold'},1:{cellWidth:90,fontStyle:'bold'},2:{cellWidth:160}}});y=doc.lastAutoTable.finalY+8;for(let ci=0;ci<b.circuits;ci++){if(ci===0||y>107){if(ci>0)y=page(b.ref+' CIRCUITS '+(ci+1)+'–'+Math.min(b.circuits,ci+2));}const cd=descs.filter(d=>d.boardIndex===bi&&d.circuitIndex===ci&&d.table!=='boards');cd.forEach(d=>d.page=pn);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20,55,92);doc.text(b.ref+' · Circuit slot '+(ci+1),14,y);y+=2.5;doc.autoTable({startY:y,body:cd.map(d=>[d.code,d.label,descValue(cert,d)||'']),margin:{left:12,right:12},styles:{fontSize:7,cellPadding:1.4,minCellHeight:5.4},columnStyles:{0:{cellWidth:28,fontStyle:'bold'},1:{cellWidth:72,fontStyle:'bold'},2:{cellWidth:175}}});y=doc.lastAutoTable.finalY+7;}});}
+    p.descriptors=descs;p.pages=pn;p.updatedAt=new Date().toISOString();updateStoredPlan(p);const total=doc.getNumberOfPages();for(let i=1;i<=total;i++){doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(95);doc.text('Sperin Site Sheet · '+p.id+' · Page '+i+' of '+total,doc.internal.pageSize.getWidth()/2,doc.internal.pageSize.getHeight()-6,{align:'center'});}const name='Sperin-Site-Sheet-'+SCHEMAS[p.type].code+'-'+p.id+'.pdf';if(window.Android&&window.Android.savePdfBase64){window.Android.savePdfBase64(doc.output('datauristring'),name);toast('Site sheet PDF saved');}else{doc.save(name);toast('Site sheet PDF created');}
+  }
+
+  function renderSiteBuilder(){let m=document.querySelector('.site-builder-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop site-builder-backdrop';m.innerHTML='<div class="card modal site-builder-modal" data-modal><div data-site-builder-body></div></div>';document.body.appendChild(m);}const s=siteBuilderState,boards=s.type==='eic'||s.type==='eicr',templates=siteTemplates();m.querySelector('[data-site-builder-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">BLANK SITE SHEETS</div><h2>Build exactly the paper pack you need</h2><p>The whole certificate is included, with exactly the boards and circuit slots you choose.</p></div><button class="btn" data-action="site-builder-close">Close</button></div><section class="profile-section"><div class="settings-grid"><div class="field"><label>Certificate type</label><select data-site-builder="type">'+Object.entries(SCHEMAS).map(e=>'<option value="'+esc(e[0])+'" '+(s.type===e[0]?'selected':'')+'>'+esc(e[1].name)+'</option>').join('')+'</select></div><div class="field"><label>Template name (optional)</label><input data-site-builder="name" value="'+esc(s.name||'')+'"/></div></div></section>'+(boards?'<section class="profile-section"><div class="sheet-builder-title"><div><h3>Distribution boards / consumer units</h3><p class="profile-help">Set the exact number of circuit spaces to print.</p></div><button class="btn" data-action="site-board-add">+ Add board</button></div><div class="sheet-board-list">'+s.boards.map((b,i)=>'<div class="sheet-board-row"><div class="field"><label>Board reference</label><input data-site-board="'+i+'" data-site-board-key="ref" value="'+esc(b.ref)+'"/></div><div class="field"><label>Location</label><input data-site-board="'+i+'" data-site-board-key="location" value="'+esc(b.location||'')+'"/></div><div class="field"><label>Circuits to print</label><input type="number" min="1" max="72" data-site-board="'+i+'" data-site-board-key="circuits" value="'+esc(b.circuits)+'"/></div><button class="btn danger" data-action="site-board-remove" data-index="'+i+'" '+(s.boards.length===1?'disabled':'')+'>Remove</button></div>').join('')+'</div></section>':'<section class="profile-section"><p class="profile-help">The complete blank certificate will be generated.</p></section>')+(templates.length?'<section class="profile-section"><h3>Saved templates</h3><div class="sheet-template-list">'+templates.map(t=>'<button class="btn" data-action="site-template-load" data-template-id="'+esc(t.id)+'">'+esc(t.name)+'</button>').join('')+'</div></section>':'')+'<div class="profile-footer"><button class="btn" data-action="site-template-save">Save as template</button><button class="btn primary" data-action="site-generate">Create draft & download site PDF</button></div>';}
+  function openSiteSheetBuilder(type='eic'){siteBuilderState={type:SCHEMAS[type]?type:'eic',name:'',boards:[{ref:'DB1',location:'',circuits:12}]};renderSiteBuilder();}
+  function closeSiteBuilder(){document.querySelector('.site-builder-backdrop')?.remove();siteBuilderState=null;}
+  function generateSiteSheetFromBuilder(){if(!siteBuilderState)return;const p=makeSitePlan(siteBuilderState.type,siteBuilderState.boards,siteBuilderState.name),cert=plannedCertificate(p);p.descriptors=buildSiteDescriptors(p,cert);updateStoredPlan(p);generateSiteSheetPdf(p,cert);closeSiteBuilder();render();toast('Blank site pack created and linked to a draft certificate');}
+  function saveCurrentSheetTemplate(){if(!siteBuilderState)return;const name=String(siteBuilderState.name||'').trim()||((SCHEMAS[siteBuilderState.type]?.code||'CERT')+' site sheet'),item={id:uid(),name,type:siteBuilderState.type,boards:clone(siteBuilderState.boards||[]),createdAt:new Date().toISOString()},list=siteTemplates().filter(x=>x.name!==name);list.unshift(item);saveSiteTemplates(list);renderSiteBuilder();toast('Site sheet template saved');}
+  function loadSheetTemplate(id){const t=siteTemplates().find(x=>x.id===id);if(!t)return;siteBuilderState={type:t.type,name:t.name,boards:clone(t.boards||[{ref:'DB1',circuits:12}])};renderSiteBuilder();}
+
+  function planPicker(mode){const plans=sitePlans();if(!plans.length){alert('No site sheets exist yet. Create a blank site sheet first.');return;}const m=document.createElement('div');m.className='modal-backdrop sheet-picker-backdrop';m.innerHTML='<div class="card modal sheet-picker" data-modal><div class="profile-head"><div><div class="eyebrow">'+(mode==='read'?'VOICE READ-BACK':'PHOTO SCAN')+'</div><h2>Select the site sheet job</h2><p>Choose the pack you printed.</p></div><button class="btn" data-action="close-modal">Close</button></div><div class="sheet-plan-list">'+plans.map(p=>'<button class="sheet-plan-row" data-action="'+(mode==='read'?'site-read-plan':'site-scan-plan')+'" data-plan-id="'+esc(p.id)+'"><strong>'+esc(p.name||SCHEMAS[p.type]?.name||p.type)+'</strong><span>'+esc(p.id)+' · '+esc(planSummary(p))+'</span><em>›</em></button>').join('')+'</div></div>';document.body.appendChild(m);}
+  function ensurePlan(p){const cert=plannedCertificate(p);if(!Array.isArray(p.descriptors)||!p.descriptors.length)p.descriptors=buildSiteDescriptors(p,cert);updateStoredPlan(p);return {p,cert};}
+  function aliasesFor(d){return [...new Set([...(d.aliases||[]),d.label].filter(Boolean).map(x=>voiceNormalise(x)).filter(Boolean))].sort((a,b)=>b.length-a.length);}
+  function openSheetRead(id){closeModal();const p=sitePlans().find(x=>x.id===id);if(!p)return;const x=ensurePlan(p);siteReadState={plan:x.p,cert:x.cert,cursor:0,listening:false,transcript:'',filled:0,issues:[]};renderSheetRead();}
+  function parseSheetSpeech(text){if(!siteReadState)return {filled:0};const ds=siteReadState.plan.descriptors||[],n=voiceNormalise(text),matches=[];if(!n)return {filled:0};for(let i=Math.max(0,siteReadState.cursor-1);i<Math.min(ds.length,siteReadState.cursor+80);i++)for(const a of aliasesFor(ds[i])){const pos=n.indexOf(a);if(pos>=0)matches.push({pos,end:pos+a.length,i,a});}matches.sort((a,b)=>a.pos-b.pos||b.a.length-a.a.length);const chosen=[];for(const m of matches)if(!chosen.some(x=>m.pos>=x.pos&&m.pos<x.end))chosen.push(m);let filled=0;if(!chosen.length){const d=ds[siteReadState.cursor];if(d&&setSiteValue(siteReadState.cert,d,text)){filled++;siteReadState.cursor++;}}else chosen.forEach((m,j)=>{const d=ds[m.i],next=chosen[j+1];let v=n.slice(m.end,next?next.pos:n.length).replace(/^(is|equals|equal to|reading|value)\s+/,'').trim();if(v&&setSiteValue(siteReadState.cert,d,v)){filled++;siteReadState.cursor=Math.max(siteReadState.cursor,m.i+1);}});siteReadState.transcript+=(siteReadState.transcript?'\n':'')+String(text).trim();siteReadState.filled+=filled;saveNow();return {filled};}
+  function renderSheetRead(){if(!siteReadState)return;let m=document.querySelector('.sheet-read-backdrop');if(!m){m=document.createElement('div');m.className='modal-backdrop sheet-read-backdrop';m.innerHTML='<div class="card modal sheet-read-modal" data-modal><div data-sheet-read-body></div></div>';document.body.appendChild(m);}const ds=siteReadState.plan.descriptors||[],d=ds[siteReadState.cursor];m.querySelector('[data-sheet-read-body]').innerHTML='<div class="profile-head"><div><div class="eyebrow">READ COMPLETED SITE SHEET</div><h2>'+esc(siteReadState.plan.name||SCHEMAS[siteReadState.plan.type].name)+'</h2><p>Read the printed heading, then its answer, from top to bottom. Say SKIP for an empty box.</p></div><button class="btn" data-action="sheet-read-close">Close</button></div><section class="sheet-read-progress"><div><strong>'+siteReadState.filled+'</strong><span>answers filled</span></div><div><strong>'+siteReadState.cursor+' / '+ds.length+'</strong><span>position</span></div></section>'+(d?'<section class="sheet-read-next"><span>Expected next</span><strong>'+esc(d.label)+'</strong><small>'+esc(d.code)+' · '+esc(d.section)+'</small></section>':'<section class="sheet-read-next done"><strong>Read-back complete</strong></section>')+'<section class="profile-section"><textarea class="sheet-read-transcript" data-sheet-read-text>'+esc(siteReadState.transcript)+'</textarea><div class="toolbar"><button class="btn primary" data-action="'+(siteReadState.listening?'sheet-read-stop':'sheet-read-start')+'">'+(siteReadState.listening?'■ Stop listening':'🎙 Start reading sheet')+'</button><button class="btn" data-action="sheet-read-process">Process typed text</button><button class="btn" data-action="sheet-read-open-cert">Open certificate</button></div></section><div class="note">Use field first, value second: “Zs, zero point three six. R1 plus R2, zero point two seven.” Values are never swapped to make them look plausible.</div>';}
+  function sheetReadLoop(){if(!siteReadState?.listening)return;voiceAsk('Read site sheet',(text,error)=>{if(!siteReadState?.listening)return;if(text)parseSheetSpeech(text);if(error&&!/no speech|nothing/i.test(error))siteReadState.issues.push(error);renderSheetRead();if(siteReadState?.listening&&siteReadState.cursor<(siteReadState.plan.descriptors||[]).length)setTimeout(sheetReadLoop,300);else if(siteReadState){siteReadState.listening=false;renderSheetRead();}});}
 
   let voiceSeq = 0;
   const voiceHandlers = new Map();
