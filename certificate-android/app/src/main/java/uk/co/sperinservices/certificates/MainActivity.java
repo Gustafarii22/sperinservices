@@ -13,7 +13,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 import android.net.Uri;
+import android.content.ClipData;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -39,6 +43,13 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
+
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -51,11 +62,12 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.5.0";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.6.0";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
+    private static final int SHEET_CAMERA_REQUEST = 3001;
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
@@ -69,6 +81,8 @@ public class MainActivity extends Activity {
     private Uri pendingNotificationUri;
     private String pendingNotificationName;
     private String pendingNotificationMime;
+    private Uri pendingSheetPhotoUri;
+    private String pendingSheetScanToken = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,7 +108,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.5.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.6.0");
 
         setupVoice();
 
@@ -277,11 +291,27 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == SHEET_CAMERA_REQUEST) {
+            if (resultCode == RESULT_OK && pendingSheetPhotoUri != null) {
+                scanSheetUri(pendingSheetScanToken, pendingSheetPhotoUri);
+            } else {
+                sendSheetScanResult(pendingSheetScanToken, null, "Photo cancelled");
+            }
+            pendingSheetPhotoUri = null;
+            pendingSheetScanToken = "";
+            return;
+        }
         if (requestCode == FILE_CHOOSER_REQUEST) {
             Uri[] result = null;
             if (resultCode == RESULT_OK && data != null) {
-                Uri uri = data.getData();
-                if (uri != null) result = new Uri[]{uri};
+                ClipData clip = data.getClipData();
+                if (clip != null && clip.getItemCount() > 0) {
+                    result = new Uri[clip.getItemCount()];
+                    for (int i = 0; i < clip.getItemCount(); i++) result[i] = clip.getItemAt(i).getUri();
+                } else {
+                    Uri uri = data.getData();
+                    if (uri != null) result = new Uri[]{uri};
+                }
             }
             if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(result);
             fileChooserCallback = null;
@@ -475,6 +505,110 @@ public class MainActivity extends Activity {
         printManager.print("Sperin Certificate", adapter, null);
     }
 
+    private Bitmap decodeSheetBitmap(byte[] bytes) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
+        int max = Math.max(bounds.outWidth, bounds.outHeight);
+        int sample = 1;
+        while (max / sample > 2600) sample *= 2;
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = Math.max(1, sample);
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
+    }
+
+    private void scanSheetUri(String token, Uri uri) {
+        try {
+            InputStream in = getContentResolver().openInputStream(uri);
+            if (in == null) throw new IllegalStateException("Could not open photo");
+            byte[] bytes;
+            try (InputStream input = in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int n;
+                while ((n = input.read(buffer)) > 0) out.write(buffer, 0, n);
+                bytes = out.toByteArray();
+            }
+            Bitmap bitmap = decodeSheetBitmap(bytes);
+            if (bitmap == null) throw new IllegalStateException("Could not decode photo");
+            scanSheetBitmap(token, bitmap);
+        } catch (Exception ex) {
+            sendSheetScanResult(token, null, ex.getMessage() == null ? "Could not read photo" : ex.getMessage());
+        }
+    }
+
+    private void scanSheetBitmap(String token, Bitmap bitmap) {
+        try {
+            InputImage image = InputImage.fromBitmap(bitmap, 0);
+            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            recognizer.process(image)
+                    .addOnSuccessListener(result -> {
+                        try {
+                            JSONObject payload = new JSONObject();
+                            payload.put("fullText", result.getText());
+                            payload.put("width", bitmap.getWidth());
+                            payload.put("height", bitmap.getHeight());
+                            JSONArray lines = new JSONArray();
+                            for (Text.TextBlock block : result.getTextBlocks()) {
+                                for (Text.Line line : block.getLines()) {
+                                    JSONObject row = new JSONObject();
+                                    row.put("text", line.getText());
+                                    Rect box = line.getBoundingBox();
+                                    if (box != null) {
+                                        row.put("left", box.left);
+                                        row.put("top", box.top);
+                                        row.put("right", box.right);
+                                        row.put("bottom", box.bottom);
+                                    }
+                                    lines.put(row);
+                                }
+                            }
+                            payload.put("lines", lines);
+                            sendSheetScanResult(token, payload, "");
+                        } catch (Exception ex) {
+                            sendSheetScanResult(token, null, "Could not package recognised text");
+                        } finally {
+                            recognizer.close();
+                            bitmap.recycle();
+                        }
+                    })
+                    .addOnFailureListener(ex -> {
+                        recognizer.close();
+                        bitmap.recycle();
+                        sendSheetScanResult(token, null, ex.getMessage() == null ? "Text recognition failed" : ex.getMessage());
+                    });
+        } catch (Exception ex) {
+            if (!bitmap.isRecycled()) bitmap.recycle();
+            sendSheetScanResult(token, null, ex.getMessage() == null ? "Text recognition failed" : ex.getMessage());
+        }
+    }
+
+    private void sendSheetScanResult(String token, JSONObject payload, String error) {
+        String json = payload == null ? "" : payload.toString();
+        String js = "window.sperinSheetScanResult(" +
+                JSONObject.quote(token == null ? "" : token) + "," +
+                JSONObject.quote(json) + "," +
+                JSONObject.quote(error == null ? "" : error) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(js, null));
+    }
+
+    private void captureAndScanSheetNative(String token) {
+        try {
+            File photo = new File(getCacheDir(), "site-sheet-" + System.currentTimeMillis() + ".jpg");
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photo);
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+            intent.setClipData(ClipData.newRawUri("Sperin Site Sheet", uri));
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            pendingSheetPhotoUri = uri;
+            pendingSheetScanToken = token == null ? "" : token;
+            startActivityForResult(intent, SHEET_CAMERA_REQUEST);
+        } catch (Exception ex) {
+            pendingSheetPhotoUri = null;
+            pendingSheetScanToken = "";
+            sendSheetScanResult(token, null, ex.getMessage() == null ? "Could not open camera" : ex.getMessage());
+        }
+    }
+
     @Override
     protected void onDestroy() {
         if (speechRecognizer != null) {
@@ -532,6 +666,25 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void printPage() {
             runOnUiThread(MainActivity.this::printCurrentPage);
+        }
+
+        @JavascriptInterface
+        public void captureAndScanSheet(String token) {
+            runOnUiThread(() -> captureAndScanSheetNative(token));
+        }
+
+        @JavascriptInterface
+        public void scanSheetImageBase64(String token, String dataUri) {
+            try {
+                int comma = dataUri == null ? -1 : dataUri.indexOf(',');
+                String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
+                byte[] bytes = Base64.decode(payload, Base64.DEFAULT);
+                Bitmap bitmap = decodeSheetBitmap(bytes);
+                if (bitmap == null) throw new IllegalStateException("Could not decode photo");
+                scanSheetBitmap(token, bitmap);
+            } catch (Exception ex) {
+                sendSheetScanResult(token, null, ex.getMessage() == null ? "Could not read photo" : ex.getMessage());
+            }
         }
 
         @JavascriptInterface
