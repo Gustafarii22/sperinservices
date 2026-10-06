@@ -188,13 +188,14 @@
     if(cert.type==='eic'){
       const f=cert.fields;
       if(!f.signatoryMode){
-        const same=f.designer1 && f.designer1===f.constructor && f.designer1===f.inspector;
+        const names=[f.designer1,f.constructor,f.inspector].filter(Boolean);
+        const same=names.length<=1 || names.every(n=>n===names[0]);
         f.signatoryMode=same ? 'One person — design, construction & inspection' : 'Separate people';
       }
       if(f.signatoryMode==='One person — design, construction & inspection'){
-        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||'';
-        f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||'';
-        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||'';
+        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||settings.engineerName||'';
+        f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||settings.companyName||'';
+        f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||[settings.address,settings.postcode].filter(Boolean).join('\n');
         f.singleSignatorySignature=f.singleSignatorySignature||f.designer1Signature||f.constructorSignature||f.inspectorSignature||'';
         f.singleSignatoryDate=f.singleSignatoryDate||f.designer1Date||f.constructorDate||f.inspectionDate||'';
         syncSingleSignatory(cert);
@@ -455,8 +456,8 @@
     }
   };
 
-  let state = loadState();
   let settings = loadSettings();
+  let state = loadState();
   let view = { page: 'home', currentId: null, circuitIndex: null, circuitStep: 'details' };
   let autosaveTimer = null;
 
