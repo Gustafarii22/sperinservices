@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.4.1';
+  const VERSION = '1.5.0';
   const TODAY = new Date().toISOString().slice(0, 10);
 
   const OPTIONS = {
@@ -307,21 +307,52 @@
   }
 
   const eicInspectionRows = [
-    ['1.0', 'Condition of consumer’s intake equipment (visual inspection only)'],
-    ['2.0', 'Parallel or switched alternative sources of supply'],
-    ['3.0', 'Protective measure: Automatic Disconnection of Supply (ADS)'],
-    ['4.0', 'Basic protection'],
-    ['5.0', 'Protective measures other than ADS'],
-    ['6.0', 'Additional protection'],
-    ['7.0', 'Distribution equipment'],
-    ['8.0', 'Circuits (distribution and final)'],
-    ['9.0', 'Isolation and switching'],
-    ['10.0', 'Current-using equipment (permanently connected)'],
-    ['11.0', 'Identification and notices'],
-    ['12.0', 'Location(s) containing a bath or shower'],
-    ['13.0', 'Other special installations or locations'],
-    ['14.0', 'Prosumer’s low voltage electrical installation(s)']
-  ].map(([item, description]) => ({ item, description, outcome: '' }));
+    ['1.1', 'Incoming supply equipment visually checked; no obvious damage or overheating'],
+    ['1.2', 'Earthing arrangement identified and recorded'],
+    ['1.3', 'Meter tails / consumer conductors correctly sized, routed and terminated'],
+    ['1.4', 'Other or alternative sources of supply identified and safely integrated where applicable'],
+    ['2.1', 'Main earthing conductor present, correctly sized and securely connected'],
+    ['2.2', 'Main protective bonding provided where required and correctly sized'],
+    ['2.3', 'Main earthing terminal accessible and connections secure'],
+    ['2.4', 'Earthing / bonding identification and labels provided where required'],
+    ['3.1', 'Consumer unit / distribution board securely fixed and suitably located'],
+    ['3.2', 'Enclosure provides suitable IP protection and appropriate fire performance'],
+    ['3.3', 'Main switch / linked isolation provided and operates correctly'],
+    ['3.4', 'Protective devices compatible with the board and correctly rated for the circuits'],
+    ['3.5', 'Circuit identification / schedule is complete, legible and matches installed circuits'],
+    ['3.6', 'RCD / RCBO protection provided where required and devices operate correctly'],
+    ['3.7', 'SPD provided where required / selected risk assessment recorded, and status indication satisfactory'],
+    ['3.8', 'AFDDs provided where required or selected, and manual status/test indication satisfactory'],
+    ['3.9', 'Required warning, test and identification labels are fitted and legible'],
+    ['3.10', 'Internal conductors correctly located in terminals; connections secure with no exposed copper'],
+    ['4.1', 'Circuit conductors are correctly identified throughout the installation'],
+    ['4.2', 'Cable type, conductor size and installation method are suitable for load and external influences'],
+    ['4.3', 'Cables are adequately supported and protected against mechanical damage'],
+    ['4.4', 'Concealed cables are in permitted zones or otherwise suitably protected'],
+    ['4.5', 'Protective conductor / CPC provided and continuous throughout each circuit'],
+    ['4.6', 'Overcurrent protection is correctly coordinated with conductor current-carrying capacity'],
+    ['4.7', '30 mA additional RCD protection is provided where required'],
+    ['4.8', 'Fire stopping / sealing is maintained where wiring passes through fire-resisting construction'],
+    ['4.9', 'Segregation from other voltage bands, communications and non-electrical services is adequate'],
+    ['4.10', 'Cable entries, glands, bushes and terminations provide suitable mechanical and IP protection'],
+    ['5.1', 'Accessories and enclosures are securely fixed and suitable for the environment'],
+    ['5.2', 'Switches / protective devices interrupt the line conductor as required'],
+    ['5.3', 'Socket-outlets, switches and connection units show no damage or exposed live parts'],
+    ['5.4', 'Permanently connected equipment has suitable local isolation where required'],
+    ['5.5', 'Equipment ratings, connection methods and manufacturer requirements are satisfied'],
+    ['6.1', 'Polarity verified throughout the installation'],
+    ['6.2', 'Continuity of protective conductors and bonding verified'],
+    ['6.3', 'Insulation resistance testing completed with satisfactory results'],
+    ['6.4', 'Earth fault loop impedance results are within permitted values'],
+    ['6.5', 'RCD operating times / functional tests completed where applicable'],
+    ['6.6', 'Prospective fault current and protective-device breaking capacity are compatible'],
+    ['6.7', 'Phase sequence verified where applicable'],
+    ['7.1', 'Bath / shower locations comply with zoning, IP and additional-protection requirements where applicable'],
+    ['7.2', 'Other special installations / locations have been checked against the applicable Part 7 requirements'],
+    ['8.1', 'Required drawings, schedules, circuit information and user instructions are complete / handed over'],
+    ['8.2', 'Any permitted departures, exceptions or design risk assessments are recorded on the certificate'],
+    ['8.3', 'Installation is suitable to be energised and the completed work has been inspected and tested']
+  ].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));
 
   const eicrInspectionRows = [
     ['1.1', 'Distributor/supplier intake equipment — service cable, service head, earthing arrangement, meter tails, metering equipment and means of isolation'],
@@ -400,36 +431,36 @@
       standard: 'BS 7671:2018+A4:2026',
       description: 'New installations, new circuits, consumer-unit changes and qualifying additions/alterations.',
       sections: [
-        section('A · Client details', [f('clientName', 'Client / person ordering the work', 'text', { span: 'full' }), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date')]),
-        section('B · Installation details', [f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), f('description', 'Description of installation', 'textarea', { span: 'full' }), select('workType', 'Type of work', OPTIONS.workType), f('extent', 'Extent of installation covered by this certificate', 'textarea', { span: 'full' })]),
+        section('A · Client details', [f('clientName', 'Client / person ordering the work', 'text', { span: 'full' }), f('clientPostcode', 'Client postcode'), f('clientAddress', 'Client address', 'textarea', { span: 'full' }), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date')]),
+        section('B · Installation details', [f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), f('description', 'Description of installation', 'textarea', { span: 'full' }), select('workType', 'Type of work', OPTIONS.workType), f('extent', 'Extent of installation covered by this certificate', 'textarea', { span: 'full' })]),
         section('C · Certification & signatories', [
           select('signatoryMode', 'Responsibility', ['One person — design, construction & inspection', 'Separate people']),
           f('singleSignatoryName', 'Name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryCompany', 'For/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
-          f('singleSignatoryAddress', 'Address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryPostcode', 'Postcode', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
+          f('singleSignatoryAddress', 'Address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryPhone', 'Telephone', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryQualification', 'Qualification / role', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatorySignature', 'Signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('singleSignatoryDate', 'Date', 'date', { showWhen:{key:'signatoryMode',value:'One person — design, construction & inspection'} }),
           f('designer1', 'Designer name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designerCompany', 'Designer — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
-          f('designerAddress', 'Designer address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designerPostcode', 'Designer postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('designerAddress', 'Designer address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designerPhone', 'Designer telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designer1Signature', 'Designer signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('designer1Date', 'Designer date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructor', 'Installer / constructor name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorCompany', 'Constructor — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
-          f('constructorAddress', 'Installer / constructor address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorPostcode', 'Installer / constructor postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('constructorAddress', 'Installer / constructor address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorPhone', 'Installer / constructor telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorSignature', 'Constructor signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('constructorDate', 'Construction date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspector', 'Inspector name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorCompany', 'Inspector — for/on behalf of', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
-          f('inspectorAddress', 'Inspector address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorPostcode', 'Inspector postcode', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
+          f('inspectorAddress', 'Inspector address', 'textarea', { span:'full', showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorPhone', 'Inspector telephone', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectorSignature', 'Inspector signature / typed name', 'text', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
           f('inspectionDate', 'Inspection & testing date', 'date', { showWhen:{key:'signatoryMode',value:'Separate people'} }),
@@ -442,8 +473,11 @@
         section('D · Next inspection', [f('nextInspectionInterval', 'Recommended interval before next inspection (years/months)', 'text', { span: 'full' })]),
         section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
         section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)')]),
-        table('eicInspection', 'H · Schedule of inspections', [
-          { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.passNA }
+        table('eicInspection', 'H · Installation inspection checklist', [
+          { key: 'item', label: 'Item', readonly: true },
+          { key: 'description', label: 'Check', readonly: true },
+          { key: 'outcome', label: 'Result', type: 'select', options: OPTIONS.passNA },
+          { key: 'comment', label: 'Comment / N/A reason' }
         ], eicInspectionRows),
         section('I · Existing installation comments', [f('existingComments', 'Comments on existing installation (for additions/alterations)', 'textarea', { span: 'full' })]),
         section('J · Schedule details', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
@@ -470,9 +504,9 @@
       standard: 'BS 7671:2018+A4:2026',
       description: 'Periodic inspection and testing with observations, coding, schedules and overall assessment.',
       sections: [
-        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientAddress', 'Address', 'textarea', { span: 'full' }), f('certificateNo', 'Report number'), f('issueDate', 'Report issue date', 'date')]),
+        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientPostcode', 'Postcode'), f('clientAddress', 'Address', 'textarea', { span: 'full' }), f('certificateNo', 'Report number'), f('issueDate', 'Report issue date', 'date')]),
         section('B · Reason for producing this report', [f('reason', 'Reason for report', 'textarea', { span: 'full' }), f('inspectionDates', 'Date(s) inspection and testing carried out', 'text', { span: 'full' })]),
-        section('C · Installation details', [f('occupier', 'Occupier'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), select('premisesType', 'Description of premises', OPTIONS.premises), f('premisesOther', 'Other description'), f('age', 'Estimated age of wiring system (years)'), select('additionsEvidence', 'Evidence of additions/alterations', ['Yes', 'Not apparent']), f('additionsAge', 'If yes, estimated age (years)'), select('recordsAvailable', 'Installation records available', OPTIONS.yesNo), f('lastInspection', 'Date of last inspection', 'date')]),
+        section('C · Installation details', [f('occupier', 'Occupier'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), select('premisesType', 'Description of premises', OPTIONS.premises), f('premisesOther', 'Other description'), f('age', 'Estimated age of wiring system (years)'), select('additionsEvidence', 'Evidence of additions/alterations', ['Yes', 'Not apparent']), f('additionsAge', 'If yes, estimated age (years)'), select('recordsAvailable', 'Installation records available', OPTIONS.yesNo), f('lastInspection', 'Date of last inspection', 'date')]),
         section('D · Extent & limitations', [f('extentInspected', 'Parts of installation inspected and tested', 'textarea', { span: 'full' }), f('agreedLimitations', 'Agreed limitations including reasons', 'textarea', { span: 'full' }), f('agreedWith', 'Agreed with'), f('operationalLimitations', 'Operational limitations and reasons', 'textarea', { span: 'full' }), f('standardAmendedTo', 'Inspection carried out to BS 7671 amended to', 'text', { placeholder: 'A4:2026' })]),
         section('E · Summary of condition', [select('overallAssessment', 'Overall assessment', OPTIONS.overall), f('generalCondition', 'General condition of the installation (electrical safety)', 'textarea', { span: 'full' })]),
         section('F · Recommendation for next inspection', [f('nextInspectionDate', 'Further inspection recommended before', 'date'), f('nextInspectionReason', 'Reason for recommended interval', 'textarea', { span: 'full' })]),
@@ -510,7 +544,7 @@
       standard: 'BS 7671:2018+A4:2026',
       description: 'For an addition or alteration to a single existing circuit where no new circuit is provided.',
       sections: [
-        section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
+        section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
         section('B · Earthing & bonding adequacy', [select('earthingArrangement', 'System earthing arrangement', OPTIONS.earthing), f('zdb', 'Earth fault loop impedance at DB Zdb (Ω)'), select('earthingConductorAdequate', 'Adequate earthing conductor present', OPTIONS.yesNoNA), f('bondingPresent', 'Main protective bonding to', 'text', { span: 'full' })]),
         section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), f('ocpdBs', 'OCPD BS (EN)'), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), f('ocpdRating', 'OCPD rating (A)'), f('breakingCapacity', 'Breaking capacity (kA)'), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
         section('D · Test results', [f('r1r2', 'Protective conductor continuity R1+R2 (Ω)'), f('r2', 'Protective conductor continuity R2 (Ω)'), f('ringR1', 'Ring r1-r1 (Ω)'), f('ringRn', 'Ring rn-rn (Ω)'), f('ringR2', 'Ring r2-r2 (Ω)'), f('irVoltage', 'Insulation resistance test voltage (V)'), f('irLL', 'Insulation resistance Live-Live (MΩ)'), f('irLE', 'Insulation resistance Live-Earth (MΩ)'), select('polarity', 'Polarity satisfactory', OPTIONS.yesNoNA), f('zs', 'Maximum measured Zs (Ω)'), f('rcdTime', 'RCD disconnection time at IΔn (ms)'), select('rcdButton', 'RCD test button satisfactory', OPTIONS.yesNoNA), select('afddButton', 'AFDD test button satisfactory', OPTIONS.yesNoNA), select('spdFunction', 'SPD functionality confirmed', OPTIONS.yesNoNA)]),
@@ -525,7 +559,7 @@
       standard: 'BS 5266:2025 · BS EN 1838:2024 · BS EN 50172:2024',
       description: 'Completion, periodic inspection/test or small-installation record with design/installation/verification information.',
       sections: [
-        section('Certificate & premises', [select('certificateType', 'Certificate type', OPTIONS.emergencyType), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / responsible person'), f('premisesName', 'Premises name'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), select('premisesType', 'Premises type', OPTIONS.premises), f('systemRef', 'System / drawing reference')]),
+        section('Certificate & premises', [select('certificateType', 'Certificate type', OPTIONS.emergencyType), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / responsible person'), f('premisesName', 'Premises name'), f('premisesPostcode', 'Premises postcode'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), select('premisesType', 'Premises type', OPTIONS.premises), f('systemRef', 'System / drawing reference')]),
         section('System design information', [f('standard', 'Standards applied', 'text', { span: 'full', defaultValue: 'BS 5266:2025; BS EN 1838:2024; BS EN 50172:2024' }), select('operatingMode', 'Emergency lighting operating mode', OPTIONS.emergencyMode), select('ratedDuration', 'Rated emergency duration', OPTIONS.testDuration), f('designIlluminance', 'Design illuminance / design criteria', 'textarea', { span: 'full' }), f('riskAssessmentRef', 'Fire risk assessment / design risk reference'), f('drawingRef', 'Emergency lighting layout drawing reference'), f('deviations', 'Variations / deviations from standards or design', 'textarea', { span: 'full' }), f('designerName', 'Designer name'), f('designerCompany', 'Designer company'), f('designerSignature', 'Design declaration signature / typed name'), f('designerDate', 'Design declaration date', 'date')]),
         section('Installation & supply', [f('installerName', 'Installer name'), f('installerCompany', 'Installer company'), f('supplyOrigin', 'Emergency lighting supply / distribution reference'), f('protectiveDevice', 'Protective device details'), f('testFacility', 'Test/key-switch/automatic test facility details', 'textarea', { span: 'full' }), f('installationNotes', 'Installation notes / cable / fire-resistance information', 'textarea', { span: 'full' }), f('installerSignature', 'Installation declaration signature / typed name'), f('installerDate', 'Installation declaration date', 'date')]),
         table('luminaires', 'Luminaire / sign / device schedule', [
@@ -543,7 +577,7 @@
       standard: 'BS 5839-6:2019+A1:2020',
       description: 'Domestic fire detection and alarm design / installation / commissioning record for household systems.',
       sections: [
-        section('Certificate & premises', [f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / occupier'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), f('premisesDescription', 'Premises description', 'textarea', { span: 'full' })]),
+        section('Certificate & premises', [f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / occupier'), f('premisesPostcode', 'Premises postcode'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), f('premisesDescription', 'Premises description', 'textarea', { span: 'full' })]),
         section('System classification & design', [f('standard', 'Standard', 'text', { defaultValue: 'BS 5839-6:2019+A1:2020' }), select('grade', 'System grade', OPTIONS.smokeGrade), select('category', 'System category', OPTIONS.smokeCategory), select('interlink', 'Interconnection method', OPTIONS.interlink), f('systemDescription', 'System description / extent', 'textarea', { span: 'full' }), f('riskBasis', 'Risk assessment / category basis / special risks', 'textarea', { span: 'full' }), f('variations', 'Variations from recommendations', 'textarea', { span: 'full' }), f('designerName', 'Designer / responsible person'), f('designerSignature', 'Design signature / typed name'), f('designDate', 'Design date', 'date')]),
         table('alarms', 'Alarm / detector schedule', [
           { key: 'ref', label: 'Ref.' }, { key: 'location', label: 'Location' }, { key: 'type', label: 'Device type', type: 'select', options: OPTIONS.alarmType }, { key: 'makeModel', label: 'Make / model' }, { key: 'power', label: 'Power source / battery' }, { key: 'interlink', label: 'Interlink', type: 'select', options: OPTIONS.interlink }, { key: 'test', label: 'Test', type: 'select', options: OPTIONS.testResult }, { key: 'remarks', label: 'Remarks' }
@@ -593,7 +627,13 @@
   }
 
   function loadSettings() {
-    const defaults = { companyName: 'Sperin Services', engineerName: '', address: '', postcode: '', phone: '', email: '', registration: '', qualification: 'C&G 2391 / 18th Edition', defaultStandard: 'BS 7671:2018+A4:2026' };
+    const defaults = {
+      companyName: 'Sperin Services', engineerName: '', engineerPosition: 'Electrician / Inspector',
+      address: '', postcode: '', phone: '', email: '', registration: '',
+      qualification: 'C&G 2391 / 18th Edition', defaultStandard: 'BS 7671:2018+A4:2026',
+      testerMake: '', testerModel: '', testerSerial: '', testerCalibrationDue: '',
+      postcodeApiKey: ''
+    };
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')) }; } catch { return defaults; }
   }
 
@@ -666,6 +706,12 @@
       fields.singleSignatoryPhone = settings.phone;
       fields.singleSignatoryQualification = settings.qualification;
     }
+    if ('testerMake' in fields) fields.testerMake = settings.testerMake || '';
+    if ('testerModel' in fields) fields.testerModel = settings.testerModel || '';
+    if ('testerSerial' in fields) fields.testerSerial = settings.testerSerial || '';
+    if ('testedBy' in fields) fields.testedBy = settings.engineerName || '';
+    if ('position' in fields && !fields.position) fields.position = settings.engineerPosition || '';
+    if ('inspectorPosition' in fields && !fields.inspectorPosition) fields.inspectorPosition = settings.engineerPosition || '';
     if ('testerMft' in fields) fields.testerMft = true;
     const cert = { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
     migrateCertificate(cert);
@@ -735,30 +781,57 @@
     }
   }
 
+  function uiIcon(name) {
+    const icons={
+      home:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
+      user:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
+      mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
+      pdf:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M8 15h8M8 18h6"/></svg>',
+      shield:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.8 3 8.2 7.5 9.5 4.5-1.3 7.5-4.7 7.5-9.5V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>',
+      backup:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 14v6h14v-6"/></svg>',
+      chevron:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>'
+    };
+    return icons[name]||icons.chevron;
+  }
+
   function topbar() {
-    return `<div class="topbar"><div class="toprow"><div class="brand"><div class="bolt"></div><div><h1>Sperin Certificates</h1><p>Electrical · emergency lighting · domestic alarms</p></div></div><div class="spacer"></div><button class="btn small ghost" data-action="backup">Backup</button><button class="btn small ghost" data-action="restore">Restore</button><button class="btn small" data-action="settings">Settings</button></div></div>`;
+    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><button class="btn small ghost top-action" data-action="backup">${uiIcon('backup')}<span>Backup</span></button><button class="btn small ghost top-action" data-action="restore"><span>↻</span><span>Restore</span></button><button class="btn small top-action" data-action="settings">${uiIcon('user')}<span>Profile</span></button></div></div>`;
   }
 
   function homeView() {
     const completed = state.certificates.filter(c => c.status === 'Complete').length;
     const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
-    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<div class="card cert-card"><div class="cert-icon">${s.icon}</div><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><span class="pill">${esc(s.standard)}</span><button class="btn primary" data-action="new" data-type="${key}">Start certificate</button></div>`).join('');
+    const typeIcons={eic:'⚡',eicr:'⌕',minor:'✓',emergency:'↗',smoke:'◉'};
+    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon">${typeIcons[key]||s.icon}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow">›</span></button>`).join('');
     const rows = state.certificates.length ? state.certificates.map(c => {
       const sch = SCHEMAS[c.type] || {icon:'📄',name:'Certificate'};
       const fields=isRecord(c.fields)?c.fields:{};
       const customer=fields.clientName || fields.customerName || fields.personOrdering || fields.occupier || fields.responsiblePerson || fields.premisesName || 'Customer name not entered';
       const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
       const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
-      return `<div class="card draft saved-cert-card" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
-        <div class="saved-cert-main">
-          <div class="saved-cert-topline"><span class="saved-cert-icon">${sch.icon}</span><div><div class="saved-cert-customer">${esc(customer)}</div><div class="saved-cert-type">${esc(sch.name)} · ${esc(c.number || '')}</div></div></div>
-          <div class="saved-cert-address">${esc(String(address).replace(/\n/g, ', '))}</div>
-        </div>
-        <div class="saved-cert-meta"><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span><div><strong>${esc(fmtDate(date))}</strong><div class="draft-sub">Updated ${esc(new Date(c.updatedAt).toLocaleString('en-GB'))}</div></div></div>
-        <div class="toolbar saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
+      return `<div class="saved-cert-row" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
+        <div class="saved-cert-accent">${sch.icon}</div>
+        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
+        <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
+        <div class="saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
       </div>`;
-    }).join('') : `<div class="card empty">No certificates yet. Choose a certificate type above to start.</div>`;
-    return `<div class="hero"><div class="card hero-main"><div class="eyebrow">Field certification app</div><h2>Complete certificates on-site, save drafts and export PDFs.</h2><p>Entries stay on this device and are autosaved while you work.</p></div><div class="card hero-side"><div><div class="meta">Certificates stored on this device</div><strong>${state.certificates.length}</strong></div><div class="toolbar"><span class="pill">${drafts} draft</span><span class="pill">${completed} complete</span></div></div></div><div class="grid">${cards}</div><div class="section-head"><h2>Saved certificates</h2><div class="meta">Autosaved locally</div></div><div class="list">${rows}</div><div class="footer-note">Independent certificate software. Electrical workflows follow current BS 7671 model-form information; the person signing remains responsible for technical accuracy, inspection, testing and competence.</div>`;
+    }).join('') : `<div class="home-empty"><span>＋</span><strong>No certificates yet</strong><p>Choose a certificate type above to start your first record.</p></div>`;
+    const recent=state.certificates[0];
+    const recentName=recent ? (recent.fields?.clientName||recent.fields?.occupier||recent.fields?.premisesName||'Recent certificate') : '';
+    return `<main class="home-page">
+      <section class="home-hero">
+        <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Professional electrical certification, built for work on site.</h2><p>Complete certificates, dictate answers, test circuits, autosave every change and issue a finished PDF from one app.</p>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+        </div>
+        <div class="home-visual" aria-hidden="true">
+          <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
+          <div class="visual-badge visual-badge-mic">${uiIcon('mic')} Voice Fill</div><div class="visual-badge visual-badge-pdf">${uiIcon('pdf')} PDF</div>
+        </div>
+      </section>
+      <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
+      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
+      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Tap anywhere on a row to open it.</p></div><div class="saved-cert-list">${rows}</div></section>
+    </main>`;
   }
 
   function formView() {
@@ -773,7 +846,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">⚡ Rapid dictation</button><button class="btn" data-action="rapid-sheet">Read-back sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>A paper-friendly question list to take around site, write on, then enter or dictate back into the certificate later.</span></div></div><div class="note warning">Independent certificate layout. Complete only where you are competent and authorised to certify the work.</div>${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -786,6 +859,66 @@
     return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}<div class="fields">${fields}</div></section>`;
   }
 
+  const POSTCODE_TARGETS={
+    clientPostcode:'clientAddress',
+    installationPostcode:'installationAddress',
+    premisesPostcode:'premisesAddress',
+    singleSignatoryPostcode:'singleSignatoryAddress',
+    designerPostcode:'designerAddress',
+    constructorPostcode:'constructorAddress',
+    inspectorPostcode:'inspectorAddress'
+  };
+
+  function formatUkPostcode(raw){
+    const compact=String(raw||'').toUpperCase().replace(/\s+/g,'');
+    return compact.length>3 ? compact.slice(0,-3)+' '+compact.slice(-3) : compact;
+  }
+
+  function formatSpokenAddress(raw){
+    let text=String(raw||'').trim().replace(/\bnew line\b/gi,'\n').replace(/\bcomma\b/gi,'\n');
+    const pc=text.match(/\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i);
+    if(pc){
+      const postcode=formatUkPostcode(pc[1]);
+      text=text.replace(pc[0],'').replace(/[ ,]+$/,'').trim();
+      text=text+(text?'\n':'')+postcode;
+    }
+    return text.replace(/\n\s+/g,'\n').replace(/\n{2,}/g,'\n');
+  }
+
+  async function postcodeLookup(postcodeKey){
+    const cert=getCurrent(); if(!cert)return;
+    const target=POSTCODE_TARGETS[postcodeKey]; if(!target)return;
+    const postcode=formatUkPostcode(cert.fields[postcodeKey]||'');
+    if(!postcode){toast('Enter a postcode first');return;}
+    const key=String(settings.postcodeApiKey||'').trim();
+    if(!key){alert('Postcode address lookup is ready, but it needs an Ideal Postcodes API key. Open Profile and add the key under UK postcode address lookup. You can still type or speak the address manually.');return;}
+    toast('Finding addresses…');
+    try{
+      const url='https://api.ideal-postcodes.co.uk/v1/postcodes/'+encodeURIComponent(postcode)+'?api_key='+encodeURIComponent(key);
+      const res=await fetch(url,{headers:{Accept:'application/json'}});
+      const data=await res.json();
+      if(!res.ok||!Array.isArray(data.result)) throw new Error(data.message||'Address lookup failed');
+      if(!data.result.length){alert('No addresses were found for '+postcode);return;}
+      const choices=data.result.map((a,i)=>{
+        const lines=[a.line_1,a.line_2,a.line_3,a.post_town,a.county].filter(Boolean);
+        return {i,label:lines.join(', '),address:lines.join('\n'),postcode:a.postcode||postcode};
+      });
+      const modal=document.createElement('div');modal.className='modal-backdrop postcode-backdrop';
+      modal.innerHTML='<div class="card modal postcode-modal" data-modal><div class="profile-head"><div><div class="eyebrow">ADDRESS LOOKUP</div><h2>'+esc(postcode)+'</h2><p>Select the address and it will fill the certificate in a proper address format.</p></div><button class="btn" data-action="close-modal">Close</button></div><div class="postcode-results">'+choices.map(c=>'<button class="postcode-result" data-action="postcode-select" data-postcode-key="'+esc(postcodeKey)+'" data-address-index="'+c.i+'"><strong>'+esc(c.label)+'</strong><span>Use this address ›</span></button>').join('')+'</div></div>';
+      modal._postcodeChoices=choices;document.body.appendChild(modal);
+    }catch(err){console.error(err);alert('Address lookup failed: '+err.message);}
+  }
+
+  function selectPostcodeAddress(postcodeKey,index){
+    const modal=document.querySelector('.postcode-backdrop');
+    const choice=modal?._postcodeChoices?.[Number(index)];
+    const cert=getCurrent(),target=POSTCODE_TARGETS[postcodeKey];
+    if(!choice||!cert||!target)return;
+    cert.fields[postcodeKey]=formatUkPostcode(choice.postcode);
+    cert.fields[target]=choice.address;
+    saveNow();closeModal();render();toast('Address filled');
+  }
+
   function renderField(field, value, cert) {
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
@@ -794,7 +927,8 @@
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
     else if (field.type === 'select') control = `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
-    return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button></div></div>`;
+    const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
+    return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div></div>`;
   }
 
   function renderCircuitList(cert){
@@ -804,7 +938,7 @@
       const test=cert.tables.tests[i]||{};
       const title=row.circuitNo ? `Circuit ${esc(row.circuitNo)}` : `Circuit ${i+1}`;
       const details=[row.description,row.ocpdType&&row.ocpdRating?`${row.ocpdType}${row.ocpdRating} A`:row.ocpdRating?`${row.ocpdRating} A`:'',test.zs?`Zs ${test.zs} Ω`:''].filter(Boolean).join(' · ');
-      return `<div class="circuit-card"><button class="circuit-main" data-action="circuit-open" data-index="${i}"><strong>${title}</strong><span>${esc(details||'Tap to enter circuit details')}</span></button><div class="circuit-actions"><button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small" data-action="circuit-copy" data-index="${i}">Copy details</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button></div></div>`;
+      return `<div class="circuit-card"><button class="circuit-main" data-action="circuit-open" data-index="${i}"><strong>${title}</strong><span>${esc(details||'Tap to enter circuit details')}</span></button><div class="circuit-actions"><button class="btn small move-btn" data-action="circuit-move-up" data-index="${i}" ${i===0?'disabled':''}>↑ Up</button><button class="btn small move-btn" data-action="circuit-move-down" data-index="${i}" ${i===rows.length-1?'disabled':''}>↓ Down</button><button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button></div></div>`;
     }).join('');
     return `<section class="card form-section circuit-list"><h3>Schedule of circuits</h3><div class="circuit-list-body">${cards||'<div class="empty">No circuits added.</div>'}</div><div class="table-tools"><button class="btn primary" data-action="circuit-add">+ Add circuit</button></div></section>`;
   }
@@ -854,36 +988,81 @@
   }
 
   function openSettings() {
-    const html = `<div class="modal-backdrop" data-action="close-modal"><div class="card modal" data-modal><h2>Company & engineer defaults</h2><div class="settings-grid">${Object.entries({companyName:'Company name',engineerName:'Default engineer name',address:'Business address',postcode:'Postcode',phone:'Phone',email:'Email',registration:'Registration / scheme no. (optional)',qualification:'Qualifications / role'}).map(([k,l]) => `<div class="field ${k==='address'?'full':''}"><label>${l}</label>${k==='address'?`<textarea data-setting="${k}">${esc(settings[k])}</textarea>`:`<input data-setting="${k}" value="${esc(settings[k])}" />`}</div>`).join('')}</div><div class="note">Leave scheme / registration details blank unless they are current and you are entitled to use them. These defaults are inserted only into new certificates.</div><div class="toolbar" style="margin-top:14px"><button class="btn primary" data-action="save-settings">Save settings</button><button class="btn" data-action="close-modal">Close</button></div></div></div>`;
-    document.body.insertAdjacentHTML('beforeend', html);
+    const textField=(k,l,wide=false,type='text')=>`<div class="field ${wide?'full':''}"><label>${l}</label><input data-setting="${k}" type="${type}" value="${esc(settings[k]||'')}" /></div>`;
+    const html=`<div class="modal-backdrop" data-action="close-modal"><div class="card modal profile-modal" data-modal>
+      <div class="profile-head"><div><div class="eyebrow">ENGINEER PROFILE</div><h2>Details used on new certificates</h2><p>Fill these once. New certificates start with your details already entered, and you can still edit or remove them on any individual certificate.</p></div><button class="btn" data-action="close-modal">Close</button></div>
+      <section class="profile-section"><h3>Engineer & business</h3><div class="settings-grid">
+        ${textField('engineerName','Engineer name')}${textField('engineerPosition','Position / role')}${textField('companyName','Company name')}${textField('registration','Registration / scheme number')}
+        <div class="field full"><label>Business address</label><textarea data-setting="address">${esc(settings.address||'')}</textarea></div>
+        ${textField('postcode','Business postcode')}${textField('phone','Phone')}${textField('email','Email')}${textField('qualification','Qualifications / competence',true)}
+      </div></section>
+      <section class="profile-section"><h3>Default test instrument</h3><p class="profile-help">Used to pre-fill the Test Instrument section. Clear any field on a certificate when a different tester was used.</p><div class="settings-grid">
+        ${textField('testerMake','Tester make')}${textField('testerModel','Tester model')}${textField('testerSerial','Serial number')}${textField('testerCalibrationDue','Calibration due','', 'date')}
+      </div></section>
+      <section class="profile-section"><h3>UK postcode address lookup</h3><p class="profile-help">Optional. Add an Ideal Postcodes API key to enable postcode-first address selection. The key stays in this app’s local settings on your device.</p><div class="settings-grid">${textField('postcodeApiKey','Ideal Postcodes API key',true)}</div></section>
+      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Backup saves a latest recovery copy inside the app and a dated copy in Downloads. Restore automatically finds the latest backup. Share Backup lets you send a copy elsewhere.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
+      <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
+    </div></div>`;
+    document.body.insertAdjacentHTML('beforeend',html);
   }
 
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
+  function backupPayload() {
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates }, null, 2);
+  }
+
+  function applyBackupJson(json) {
+    const data=typeof json==='string'?JSON.parse(json):json;
+    if(!Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    state={certificates:data.certificates};
+    if(data.settings) settings={...settings,...data.settings};
+    state.certificates=state.certificates.map(c=>{try{return migrateCertificate(c)||c;}catch{return c;}});
+    persist(); saveSettings(); render();
+  }
+
+  window.sperinRestoreBackup=function(json,error){
+    if(error){alert('Restore failed: '+error);return;}
+    try{applyBackupJson(json);toast('Latest backup restored');}
+    catch(err){alert('Could not restore backup: '+err.message);}
+  };
+
   function backup() {
-    const payload = { version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates };
-    downloadBlob(JSON.stringify(payload, null, 2), `sperin-certificates-backup-${TODAY}.json`, 'application/json');
+    const content=backupPayload();
+    const filename=`sperin-certificates-backup-${TODAY}.json`;
+    if(window.Android && typeof window.Android.saveBackup==='function'){
+      try { window.Android.saveBackup(content,filename); toast('Backup saved automatically'); return; } catch(err){console.warn(err);}
+    }
+    downloadBlob(content,filename,'application/json');
     toast('Backup downloaded');
   }
 
   function restore() {
-    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
-    input.onchange = () => {
-      const file = input.files?.[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const data = JSON.parse(reader.result);
-          if (!Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
-          state = { certificates: data.certificates };
-          if (data.settings) settings = { ...settings, ...data.settings };
-          persist(); saveSettings(); render(); toast('Backup restored');
-        } catch (err) { alert(`Could not restore backup: ${err.message}`); }
-      };
+    if(window.Android && typeof window.Android.restoreLatestBackup==='function'){
+      try { window.Android.restoreLatestBackup(); return; } catch(err){console.warn(err);}
+    }
+    const input=document.createElement('input'); input.type='file'; input.accept='.json,application/json';
+    input.onchange=()=>{
+      const file=input.files?.[0]; if(!file)return;
+      const reader=new FileReader();
+      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Backup restored');}catch(err){alert('Could not restore backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
   }
+
+  function shareBackup() {
+    const content=backupPayload();
+    const filename=`sperin-certificates-backup-${TODAY}.json`;
+    if(window.Android && typeof window.Android.shareBackup==='function'){
+      try { window.Android.shareBackup(content,filename); return; } catch(err){console.warn(err);}
+    }
+    if(navigator.share){
+      const file=new File([content],filename,{type:'application/json'});
+      navigator.share({title:'Sperin Certificates backup',files:[file]}).catch(()=>{});
+    } else downloadBlob(content,filename,'application/json');
+  }
+
 
   function downloadBlob(content, filename, mime) {
     if (window.Android && typeof window.Android.saveTextFile === 'function') {
@@ -893,7 +1072,13 @@
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function printCertificate() { window.print(); }
+  function printCertificate() {
+    saveNow();
+    if(window.Android && typeof window.Android.printPage==='function'){
+      try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
+    }
+    window.print();
+  }
 
   function pdfSafeName(cert) { return `${cert.number || SCHEMAS[cert.type].code}-${(cert.fields.installationAddress || cert.fields.premisesAddress || '').split('\n')[0] || 'certificate'}`.replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-'); }
 
@@ -931,13 +1116,13 @@
       window.print(); return;
     }
     try {
-      const doc = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      let orientation='portrait', y=30;
+      const doc = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+      let orientation='landscape', y=30;
       pdfHeader(doc, schema, cert);
       const newPage=(o=orientation)=>{doc.addPage('a4',o);orientation=o;pdfHeader(doc,schema,cert);y=30;};
       const ensureSpace=(need=25)=>{const h=doc.internal.pageSize.getHeight();if(y+need>h-18)newPage(orientation);};
       const addSectionTitle=title=>{ensureSpace(12);const w=doc.internal.pageSize.getWidth();doc.setFillColor(235,242,250);doc.rect(12,y-5,w-24,8,'F');doc.setFont('helvetica','bold');doc.setTextColor(20,40,62);doc.setFontSize(9);doc.text(title,14,y);doc.setTextColor(20,28,38);y+=6;};
-      const backToPortrait=()=>{if(orientation!=='portrait')newPage('portrait');};
+      const backToPortrait=()=>{if(orientation!=='landscape')newPage('landscape');};
 
       schema.sections.forEach(part => {
         if (part.type === 'section') {
@@ -946,13 +1131,13 @@
           if(!visible.length) return;
           addSectionTitle(part.title);
           const body=visible.map(field=>[field.label,formatPdfValue(field,cert.fields[field.key])]);
-          doc.autoTable({ startY:y, head:[], body, margin:{left:12,right:12,top:30,bottom:16}, theme:'grid', styles:{fontSize:7.7,cellPadding:1.8,textColor:[25,33,43],lineColor:[205,214,225],lineWidth:.12}, columnStyles:{0:{cellWidth:62,fontStyle:'bold',fillColor:[248,250,252]},1:{cellWidth:124}}, didDrawPage:()=>pdfHeader(doc,schema,cert) });
+          doc.autoTable({ startY:y, head:[], body, margin:{left:12,right:12,top:30,bottom:16}, theme:'grid', styles:{fontSize:7.7,cellPadding:1.8,textColor:[25,33,43],lineColor:[205,214,225],lineWidth:.12}, columnStyles:{0:{cellWidth:78,fontStyle:'bold',fillColor:[248,250,252]},1:{cellWidth:195}}, didDrawPage:()=>pdfHeader(doc,schema,cert) });
           y=doc.lastAutoTable.finalY+6;
         } else if(part.type==='table') {
           const rows=(cert.tables[part.key]||[]).filter(row=>Object.values(row).some(v=>v!==undefined&&v!==null&&String(v).trim()!==''));
           if(!rows.length) return;
           const schedule=part.key==='circuits'||part.key==='tests';
-          if(schedule){newPage('landscape');} else backToPortrait();
+          if(orientation!=='landscape') newPage('landscape');
           addSectionTitle(part.title);
           const head=[part.columns.map(c=>c.label)], body=rows.map(row=>part.columns.map(c=>String(row[c.key]??'')));
           doc.autoTable({startY:y,head,body,margin:{left:8,right:8,top:30,bottom:16},theme:'grid',
@@ -1164,20 +1349,20 @@
     const body=modal.querySelector('[data-rapid-body]');
     const info=rapidCurrentSummary();
     if(!info.current){
-      body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Rapid Dictation</div><h2>Read-back complete</h2></div><button class="btn" data-action="rapid-close">Close</button></div><div class="note">You have reached the end of the current certificate fields. Review the certificate before completing it.</div><div class="toolbar" style="margin-top:14px"><button class="btn primary" data-action="rapid-start-top">Start again from top</button><button class="btn" data-action="rapid-sheet">Download read-back sheet</button></div>';
+      body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Voice Fill</div><h2>Voice Fill complete</h2></div><button class="btn" data-action="rapid-close">Close</button></div><div class="note">You have reached the end of the current certificate fields. Review the certificate before completing it.</div><div class="toolbar" style="margin-top:14px"><button class="btn primary" data-action="rapid-start-top">Start again from top</button><button class="btn" data-action="rapid-sheet">Download site worksheet</button></div>';
       return;
     }
     const d=info.current;
     const upcoming=info.descs.slice(rapidState.cursor,rapidState.cursor+5);
-    body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Rapid Dictation</div><h2>Read your handwritten sheet back</h2><p>Say each answer, then say <strong>NEXT FIELD</strong>. Read several answers in one go.</p></div><button class="btn" data-action="rapid-close">Close</button></div>'+
+    body.innerHTML='<div class="rapid-head"><div><div class="eyebrow">Voice Fill</div><h2>Speak answers into the certificate</h2><p>Say each answer, then say <strong>NEXT FIELD</strong>. Read several answers in one go.</p></div><button class="btn" data-action="rapid-close">Close</button></div>'+
       '<div class="rapid-progress"><strong>Field '+d.no+' of '+info.total+'</strong><span>'+esc(d.section)+'</span></div>'+
       '<div class="rapid-current"><div class="meta">Current field</div><strong>'+esc(d.label)+'</strong>'+(d.options?.length?'<div class="rapid-options">Choices: '+esc(d.options.join(' · '))+'</div>':'')+'</div>'+
       '<div class="rapid-upcoming"><div class="meta">Coming next</div>'+upcoming.map(x=>'<div><span>'+x.no+'</span> '+esc(x.label)+'</div>').join('')+'</div>'+
       '<textarea class="rapid-transcript" data-rapid-transcript placeholder="Your speech transcript appears here. You can also type or paste a read-back transcript."></textarea>'+
-      '<div class="rapid-actions"><button class="voice-speak-big rapid-mic" data-action="rapid-listen">🎙 <span>Record read-back</span></button><button class="btn primary" data-action="rapid-process">Process transcript</button></div>'+
+      '<div class="rapid-actions"><button class="voice-speak-big rapid-mic" data-action="rapid-listen">🎙 <span>Speak answers</span></button><button class="btn primary" data-action="rapid-process">Process transcript</button></div>'+
       '<div class="toolbar rapid-nav"><button class="btn" data-action="rapid-prev">← Previous field</button><button class="btn" data-action="rapid-later">Come back later</button><button class="btn danger" data-action="rapid-dismiss">Dismiss field</button></div>'+
-      '<div class="toolbar rapid-secondary"><button class="btn" data-action="rapid-start-top">Start from top</button><button class="btn" data-action="rapid-sheet">Download read-back sheet</button></div>'+
-      '<div class="note">For a long read-back: speak “next field” between answers. If the phone stops listening, press Record read-back again and carry on from the field shown here.</div>';
+      '<div class="toolbar rapid-secondary"><button class="btn" data-action="rapid-start-top">Start from top</button><button class="btn" data-action="rapid-sheet">Download site worksheet</button></div>'+
+      '<div class="note">For a long read-back: speak “next field” between answers. If the phone stops listening, press Speak answers again and carry on from the field shown here.</div>';
   }
 
   function openRapidEntry(fromTop=false) {
@@ -1224,12 +1409,12 @@
       alert('The PDF engine is not available. Reopen the app and try again.');
       return;
     }
-    const doc=new jsPDFCtor({unit:'mm',format:'a4',orientation:'portrait'});
+    const doc=new jsPDFCtor({unit:'mm',format:'a4',orientation:'landscape'});
     pdfHeader(doc,SCHEMAS[cert.type],cert);
     doc.setTextColor(25,33,43);
-    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('READ-BACK / RAPID ENTRY SHEET',14,32);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('PRINTABLE SITE WORKSHEET',14,32);
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.text('Write answers on site. Later use Rapid Dictation and read them in number order. Say “NEXT FIELD” between each answer.',14,38,{maxWidth:180});
+    doc.text('Write answers on site. Later use Voice Fill and read them in number order. Say “NEXT FIELD” between each answer.',14,38,{maxWidth:180});
     const rows=descs.map(d=>{
       const value=rapidGetValue(cert,d);
       const choices=d.options?.length ? d.options.join(' / ') : '';
@@ -1242,16 +1427,16 @@
       margin:{left:8,right:8,top:28,bottom:14},
       styles:{fontSize:6.5,cellPadding:1.4,overflow:'linebreak'},
       headStyles:{fillColor:[20,55,92],textColor:[255,255,255]},
-      columnStyles:{0:{cellWidth:10},1:{cellWidth:38},2:{cellWidth:48},3:{cellWidth:47},4:{cellWidth:47}}
+      columnStyles:{0:{cellWidth:12},1:{cellWidth:50},2:{cellWidth:74},3:{cellWidth:65},4:{cellWidth:65}}
     });
     pdfFooter(doc);
-    const name='Sperin-Read-Back-'+(cert.number||cert.type||'certificate').replace(/[^a-z0-9-_]+/gi,'-')+'.pdf';
+    const name='Sperin-Site-Worksheet-'+(cert.number||cert.type||'certificate').replace(/[^a-z0-9-_]+/gi,'-')+'.pdf';
     if(window.Android && typeof window.Android.savePdfBase64==='function'){
       window.Android.savePdfBase64(doc.output('datauristring'),name);
-      toast('Read-back sheet saved to Downloads');
+      toast('Site worksheet saved to Downloads');
     } else {
       doc.save(name);
-      toast('Read-back sheet created');
+      toast('Site worksheet created');
     }
   }
 
@@ -1420,7 +1605,8 @@
       else {
         const numeric=/rating|amps?|voltage|zs|ohm|csa|mm²|milliamps?|breaking|capacity|time|points|resistance|r1|r2|rn|frequency|prospective|ka\b/i.test(label);
         const number=numeric ? spokenNumber(text) : null;
-        el.value=number!==null ? number : text;
+        const isAddress=/address/i.test(label);
+        el.value=number!==null ? number : (isAddress ? formatSpokenAddress(text) : text);
       }
     }
     el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -1747,6 +1933,21 @@
     refreshVoiceToolbar();
   }
 
+  window.sperinHandleBack=function(){
+    if(document.querySelector('.postcode-backdrop')){closeModal();return true;}
+    if(document.querySelector('.rapid-backdrop')){closeRapidEntry();return true;}
+    if(document.querySelector('.voice-panel')){stopGuidedVoice('');return true;}
+    if(document.querySelector('.modal-backdrop')){closeModal();return true;}
+    if(view.page==='form' && view.circuitIndex!==null){
+      saveNow();
+      if(view.circuitStep==='tests'){view.circuitStep='details';render();goTop();}
+      else {view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
+      return true;
+    }
+    if(view.page==='form'){saveNow();view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};render();goTop();return true;}
+    return false;
+  };
+
   document.addEventListener('input', e => {
     const cert = getCurrent();
     if (e.target.matches('[data-field]') && cert) {
@@ -1820,7 +2021,10 @@
     const button = e.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if (action === 'rapid-entry') openRapidEntry(false);
+    if (action === 'postcode-find') postcodeLookup(button.dataset.postcodeKey);
+    else if (action === 'postcode-select') selectPostcodeAddress(button.dataset.postcodeKey,button.dataset.addressIndex);
+    else if (action === 'share-backup') shareBackup();
+    else if (action === 'rapid-entry') openRapidEntry(false);
     else if (action === 'rapid-sheet') downloadRapidSheet();
     else if (action === 'rapid-listen') rapidListen();
     else if (action === 'rapid-process') {
@@ -1864,15 +2068,12 @@
       cert.tables.circuits.push({circuitNo:no});cert.tables.tests.push({circuitNo:no});
       view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
     }
+    else if(action==='circuit-move-up' && cert){moveCircuit(cert,Number(button.dataset.index),-1);}
+    else if(action==='circuit-move-down' && cert){moveCircuit(cert,Number(button.dataset.index),1);}
     else if(action==='circuit-duplicate' && cert){
       syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
       const c=clone(cert.tables.circuits[i]||{}),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
-      cert.tables.circuits.push(c);cert.tables.tests.push(t);view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
-    }
-    else if(action==='circuit-copy' && cert){
-      syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
-      const c=clone(cert.tables.circuits[i]||{});c.circuitNo=no;c.maxZsManual=false;cert.tables.circuits.push(c);cert.tables.tests.push({circuitNo:no});
-      view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+      cert.tables.circuits.push(c);cert.tables.tests.push(t);renumberCircuits(cert);view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
       const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);persist();render();}
@@ -1884,7 +2085,7 @@
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); cert.tables[key].splice(ri, 1); persist(); render(); }
     else if (action === 'settings') openSettings();
-    else if (action === 'save-settings') { saveSettings(); closeModal(); toast('Settings saved'); }
+    else if (action === 'save-settings') { saveSettings(); closeModal(); toast('Profile saved'); }
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
     else if (action === 'backup') backup();
     else if (action === 'restore') restore();
