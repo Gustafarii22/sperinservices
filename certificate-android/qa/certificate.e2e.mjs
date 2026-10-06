@@ -149,7 +149,7 @@ assert(await page.getByRole('button',{name:/Voice Fill/}).count()===1,'Voice Fil
 assert(await page.getByRole('button',{name:/Printable Site Worksheet/}).count()===1,'Printable Site Worksheet button missing');
 const explainer=await page.locator('.entry-tools-explainer').textContent();
 assert(explainer.includes('Speak answers in field order'),'Voice Fill explanation missing');
-assert(explainer.includes('paper-friendly question list') || explainer.includes('paper-friendly') || explainer.includes('take around site'),'Worksheet explanation missing');
+assert(explainer.includes('same Sperin Services certificate form') && explainer.includes('paper and issued PDF match'),'Worksheet explanation does not describe the shared form layout');
 
 // Detailed EIC inspection checklist must be present and legacy row preserved.
 const inspection = page.locator('.form-section').filter({hasText:'Installation inspection checklist'});
