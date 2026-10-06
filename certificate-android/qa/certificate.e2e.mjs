@@ -2,7 +2,8 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const base = process.env.CERT_BASE_URL || 'http://127.0.0.1:4173/certificates/';
-const appSource = fs.readFileSync('public/certificates/app.js','utf8');\nconst ietSource = fs.readFileSync('public/certificates/iet-forms.js','utf8');
+const appSource = fs.readFileSync('public/certificates/app.js','utf8');
+const ietSource = fs.readFileSync('public/certificates/iet-forms.js','utf8');
 const javaSource = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java','utf8');
 const manifestSource = fs.readFileSync('certificate-android/app/src/main/AndroidManifest.xml','utf8');
 
@@ -22,7 +23,8 @@ const missingDynamic=dynamicActions.filter(a=>!handlers.includes(a));
 assert(missingActions.length===0,'Missing action handlers: '+missingActions.join(', '));
 assert(missingDynamic.length===0,'Missing dynamic action handlers: '+missingDynamic.join(', '));
 assert(!appSource.includes('data-action="circuit-copy"'),'Copy Details button must be removed');
-assert(appSource.includes('SperinIetForms.build'),'Certificate app is not using the shared IET-style renderer');\nassert(ietSource.includes("orientation:'portrait'"),'IET-style certificate renderer must start on portrait A4');
+assert(appSource.includes('SperinIetForms.build'),'Certificate app is not using the shared IET-style renderer');
+assert(ietSource.includes("orientation:'portrait'"),'IET-style certificate renderer must start on portrait A4');
 assert(appSource.includes('Installation inspection checklist'),'Detailed EIC inspection checklist missing');
 assert(appSource.includes('Printable Site Worksheet'),'Printable Site Worksheet label missing');
 assert(appSource.includes('Voice Fill'),'Voice Fill label missing');
@@ -56,8 +58,10 @@ await context.addInitScript(() => {
     updatedAt: '2026-10-01T10:00:00.000Z',
     fields: {
       clientName: 'Jane Smith',
-      clientAddress: '1 Test Road\nBirmingham',
-      installationAddress: '1 Test Road\nBirmingham',
+      clientAddress: '1 Test Road
+Birmingham',
+      installationAddress: '1 Test Road
+Birmingham',
       issueDate: '2026-10-01',
       nominalVoltage: '230'
     },
@@ -76,7 +80,8 @@ await context.addInitScript(() => {
     companyName:'Sperin Services',
     engineerName:'Gus Tester',
     engineerPosition:'Electrician / Inspector',
-    address:'10 Business Road\nBirmingham',
+    address:'10 Business Road
+Birmingham',
     postcode:'B1 1AA',
     phone:'0121 000 0000',
     email:'test@example.com',
@@ -171,7 +176,8 @@ console.log('POSTCODE_BUTTON_COUNT:',await page.locator('.postcode-result').coun
 assert(lookupHit>0,'Postcode button did not issue an address lookup request');
 assert(await page.locator('.postcode-result').count()>0,'Postcode request returned but address selector did not render');
 await page.locator('.postcode-result').first().click();
-assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('\n'),'Selected address is not formatted on separate lines');
+assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('
+'),'Selected address is not formatted on separate lines');
 assert((await page.locator('[data-field="installationPostcode"]').inputValue())==='B1 1AA','Postcode not formatted correctly');
 console.log('POSTCODE_LOOKUP_PASS');
 
