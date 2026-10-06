@@ -82,12 +82,16 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 const errors = [];
+let lookupHit=0;
+const dialogs=[];
 page.on('pageerror', err => errors.push(String(err)));
+page.on('dialog', async d => { dialogs.push(d.message()); console.log('DIALOG:',d.message()); await d.dismiss(); });
 page.on('console', msg => {
   if (msg.type() === 'error') errors.push('console: ' + msg.text());
 });
 
 await page.route('https://api.ideal-postcodes.co.uk/**', async route => {
+  lookupHit++; console.log('LOOKUP_REQUEST:',route.request().url());
   const payload={
     result:[
       {line_1:'1 Test Road',line_2:'Edgbaston',line_3:'',post_town:'Birmingham',county:'West Midlands',postcode:'B1 1AA'},
@@ -139,7 +143,13 @@ const postcode=page.locator('[data-field="installationPostcode"]');
 assert(await postcode.count()===1,'Installation postcode field missing');
 await postcode.fill('b11aa');
 await page.locator('[data-action="postcode-find"][data-postcode-key="installationPostcode"]').click();
-await page.waitForSelector('.postcode-result');
+await page.waitForTimeout(700);
+console.log('LOOKUP_HITS:',lookupHit);
+console.log('LOOKUP_DIALOGS:',JSON.stringify(dialogs));
+console.log('POSTCODE_MODAL_COUNT:',await page.locator('.postcode-backdrop').count());
+console.log('POSTCODE_BUTTON_COUNT:',await page.locator('.postcode-result').count());
+assert(lookupHit>0,'Postcode button did not issue an address lookup request');
+assert(await page.locator('.postcode-result').count()>0,'Postcode request returned but address selector did not render');
 await page.locator('.postcode-result').first().click();
 assert((await page.locator('[data-field="installationAddress"]').inputValue()).includes('\n'),'Selected address is not formatted on separate lines');
 assert((await page.locator('[data-field="installationPostcode"]').inputValue())==='B1 1AA','Postcode not formatted correctly');
