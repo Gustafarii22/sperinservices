@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.3.2";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -59,6 +59,7 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
 
         webView = new WebView(this);
+        webView.clearCache(true);
         webView.setBackgroundColor(Color.rgb(7, 17, 31));
         setContentView(webView);
 
