@@ -74,7 +74,7 @@ jobs:
           grep -F "N/A" certificate-android/qa-output/eic-regression.txt
           pages="$(pdfinfo "$PDF" | awk '/^Pages:/{print $2}')"
           for p in $(seq 1 "$pages"); do
-            size="$(pdfinfo -f "$p" -l "$p" "$PDF" | awk '/Page size:/{print $3" "$5; exit}')"
+            size="$(pdfinfo -f "$p" -l "$p" "$PDF" | awk -v p="$p" '$1=="Page" && $2==p && $3=="size:" {print $4" "$6; exit}')"
             width="${size%% *}"
             height="${size##* }"
             awk -v w="$width" -v h="$height" 'BEGIN{if(!(w>h))exit 1}'
