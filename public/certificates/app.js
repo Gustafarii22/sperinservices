@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
-  const VERSION = '1.7.4';
+  const VERSION = '1.7.5';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -821,13 +821,14 @@
       pdf:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M8 15h8M8 18h6"/></svg>',
       shield:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.8 3 8.2 7.5 9.5 4.5-1.3 7.5-4.7 7.5-9.5V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>',
       backup:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 14v6h14v-6"/></svg>',
+      importFile:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/></svg>',
       chevron:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>'
     };
     return icons[name]||icons.chevron;
   }
 
   function topbar() {
-    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><button class="btn small ghost top-action" data-action="backup">${uiIcon('backup')}<span>Backup</span></button><button class="btn small ghost top-action" data-action="restore"><span>↻</span><span>Restore</span></button><button class="btn small top-action" data-action="settings">${uiIcon('user')}<span>Profile</span></button></div></div>`;
+    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="top-action" data-action="backup">Backup</button><button class="top-action import-action" data-action="import-backup">Import</button><button class="top-action" data-action="settings">Profile</button></div></div></div>`;
   }
 
   function homeView() {
@@ -1035,7 +1036,7 @@
         ${textField('testerMake','Tester make')}${textField('testerModel','Tester model')}${textField('testerSerial','Serial number')}${textField('testerCalibrationDue','Calibration due','', 'date')}
       </div></section>
       <section class="profile-section"><h3>UK postcode address lookup</h3><p class="profile-help">Optional. Add an Ideal Postcodes API key to enable postcode-first address selection. The key stays in this app’s local settings on your device.</p><div class="settings-grid">${textField('postcodeApiKey','Ideal Postcodes API key',true)}</div></section>
-      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Backup saves a latest recovery copy inside the app and a dated copy in Downloads. Restore never destroys the current work: a recovery snapshot is created first. Undo Last Restore swaps back to the state immediately before the most recent restore.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo last restore</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
+      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Back up saves a latest recovery copy inside the app and a dated copy in Downloads. Import Backup File lets you choose an exact .json backup from your phone. Restore Latest uses the app's automatic latest backup. Every import or restore first saves your current work so Undo Last Restore can put it back.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn primary" data-action="import-backup">Import backup file</button><button class="btn" data-action="restore">Restore latest automatic backup</button><button class="btn" data-action="undo-restore">Undo last restore</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
     document.body.insertAdjacentHTML('beforeend',html);
@@ -1078,9 +1079,9 @@
   }
 
   window.sperinRestoreBackup=function(json,error){
-    if(error){alert('Restore failed: '+error);return;}
-    try{applyBackupJson(json,true);toast('Latest backup restored — Undo Last Restore is available');}
-    catch(err){alert('Could not restore backup: '+err.message);}
+    if(error){alert('Backup import/restore failed: '+error);return;}
+    try{applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
+    catch(err){alert('Could not load backup: '+err.message);}
   };
 
   function backup() {
@@ -1093,19 +1094,27 @@
     toast('Backup downloaded');
   }
 
-  function restore() {
-    if(!confirm('Restore the latest backup? Your current certificates will be saved to an Undo Last Restore recovery snapshot first.')) return;
-    if(window.Android && typeof window.Android.restoreLatestBackup==='function'){
-      try { window.Android.restoreLatestBackup(); return; } catch(err){console.warn(err);}
+  function importBackupFile() {
+    if(!confirm('Import this backup file? Your current certificates will be saved first so you can undo the import.')) return;
+    if(window.Android && typeof window.Android.importBackupFile==='function'){
+      try { window.Android.importBackupFile(); return; } catch(err){console.warn(err);}
     }
-    const input=document.createElement('input'); input.type='file'; input.accept='.json,application/json';
+    const input=document.createElement('input'); input.type='file'; input.accept='.json,application/json,text/json';
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Backup restored');}catch(err){alert('Could not restore backup: '+err.message);}};
+      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Backup imported');}catch(err){alert('Could not import backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
+  }
+
+  function restore() {
+    if(!confirm('Restore the app\'s latest automatic backup? Your current certificates will be saved first so you can undo this restore.')) return;
+    if(window.Android && typeof window.Android.restoreLatestBackup==='function'){
+      try { window.Android.restoreLatestBackup(); return; } catch(err){console.warn(err);}
+    }
+    importBackupFile();
   }
 
   function shareBackup() {
@@ -2383,6 +2392,7 @@
     else if (action === 'save-settings') { saveSettings(); closeModal(); toast('Profile saved'); }
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
     else if (action === 'backup') backup();
+    else if (action === 'import-backup') importBackupFile();
     else if (action === 'restore') restore();
     else if (action === 'undo-restore') undoLastRestore();
   });
