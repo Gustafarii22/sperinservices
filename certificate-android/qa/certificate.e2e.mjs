@@ -99,12 +99,15 @@ await context.addInitScript(() => {
     updatedAt: "2026-10-01T10:00:00.000Z",
     fields: {
       clientName: "Jane Smith",
-      clientAddress: "Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham",
+      clientAddress:
+        "Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham",
       clientPostcode: "B14 7AA",
       installationAddress: "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands",
       installationPostcode: "B13 0AA",
-      description: "Install new 15 way RCBO SPD consumer unit. Install new cooker circuit using 10mm2 cable. Alter kitchen socket circuit. Complete inspection, testing, labelling and certification. LONG DESCRIPTION END.",
-      extent: "Fixed wiring, new consumer unit, new cooker circuit and the altered kitchen circuit, including all associated inspection and testing. EXTENT END.",
+      description:
+        "Install new 15 way RCBO SPD consumer unit. Install new cooker circuit using 10mm2 cable. Alter kitchen socket circuit. Complete inspection, testing, labelling and certification. LONG DESCRIPTION END.",
+      extent:
+        "Fixed wiring, new consumer unit, new cooker circuit and the altered kitchen circuit, including all associated inspection and testing. EXTENT END.",
       workType: "Alteration to existing installation",
       issueDate: "2026-10-01",
       signatoryMode: "One person — design, construction & inspection",
@@ -213,12 +216,52 @@ await context.addInitScript(() => {
         },
       ],
       tests: [
-        { boardRef: "DB1", circuitNo: "1", r1: "0.12", rn: "0.12", r2: "0.20", r1r2: "0.32", irVoltage: "500", irLL: "200", irLE: "200", polarity: "Pass", zs: "1.11", rcdTime: "24", rcdButton: "Pass", afddButton: "N/A", remarks: "Lighting test row complete" },
-        { boardRef: "DB1", circuitNo: "2", r1: "0.08", rn: "0.08", r2: "0.15", r1r2: "0.23", irVoltage: "500", irLL: "200", irLE: "200", polarity: "Pass", zs: "0.22", rcdTime: "21", rcdButton: "Pass", afddButton: "N/A", remarks: "Sockets test row complete" },
+        {
+          boardRef: "DB1",
+          circuitNo: "1",
+          r1: "0.12",
+          rn: "0.12",
+          r2: "0.20",
+          r1r2: "0.32",
+          irVoltage: "500",
+          irLL: "200",
+          irLE: "200",
+          polarity: "Pass",
+          zs: "1.11",
+          rcdTime: "24",
+          rcdButton: "Pass",
+          afddButton: "N/A",
+          remarks: "Lighting test row complete",
+        },
+        {
+          boardRef: "DB1",
+          circuitNo: "2",
+          r1: "0.08",
+          rn: "0.08",
+          r2: "0.15",
+          r1r2: "0.23",
+          irVoltage: "500",
+          irLL: "200",
+          irLE: "200",
+          polarity: "Pass",
+          zs: "0.22",
+          rcdTime: "21",
+          rcdButton: "Pass",
+          afddButton: "N/A",
+          remarks: "Sockets test row complete",
+        },
       ],
       eicInspection: [
-        { item: "1.0", description: "Condition of consumer’s intake equipment (visual inspection only)", outcome: "✓" },
-        { item: "2.0", description: "Parallel or switched alternative sources of supply", outcome: "N/A" },
+        {
+          item: "1.0",
+          description: "Condition of consumer’s intake equipment (visual inspection only)",
+          outcome: "✓",
+        },
+        {
+          item: "2.0",
+          description: "Parallel or switched alternative sources of supply",
+          outcome: "N/A",
+        },
       ],
     },
   };
@@ -314,7 +357,7 @@ assert(
 const saved = page.locator(".saved-cert-row").first();
 const savedText = await saved.textContent();
 assert(savedText.includes("Jane Smith"), "Saved row must show customer name");
-assert(savedText.includes("1 Test Road"), "Saved row must show address");
+assert(savedText.includes("33 Chamberlain Road"), "Saved row must show address");
 assert(savedText.includes("01/10/2026"), "Saved row must show date");
 
 // Whole row opens the saved certificate.
@@ -486,10 +529,7 @@ const pdfBytes = fs.readFileSync(pdfPath);
 assert(pdfBytes.subarray(0, 4).toString() === "%PDF", "PDF signature invalid");
 const pdfText = pdfBytes.toString("latin1");
 const media = pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
-assert(
-  media && Number(media[1]) > Number(media[2]),
-  "EIC certificate first page is not landscape",
-);
+assert(media && Number(media[1]) > Number(media[2]), "EIC certificate first page is not landscape");
 fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.copyFileSync(pdfPath, "certificate-android/qa-output/eic-regression.pdf");
 console.log("EIC_LANDSCAPE_PDF_PASS");
