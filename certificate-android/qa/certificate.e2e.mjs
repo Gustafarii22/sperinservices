@@ -104,6 +104,9 @@ assert(appSource.includes("tneCpc"), "Twin & earth CPC derivation missing");
 assert(javaSource.includes("TextRecognition.getClient"), "Bundled ML Kit text recognition missing");
 assert(javaSource.includes("captureAndScanSheet"), "Native camera sheet scan missing");
 assert(javaSource.includes("scanSheetImageBase64"), "Gallery/base64 sheet scan missing");
+assert(javaSource.includes("public boolean savePdfBase64"), "Native PDF save does not report success/failure");
+assert(javaSource.includes("loadDataWithBaseURL"), "Same-origin bundled fallback missing");
+assert(!javaSource.includes("file:///android_asset/certificates/index.html"), "file:// fallback can hide origin-scoped certificate data");
 assert(javaSource.includes("saveAutoBackup"), "Native rolling recovery backup bridge missing");
 assert(javaSource.includes("auto-latest.json"), "Native automatic latest backup missing");
 assert(
