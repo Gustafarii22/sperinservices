@@ -1167,7 +1167,10 @@ assert(
   "Restore now button missing",
 );
 await page.locator('[data-action="recovery-confirm-cancel"]').last().click();
-assert((await page.locator(".recovery-confirm-modal").count()) === 0, "Restore cancel did not close safely");
+assert(
+  (await page.locator(".recovery-confirm-modal").count()) === 0,
+  "Restore cancel did not close safely",
+);
 console.log("RESTORE_DOUBLE_CONFIRM_PASS");
 
 await page.locator(".brand-home").click();
