@@ -104,9 +104,15 @@ assert(appSource.includes("tneCpc"), "Twin & earth CPC derivation missing");
 assert(javaSource.includes("TextRecognition.getClient"), "Bundled ML Kit text recognition missing");
 assert(javaSource.includes("captureAndScanSheet"), "Native camera sheet scan missing");
 assert(javaSource.includes("scanSheetImageBase64"), "Gallery/base64 sheet scan missing");
-assert(javaSource.includes("public boolean savePdfBase64"), "Native PDF save does not report success/failure");
+assert(
+  javaSource.includes("public boolean savePdfBase64"),
+  "Native PDF save does not report success/failure",
+);
 assert(javaSource.includes("loadDataWithBaseURL"), "Same-origin bundled fallback missing");
-assert(!javaSource.includes("file:///android_asset/certificates/index.html"), "file:// fallback can hide origin-scoped certificate data");
+assert(
+  !javaSource.includes("file:///android_asset/certificates/index.html"),
+  "file:// fallback can hide origin-scoped certificate data",
+);
 assert(javaSource.includes("saveAutoBackup"), "Native rolling recovery backup bridge missing");
 assert(javaSource.includes("auto-latest.json"), "Native automatic latest backup missing");
 assert(
@@ -719,9 +725,7 @@ console.log("ROTATION_RELOAD_MOBILE_PASS");
 // Restore deliberately long PDF values after the quick-entry/postcode tests and verify tester mapping.
 await page
   .locator('[data-field="clientAddress"]')
-  .fill(
-    "Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham",
-  );
+  .fill("Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham");
 await page.locator('[data-field="clientPostcode"]').fill("B14 7AA");
 await page
   .locator('[data-field="installationAddress"]')
@@ -1203,7 +1207,9 @@ for (const type of certificateTypeOrder) {
     type + " form missing Speak controls",
   );
 
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
   assert(overflow <= 2, type + " form has horizontal body overflow: " + overflow);
 
   const criticalButtons = page.locator(".form-head .btn, .topbar .top-action");
