@@ -61,6 +61,20 @@
   };
 
   const BONDING_OPTIONS = ['Water', 'Gas', 'Oil', 'Structural steel', 'Lightning protection system', 'Other'];
+  const NUMERIC_INPUT_KEYS = new Set([
+    'nominalVoltage','frequency','ipf','ze','maximumDemand','supplyDeviceRating',
+    'earthingConductorCsa','bondingConductorCsa','mainSwitchRating','mainRcdIdn','mainRcdDelay','mainRcdTime',
+    'zdb','dbIpf','points','liveCsa','cpcCsa','ocpdRating','breakingCapacity','maxZs','rcdIdn','rcdRating',
+    'r1','rn','r2','r1r2','r2only','irVoltage','irLL','irLE','zs','rcdTime',
+    'ringR1','ringRn','ringR2','rcdDelay','afddRating'
+  ]);
+  const INTEGER_INPUT_KEYS = new Set(['points','irVoltage','ocpdRating','rcdIdn','rcdRating','rcdTime','maximumDemand','supplyDeviceRating','mainSwitchRating']);
+
+  function inputModeAttrs(key){
+    if(INTEGER_INPUT_KEYS.has(key)) return ' inputmode="numeric" pattern="[0-9]*"';
+    if(NUMERIC_INPUT_KEYS.has(key)) return ' inputmode="decimal"';
+    return '';
+  }
 
   const f = (key, label, type = 'text', opts = {}) => ({ key, label, type, ...opts });
   const table = (key, title, columns, defaultRows = []) => ({ type: 'table', key, title, columns, defaultRows });
@@ -717,6 +731,71 @@
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
+  let editHistory = { certId:null, undo:[], redo:[] };
+
+  function resetEditHistory(certId=null){
+    editHistory={certId,undo:[],redo:[]};
+  }
+
+  function historySnapshot(label='Edit'){
+    const cert=getCurrent();
+    if(!cert) return null;
+    return {certId:cert.id,label,cert:clone(cert),view:clone(view),json:JSON.stringify(cert)};
+  }
+
+  function refreshHistoryButtons(){
+    document.querySelectorAll('[data-action="edit-undo"]').forEach(b=>b.disabled=!editHistory.undo.length);
+    document.querySelectorAll('[data-action="edit-redo"]').forEach(b=>b.disabled=!editHistory.redo.length);
+  }
+
+  function pushEditHistory(label='Edit'){
+    const snap=historySnapshot(label);
+    if(!snap) return;
+    if(editHistory.certId!==snap.certId) resetEditHistory(snap.certId);
+    const last=editHistory.undo.at(-1);
+    if(last?.json===snap.json) return;
+    editHistory.undo.push(snap);
+    if(editHistory.undo.length>60) editHistory.undo.shift();
+    editHistory.redo=[];
+    refreshHistoryButtons();
+  }
+
+  function applyHistorySnapshot(snap){
+    if(!snap) return;
+    const i=state.certificates.findIndex(c=>c.id===snap.certId);
+    if(i<0) return;
+    state.certificates[i]=clone(snap.cert);
+    view=clone(snap.view);
+    persist();
+  }
+
+  function undoEdit(){
+    const current=historySnapshot('Redo');
+    const previous=editHistory.undo.pop();
+    if(!previous||!current) return;
+    editHistory.redo.push(current);
+    const y=window.scrollY;
+    applyHistorySnapshot(previous);
+    render();
+    requestAnimationFrame(()=>window.scrollTo(0,y));
+    toast('Undone');
+  }
+
+  function redoEdit(){
+    const current=historySnapshot('Undo');
+    const next=editHistory.redo.pop();
+    if(!next||!current) return;
+    editHistory.undo.push(current);
+    const y=window.scrollY;
+    applyHistorySnapshot(next);
+    render();
+    requestAnimationFrame(()=>window.scrollTo(0,y));
+    toast('Redone');
+  }
+
+  function historyButtons(){
+    return '<button class="btn history-btn" data-action="edit-undo" '+(!editHistory.undo.length?'disabled':'')+'>Undo</button><button class="btn history-btn" data-action="edit-redo" '+(!editHistory.redo.length?'disabled':'')+'>Redo</button>';
+  }
 
   function loadState() {
     try {
