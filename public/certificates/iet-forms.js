@@ -235,13 +235,13 @@
         theme:'grid',
         pageBreak:'avoid',
         rowPageBreak:'avoid',
-        styles:{fontSize:6.05,cellPadding:1.35,minCellHeight:6.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        styles:{fontSize:5.9,cellPadding:.9,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
         columnStyles,
         didDrawPage:()=>frame(),
         ...extra.auto
       });
-      y=doc.lastAutoTable.finalY+3;
+      y=doc.lastAutoTable.finalY+2;
     };
     const pairRows=(rows)=>rows.map(([a,b,c,d])=>[
       {content:pdfText(a),styles:{fontStyle:'bold'}},worksheet?'':pdfText(b),
@@ -661,7 +661,7 @@
         pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
         labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:12});
+        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20});
         labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12});
         labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25});
         labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
