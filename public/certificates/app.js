@@ -2852,7 +2852,12 @@
       const key=e.target.dataset.field;
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
       if(key==='certificateNo') cert.number=e.target.value;
-      if(key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)) cert.tables.circuits.forEach((_,i)=>recalculateCircuitZs(cert,i));
+      if(key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)){
+        cert.tables.circuits.forEach((_,i)=>{
+          const row=cert.tables.circuits[i];
+          if(!row?.maxZsManual) recalculateCircuitZs(cert,i,true);
+        });
+      }
       if(key==='signatoryMode'||key.startsWith('singleSignatory')) syncSingleSignatory(cert);
       scheduleAutosave();
     }
@@ -2862,17 +2867,34 @@
       if (!cert.tables[tableInput][ri]) cert.tables[tableInput][ri] = {};
       cert.tables[tableInput][ri][col] = e.target.value; scheduleAutosave();
     }
+    if(e.target.matches('[data-board-input]')&&cert){
+      const bi=Number(e.target.dataset.boardIndex),key=e.target.dataset.boardInput;
+      const board=cert.tables?.boards?.[bi];
+      if(board && !['feedSourceType','sourceBoardRef','sourceCircuitNo'].includes(key)){
+        board[key]=e.target.value;
+        if(bi===0) syncPrimaryBoardLegacyFields(cert);
+        scheduleAutosave();
+      }
+    }
     if(e.target.matches('[data-circuit-input]')&&cert){
       const scope=e.target.dataset.circuitInput, i=Number(e.target.dataset.index), col=e.target.dataset.col;
       syncCircuitRows(cert);
       const target=scope==='details'?cert.tables.circuits[i]:cert.tables.tests[i];
       target[col]=e.target.value;
       if(scope==='details'){
-        if(col==='maxZs') target.maxZsManual=true;
-        if(['ocpdBs','ocpdType','ocpdRating'].includes(col)) recalculateCircuitZs(cert,i);
+        if(col==='maxZs'){
+          target.maxZsManual=true;
+        }
+        if(['ocpdBs','ocpdType','ocpdRating'].includes(col)){
+          target.maxZsManual=false;
+          recalculateCircuitZs(cert,i,true);
+          const maxInput=document.querySelector('[data-circuit-input="details"][data-index="'+i+'"][data-col="maxZs"]');
+          if(maxInput) maxInput.value=target.maxZs||'';
+        }
         if(col==='circuitNo') cert.tables.tests[i].circuitNo=e.target.value;
         if(col==='boardRef') cert.tables.tests[i].boardRef=e.target.value;
       }
+      syncDependentBoardFeeds(cert,target.boardRef||cert.tables.circuits[i]?.boardRef,target.circuitNo||cert.tables.circuits[i]?.circuitNo);
       scheduleAutosave();
     }
     if (e.target.matches('[data-setting]')) { /* Profile changes commit only when Save profile is pressed. */ }
@@ -2888,7 +2910,7 @@
       const i=Number(e.target.dataset.scanValue),r=siteScanState.results[i];
       if(r){r.value=e.target.value;if(String(e.target.value).trim()){r.accepted=true;if(r.confidence==='missing')r.confidence='check';}}
     }
-    if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) markVoiceDone(e.target);
+    if (e.target.matches('[data-field],[data-table-input],[data-circuit-input],[data-board-input]')) markVoiceDone(e.target);
   });
 
   document.addEventListener('change', e => {
