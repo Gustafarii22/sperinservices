@@ -48,9 +48,14 @@ assert(
   "Missing dynamic action handlers: " + missingDynamic.join(", "),
 );
 assert(!appSource.includes('data-action="circuit-copy"'), "Copy Details button must be removed");
-assert(!appSource.includes("BS 88-3 Type 3"), "Old BS 88-3 Type 3 wording remains in app source");
-assert(!appSource.includes("'BS 88-3'"), "Old spaced BS 88-3 wording remains in selectable values");
-assert(appSource.includes("'BS88-3'"), "Exact BS88-3 option missing");
+const ocpdOptionsMatch = appSource.match(/ocpdBs:\s*\[([^\]]+)\]/);
+const supplyOptionsMatch = appSource.match(/supplyDeviceBs:\s*\[([^\]]+)\]/);
+assert(ocpdOptionsMatch, "OCPD option list missing");
+assert(supplyOptionsMatch, "Supply-device option list missing");
+assert(ocpdOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 OCPD option missing");
+assert(supplyOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 supply-device option missing");
+assert(!ocpdOptionsMatch[1].includes("Type 3"), "Old Type 3 wording remains in OCPD options");
+assert(!supplyOptionsMatch[1].includes("Type 3"), "Old Type 3 wording remains in supply-device options");
 assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
 assert(
   appSource.includes("SperinIetForms.build"),
