@@ -1397,26 +1397,113 @@
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div></div>`;
   }
 
-  function renderCircuitList(cert){
+  function boardControl(boardIndex,key,label,value,options=null,extra=''){
+    const attrs=`data-board-input="${esc(key)}" data-board-index="${boardIndex}"`;
+    const control=Array.isArray(options)
+      ? `<select ${attrs} ${extra}><option value="">Select…</option>${options.map(o=>`<option value="${esc(o)}" ${String(value??'')===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+      : `<input ${attrs}${inputModeAttrs(key)} value="${esc(value??'')}" ${extra}/>`;
+    return `<div class="field"><label>${esc(label)}</label>${control}</div>`;
+  }
+
+  function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);
-    const rows=cert.tables.circuits;
-    const cards=rows.map((row,i)=>{
+    const indices=boardCircuitIndices(cert,board.ref);
+    const cards=indices.map((i,position)=>{
+      const row=cert.tables.circuits[i]||{};
       const test=cert.tables.tests[i]||{};
-      const title=row.circuitNo ? `Circuit ${esc(row.circuitNo)}` : `Circuit ${i+1}`;
-      const details=[row.description,row.ocpdType&&row.ocpdRating?`${row.ocpdType}${row.ocpdRating} A`:row.ocpdRating?`${row.ocpdRating} A`:'',test.zs?`Zs ${test.zs} Ω`:''].filter(Boolean).join(' · ');
-      return `<div class="circuit-card"><button class="circuit-main" data-action="circuit-open" data-index="${i}"><strong>${title}</strong><span>${esc(details||'Tap to enter circuit details')}</span></button><div class="circuit-actions"><button class="btn small move-btn" data-action="circuit-move-up" data-index="${i}" ${i===0?'disabled':''}>↑ Up</button><button class="btn small move-btn" data-action="circuit-move-down" data-index="${i}" ${i===rows.length-1?'disabled':''}>↓ Down</button><button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button></div></div>`;
+      const number=row.circuitNo!==undefined&&row.circuitNo!==null&&String(row.circuitNo).trim()!=='' ? String(row.circuitNo) : String(position+1);
+      const details=[
+        row._incomingFeed ? 'Incoming supply' : row.description,
+        row.ocpdType&&row.ocpdRating ? `${row.ocpdType}${row.ocpdRating} A` : row.ocpdRating ? `${row.ocpdRating} A` : '',
+        test.zs!==undefined&&test.zs!==null&&String(test.zs).trim()!=='' ? `Zs ${test.zs} Ω` : ''
+      ].filter(Boolean).join(' · ');
+      const incoming=row._incomingFeed===true;
+      return `<div class="circuit-card ${incoming?'incoming-circuit':''}" data-circuit-id="${esc(row.id||'')}">
+        <button class="circuit-main" data-action="circuit-open" data-index="${i}">
+          <strong>Circuit ${esc(number)}${incoming?' · Linked incoming':''}</strong>
+          <span>${esc(details||'Tap to enter circuit details')}</span>
+        </button>
+        <div class="circuit-actions">
+          <button class="btn small move-btn" data-action="circuit-move-up" data-index="${i}" ${position===0||incoming?'disabled':''}>↑ Up</button>
+          <button class="btn small move-btn" data-action="circuit-move-down" data-index="${i}" ${position===indices.length-1||incoming?'disabled':''}>↓ Down</button>
+          ${incoming
+            ? '<span class="linked-circuit-note">Copied from supply circuit</span>'
+            : `<button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button>`}
+        </div>
+      </div>`;
     }).join('');
-    return `<section class="card form-section circuit-list"><h3>Schedule of circuits</h3><div class="circuit-list-body">${cards||'<div class="empty">No circuits added.</div>'}</div><div class="table-tools"><button class="btn primary" data-action="circuit-add">+ Add circuit</button></div></section>`;
+    return `<div class="board-circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
+      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button></div>`;
+  }
+
+  function renderBoardWorkflow(cert){
+    ensureBoardWorkflowData(cert);
+    syncCircuitRows(cert);
+    const boards=cert.tables.boards||[];
+    const boardCards=boards.map((board,bi)=>{
+      const previousBoards=boards.slice(0,bi);
+      const sourceBoardOptions=previousBoards.map(b=>b.ref);
+      if(board.sourceBoardRef && !sourceBoardOptions.includes(board.sourceBoardRef)) sourceBoardOptions.push(board.sourceBoardRef);
+      const sourceIndices=board.sourceBoardRef ? boardCircuitIndices(cert,board.sourceBoardRef) : [];
+      const sourceCircuitOptions=sourceIndices
+        .map(i=>String(cert.tables.circuits[i]?.circuitNo??'').trim())
+        .filter(v=>v!=='' && !cert.tables.circuits[sourceIndices.find(i=>String(cert.tables.circuits[i]?.circuitNo??'').trim()===v)]?._incomingFeed);
+      const feed=board.feedSourceType || (bi===0?'Mains':'');
+      const feedFields=bi===0
+        ? '<div class="field"><label>Fed from</label><select data-board-input="feedSourceType" data-board-index="'+bi+'"><option value="Mains" selected>Mains</option></select></div>'
+        : `<div class="field"><label>Fed from</label><select data-board-input="feedSourceType" data-board-index="${bi}"><option value="">Select…</option><option value="Mains" ${feed==='Mains'?'selected':''}>Mains</option><option value="Another consumer unit" ${feed==='Another consumer unit'?'selected':''}>Another consumer unit</option></select></div>`+
+          (feed==='Another consumer unit'
+            ? `<div class="field"><label>Source consumer unit</label><select data-board-input="sourceBoardRef" data-board-index="${bi}"><option value="">Select…</option>${sourceBoardOptions.map(ref=>`<option value="${esc(ref)}" ${String(board.sourceBoardRef||'')===String(ref)?'selected':''}>${esc(ref)}</option>`).join('')}</select></div>
+               <div class="field"><label>Source circuit</label><select data-board-input="sourceCircuitNo" data-board-index="${bi}"><option value="">Select…</option>${sourceCircuitOptions.map(no=>`<option value="${esc(no)}" ${String(board.sourceCircuitNo??'')===String(no)?'selected':''}>Circuit ${esc(no)}</option>`).join('')}</select></div>`
+            : '');
+      return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
+        <div class="consumer-unit-head">
+          <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
+          ${boards.length>1?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
+        </div>
+        <div class="fields consumer-unit-fields">
+          ${boardControl(bi,'ref','Board reference',board.ref)}
+          ${boardControl(bi,'location','Location',board.location)}
+          ${feedFields}
+          ${boardControl(bi,'zdb','Zdb (Ω)',board.zdb)}
+          ${boardControl(bi,'ipf','Ipf (kA)',board.ipf)}
+          ${boardControl(bi,'mainSwitch','Main switch / device',board.mainSwitch)}
+          ${boardControl(bi,'rcd','RCD / RCBO details',board.rcd)}
+          ${boardControl(bi,'spd','SPD',board.spd,OPTIONS.spdType)}
+          ${boardControl(bi,'polarity','Correct polarity',board.polarity,OPTIONS.yesNoNA)}
+          ${boardControl(bi,'phaseSequence','Phase sequence',board.phaseSequence,OPTIONS.yesNoNA)}
+          ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
+        </div>
+        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Circuits</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div>${renderBoardCircuits(cert,board,bi)}</div>
+      </section>`;
+    }).join('');
+    return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
+      ${boardCards}
+      <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button></div>
+    </section>`;
+  }
+
+  function renderCircuitList(cert){
+    return renderBoardWorkflow(cert);
   }
 
   function editorInput(cert,scope,index,field,value){
-    const id=`dl-${scope}-${index}-${field.key}`;
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
-    if(field.textarea) control=`<textarea ${attrs}>${esc(value||'')}</textarea>`;
-    else if(field.options) control=`<input ${attrs} list="${id}" value="${esc(value||'')}" autocomplete="off"/><datalist id="${id}">${field.options.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist>`;
-    else control=`<input ${attrs} value="${esc(value||'')}"/>`;
-    const extra=field.suffix==='zs' ? `<button class="btn small" type="button" data-action="circuit-recalc" data-index="${index}">Recalculate</button><div class="meta">Auto for BS EN 60898-1 / 61009-1 B, C or D devices; manual entry remains available.</div>` : '';
+    if(field.textarea){
+      control=`<textarea ${attrs}>${esc(value??'')}</textarea>`;
+    }else if(field.options){
+      control=`<div class="combo-field">
+        <input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}" autocomplete="off"/>
+        <button class="combo-arrow" type="button" data-action="combo-toggle" aria-label="Show ${esc(field.label)} options">⌄</button>
+        <div class="combo-menu" hidden>${field.options.map(o=>`<button type="button" class="combo-option" data-action="combo-option" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+      </div>`;
+    }else{
+      control=`<input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}"/>`;
+    }
+    const extra=field.suffix==='zs'
+      ? '<div class="meta auto-zs-note">Calculated automatically when BS, curve or rating changes. You can still type a manual value.</div>'
+      : '';
     const auto=cert.autoMeta?.['circuit:'+index+':'+field.key] ? `<button class="auto-derived-badge" type="button" data-action="auto-info" data-index="${index}" data-key="${esc(field.key)}">Auto</button>` : '';
     return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)} ${auto}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${warningButton(cert,index,field.key)}</div>${extra}</div>`;
   }
@@ -1433,11 +1520,12 @@
       const source=step==='details'?circuit:test;
       return `<section class="card form-section"><h3>${esc(g.title)}</h3><div class="fields">${g.fields.map(f=>editorInput(cert,step,i,f,source[f.key]??'')).join('')}</div></section>`;
     }).join('');
-    const title=`Circuit ${esc(circuit.circuitNo||String(i+1))}`;
+    const number=circuit.circuitNo!==undefined&&circuit.circuitNo!==null&&String(circuit.circuitNo).trim()!=='' ? String(circuit.circuitNo) : String(i+1);
+    const title=`Circuit ${esc(number)}`;
     const nav=step==='details'
-      ? `<button class="btn primary" data-action="circuit-next">Next · Test results →</button>`
-      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-list">Save circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions"><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list">Circuits</button></div></div>`;
+      ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
+      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
