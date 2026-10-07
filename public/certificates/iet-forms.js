@@ -233,6 +233,7 @@
         margin:{left:x,right:10,top:27,bottom:14},
         tableWidth:w,
         theme:'grid',
+        pageBreak:'avoid',
         rowPageBreak:'avoid',
         styles:{fontSize:6.05,cellPadding:1.35,minCellHeight:6.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
@@ -327,7 +328,7 @@
       ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
       ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
       ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
-      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / Idn / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')]
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     addLandscapePage();
@@ -625,7 +626,7 @@
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
           ['9','Type','ocpdType'],['10','Rating A','ocpdRating'],['11','Breaking kA','breakingCapacity'],['12','Max permitted Zs Ω','maxZs'],
-          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn mA','rcdIdn'],['16','Rating A','rcdRating']
+          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','RCD mA','rcdIdn'],['16','Rating A','rcdRating']
         ];
         const rows=[];
         for(let r=0;r<12;r++){
@@ -659,12 +660,12 @@
         doc.addPage('a4','landscape');
         pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
-        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,55,{labelW:24});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+57,y+7,43,{labelW:13});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+102,y+7,43,{labelW:13});
-        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+147,y+7,50,{labelW:26});
-        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+199,y+7,50,{labelW:25});
-        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+251,y+7,w-251,{labelW:27});
+        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
+        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:12});
+        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12});
+        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25});
+        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
+        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
         const tcols=[
           ['17','Circuit','circuitNo'],['18','r1 line Ω','r1'],['19','rn neutral Ω','rn'],['20','r2 CPC Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
           ['23','IR test V','irVoltage'],['24','Live-Live MΩ','irLL'],['25','Live-Earth MΩ','irLE'],['26','Polarity','polarity'],['27','Max measured Zs Ω','zs'],
