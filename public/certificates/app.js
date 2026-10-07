@@ -68,7 +68,7 @@
     'r1','rn','r2','r1r2','r2only','irVoltage','irLL','irLE','zs','rcdTime',
     'ringR1','ringRn','ringR2','rcdDelay','afddRating'
   ]);
-  const INTEGER_INPUT_KEYS = new Set(['points','irVoltage','ocpdRating','rcdIdn','rcdRating','rcdTime','maximumDemand','supplyDeviceRating','mainSwitchRating']);
+  const INTEGER_INPUT_KEYS = new Set(['circuitNo','points','irVoltage','ocpdRating','rcdIdn','rcdRating','rcdTime','maximumDemand','supplyDeviceRating','mainSwitchRating']);
 
   function inputModeAttrs(key){
     if(INTEGER_INPUT_KEYS.has(key)) return ' inputmode="numeric" pattern="[0-9]*"';
@@ -1149,6 +1149,7 @@
       const migrated=migrateCertificate(cert);
       if(!migrated) throw new Error('Unsupported certificate format');
       view = { page: 'form', currentId: migrated.id, circuitIndex:null, circuitStep:'details' };
+      resetEditHistory(migrated.id);
       persist();
       render();
       goTop();
@@ -1164,6 +1165,7 @@
     const cert = makeCertificate(type);
     state.certificates.unshift(cert);
     view = { page: 'form', currentId: cert.id, circuitIndex: null, circuitStep: 'details' };
+    resetEditHistory(cert.id);
     persist();
     render(); goTop();
     toast('New certificate created');
@@ -1271,13 +1273,14 @@
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
     const sections = schema.sections.map(part => {
+      if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
+      if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert);
+      if(part.key==='circuits' || part.key==='tests') return '';
       if(part.type==='section') return renderSection(part,cert);
-      if(part.key==='circuits') return renderCircuitList(cert);
-      if(part.key==='tests') return '';
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1392,7 +1395,7 @@
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
     else if (field.type === 'select') control = `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    else control = `<input ${attrs} type="${field.type || 'text'}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
+    else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div></div>`;
   }
@@ -1549,7 +1552,7 @@
     if (col.readonly) return `<span>${esc(value)}</span>`;
     const attrs = `data-table-input="${tableKey}" data-row="${rowIndex}" data-col="${col.key}"`;
     if (col.type === 'select') return `<div class="voice-control table-voice"><select ${attrs}><option value=""></option>${(col.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
-    return `<div class="voice-control table-voice"><input ${attrs} value="${esc(value)}" /><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
+    return `<div class="voice-control table-voice"><input ${attrs}${inputModeAttrs(col.key)} value="${esc(value)}" /><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
   }
 
   function openSettings() {
