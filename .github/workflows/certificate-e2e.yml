@@ -77,6 +77,8 @@ jobs:
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
+          grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
+          grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
           grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt
           grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
           grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
