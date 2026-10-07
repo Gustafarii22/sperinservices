@@ -69,8 +69,8 @@ jobs:
           grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
           grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
           grep -F "Sockets test row" certificate-android/qa-output/eic-regression.txt
-          grep -E "^ *1 +Sockets" certificate-android/qa-output/eic-regression.txt
-          grep -E "^ *2 +Lighting" certificate-android/qa-output/eic-regression.txt
+          grep -E "^ *0 +Lighting" certificate-android/qa-output/eic-regression.txt
+          grep -E "^ *2 +Sockets" certificate-android/qa-output/eic-regression.txt
           grep -F "N/A" certificate-android/qa-output/eic-regression.txt
           pages="$(pdfinfo "$PDF" | awk '/^Pages:/{print $2}')"
           for p in $(seq 1 "$pages"); do
@@ -86,7 +86,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.2-PDF-QA
+          name: Sperin-Certificates-v1.7.7-PDF-QA
           path: certificate-android/qa-output/
           if-no-files-found: error
           retention-days: 30

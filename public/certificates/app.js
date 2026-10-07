@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.6';
+  const VERSION = '1.7.7';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -189,6 +189,46 @@
     });
   }
 
+  function circuitNumberParts(value) {
+    const text=String(value??'').trim();
+    if(!text) return {blank:true,numeric:false,number:Number.POSITIVE_INFINITY,suffix:''};
+    const match=text.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if(!match) return {blank:false,numeric:false,number:Number.POSITIVE_INFINITY,suffix:text.toLowerCase()};
+    return {blank:false,numeric:true,number:Number(match[1]),suffix:String(match[2]||'').trim().toLowerCase()};
+  }
+
+  function sortCircuitsByNumber(cert, activeCircuit=null) {
+    syncCircuitRows(cert);
+    const boardOrder=new Map();
+    cert.tables.circuits.forEach((row,i)=>{
+      const board=String(row.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+      if(!boardOrder.has(board)) boardOrder.set(board,boardOrder.size);
+    });
+    const pairs=cert.tables.circuits.map((circuit,index)=>({
+      circuit,
+      test:cert.tables.tests[index]||{},
+      index,
+      board:String(circuit.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1',
+      no:circuitNumberParts(circuit.circuitNo)
+    }));
+    pairs.sort((a,b)=>{
+      const boardDiff=(boardOrder.get(a.board)??999)-(boardOrder.get(b.board)??999);
+      if(boardDiff) return boardDiff;
+      if(a.no.blank!==b.no.blank) return a.no.blank?1:-1;
+      if(a.no.numeric!==b.no.numeric) return a.no.numeric?-1:1;
+      if(a.no.numeric && b.no.numeric && a.no.number!==b.no.number) return a.no.number-b.no.number;
+      const suffixDiff=a.no.suffix.localeCompare(b.no.suffix,undefined,{numeric:true,sensitivity:'base'});
+      return suffixDiff || a.index-b.index;
+    });
+    cert.tables.circuits=pairs.map(p=>p.circuit);
+    cert.tables.tests=pairs.map(p=>p.test);
+    cert.tables.circuits.forEach((row,i)=>{
+      cert.tables.tests[i].boardRef=row.boardRef||'DB1';
+      cert.tables.tests[i].circuitNo=row.circuitNo||'';
+    });
+    return activeCircuit ? cert.tables.circuits.indexOf(activeCircuit) : -1;
+  }
+
   function renumberCircuits(cert) {
     syncCircuitRows(cert);
     const counts={};
@@ -213,7 +253,6 @@
     const test=cert.tables.tests.splice(from,1)[0];
     cert.tables.circuits.splice(to,0,circuit);
     cert.tables.tests.splice(to,0,test);
-    renumberCircuits(cert);
     saveNow();
     render();
     goCircuits();
@@ -2213,6 +2252,17 @@
       if(error||!text){toast(error||'Nothing heard');return;}
       if(applyVoiceValue(el,text,{appendLongText:true})){
         markVoiceDone(el);
+        const cert=getCurrent();
+        if(cert && el.matches('[data-circuit-input="details"][data-col="circuitNo"]')){
+          const oldIndex=Number(el.dataset.index);
+          const activeCircuit=cert.tables?.circuits?.[oldIndex];
+          const newIndex=activeCircuit ? sortCircuitsByNumber(cert,activeCircuit) : -1;
+          if(view.circuitIndex!==null && newIndex>=0) view.circuitIndex=newIndex;
+          saveNow(); render();
+          toast('Circuit number saved and schedule sorted');
+          if(typeof after==='function') after(text);
+          return;
+        }
         toast((el.tagName==='TEXTAREA' && String(el.value||'').trim()) ? voiceLabel(el)+' updated' : voiceLabel(el)+' completed');
         if(typeof after==='function') after(text);
       } else toast('Could not match that answer');
@@ -2318,6 +2368,7 @@
   });
 
   document.addEventListener('change', e => {
+    const cert=getCurrent();
     if(e.target.matches('[data-site-builder="type"]') && siteBuilderState){
       if((siteBuilderState.type==='eic'||siteBuilderState.type==='eicr')&&!siteBuilderState.boards.length) siteBuilderState.boards=[{ref:'DB1',location:'',circuits:12}];
       renderSiteBuilder();
@@ -2329,7 +2380,18 @@
       return;
     }
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input]')) {
+      const circuitNumberEdit=e.target.matches('[data-circuit-input="details"][data-col="circuitNo"]');
+      const oldIndex=circuitNumberEdit ? Number(e.target.dataset.index) : -1;
+      const activeCircuit=circuitNumberEdit ? cert?.tables?.circuits?.[oldIndex] : null;
       e.target.dispatchEvent(new Event('input', { bubbles: true }));
+      if(circuitNumberEdit && cert && activeCircuit){
+        const newIndex=sortCircuitsByNumber(cert,activeCircuit);
+        if(view.circuitIndex!==null && newIndex>=0) view.circuitIndex=newIndex;
+        saveNow();
+        const y=window.scrollY; render(); requestAnimationFrame(()=>window.scrollTo(0,y));
+        toast('Circuits sorted by circuit number');
+        return;
+      }
       saveNow();
       if(e.target.matches('[data-field="signatoryMode"]')){
         const y=window.scrollY; render(); requestAnimationFrame(()=>window.scrollTo(0,y));
@@ -2492,10 +2554,10 @@
     else if(action==='circuit-duplicate' && cert){
       syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
       const c=clone(cert.tables.circuits[i]||{}),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
-      cert.tables.circuits.push(c);cert.tables.tests.push(t);renumberCircuits(cert);view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+      cert.tables.circuits.push(c);cert.tables.tests.push(t);sortCircuitsByNumber(cert,c);view.circuitIndex=cert.tables.circuits.indexOf(c);view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
-      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);saveNow();render();goCircuits();}
+      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();goCircuits();}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}

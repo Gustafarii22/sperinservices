@@ -531,6 +531,35 @@ assert(
 );
 console.log("CIRCUIT_FLOW_PASS");
 
+// Circuit numbers should drive the normal schedule order without losing paired test results.
+// Set the Lighting circuit to 0 and confirm it moves ahead of circuit 2 automatically.
+await page
+  .locator(".circuit-card")
+  .filter({ hasText: "Lighting" })
+  .locator('[data-action="circuit-open"]')
+  .click();
+await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
+const zeroNo = page.locator('[data-circuit-input="details"][data-col="circuitNo"]');
+await zeroNo.fill("0");
+await zeroNo.press("Tab");
+await page.waitForTimeout(100);
+await page.locator('[data-action="circuit-list"]').first().click();
+await page.waitForSelector(".circuit-list");
+const autoSorted = await page.locator(".circuit-card .circuit-main").allTextContents();
+assert(
+  autoSorted[0].includes("Circuit 0") &&
+    autoSorted[0].includes("Lighting") &&
+    autoSorted[0].includes("Zs 1.11"),
+  "Circuit 0 did not auto-sort to the first position with its test results",
+);
+assert(
+  autoSorted[1].includes("Circuit 2") &&
+    autoSorted[1].includes("Sockets") &&
+    autoSorted[1].includes("Zs 0.22"),
+  "Automatic circuit sort separated circuit details from test results",
+);
+console.log("CIRCUIT_AUTOSORT_PASS");
+
 // Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
 await page
   .locator('[data-field="installationAddress"]')
