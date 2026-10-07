@@ -356,10 +356,13 @@
           if(!rows.length) rows=clone(part.defaultRows);
           else if(part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
             const keyName=part.defaultRows.some(r=>r.item!==undefined)?'item':'ref';
-            const existing=new Map(rows.map(r=>[String(r[keyName]??''),r]));
+            const keyedRows=rows.filter(r=>String(r[keyName]??'').trim()!=='');
+            const unkeyedRows=rows.filter(r=>String(r[keyName]??'').trim()==='');
+            const existing=new Map(keyedRows.map(r=>[String(r[keyName]??''),r]));
             rows=part.defaultRows.map(def=>({...clone(def),...(existing.get(String(def[keyName]??''))||{})}));
             const known=new Set(part.defaultRows.map(r=>String(r[keyName]??'')));
-            rows.push(...Array.from(existing.entries()).filter(([k])=>k&&!known.has(k)).map(([,r])=>r));
+            rows.push(...Array.from(existing.entries()).filter(([k])=>!known.has(k)).map(([,r])=>r));
+            rows.push(...unkeyedRows);
           }
         }
         cert.tables[part.key]=rows;
