@@ -59,6 +59,11 @@ jobs:
           fail(!ocpdOptions.includes('Type 3'), 'Old Type 3 wording remains in OCPD options');
           fail(!supplyOptions.includes('Type 3'), 'Old Type 3 wording remains in supply-device options');
           fail(app.includes('normaliseLegacyDeviceLabels'), 'Legacy BS88-3 migration missing');
+          fail(app.includes('Backup certificates?'), 'Backup first confirmation missing');
+          fail(app.includes('Confirm backup'), 'Backup second confirmation missing');
+          fail(app.includes('Restore latest backup?'), 'Restore first confirmation missing');
+          fail(app.includes('Confirm restore'), 'Restore second confirmation missing');
+          fail(app.includes('data-action="restore">Restore</button>'), 'Top-bar Restore text button missing');
           fail(app.includes("select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs)"), 'Minor Works OCPD selector missing');
           fail(app.includes("select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity)"), 'Minor Works breaking-capacity selector missing');
           fail(app.includes("field.key==='bondingTo' || field.key==='bondingPresent'"), 'Shared one-tap bonding controls missing');
