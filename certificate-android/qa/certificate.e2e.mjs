@@ -67,8 +67,11 @@ assert(
   appSource.includes("Installation inspection checklist"),
   "Detailed EIC inspection checklist missing",
 );
-assert(appSource.includes("Printable Site Worksheet"), "Printable Site Worksheet label missing");
-assert(appSource.includes("Voice Fill"), "Voice Fill label missing");
+assert(appSource.includes('data-action="rapid-sheet">Site sheet'), "Site sheet action label missing");
+assert(appSource.includes('data-action="rapid-entry">Voice'), "Voice action label missing");
+assert(appSource.includes("prepareBackupData"), "Validated backup import staging missing");
+assert(appSource.includes("normaliseBoardKey"), "Per-board circuit numbering normalisation missing");
+assert(appSource.includes("scheduleNativeAutoBackup"), "Rolling recovery backup scheduling missing");
 assert(javaSource.includes("createPrintDocumentAdapter"), "Native Android print route missing");
 assert(javaSource.includes("showFileNotification"), "PDF notification route missing");
 assert(javaSource.includes("restoreLatestBackup"), "Automatic restore route missing");
@@ -84,6 +87,26 @@ assert(appSource.includes("tneCpc"), "Twin & earth CPC derivation missing");
 assert(javaSource.includes("TextRecognition.getClient"), "Bundled ML Kit text recognition missing");
 assert(javaSource.includes("captureAndScanSheet"), "Native camera sheet scan missing");
 assert(javaSource.includes("scanSheetImageBase64"), "Gallery/base64 sheet scan missing");
+assert(javaSource.includes("saveAutoBackup"), "Native rolling recovery backup bridge missing");
+assert(javaSource.includes("auto-latest.json"), "Native automatic latest backup missing");
+assert(!javaSource.includes("recoverChamberlainFromWebViewStorage"), "Retired Chamberlain auto-recovery code is still present");
+assert(!javaSource.includes("exportForensicRecoveryBundle"), "Retired forensic export still runs in production");
+
+const jsBridgeCalls = [
+  ...new Set([...appSource.matchAll(/window\.Android\.([A-Za-z0-9_]+)/g)].map((m) => m[1])),
+].sort();
+const nativeBridgeMethods = [
+  ...new Set(
+    [...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g)].map(
+      (m) => m[1],
+    ),
+  ),
+].sort();
+const missingNativeBridge = jsBridgeCalls.filter((name) => !nativeBridgeMethods.includes(name));
+assert(
+  missingNativeBridge.length === 0,
+  "JavaScript calls missing native Android methods: " + missingNativeBridge.join(", "),
+);
 console.log("STATIC_ROUTE_NATIVE_PASS");
 
 const browser = await chromium.launch({ headless: true });
@@ -371,22 +394,50 @@ assert(
 );
 assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit render error");
 
-// Voice/worksheet controls must explain themselves.
+// Compact field actions must stay obvious without icon-only controls.
+assert((await page.getByRole("button", { name: "Voice", exact: true }).count()) === 1, "Voice button missing");
 assert(
-  (await page.getByRole("button", { name: /Voice Fill/ }).count()) === 1,
-  "Voice Fill button missing",
-);
-assert(
-  (await page.getByRole("button", { name: /Printable Site Worksheet/ }).count()) === 1,
-  "Printable Site Worksheet button missing",
+  (await page.getByRole("button", { name: "Site sheet", exact: true }).count()) === 1,
+  "Site sheet button missing",
 );
 const explainer = await page.locator(".entry-tools-explainer").textContent();
-assert(explainer.includes("Speak answers in field order"), "Voice Fill explanation missing");
+assert(explainer.includes("adds to long answers"), "Voice append explanation missing");
+assert(explainer.includes("matches the issued PDF"), "Site-sheet explanation missing");
+
+// One-tap field helpers: same-client, bonding and signatory mode.
+await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham");
+await page.locator('[data-field="clientPostcode"]').fill("B1 2AA");
+await page.locator('[data-action="copy-client-installation"]').click();
 assert(
-  explainer.includes("same Sperin Services certificate form") &&
-    explainer.includes("paper and issued PDF match"),
-  "Worksheet explanation does not describe the shared form layout",
+  (await page.locator('[data-field="installationAddress"]').inputValue()) === "1 Copy Road\nBirmingham",
+  "Same-as-client did not copy the address",
 );
+assert(
+  (await page.locator('[data-field="installationPostcode"]').inputValue()) === "B1 2AA",
+  "Same-as-client did not copy the postcode",
+);
+
+const bondingField = page.locator('[data-field="bondingTo"]');
+await page.locator('[data-action="bonding-toggle"][data-value="Gas"]').click();
+assert((await bondingField.inputValue()) === "Water", "Gas bonding toggle did not remove Gas");
+await page.locator('[data-action="bonding-toggle"][data-value="Gas"]').click();
+assert(
+  (await page.locator('[data-field="bondingTo"]').inputValue()).includes("Gas"),
+  "Gas bonding toggle did not restore Gas",
+);
+
+await page.locator('[data-action="signatory-mode"]').filter({ hasText: "Separate people" }).click();
+assert((await page.locator('[data-field="designer1"]').count()) === 1, "Separate designer fields missing");
+assert(
+  (await page.locator('[data-field="singleSignatoryName"]').count()) === 0,
+  "Single signatory fields remained visible in separate mode",
+);
+await page.locator('[data-action="signatory-mode"]').filter({ hasText: "One person" }).click();
+assert(
+  (await page.locator('[data-field="singleSignatoryName"]').count()) === 1,
+  "One-person signatory fields did not return",
+);
+console.log("QUICK_ENTRY_CONTROLS_PASS");
 
 // Detailed EIC inspection checklist must be present and legacy row preserved.
 const inspection = page
@@ -415,6 +466,24 @@ assert(
   inspectionStored.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "✓"),
   "Apply-all tick control did not update the inspection schedule",
 );
+await inspection.locator('[data-action="inspection-bulk"][data-value="N/A"]').click();
+let inspectionStored2 = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "N/A"),
+  "Apply-all N/A control did not update the inspection schedule",
+);
+await inspection.locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]').click();
+inspectionStored2 = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✕",
+  "Direct inspection cross control did not save",
+);
+await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
+console.log("INSPECTION_DIRECT_CONTROLS_PASS");
 
 // Postcode-first address lookup.
 const postcode = page.locator('[data-field="installationPostcode"]');
