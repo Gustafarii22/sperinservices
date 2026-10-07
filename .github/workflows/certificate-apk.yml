@@ -35,14 +35,19 @@ jobs:
           const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
           const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
-          fail(app.includes("const VERSION = '1.7.1'"), 'Certificate UI version is not v1.7.1');
-          fail(gradle.includes('versionCode 171') && gradle.includes("versionName '1.7.1'"), 'Android version is not v1.7.1 / 171');
+          fail(app.includes("const VERSION = '1.7.2'"), 'Certificate UI version is not v1.7.2');
+          fail(gradle.includes('versionCode 172') && gradle.includes("versionName '1.7.2'"), 'Android version is not v1.7.2 / 172');
           fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
           fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
           fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
           fail(!iet.includes("cols.map(c=>c[0]+' '+c[1])"), 'Circuit schedule numbering has returned');
           fail(!iet.includes("tcols.map(c=>c[0]+' '+c[1])"), 'Test schedule numbering has returned');
           fail(!iet.includes('Outcome ✓ / N/A'), 'Unsupported check glyph remains in PDF heading');
+          fail(iet.includes("orientation:cert.type==='eic'?'landscape':'portrait'"), 'EIC first page is not landscape');
+          fail(iet.includes('Client address'), 'Client address PDF mapping missing');
+          fail(iet.includes('Wiring / containment'), 'Circuit containment PDF mapping missing');
+          fail(iet.includes('normaliseBoardRef'), 'Circuit board-reference normalisation missing');
+          fail(iet.includes("return 'N/A'"), 'Inspection N/A rendering missing');
           fail(e2e.includes("linkedAfter.fields.earthingArrangement==='TN-S'"), 'X-mark photo mapping regression check missing');
           console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
           NODE
@@ -113,13 +118,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.1.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.2.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.1
-          path: certificate-android/dist/Sperin-Certificates-v1.7.1.apk
+          name: Sperin-Certificates-v1.7.2
+          path: certificate-android/dist/Sperin-Certificates-v1.7.2.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -127,10 +132,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.1"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.1.apk"
+          TAG="certificates-v1.7.2"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.2.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.1" --notes "Final certificate layout correction release: retains the BS 7671:2018+A4:2026 IET-style form structure while removing unsupported PDF glyph clutter, removing numbered circuit/test schedule headings, standardising clean X-mark worksheet choices, and preserving machine-readable site-sheet mapping and Sperin Services branding."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.2" --notes "EIC PDF reliability release: all EIC pages are landscape, client and installation addresses and long descriptions wrap in full, signatory declarations are readable, supply and installation particulars no longer overlap, satisfactory inspection outcomes use drawn tick marks, and circuit/test schedules retain saved rows across board-reference formatting differences."
           fi
