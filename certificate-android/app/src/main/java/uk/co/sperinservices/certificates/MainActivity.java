@@ -59,6 +59,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -71,6 +73,8 @@ public class MainActivity extends Activity {
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
+    private String recoveredChamberlainBackup = null;
+    private int recoveredChamberlainScore = -1;
     private ValueCallback<Uri[]> fileChooserCallback;
     private boolean usingLocalFallback = false;
     private SpeechRecognizer speechRecognizer;
@@ -91,6 +95,11 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(7, 17, 31));
         getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
         createNotificationChannel();
+
+        // IMPORTANT: forensic recovery runs before WebView is opened so Chromium
+        // cannot compact/rotate the LevelDB log that may still contain the
+        // pre-restore localStorage value.
+        recoveredChamberlainBackup = recoverChamberlainFromWebViewStorage();
 
         webView = new WebView(this);
         webView.clearCache(true);
@@ -140,6 +149,25 @@ public class MainActivity extends Activity {
                 }
                 try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
                 return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (recoveredChamberlainBackup != null && !recoveredChamberlainBackup.isEmpty()) {
+                    final String json = recoveredChamberlainBackup;
+                    recoveredChamberlainBackup = null;
+                    // Save an untouched recovery copy before importing it.
+                    saveBytes(json.getBytes(StandardCharsets.UTF_8),
+                            "Sperin-Recovered-33-Chamberlain-Road.json",
+                            "application/json", false);
+                    String js = "if(window.sperinRestoreBackup){window.sperinRestoreBackup(" +
+                            JSONObject.quote(json) + ",\"\");}";
+                    view.evaluateJavascript(js, null);
+                    Toast.makeText(MainActivity.this,
+                            "Recovered 33 Chamberlain Road from pre-restore app storage",
+                            Toast.LENGTH_LONG).show();
+                }
             }
 
             @Override
@@ -339,6 +367,199 @@ public class MainActivity extends Activity {
     private String safeName(String name, String fallback) {
         String value = name == null ? fallback : name.replaceAll("[\\/:*?\"<>|]+", "-").trim();
         return value.isEmpty() ? fallback : value;
+    }
+
+
+    private String recoverChamberlainFromWebViewStorage() {
+        try {
+            File levelDb = new File(getApplicationInfo().dataDir,
+                    "app_webview/Default/Local Storage/leveldb");
+            if (!levelDb.exists() || !levelDb.isDirectory()) return null;
+
+            File[] files = levelDb.listFiles();
+            if (files == null || files.length == 0) return null;
+            Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+
+            // The active/recent *.log files are the best recovery source because
+            // overwritten LevelDB values remain as older WriteBatch records until
+            // Chromium compacts the log.
+            for (File file : files) {
+                if (!file.isFile() || !file.getName().endsWith(".log")) continue;
+                if (file.length() <= 0 || file.length() > 16L * 1024L * 1024L) continue;
+                byte[] bytes = readAllBytes(file);
+                scanLevelDbLog(bytes);
+            }
+
+            // Fallback: scan other small LevelDB files for uncompressed value bytes.
+            if (recoveredChamberlainBackup == null) {
+                for (File file : files) {
+                    if (!file.isFile() || file.getName().endsWith(".log")) continue;
+                    if (file.length() <= 0 || file.length() > 8L * 1024L * 1024L) continue;
+                    byte[] bytes = readAllBytes(file);
+                    considerCandidateBytes(bytes);
+                }
+            }
+            return recoveredChamberlainBackup;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private byte[] readAllBytes(File file) throws Exception {
+        try (InputStream in = new FileInputStream(file);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private void scanLevelDbLog(byte[] data) {
+        final int BLOCK = 32768;
+        ByteArrayOutputStream fragmented = null;
+        for (int blockStart = 0; blockStart < data.length; blockStart += BLOCK) {
+            int blockEnd = Math.min(data.length, blockStart + BLOCK);
+            int p = blockStart;
+            while (p + 7 <= blockEnd) {
+                int len = (data[p + 4] & 0xff) | ((data[p + 5] & 0xff) << 8);
+                int type = data[p + 6] & 0xff;
+                if (len == 0 && type == 0) break;
+                int payloadStart = p + 7;
+                int payloadEnd = payloadStart + len;
+                if (payloadEnd > blockEnd || payloadEnd > data.length) break;
+
+                if (type == 1) { // FULL
+                    byte[] rec = Arrays.copyOfRange(data, payloadStart, payloadEnd);
+                    scanWriteBatch(rec);
+                    fragmented = null;
+                } else if (type == 2) { // FIRST
+                    fragmented = new ByteArrayOutputStream();
+                    fragmented.write(data, payloadStart, len);
+                } else if (type == 3) { // MIDDLE
+                    if (fragmented != null) fragmented.write(data, payloadStart, len);
+                } else if (type == 4) { // LAST
+                    if (fragmented != null) {
+                        fragmented.write(data, payloadStart, len);
+                        scanWriteBatch(fragmented.toByteArray());
+                    }
+                    fragmented = null;
+                }
+                p = payloadEnd;
+            }
+        }
+    }
+
+    private void scanWriteBatch(byte[] batch) {
+        if (batch == null || batch.length < 12) return;
+        int p = 12; // sequence (8) + count (4)
+        while (p < batch.length) {
+            int tag = batch[p++] & 0xff;
+            int[] keyLen = readVarint32(batch, p);
+            if (keyLen == null) return;
+            p = keyLen[1];
+            int kl = keyLen[0];
+            if (kl < 0 || p + kl > batch.length) return;
+            byte[] key = Arrays.copyOfRange(batch, p, p + kl);
+            p += kl;
+
+            if (tag == 1) { // kTypeValue
+                int[] valLen = readVarint32(batch, p);
+                if (valLen == null) return;
+                p = valLen[1];
+                int vl = valLen[0];
+                if (vl < 0 || p + vl > batch.length) return;
+                byte[] value = Arrays.copyOfRange(batch, p, p + vl);
+                p += vl;
+                considerCandidateBytes(key);
+                considerCandidateBytes(value);
+            } else if (tag == 0) { // deletion
+                considerCandidateBytes(key);
+            } else {
+                return;
+            }
+        }
+    }
+
+    private int[] readVarint32(byte[] data, int p) {
+        int result = 0;
+        int shift = 0;
+        for (int i = 0; i < 5 && p < data.length; i++, p++) {
+            int b = data[p] & 0xff;
+            result |= (b & 0x7f) << shift;
+            if ((b & 0x80) == 0) return new int[]{result, p + 1};
+            shift += 7;
+        }
+        return null;
+    }
+
+    private void considerCandidateBytes(byte[] bytes) {
+        if (bytes == null || bytes.length < 20) return;
+        tryCandidateString(new String(bytes, StandardCharsets.UTF_8));
+        if (bytes.length > 1) {
+            tryCandidateString(new String(bytes, 1, bytes.length - 1, StandardCharsets.UTF_8));
+        }
+        try {
+            tryCandidateString(new String(bytes, "UTF-16LE"));
+            if (bytes.length > 2) tryCandidateString(new String(bytes, 1, bytes.length - 1, "UTF-16LE"));
+            tryCandidateString(new String(bytes, "UTF-16BE"));
+            if (bytes.length > 2) tryCandidateString(new String(bytes, 1, bytes.length - 1, "UTF-16BE"));
+        } catch (Exception ignored) {}
+    }
+
+    private void tryCandidateString(String decoded) {
+        if (decoded == null || decoded.length() < 30) return;
+        String lower = decoded.toLowerCase();
+        if (!lower.contains("33 chamberlain road") && !lower.contains("tom watson")) return;
+
+        // Chromium may prefix its localStorage string encoding byte. Pull out the
+        // JSON object and validate it rather than trusting arbitrary byte matches.
+        int first = decoded.indexOf('{');
+        int last = decoded.lastIndexOf('}');
+        if (first < 0 || last <= first) return;
+        String json = decoded.substring(first, last + 1).replace("\u0000", "");
+        try {
+            JSONObject root = new JSONObject(json);
+            JSONArray certs = root.optJSONArray("certificates");
+            if (certs == null || certs.length() == 0) return;
+
+            JSONObject target = null;
+            for (int i = 0; i < certs.length(); i++) {
+                JSONObject cert = certs.optJSONObject(i);
+                if (cert == null) continue;
+                String c = cert.toString().toLowerCase();
+                if (c.contains("33 chamberlain road") || c.contains("tom watson")) {
+                    target = cert;
+                    break;
+                }
+            }
+            if (target == null) return;
+
+            int score = target.toString().length() + countPopulated(target) * 100;
+            if (score > recoveredChamberlainScore) {
+                recoveredChamberlainScore = score;
+                recoveredChamberlainBackup = root.toString();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private int countPopulated(Object value) {
+        if (value == null || value == JSONObject.NULL) return 0;
+        if (value instanceof JSONObject) {
+            int n = 0;
+            JSONObject o = (JSONObject) value;
+            java.util.Iterator<String> keys = o.keys();
+            while (keys.hasNext()) n += countPopulated(o.opt(keys.next()));
+            return n;
+        }
+        if (value instanceof JSONArray) {
+            int n = 0;
+            JSONArray a = (JSONArray) value;
+            for (int i = 0; i < a.length(); i++) n += countPopulated(a.opt(i));
+            return n;
+        }
+        String s = String.valueOf(value).trim();
+        return s.isEmpty() || "null".equalsIgnoreCase(s) ? 0 : 1;
     }
 
     private Uri saveBytes(byte[] bytes, String requestedName, String mime, boolean notify) {
