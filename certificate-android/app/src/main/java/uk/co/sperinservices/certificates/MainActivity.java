@@ -67,8 +67,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates-app-v179/?app=1.7.9";
-    private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
+    private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk/certificates-app-v179/";
+    private static final String LIVE_URL = BUNDLED_BASE_URL + "?app=1.7.9";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -164,7 +164,7 @@ public class MainActivity extends Activity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame() && !usingLocalFallback) {
                     usingLocalFallback = true;
-                    view.loadUrl(LOCAL_URL);
+                    loadBundledIndexFallback();
                 }
             }
         });
@@ -203,6 +203,25 @@ public class MainActivity extends Activity {
             );
         } catch (Exception ex) {
             return null;
+        }
+    }
+
+    private void loadBundledIndexFallback() {
+        try {
+            String html = readFile(getAssets().open("certificates/index.html"));
+            webView.loadDataWithBaseURL(
+                    BUNDLED_BASE_URL,
+                    html,
+                    "text/html",
+                    "UTF-8",
+                    LIVE_URL
+            );
+        } catch (Exception ex) {
+            runOnUiThread(() -> Toast.makeText(
+                    MainActivity.this,
+                    "Certificate interface could not be opened",
+                    Toast.LENGTH_LONG
+            ).show());
         }
     }
 
@@ -749,13 +768,15 @@ public class MainActivity extends Activity {
 
     public class AndroidBridge {
         @JavascriptInterface
-        public void savePdfBase64(String dataUri, String fileName) {
+        public boolean savePdfBase64(String dataUri, String fileName) {
             try {
                 int comma = dataUri.indexOf(',');
                 String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
-                saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
+                Uri uri = saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
+                return uri != null;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
+                return false;
             }
         }
 
@@ -765,13 +786,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void saveBackup(String content, String fileName) {
+        public boolean saveBackup(String content, String fileName) {
             try {
                 writeInternalBackup(content);
-                saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
+                Uri uri = saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
+                if (uri == null) return false;
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved", Toast.LENGTH_LONG).show());
+                return true;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+                return false;
             }
         }
 
