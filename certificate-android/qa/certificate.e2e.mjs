@@ -75,11 +75,20 @@ assert(
   appSource.includes("Installation inspection checklist"),
   "Detailed EIC inspection checklist missing",
 );
-assert(appSource.includes('data-action="rapid-sheet">Site sheet'), "Site sheet action label missing");
+assert(
+  appSource.includes('data-action="rapid-sheet">Site sheet'),
+  "Site sheet action label missing",
+);
 assert(appSource.includes('data-action="rapid-entry">Voice'), "Voice action label missing");
 assert(appSource.includes("prepareBackupData"), "Validated backup import staging missing");
-assert(appSource.includes("normaliseBoardKey"), "Per-board circuit numbering normalisation missing");
-assert(appSource.includes("scheduleNativeAutoBackup"), "Rolling recovery backup scheduling missing");
+assert(
+  appSource.includes("normaliseBoardKey"),
+  "Per-board circuit numbering normalisation missing",
+);
+assert(
+  appSource.includes("scheduleNativeAutoBackup"),
+  "Rolling recovery backup scheduling missing",
+);
 assert(javaSource.includes("createPrintDocumentAdapter"), "Native Android print route missing");
 assert(javaSource.includes("showFileNotification"), "PDF notification route missing");
 assert(javaSource.includes("restoreLatestBackup"), "Automatic restore route missing");
@@ -97,17 +106,25 @@ assert(javaSource.includes("captureAndScanSheet"), "Native camera sheet scan mis
 assert(javaSource.includes("scanSheetImageBase64"), "Gallery/base64 sheet scan missing");
 assert(javaSource.includes("saveAutoBackup"), "Native rolling recovery backup bridge missing");
 assert(javaSource.includes("auto-latest.json"), "Native automatic latest backup missing");
-assert(!javaSource.includes("recoverChamberlainFromWebViewStorage"), "Retired Chamberlain auto-recovery code is still present");
-assert(!javaSource.includes("exportForensicRecoveryBundle"), "Retired forensic export still runs in production");
+assert(
+  !javaSource.includes("recoverChamberlainFromWebViewStorage"),
+  "Retired Chamberlain auto-recovery code is still present",
+);
+assert(
+  !javaSource.includes("exportForensicRecoveryBundle"),
+  "Retired forensic export still runs in production",
+);
 
 const jsBridgeCalls = [
   ...new Set([...appSource.matchAll(/window\.Android\.([A-Za-z0-9_]+)/g)].map((m) => m[1])),
 ].sort();
 const nativeBridgeMethods = [
   ...new Set(
-    [...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g)].map(
-      (m) => m[1],
-    ),
+    [
+      ...javaSource.matchAll(
+        /@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g,
+      ),
+    ].map((m) => m[1]),
   ),
 ].sort();
 const missingNativeBridge = jsBridgeCalls.filter((name) => !nativeBridgeMethods.includes(name));
@@ -403,7 +420,10 @@ assert(
 assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit render error");
 
 // Compact field actions must stay obvious without icon-only controls.
-assert((await page.getByRole("button", { name: "Voice", exact: true }).count()) === 1, "Voice button missing");
+assert(
+  (await page.getByRole("button", { name: "Voice", exact: true }).count()) === 1,
+  "Voice button missing",
+);
 assert(
   (await page.getByRole("button", { name: "Site sheet", exact: true }).count()) === 1,
   "Site sheet button missing",
@@ -417,7 +437,8 @@ await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham
 await page.locator('[data-field="clientPostcode"]').fill("B1 2AA");
 await page.locator('[data-action="copy-client-installation"]').click();
 assert(
-  (await page.locator('[data-field="installationAddress"]').inputValue()) === "1 Copy Road\nBirmingham",
+  (await page.locator('[data-field="installationAddress"]').inputValue()) ===
+    "1 Copy Road\nBirmingham",
   "Same-as-client did not copy the address",
 );
 assert(
@@ -434,8 +455,14 @@ assert(
   "Gas bonding toggle did not restore Gas",
 );
 
-await page.locator('[data-action="signatory-mode"]').filter({ hasText: "Separate people" }).click();
-assert((await page.locator('[data-field="designer1"]').count()) === 1, "Separate designer fields missing");
+await page
+  .locator('[data-action="signatory-mode"]')
+  .filter({ hasText: "Separate people" })
+  .click();
+assert(
+  (await page.locator('[data-field="designer1"]').count()) === 1,
+  "Separate designer fields missing",
+);
 assert(
   (await page.locator('[data-field="singleSignatoryName"]').count()) === 0,
   "Single signatory fields remained visible in separate mode",
@@ -482,7 +509,9 @@ assert(
   inspectionStored2.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "N/A"),
   "Apply-all N/A control did not update the inspection schedule",
 );
-await inspection.locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]').click();
+await inspection
+  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]')
+  .click();
 inspectionStored2 = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
 );
@@ -666,12 +695,21 @@ assert(
 );
 await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector(".circuit-list");
-const landscapeOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-assert(landscapeOverflow <= 2, "Landscape certificate page overflows horizontally by " + landscapeOverflow);
+const landscapeOverflow = await page.evaluate(
+  () => document.documentElement.scrollWidth - window.innerWidth,
+);
+assert(
+  landscapeOverflow <= 2,
+  "Landscape certificate page overflows horizontally by " + landscapeOverflow,
+);
 await page.setViewportSize({ width: 390, height: 844 });
-const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+const mobileOverflow = await page.evaluate(
+  () => document.documentElement.scrollWidth - window.innerWidth,
+);
 assert(mobileOverflow <= 2, "Mobile certificate page overflows horizontally by " + mobileOverflow);
-const inspectionRight = await page.locator(".inspection-section").evaluate((el) => el.getBoundingClientRect().right);
+const inspectionRight = await page
+  .locator(".inspection-section")
+  .evaluate((el) => el.getBoundingClientRect().right);
 assert(inspectionRight <= 392, "Inspection checklist extends beyond the mobile page");
 await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ROTATION_RELOAD_MOBILE_PASS");
@@ -709,7 +747,10 @@ await page.waitForTimeout(80);
 stored = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
 );
-assert(stored.certificates?.[0]?.status === "Complete", "Complete & PDF did not save Complete status");
+assert(
+  stored.certificates?.[0]?.status === "Complete",
+  "Complete & PDF did not save Complete status",
+);
 await page.locator('[data-action="status"]').click();
 await page.waitForTimeout(40);
 console.log("COMPLETE_PDF_PASS");
@@ -1039,7 +1080,8 @@ console.log("PHOTO_SCAN_MAPPING_PASS");
 await page.locator('[data-action="circuit-add"]').click();
 await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
 assert(
-  (await page.locator('[data-circuit-input="details"][data-col="boardRef"]').inputValue()) === "DB2",
+  (await page.locator('[data-circuit-input="details"][data-col="boardRef"]').inputValue()) ===
+    "DB2",
   "Added circuit did not stay on the last distribution board",
 );
 assert(
@@ -1060,8 +1102,8 @@ await page.locator(".brand-home").click();
 await page.waitForSelector(".home-page");
 
 // Import a valid exact backup, then Undo recovery back to the complete current device state.
-const beforeImportRaw = await page.evaluate(() =>
-  localStorage.getItem("sperin-certificates-data-v1") || "",
+const beforeImportRaw = await page.evaluate(
+  () => localStorage.getItem("sperin-certificates-data-v1") || "",
 );
 const beforeImportState = JSON.parse(beforeImportRaw || "{}");
 const importedCert = JSON.parse(JSON.stringify(beforeImportState.certificates[0]));
@@ -1147,7 +1189,9 @@ for (const type of certificateTypeOrder) {
     type + " form missing Speak controls",
   );
   if (type === "smoke") {
-    const alarmRowsBefore = await page.locator('[data-table-input="alarms"][data-col="ref"]').count();
+    const alarmRowsBefore = await page
+      .locator('[data-table-input="alarms"][data-col="ref"]')
+      .count();
     await page.locator('[data-action="row-add"][data-table="alarms"]').click();
     assert(
       (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) ===
@@ -1156,7 +1200,8 @@ for (const type of certificateTypeOrder) {
     );
     await page.locator('[data-action="row-delete"][data-table="alarms"]').last().click();
     assert(
-      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) === alarmRowsBefore,
+      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) ===
+        alarmRowsBefore,
       "Smoke alarm Delete row failed",
     );
   }
