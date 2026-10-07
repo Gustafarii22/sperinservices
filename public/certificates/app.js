@@ -374,11 +374,39 @@
     return cert;
   }
 
+  function normaliseBs883Value(value) {
+    if(typeof value!=='string') return value;
+    const trimmed=value.trim();
+    return (trimmed==='BS 88-3 Type 3' || trimmed==='BS 88-3') ? 'BS88-3' : value;
+  }
+
+  function normaliseLegacyDeviceLabels(cert) {
+    if(!cert) return cert;
+    if(isRecord(cert.fields)){
+      Object.keys(cert.fields).forEach(key=>{
+        cert.fields[key]=normaliseBs883Value(cert.fields[key]);
+      });
+    }
+    if(isRecord(cert.tables)){
+      Object.values(cert.tables).forEach(rows=>{
+        if(!Array.isArray(rows)) return;
+        rows.forEach(row=>{
+          if(!isRecord(row)) return;
+          Object.keys(row).forEach(key=>{
+            row[key]=normaliseBs883Value(row[key]);
+          });
+        });
+      });
+    }
+    return cert;
+  }
+
   function migrateCertificate(cert) {
     cert = normaliseCertificateShape(cert);
     if(!cert) return null;
     cert.fields = isRecord(cert.fields) ? cert.fields : {};
     cert.tables = isRecord(cert.tables) ? cert.tables : {};
+    normaliseLegacyDeviceLabels(cert);
     if(cert.type==='eic'){
       const f=cert.fields;
       if(!f.signatoryMode){
