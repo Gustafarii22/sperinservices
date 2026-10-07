@@ -1218,6 +1218,7 @@
     state={certificates:prepared.certificates};
     settings=prepared.settings;
     view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
+    closeModal();
     persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
   }
 
