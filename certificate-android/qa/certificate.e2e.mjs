@@ -533,7 +533,11 @@ console.log("CIRCUIT_FLOW_PASS");
 
 // Circuit numbers should drive the normal schedule order without losing paired test results.
 // Set the Lighting circuit to 0 and confirm it moves ahead of circuit 2 automatically.
-await page.locator(".circuit-card").filter({ hasText: "Lighting" }).locator('[data-action="circuit-open"]').click();
+await page
+  .locator(".circuit-card")
+  .filter({ hasText: "Lighting" })
+  .locator('[data-action="circuit-open"]')
+  .click();
 await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
 const zeroNo = page.locator('[data-circuit-input="details"][data-col="circuitNo"]');
 await zeroNo.fill("0");
