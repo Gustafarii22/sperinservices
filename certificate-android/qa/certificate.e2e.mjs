@@ -48,6 +48,10 @@ assert(
   "Missing dynamic action handlers: " + missingDynamic.join(", "),
 );
 assert(!appSource.includes('data-action="circuit-copy"'), "Copy Details button must be removed");
+assert(!appSource.includes("BS 88-3 Type 3"), "Old BS 88-3 Type 3 wording remains in app source");
+assert(!appSource.includes("'BS 88-3'"), "Old spaced BS 88-3 wording remains in selectable values");
+assert(appSource.includes("'BS88-3'"), "Exact BS88-3 option missing");
+assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
 assert(
   appSource.includes("SperinIetForms.build"),
   "Certificate app is not using the shared IET-style renderer",
@@ -1217,6 +1221,18 @@ for (const type of certificateTypeOrder) {
   for (let i = 0; i < criticalCount; i += 1) {
     const box = await criticalButtons.nth(i).boundingBox();
     if (box) assert(box.height >= 39, type + " critical button is too small: " + box.height);
+  }
+
+  if (["eic", "eicr", "minor"].includes(type)) {
+    const bs883Options = page.locator('option[value="BS88-3"]');
+    assert(
+      (await bs883Options.count()) >= 1,
+      type + " missing exact BS88-3 protective-device option",
+    );
+    assert(
+      (await page.locator('option[value="BS 88-3 Type 3"]').count()) === 0,
+      type + " still exposes old BS 88-3 Type 3 wording",
+    );
   }
 
   if (type === "minor") {
