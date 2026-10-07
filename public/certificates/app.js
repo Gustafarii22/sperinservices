@@ -5,10 +5,12 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.11';
+  const VERSION = '1.7.12';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
+  const BOARD_TEMPLATES_KEY = 'sperin-certificates-board-templates-v1';
+  const CIRCUIT_TEMPLATES_KEY = 'sperin-certificates-circuit-templates-v1';
   const SHEET_TEMPLATES_KEY = 'sperin-certificates-site-sheet-templates-v1';
 
   const OPTIONS = {
@@ -183,7 +185,7 @@
   ];
 
   function normaliseBoardKey(value) {
-    return String(value||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+    return String(value??'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   }
 
   const PRIMARY_BOARD_FIELD_MAP = {
@@ -199,6 +201,85 @@
     phaseSequence:'phaseSequence',
     spdOperational:'spdOperational'
   };
+
+  // Explicit allowlists: templates and linked feeds can never carry measured readings.
+  function circuitDesign(row){
+    const keys=['description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
+    return Object.fromEntries(keys.filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));
+  }
+  function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
+  function templateKey(kind){return kind==='board'?BOARD_TEMPLATES_KEY:CIRCUIT_TEMPLATES_KEY;}
+  function cleanTemplate(kind,t){
+    return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):circuitDesign(t.design||{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
+  }
+  function reusableTemplates(kind){const list=readStore(templateKey(kind),[]);return Array.isArray(list)?list.filter(isRecord).map(t=>cleanTemplate(kind,t)):[];}
+  function saveReusableTemplates(kind,list){localStorage.setItem(templateKey(kind),JSON.stringify(list.map(t=>cleanTemplate(kind,t))));}
+  function addBoard(cert,template=null){
+    pushEditHistory(template?'Insert board template':'Add board');
+    const board={...(template?boardDesign(template.design):{}),id:uid(),ref:nextBoardRef(cert),feedSourceType:'Mains',suppliedFrom:'Mains'};
+    cert.tables.boards.push(board);
+    (template?.circuits||[]).forEach(design=>{const no=nextCircuitNumber(cert,board.ref);cert.tables.circuits.push({...circuitDesign(design),id:uid(),boardRef:board.ref,circuitNo:no});cert.tables.tests.push({boardRef:board.ref,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);});
+    saveNow();render();goBoardCard(board.id);
+  }
+  function deleteBoard(cert,index){
+    const board=cert.tables.boards[index];if(!board)return;
+    if(cert.tables.boards.some(b=>b!==board&&normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(board.ref))){alert('Another consumer unit is fed from '+board.ref+'. Change its supply before deleting this board.');return;}
+    const indices=boardCircuitIndices(cert,board.ref);
+    if(!confirm('Delete '+board.ref+'?'+(indices.length?' Its '+indices.length+' circuits and test results will also be removed.':'')+' A recovery copy will be saved.'))return;
+    const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete board');
+    indices.reverse().forEach(i=>{cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);});
+    cert.tables.boards.splice(index,1);cert.boardWorkflowVersion=1;
+    Object.values(PRIMARY_BOARD_FIELD_MAP).forEach(k=>cert.fields[k]='');syncPrimaryBoardLegacyFields(cert);
+    saveNow();render();restoreScroll(y);toast('Consumer unit deleted · recovery saved');
+  }
+  function changeBoardInput(cert,el){
+    const index=Number(el.dataset.boardIndex),key=el.dataset.boardInput,board=cert.tables.boards[index];if(!board)return;
+    if(key==='ref'){
+      const ref=el.value.trim(),old=board.ref;
+      if(!normaliseBoardKey(ref)||cert.tables.boards.some(b=>b!==board&&normaliseBoardKey(b.ref)===normaliseBoardKey(ref))){el.value=old;alert('Enter a unique board reference.');return;}
+      boardCircuitIndices(cert,old).forEach(i=>{cert.tables.circuits[i].boardRef=ref;cert.tables.tests[i].boardRef=ref;});
+      cert.tables.boards.forEach(b=>{if(normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(old))b.sourceBoardRef=ref;});board.ref=ref;
+    }else{
+      board[key]=el.value;
+      if(key==='sourceBoardRef')board.sourceCircuitNo='';
+      if(['feedSourceType','sourceBoardRef','sourceCircuitNo'].includes(key)){
+        if(key==='sourceCircuitNo' && String(el.value)!==''){
+          const existing=cert.tables.circuits.find(r=>normaliseBoardKey(r.boardRef)===normaliseBoardKey(board.ref)&&String(r.circuitNo??'')==='0'&&!r._incomingFeed);
+          if(existing){board.sourceCircuitNo='';alert('Circuit 0 already exists. Renumber it before linking the incoming supply.');}
+        }
+        syncBoardIncomingCircuit(cert,board);
+      }
+    }
+    cert.tables.boards.filter(b=>b.feedSourceType==='Another consumer unit').forEach(b=>syncBoardIncomingCircuit(cert,b));
+    syncPrimaryBoardLegacyFields(cert);saveNow();const y=window.scrollY;render();restoreScroll(y);
+  }
+  let templatePicker=null;
+  function saveDesignTemplate(kind,cert,index){
+    const row=kind==='board'?cert.tables.boards[index]:cert.tables.circuits[index];if(!row)return;
+    const name=prompt('Template name',kind==='board'?'Consumer unit':row.description||'Circuit');if(!name?.trim())return;
+    const item={id:uid(),name:name.trim(),design:kind==='board'?boardDesign(row):circuitDesign(row)};
+    if(kind==='board'&&confirm('Include the circuit design layout? Measured readings are always excluded.'))item.circuits=boardCircuitIndices(cert,row.ref).filter(i=>!cert.tables.circuits[i]._incomingFeed).map(i=>circuitDesign(cert.tables.circuits[i]));
+    try{saveReusableTemplates(kind,[...reusableTemplates(kind),item]);scheduleNativeAutoBackup();toast('Template saved');}catch(err){alert('Template could not be saved: '+err.message);}
+  }
+  function openTemplatePicker(kind,boardRef){
+    templatePicker={kind,boardRef};closeModal();
+    const rows=reusableTemplates(kind).map(t=>`<div class="template-row"><div><strong>${esc(t.name)}</strong><small>${esc(kind==='board'?[t.design.mainSwitch,t.design.spd,(t.circuits?.length||0)+' circuits'].filter(Boolean).join(' · '):[t.design.ocpdRating&&t.design.ocpdRating+' A',t.design.ocpdType,t.design.description].filter(Boolean).join(' · '))}</small></div><div class="template-actions"><button class="btn small" data-action="template-use" data-id="${esc(t.id)}">Use</button><button class="btn small" data-action="template-rename" data-id="${esc(t.id)}">Rename</button><button class="btn small danger" data-action="template-delete" data-id="${esc(t.id)}">Delete</button></div></div>`).join('');
+    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop"><div class="card modal template-picker" data-modal><div class="profile-head"><h3>${kind==='board'?'Consumer unit':'Circuit'} templates</h3><button class="btn small" data-action="close-modal">Close</button></div>${rows||'<p>No saved templates yet.</p>'}</div></div>`);
+  }
+  function manageDesignTemplate(id,remove){
+    const {kind,boardRef}=templatePicker,list=reusableTemplates(kind),t=list.find(t=>t.id===id);if(!t)return;
+    if(remove){if(!confirm('Delete template '+t.name+'?'))return;savePreRestoreSnapshot();saveReusableTemplates(kind,list.filter(t=>t.id!==id));}
+    else {const name=prompt('Template name',t.name);if(!name?.trim())return;t.name=name.trim();saveReusableTemplates(kind,list);}
+    scheduleNativeAutoBackup();openTemplatePicker(kind,boardRef);
+  }
+  function useDesignTemplate(id){
+    const cert=getCurrent(),{kind,boardRef}=templatePicker,t=reusableTemplates(kind).find(t=>t.id===id);if(!cert||!t)return;
+    closeModal();
+    if(kind==='board'){addBoard(cert,t);return;}
+    if(boardIndexByRef(cert,boardRef)<0)return;
+    pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...circuitDesign(t.design),id:uid(),boardRef,circuitNo:no};
+    cert.tables.circuits.push(row);cert.tables.tests.push({boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
+  }
 
   function boardIndexByRef(cert,ref){
     const key=normaliseBoardKey(ref);
@@ -216,7 +297,7 @@
     if(!board) return;
     Object.entries(PRIMARY_BOARD_FIELD_MAP).forEach(([boardKey,fieldKey])=>{
       const boardValue=board[boardKey];
-      if(boardValue!==undefined&&boardValue!==null&&String(boardValue).trim()!=='') cert.fields[fieldKey]=boardValue;
+      cert.fields[fieldKey]=boardValue??'';
     });
   }
 
@@ -224,12 +305,12 @@
     if(!cert || !['eic','eicr'].includes(cert.type)) return;
     cert.tables=cert.tables||{};
     let boards=Array.isArray(cert.tables.boards)?cert.tables.boards.filter(isRecord):[];
-    if(!boards.length) boards=[{ref:'DB1'}];
+    if(!boards.length && !cert.boardWorkflowVersion) boards=[{ref:cert.fields?.dbReference||'DB1'}];
     boards=boards.map((board,i)=>{
       const b={...board};
       b.id=String(b.id||uid());
       b.ref=String(b.ref||('DB'+(i+1))).trim()||('DB'+(i+1));
-      if(i===0){
+      if(i===0 && !cert.boardWorkflowVersion){
         Object.entries(PRIMARY_BOARD_FIELD_MAP).forEach(([boardKey,fieldKey])=>{
           if((b[boardKey]===undefined||b[boardKey]===null||String(b[boardKey]).trim()==='') && cert.fields?.[fieldKey]!==undefined && cert.fields?.[fieldKey]!==null && String(cert.fields[fieldKey]).trim()!==''){
             b[boardKey]=cert.fields[fieldKey];
@@ -244,7 +325,12 @@
       if(i===0 && !String(b.suppliedFrom||'').trim() && b.feedSourceType==='Mains') b.suppliedFrom='Mains';
       return b;
     });
+    for(const row of [...(cert.tables.circuits||[]),...(cert.tables.tests||[])]){
+      const ref=String(row.boardRef??'').trim();
+      if(ref && !boards.some(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(ref))) boards.push({id:uid(),ref,feedSourceType:'Mains',suppliedFrom:'Mains'});
+    }
     cert.tables.boards=boards;
+    cert.boardWorkflowVersion=1;
     syncPrimaryBoardLegacyFields(cert);
   }
 
@@ -279,14 +365,14 @@
     }
     const sourceBoard=String(board.sourceBoardRef||'').trim();
     const sourceNo=String(board.sourceCircuitNo??'').trim();
-    if(!sourceBoard||sourceNo==='') return;
+    if(!sourceBoard||sourceNo===''){removeIncomingFeedCircuit(cert,board.ref);board.suppliedFrom='';return;}
     const sourceIndex=cert.tables.circuits.findIndex(row=>
       normaliseBoardKey(row.boardRef)===normaliseBoardKey(sourceBoard) &&
       String(row.circuitNo??'').trim()===sourceNo
     );
-    if(sourceIndex<0) return;
+    if(sourceIndex<0){removeIncomingFeedCircuit(cert,board.ref);board.suppliedFrom='';return;}
     const sourceDetail=cert.tables.circuits[sourceIndex]||{};
-    const sourceTest=cert.tables.tests[sourceIndex]||{};
+    // Incoming design follows the upstream device; measured results belong to this board.
     const childKey=normaliseBoardKey(board.ref);
     let incomingIndex=cert.tables.circuits.findIndex(row=>
       normaliseBoardKey(row.boardRef)===childKey &&
@@ -294,7 +380,7 @@
     );
     const oldId=incomingIndex>=0 ? cert.tables.circuits[incomingIndex]?.id : '';
     const incomingDetail={
-      ...clone(sourceDetail),
+      ...circuitDesign(sourceDetail),
       id:String(oldId||uid()),
       boardRef:board.ref,
       circuitNo:'0',
@@ -303,7 +389,7 @@
       _sourceCircuitNo:sourceNo
     };
     const incomingTest={
-      ...clone(sourceTest),
+      ...(incomingIndex>=0 ? cert.tables.tests[incomingIndex] : {}),
       boardRef:board.ref,
       circuitNo:'0',
       _incomingFeed:true,
@@ -319,7 +405,9 @@
       incomingIndex=cert.tables.circuits.length-1;
     }
     board.suppliedFrom=sourceBoard+' · Circuit '+sourceNo;
-    sortCircuitsByNumber(cert,incomingDetail);
+    recalculateCircuitZs(cert,incomingIndex);
+    // Only a newly inserted incoming row needs sorting; renders must preserve manual moves.
+    if(!oldId) sortCircuitsByNumber(cert,incomingDetail);
   }
 
   function syncDependentBoardFeeds(cert,sourceBoardRef,sourceCircuitNo){
@@ -380,7 +468,7 @@
 
   function sortCircuitsByNumber(cert, activeCircuit=null) {
     syncCircuitRows(cert);
-    const boardOrder=new Map();
+    const boardOrder=new Map((cert.tables.boards||[]).map((b,i)=>[normaliseBoardKey(b.ref),i]));
     cert.tables.circuits.forEach((row,i)=>{
       const board=normaliseBoardKey(row.boardRef);
       if(!boardOrder.has(board)) boardOrder.set(board,boardOrder.size);
@@ -405,7 +493,7 @@
     cert.tables.tests=pairs.map(p=>p.test);
     cert.tables.circuits.forEach((row,i)=>{
       cert.tables.tests[i].boardRef=row.boardRef||'DB1';
-      cert.tables.tests[i].circuitNo=row.circuitNo||'';
+      cert.tables.tests[i].circuitNo=row.circuitNo??'';
     });
     return activeCircuit ? cert.tables.circuits.indexOf(activeCircuit) : -1;
   }
@@ -436,6 +524,7 @@
     const nextPosition=position+Number(direction);
     if(position<0||nextPosition<0||nextPosition>=sameBoard.length) return;
     const to=sameBoard[nextPosition];
+    if(cert.tables.circuits[to]?._incomingFeed) return;
     pushEditHistory('Move circuit');
     const y=window.scrollY;
     [cert.tables.circuits[from],cert.tables.circuits[to]]=[cert.tables.circuits[to],cert.tables.circuits[from]];
@@ -451,9 +540,11 @@
     const rating=parseFloat(row?.ocpdRating);
     const standard=String(row?.ocpdBs||'');
     if(!factor || !Number.isFinite(rating) || rating<=0 || !/60898|61009/.test(standard)) return '';
-    const rawU=String(cert?.fields?.nominalVoltage||'230').match(/\d+(?:\.\d+)?/g)||['230'];
-    let u0=Math.min(...rawU.map(Number).filter(Number.isFinite));
-    if(!Number.isFinite(u0) || u0>300) u0=230;
+    const voltage=String(cert?.fields?.nominalVoltage??'').trim();
+    if(!/^(?:\d+(?:\.\d+)?)(?:\s*\/\s*\d+(?:\.\d+)?)?$/.test(voltage)) return '';
+    const values=voltage.split('/').map(Number);
+    let u0=Math.min(...values);
+    if(!Number.isFinite(u0) || u0<=0 || u0>300) return '';
     const zs=(0.95*u0)/(factor*rating);
     return zs>=10 ? zs.toFixed(1) : zs.toFixed(2);
   }
@@ -532,7 +623,7 @@
         let rows=Array.isArray(cert.tables[part.key]) ? cert.tables[part.key] : [];
         rows=rows.filter(isRecord).map(row=>({...row}));
         if(Array.isArray(part.defaultRows) && part.defaultRows.length){
-          if(!rows.length) rows=clone(part.defaultRows);
+          if(!rows.length && !(cert.boardWorkflowVersion && ['boards','circuits','tests'].includes(part.key))) rows=clone(part.defaultRows);
           else if(part.key!=='boards' && part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
             const keyName=part.defaultRows.some(r=>r.item!==undefined)?'item':'ref';
             const keyedRows=rows.filter(r=>String(r[keyName]??'').trim()!=='');
@@ -1050,7 +1141,7 @@
   }
 
   function autoBackupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates });
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates });
   }
 
   function flushNativeAutoBackup() {
@@ -1400,7 +1491,7 @@
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
-    else if (field.type === 'select') control = `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div></div>`;
@@ -1408,7 +1499,7 @@
 
   function boardControl(boardIndex,key,label,value,options=null,extra=''){
     const attrs=`data-board-input="${esc(key)}" data-board-index="${boardIndex}"`;
-    const control=Array.isArray(options)
+    const control=key==='spd' ? comboControl(attrs,{key,label,options},value) : Array.isArray(options)
       ? `<select ${attrs} ${extra}><option value="">Select…</option>${options.map(o=>`<option value="${esc(o)}" ${String(value??'')===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select>`
       : `<input ${attrs}${inputModeAttrs(key)} value="${esc(value??'')}" ${extra}/>`;
     return `<div class="field"><label>${esc(label)}</label>${control}</div>`;
@@ -1436,13 +1527,13 @@
           <button class="btn small move-btn" data-action="circuit-move-up" data-index="${i}" ${position===0||incoming?'disabled':''}>↑ Up</button>
           <button class="btn small move-btn" data-action="circuit-move-down" data-index="${i}" ${position===indices.length-1||incoming?'disabled':''}>↓ Down</button>
           ${incoming
-            ? '<span class="linked-circuit-note">Copied from supply circuit</span>'
+            ? '<span class="linked-circuit-note">Design linked to supply circuit</span>'
             : `<button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button>`}
         </div>
       </div>`;
     }).join('');
-    return `<div class="board-circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
-      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button></div>`;
+    return `<div class="board-circuit-list circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
+      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Use template</button></div>`;
   }
 
   function renderBoardWorkflow(cert){
@@ -1468,7 +1559,7 @@
       return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
-          ${boards.length>1?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
+          <button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
         </div>
         <div class="fields consumer-unit-fields">
           ${boardControl(bi,'ref','Board reference',board.ref)}
@@ -1488,7 +1579,7 @@
     }).join('');
     return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
       ${boardCards}
-      <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button></div>
+      <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button><button class="btn small" data-action="template-open" data-kind="board">Use template</button></div>
     </section>`;
   }
 
@@ -1496,22 +1587,25 @@
     return renderBoardWorkflow(cert);
   }
 
+  function comboControl(attrs,field,value){
+    const id='options-'+uid();
+    return `<div class="combo-field"><input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="${id}" aria-label="${esc(field.label)}"/><button class="combo-arrow" type="button" data-action="combo-toggle" aria-label="Show ${esc(field.label)} options" aria-controls="${id}" aria-expanded="false">⌄</button><div class="combo-menu" id="${id}" role="listbox" hidden>${field.options.map(o=>`<button type="button" role="option" class="combo-option" data-action="combo-option" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+  }
+
   function editorInput(cert,scope,index,field,value){
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
-    if(field.textarea){
+    if(field.key==='boardRef'){
+      control=`<input ${attrs} value="${esc(value??'')}" readonly/>`;
+    }else if(field.textarea){
       control=`<textarea ${attrs}>${esc(value??'')}</textarea>`;
     }else if(field.options){
-      control=`<div class="combo-field">
-        <input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}" autocomplete="off"/>
-        <button class="combo-arrow" type="button" data-action="combo-toggle" aria-label="Show ${esc(field.label)} options">⌄</button>
-        <div class="combo-menu" hidden>${field.options.map(o=>`<button type="button" class="combo-option" data-action="combo-option" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div>
-      </div>`;
+      control=comboControl(attrs,field,value);
     }else{
       control=`<input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}"/>`;
     }
     const extra=field.suffix==='zs'
-      ? '<div class="meta auto-zs-note">Calculated automatically when BS, curve or rating changes. You can still type a manual value.</div>'
+      ? '<div class="meta auto-zs-note">Design limit from BS, curve, rating and voltage. Manual override available.</div>'
       : '';
     const auto=cert.autoMeta?.['circuit:'+index+':'+field.key] ? `<button class="auto-derived-badge" type="button" data-action="auto-info" data-index="${index}" data-key="${esc(field.key)}">Auto</button>` : '';
     return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)} ${auto}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${warningButton(cert,index,field.key)}</div>${extra}</div>`;
@@ -1534,7 +1628,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
@@ -1583,7 +1677,7 @@
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
   function backupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates }, null, 2);
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates }, null, 2);
   }
 
   function savePreRestoreSnapshot() {
@@ -1605,12 +1699,22 @@
       return migrated;
     });
     const importedSettings=isRecord(data.settings)?{...settings,...data.settings}:settings;
-    return {certificates,settings:importedSettings};
+    const templates={};
+    for(const kind of ['board','circuit']){
+      const key=kind+'Templates';
+      if(data[key]!==undefined){
+        if(!Array.isArray(data[key]) || data[key].some(t=>!isRecord(t)||typeof t.name!=='string'||!isRecord(t.design))) throw new Error('Invalid '+kind+' templates');
+        templates[kind]=data[key].map(t=>cleanTemplate(kind,t));
+      }
+    }
+    return {certificates,settings:importedSettings,templates};
   }
 
   function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
     if(preserveCurrent) savePreRestoreSnapshot();
+    Object.entries(prepared.templates).forEach(([kind,list])=>saveReusableTemplates(kind,list));
+    resetEditHistory();
     state={certificates:prepared.certificates};
     settings=prepared.settings;
     view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
@@ -2070,7 +2174,7 @@
     const ref=inferRef(row.installMethod||'');if(ref.c==='high'&&row.refMethod&&row.refMethod!==ref.v)add(['installMethod','refMethod'],'Reference method mismatch','"'+row.installMethod+'" maps to Reference Method '+ref.v+' in the app’s high-confidence phrases, but '+row.refMethod+' is recorded. Confirm the actual installation conditions.','BS 7671 Appendix 4 reference-method logic');else if(ref.c==='check'&&!row.refMethod)add(['installMethod','refMethod'],'Reference method not safely determined',ref.why,'BS 7671 Appendix 4');
     return out;
   }
-  function validationWarnings(cert){const list=[];(cert?.tables?.circuits||[]).forEach((r,i)=>{const seen=new Set();['zs','maxZs','irLL','irLE','irVoltage','rcdTime','polarity','rcdButton','afddButton','liveCsa','cpcCsa','wiringType','installMethod','refMethod'].forEach(k=>warningForCircuit(cert,i,k).forEach(w=>{const sig=i+'|'+w.title;if(!seen.has(sig)){seen.add(sig);list.push({...w,scope:'circuit',index:i,key:k,boardRef:r.boardRef||'DB1',circuitNo:r.circuitNo||String(i+1)});}}));});if(cert?.type==='eic')(cert.tables?.eicInspection||[]).forEach((r,i)=>{if(String(r.outcome||'')==='✕')list.push({scope:'table',index:i,key:'outcome',title:'EIC inspection item not satisfactory',note:'Inspection item '+(r.item||i+1)+' is marked not satisfactory. Review and rectify before issue.',source:'BS 7671 initial verification workflow'});});
+  function validationWarnings(cert){const list=[];(cert?.tables?.circuits||[]).forEach((r,i)=>{const seen=new Set();['zs','maxZs','irLL','irLE','irVoltage','rcdTime','polarity','rcdButton','afddButton','liveCsa','cpcCsa','wiringType','installMethod','refMethod'].forEach(k=>warningForCircuit(cert,i,k).forEach(w=>{const sig=i+'|'+w.title;if(!seen.has(sig)){seen.add(sig);list.push({...w,scope:'circuit',index:i,key:k,boardRef:r.boardRef||'DB1',circuitNo:r.circuitNo??String(i+1)});}}));});if(cert?.type==='eic')(cert.tables?.eicInspection||[]).forEach((r,i)=>{if(String(r.outcome||'')==='✕')list.push({scope:'table',index:i,key:'outcome',title:'EIC inspection item not satisfactory',note:'Inspection item '+(r.item||i+1)+' is marked not satisfactory. Review and rectify before issue.',source:'BS 7671 initial verification workflow'});});
     if(cert?.type==='eicr')(cert.tables?.eicrInspection||[]).forEach((r,i)=>{if(['C1','C2','FI'].includes(String(r.outcome||'')))list.push({scope:'table',index:i,key:'outcome',title:'EICR item requires attention',note:'Inspection item '+(r.item||i+1)+' is recorded '+r.outcome+'. Ensure the observation and classification are complete before issue.',source:'EICR classification workflow'});});return list;}
   function warningButton(cert,index,key){return warningForCircuit(cert,index,key).length?'<button class="warning-button" type="button" data-action="warning-open" data-scope="circuit" data-index="'+index+'" data-key="'+esc(key)+'" aria-label="Review warning">⚠</button>':'';}
   function validationBanner(cert){const w=validationWarnings(cert);return w.length?'<button class="validation-banner warn" data-action="warnings-list"><span>⚠</span><div><strong>'+w.length+' item'+(w.length===1?'':'s')+' need checking</strong><small>Tap to see why. Recorded readings are never changed automatically.</small></div><em>›</em></button>':'<div class="validation-banner ok"><span>✓</span><div><strong>No configured technical warnings</strong><small>Still review the complete certificate before issue.</small></div></div>';}
@@ -2138,7 +2242,7 @@
     if(d.kind==='field'){
       cert.fields[d.key]=value;
       if(d.key==='certificateNo') cert.number=String(value||'');
-      if(d.key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)) cert.tables.circuits.forEach((_,i)=>recalculateCircuitZs(cert,i));
+      if(d.key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)) cert.tables.circuits.forEach((_,i)=>recalculateCircuitZs(cert,i,true));
       if(d.key==='signatoryMode'||d.key.startsWith('singleSignatory')) syncSingleSignatory(cert);
     } else {
       cert.tables[d.table]=Array.isArray(cert.tables[d.table])?cert.tables[d.table]:[];
@@ -2147,8 +2251,8 @@
       cert.tables[d.table][d.row][d.key]=value;
       if(d.table==='circuits'){
         syncCircuitRows(cert);
-        if(d.key==='circuitNo') cert.tables.tests[d.row].circuitNo=String(value||'');
-        if(['ocpdBs','ocpdType','ocpdRating'].includes(d.key)) recalculateCircuitZs(cert,d.row);
+        if(d.key==='circuitNo') cert.tables.tests[d.row].circuitNo=String(value??'');
+        if(['ocpdBs','ocpdType','ocpdRating'].includes(d.key)) recalculateCircuitZs(cert,d.row,true);
       }
     }
     const meta=ensureVoiceMeta(cert);
@@ -2846,16 +2950,21 @@
     return false;
   };
 
+  document.addEventListener('focusin',e=>{if(e.target.matches('[data-field],[data-board-input],[data-circuit-input],[data-table-input]')) pushEditHistory();});
+
+  document.addEventListener('pointerdown',e=>{if(e.target.closest('.combo-arrow,.combo-option')){e.preventDefault();document.activeElement?.blur();}});
+
   document.addEventListener('input', e => {
     const cert = getCurrent();
     if (e.target.matches('[data-field]') && cert) {
       const key=e.target.dataset.field;
+      const previousValue=cert.fields[key];
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
       if(key==='certificateNo') cert.number=e.target.value;
-      if(key==='nominalVoltage' && Array.isArray(cert.tables?.circuits)){
+      if(key==='nominalVoltage' && previousValue!==cert.fields[key] && Array.isArray(cert.tables?.circuits)){
         cert.tables.circuits.forEach((_,i)=>{
           const row=cert.tables.circuits[i];
-          if(!row?.maxZsManual) recalculateCircuitZs(cert,i,true);
+          recalculateCircuitZs(cert,i,true);
         });
       }
       if(key==='signatoryMode'||key.startsWith('singleSignatory')) syncSingleSignatory(cert);
@@ -2870,7 +2979,7 @@
     if(e.target.matches('[data-board-input]')&&cert){
       const bi=Number(e.target.dataset.boardIndex),key=e.target.dataset.boardInput;
       const board=cert.tables?.boards?.[bi];
-      if(board && !['feedSourceType','sourceBoardRef','sourceCircuitNo'].includes(key)){
+      if(board && !['ref','feedSourceType','sourceBoardRef','sourceCircuitNo'].includes(key)){
         board[key]=e.target.value;
         if(bi===0) syncPrimaryBoardLegacyFields(cert);
         scheduleAutosave();
@@ -2880,12 +2989,20 @@
       const scope=e.target.dataset.circuitInput, i=Number(e.target.dataset.index), col=e.target.dataset.col;
       syncCircuitRows(cert);
       const target=scope==='details'?cert.tables.circuits[i]:cert.tables.tests[i];
+      if(scope==='details' && col==='circuitNo'){
+        const next=e.target.value;
+        if(next!=='' && cert.tables.circuits.some((r,j)=>j!==i&&normaliseBoardKey(r.boardRef)===normaliseBoardKey(target.boardRef)&&String(r.circuitNo??'')===next)){e.target.setCustomValidity('Circuit number already exists on this board');return;}
+        e.target.setCustomValidity('');
+        if(target._incomingFeed){e.target.value='0';return;}
+        cert.tables.boards.forEach(b=>{if(normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(target.boardRef)&&String(b.sourceCircuitNo??'')===String(target.circuitNo??''))b.sourceCircuitNo=next;});
+      }
+      const previousValue=target[col];
       target[col]=e.target.value;
       if(scope==='details'){
         if(col==='maxZs'){
           target.maxZsManual=true;
         }
-        if(['ocpdBs','ocpdType','ocpdRating'].includes(col)){
+        if(['ocpdBs','ocpdType','ocpdRating'].includes(col) && previousValue!==target[col]){
           target.maxZsManual=false;
           recalculateCircuitZs(cert,i,true);
           const maxInput=document.querySelector('[data-circuit-input="details"][data-index="'+i+'"][data-col="maxZs"]');
@@ -2894,7 +3011,7 @@
         if(col==='circuitNo') cert.tables.tests[i].circuitNo=e.target.value;
         if(col==='boardRef') cert.tables.tests[i].boardRef=e.target.value;
       }
-      syncDependentBoardFeeds(cert,target.boardRef||cert.tables.circuits[i]?.boardRef,target.circuitNo||cert.tables.circuits[i]?.circuitNo);
+      syncDependentBoardFeeds(cert,target.boardRef||cert.tables.circuits[i]?.boardRef,target.circuitNo??cert.tables.circuits[i]?.circuitNo);
       scheduleAutosave();
     }
     if (e.target.matches('[data-setting]')) { /* Profile changes commit only when Save profile is pressed. */ }
@@ -2915,6 +3032,7 @@
 
   document.addEventListener('change', e => {
     const cert=getCurrent();
+    if(e.target.matches('[data-board-input]') && cert){changeBoardInput(cert,e.target);return;}
     if(e.target.matches('[data-site-builder="type"]') && siteBuilderState){
       if((siteBuilderState.type==='eic'||siteBuilderState.type==='eicr')&&!siteBuilderState.boards.length) siteBuilderState.boards=[{ref:'DB1',location:'',circuits:12}];
       renderSiteBuilder();
@@ -2977,7 +3095,30 @@
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
     const action = button.dataset.action;
     const cert=getCurrent();
-    if(action==='site-builder') openSiteSheetBuilder();
+    if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
+    if(action==='edit-undo') undoEdit();
+    else if(action==='edit-redo') redoEdit();
+    else if(action==='combo-toggle'){
+      const combo=button.closest('.combo-field'),menu=combo.querySelector('.combo-menu'),open=menu.hidden;
+      document.activeElement?.blur();
+      document.querySelectorAll('.combo-menu').forEach(m=>m.hidden=true);
+      menu.hidden=!open;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded',String(open)));
+    }
+    else if(action==='combo-option'){
+      const combo=button.closest('.combo-field'),input=combo.querySelector('input');
+      pushEditHistory();input.value=button.dataset.value;input.dispatchEvent(new Event('change',{bubbles:true}));
+      combo.querySelector('.combo-menu').hidden=true;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded','false'));
+      document.activeElement?.blur();
+    }
+    else if(action==='board-add' && cert){addBoard(cert);}
+    else if(action==='board-delete' && cert){deleteBoard(cert,Number(button.dataset.boardIndex));}
+    else if(action==='template-save-board' && cert){saveDesignTemplate('board',cert,Number(button.dataset.boardIndex));}
+    else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,view.circuitIndex);}
+    else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef);}
+    else if(action==='template-use' && cert){useDesignTemplate(button.dataset.id);}
+    else if(action==='template-rename'){manageDesignTemplate(button.dataset.id,false);}
+    else if(action==='template-delete'){manageDesignTemplate(button.dataset.id,true);}
+    else if(action==='site-builder') openSiteSheetBuilder();
     else if(action==='site-builder-close') closeSiteBuilder();
     else if(action==='site-board-add' && siteBuilderState){
       siteBuilderState.boards.push({ref:'DB'+(siteBuilderState.boards.length+1),location:'',circuits:12});renderSiteBuilder();
@@ -3094,7 +3235,9 @@
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
     else if(action==='circuit-add' && cert){
       syncCircuitRows(cert);
-      const board=cert.tables.circuits.at(-1)?.boardRef||'DB1';
+      pushEditHistory('Add circuit');
+      const board=button.dataset.boardRef||cert.tables.boards[0]?.ref;
+      if(!board) return;
       const no=nextCircuitNumber(cert,board);
       const newCircuit={boardRef:board,circuitNo:no};
       cert.tables.circuits.push(newCircuit);cert.tables.tests.push({boardRef:board,circuitNo:no});
@@ -3107,16 +3250,20 @@
       syncCircuitRows(cert);const i=Number(button.dataset.index);
       const source=cert.tables.circuits[i]||{};
       const no=nextCircuitNumber(cert,source.boardRef||'DB1');
-      const c=clone(source),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
+      pushEditHistory('Duplicate circuit');
+      const c={...circuitDesign(source),id:uid(),boardRef:source.boardRef,circuitNo:no},t={boardRef:source.boardRef,circuitNo:no};
       cert.tables.circuits.push(c);cert.tables.tests.push(t);sortCircuitsByNumber(cert,c);view.circuitIndex=cert.tables.circuits.indexOf(c);view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
-      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){savePreRestoreSnapshot();syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();goCircuits();toast('Circuit deleted · recovery saved');}
+      const i=Number(button.dataset.index),row=cert.tables.circuits[i];
+      if(!row || row._incomingFeed) return;
+      if((cert.tables.boards||[]).some(b=>normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(row.boardRef)&&String(b.sourceCircuitNo??'')===String(row.circuitNo??''))){alert('Change the dependent consumer unit supply before deleting this source circuit.');return;}
+      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();restoreScroll(y);toast('Circuit deleted · recovery saved');}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
-    else if(action==='circuit-recalc' && cert){const i=Number(button.dataset.index);recalculateCircuitZs(cert,i,true);persist();render();}
+    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if (action === 'settings') openSettings();

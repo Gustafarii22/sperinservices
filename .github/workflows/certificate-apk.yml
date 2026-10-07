@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/v1712-consumer-unit-workflow
     paths:
       - "public/certificates/**"
       - "certificate-android/**"
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -37,8 +38,8 @@ jobs:
           const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
           const e2eWorkflow = fs.readFileSync('.github/workflows/certificate-e2e.yml', 'utf8');
-          fail(app.includes("const VERSION = '1.7.11'"), 'Certificate UI version is not v1.7.11');
-          fail(gradle.includes('versionCode 181') && gradle.includes("versionName '1.7.11'"), 'Android version is not v1.7.11 / 181');
+          fail(app.includes("const VERSION = '1.7.12'"), 'Certificate UI version is not v1.7.12');
+          fail(gradle.includes('versionCode 182') && gradle.includes("versionName '1.7.12'"), 'Android version is not v1.7.12 / 182');
           fail(java.includes('certificates-app'), 'Bundled certificate origin route missing');
           fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
           fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
@@ -89,6 +90,25 @@ jobs:
           console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
           NODE
 
+      - name: Setup Node for certificate QA
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Test certificates before building
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node --check public/certificates/app.js
+          node --check public/certificates/iet-forms.js
+          npx eslint --config certificate-android/qa/eslint.config.mjs public/certificates/app.js public/certificates/iet-forms.js
+          python3 -m http.server 4173 -d public >/tmp/certificate-http.log 2>&1 &
+          for pass in forward reverse mixed; do
+            CERT_AUDIT_PASS="$pass" node certificate-android/qa/certificate.e2e.mjs
+          done
+          node certificate-android/qa/workflow.e2e.mjs
+          CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -115,14 +135,8 @@ jobs:
           path: ~/.android/sperin-certificates-stable.jks
           key: sperin-certificates-signing-key-v1
 
-      - name: Create signing key on first run only
-        run: |
-          mkdir -p "$HOME/.android"
-          if [ ! -f "$HOME/.android/sperin-certificates-stable.jks" ]; then
-            keytool -genkeypair               -keystore "$HOME/.android/sperin-certificates-stable.jks"               -storepass android               -keypass android               -alias sperincertificates               -keyalg RSA               -keysize 3072               -validity 10000               -dname "CN=Sperin Services Certificates, OU=Sperin Services, O=Sperin Services, L=Birmingham, C=GB"
-          fi
-          test -f "$HOME/.android/sperin-certificates-stable.jks"
-          keytool -list -v             -keystore "$HOME/.android/sperin-certificates-stable.jks"             -storepass android             -alias sperincertificates | grep "SHA256:" | head -1
+      - name: Require the existing signing key
+        run: test -f "$HOME/.android/sperin-certificates-stable.jks"
 
       - name: Verify permanent signing fingerprint
         run: |
@@ -150,18 +164,51 @@ jobs:
           cp public/certificates/vendor/jspdf.plugin.autotable.min.js certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build APK
-        run: gradle -p certificate-android :app:assembleDebug --no-daemon --stacktrace
+        run: gradle -p certificate-android :app:assembleRelease --no-daemon --stacktrace
 
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.11.apk
+          cp certificate-android/app/build/outputs/apk/release/app-release.apk certificate-android/dist/Sperin-Certificates-v1.7.12.apk
+
+      - name: Inspect final signed APK
+        run: |
+          python3 certificate-android/qa/inspect-apk.py certificate-android/dist/Sperin-Certificates-v1.7.12.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs certificate-android/dist/Sperin-Certificates-v1.7.12.apk | tee certificate-android/dist/signing.txt
+          grep -i '68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573' certificate-android/dist/signing.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging certificate-android/dist/Sperin-Certificates-v1.7.12.apk | tee certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='182'.*versionName='1.7.12'" certificate-android/dist/package.txt
+          grep "application-label:'Sperin Certificates'" certificate-android/dist/package.txt
+
+      - name: Enable KVM for Android verification
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Verify real APK installation and upgrade
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          profile: pixel_2
+          disable-animations: true
+          script: bash certificate-android/qa/android-upgrade.sh
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v1.7.12-verification
+          path: certificate-android/qa-output/
+          if-no-files-found: warn
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.11
-          path: certificate-android/dist/Sperin-Certificates-v1.7.11.apk
+          name: Sperin-Certificates-v1.7.12
+          path: certificate-android/dist/Sperin-Certificates-v1.7.12.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -169,10 +216,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.11"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.11.apk"
+          TAG="certificates-v1.7.12"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.12.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.11" --notes "Android shell hotfix: always loads the bundled certificate app on a stable same-origin route, blocks the public website from replacing it, and adds release guards that verify route/interceptor consistency."
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.7.12" --notes "Consumer-unit workflow, linked incoming circuits, editable dropdowns, live maximum Zs, compact design-only templates with backup support, undo/redo, stable scrolling and complete board PDFs. Existing storage key, package and signing identity preserved. See release verification notes for device-test limitations."
           fi
+
+      - name: Download and verify published artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/release-download
+          gh release download certificates-v1.7.12 --pattern '*.apk' --dir /tmp/release-download
+          cmp certificate-android/dist/Sperin-Certificates-v1.7.12.apk /tmp/release-download/Sperin-Certificates-v1.7.12.apk
+          python3 certificate-android/qa/inspect-apk.py /tmp/release-download/Sperin-Certificates-v1.7.12.apk

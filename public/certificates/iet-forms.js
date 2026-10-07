@@ -167,7 +167,7 @@
   function boardRows(cert){
     const source=safeRows(cert.tables?.boards);
     const boards=source.map(row=>({...row}));
-    if(!boards.length){
+    if(!boards.length && !cert.boardWorkflowVersion){
       boards.push({
         ref:cert.fields?.dbReference||'DB1',
         location:cert.fields?.dbLocation||'',
@@ -204,7 +204,7 @@
         list.push({detail,test,index:i});
       }
     }
-    return list;
+    return list.sort((a,b)=>String(a.detail.circuitNo??a.test.circuitNo??'').localeCompare(String(b.detail.circuitNo??b.test.circuitNo??''),undefined,{numeric:true}));
   }
   function wiringCode(value){
     const t=String(value||'').trim();
@@ -614,14 +614,13 @@
         const W=doc.internal.pageSize.getWidth(),x=10,w=W-20;
         const y=27;
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
-        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,53,{labelW:24});
-        labelValue(doc,'Location',display(board.location,worksheet,true),x+55,y+7,67,{labelW:18});
-        labelValue(doc,'Supplied from',display(board.suppliedFrom,worksheet),x+124,y+7,70,{labelW:23});
-        labelValue(doc,'Distribution circuit OCPD',display(board.mainSwitch,worksheet),x+196,y+7,w-196,{labelW:34});
-        labelValue(doc,'SPD Type(s)',display(board.spd,worksheet),x,y+14,53,{labelW:20});
-        labelValue(doc,'RCD',display(board.rcd,worksheet),x+55,y+14,67,{labelW:12});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+124,y+14,40,{labelW:13});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+166,y+14,40,{labelW:13});
+        // Flexible board cells preserve long SPD/device/location text without overlap.
+        doc.autoTable({startY:y+3,head:[],body:[
+          ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
+          ['Main switch / device: '+display(board.mainSwitch,worksheet),'RCD / RCBO: '+display(board.rcd,worksheet),'SPD: '+display(board.spd,worksheet)],
+          ['Zdb Ohms: '+display(board.zdb,worksheet)+'   Ipf kA: '+display(board.ipf,worksheet),'Polarity: '+display(board.polarity,worksheet)+'   Phase sequence: '+display(board.phaseSequence,worksheet),'SPD operational: '+display(board.spdOperational,worksheet)]
+        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
+        const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
@@ -638,11 +637,11 @@
               const containment=String(item.installMethod||'').trim();
               z=[wiring,containment].filter(Boolean).join(' / ');
             }
-            return worksheet?'':pdfText(z||'');
+            return worksheet?'':pdfText(z??'');
           }));
         }
         doc.autoTable({
-          startY:y+20,
+          startY:circuitStartY,
           head:[
             [{content:'CIRCUIT DETAILS',colSpan:16,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
@@ -675,7 +674,7 @@
         for(let r=0;r<12;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
-          trows.push(tcols.map(c=>worksheet?'':pdfText(merged[c[2]]||'')));
+          trows.push(tcols.map(c=>worksheet?'':pdfText(merged[c[2]]??'')));
         }
         doc.autoTable({
           startY:y+18,

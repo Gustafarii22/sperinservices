@@ -464,3 +464,31 @@ button:disabled{opacity:.42;cursor:default}
   .recovery-confirm-modal{padding:16px}
   .recovery-confirm-actions{grid-template-columns:1fr}
 }
+
+/* Compact consumer-unit workflow and editable suggestions. */
+.consumer-unit-card{overflow:visible;margin:14px 0}
+.consumer-unit-head,.board-section-title{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:14px}
+.consumer-unit-head h3{margin:4px 0}
+.consumer-unit-circuits{padding:0 12px 12px}
+.board-section-title{padding:12px 0;font-size:13px}
+.board-section-title span{color:var(--muted);font-size:12px}
+.board-circuit-tools,.add-consumer-unit{display:flex;gap:8px;flex-wrap:wrap;padding:12px 0}
+.history-btn{padding:7px 10px!important;min-height:36px!important;font-size:12px!important}
+.combo-field{position:relative;display:flex;flex:1;min-width:0;width:100%}
+.combo-field input{min-width:0;padding-right:44px!important;width:100%}
+.combo-arrow{position:absolute;right:0;top:0;height:100%;width:44px;border:0;border-left:1px solid #ccd7e3;background:transparent;color:inherit;font-size:22px;cursor:pointer;touch-action:manipulation}
+.combo-menu{position:absolute;z-index:50;top:100%;left:0;right:0;max-height:230px;overflow:auto;background:#fff;border:1px solid #bac9d9;border-radius:10px;box-shadow:0 8px 24px #07111f26}
+.combo-menu[hidden]{display:none}
+.combo-option{display:block;width:100%;padding:12px;text-align:left;background:white;color:#172b42;border:0;border-bottom:1px solid #e8edf2;font:inherit;font-size:14px;cursor:pointer}
+.combo-option:hover,.combo-option:focus{background:#eaf3ff}
+.template-picker{width:min(480px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:16px}
+.template-row{padding:12px 0;border-bottom:1px solid #dce4ee}
+.template-row strong{font-size:14px}.template-row small{display:block;color:var(--muted);font-size:12px;margin-top:4px;overflow-wrap:anywhere}
+.template-actions{display:flex;gap:6px;margin-top:8px}.template-actions .btn{min-height:36px}
+.incoming-circuit{border-left:3px solid #347fe0}
+[data-board-add-circuit]{scroll-margin-bottom:84px}
+.combo-menu,.combo-option{background:var(--panel);color:var(--text);border-color:var(--line)}
+.combo-option:hover,.combo-option:focus{background:var(--panel2)}
+.combo-arrow{border-color:var(--line)}
+.consumer-unit-head h3{padding:0;background:none;border:0}
+.consumer-unit-fields .field:has([data-board-input="zdb"]),.consumer-unit-fields .field:has([data-board-input="ipf"]){grid-column:span 6}
