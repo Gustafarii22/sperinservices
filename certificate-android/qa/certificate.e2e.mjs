@@ -48,6 +48,18 @@ assert(
   "Missing dynamic action handlers: " + missingDynamic.join(", "),
 );
 assert(!appSource.includes('data-action="circuit-copy"'), "Copy Details button must be removed");
+const ocpdOptionsMatch = appSource.match(/ocpdBs:\s*\[([^\]]+)\]/);
+const supplyOptionsMatch = appSource.match(/supplyDeviceBs:\s*\[([^\]]+)\]/);
+assert(ocpdOptionsMatch, "OCPD option list missing");
+assert(supplyOptionsMatch, "Supply-device option list missing");
+assert(ocpdOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 OCPD option missing");
+assert(supplyOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 supply-device option missing");
+assert(!ocpdOptionsMatch[1].includes("Type 3"), "Old Type 3 wording remains in OCPD options");
+assert(
+  !supplyOptionsMatch[1].includes("Type 3"),
+  "Old Type 3 wording remains in supply-device options",
+);
+assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
 assert(
   appSource.includes("SperinIetForms.build"),
   "Certificate app is not using the shared IET-style renderer",
@@ -81,6 +93,14 @@ assert(
 );
 assert(appSource.includes('data-action="rapid-entry">Voice'), "Voice action label missing");
 assert(appSource.includes("prepareBackupData"), "Validated backup import staging missing");
+assert(appSource.includes("Backup certificates?"), "First backup confirmation missing");
+assert(appSource.includes("Confirm backup"), "Second backup confirmation missing");
+assert(appSource.includes("Restore latest backup?"), "First restore confirmation missing");
+assert(appSource.includes("Confirm restore"), "Second restore confirmation missing");
+assert(
+  appSource.includes('data-action="restore">Restore</button>'),
+  "Top-bar Restore text button missing",
+);
 assert(
   appSource.includes("normaliseBoardKey"),
   "Per-board circuit numbering normalisation missing",
@@ -1108,12 +1128,50 @@ assert(
 await page.locator('[data-action="circuit-list"]').first().click();
 console.log("MULTIBOARD_NUMBERING_PASS");
 
-// Backup browser fallback should create JSON.
+// Backup must require two explicit confirmations before creating JSON.
 const backupPromise = page.waitForEvent("download");
-await page.locator('[data-action="backup"]').click();
+await page.locator('.topbar [data-action="backup"]').click();
+await page.waitForSelector(".recovery-confirm-modal");
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Backup certificates?",
+  "Backup first confirmation wording is unclear",
+);
+await page.locator('[data-action="recovery-confirm-next"]').click();
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Confirm backup",
+  "Backup second confirmation missing",
+);
+assert(
+  (await page.getByRole("button", { name: "Backup now", exact: true }).count()) === 1,
+  "Backup now button missing",
+);
+await page.getByRole("button", { name: "Backup now", exact: true }).click();
 const backupDownload = await backupPromise;
 assert(backupDownload.suggestedFilename().endsWith(".json"), "Backup is not JSON");
-console.log("BACKUP_PASS");
+console.log("BACKUP_DOUBLE_CONFIRM_PASS");
+
+// Restore must also require two explicit confirmations. Cancel at stage two must do nothing.
+await page.locator('.topbar [data-action="restore"]').click();
+await page.waitForSelector(".recovery-confirm-modal");
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Restore latest backup?",
+  "Restore first confirmation wording is unclear",
+);
+await page.locator('[data-action="recovery-confirm-next"]').click();
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Confirm restore",
+  "Restore second confirmation missing",
+);
+assert(
+  (await page.getByRole("button", { name: "Restore now", exact: true }).count()) === 1,
+  "Restore now button missing",
+);
+await page.locator('[data-action="recovery-confirm-cancel"]').last().click();
+assert(
+  (await page.locator(".recovery-confirm-modal").count()) === 0,
+  "Restore cancel did not close safely",
+);
+console.log("RESTORE_DOUBLE_CONFIRM_PASS");
 
 await page.locator(".brand-home").click();
 await page.waitForSelector(".home-page");
@@ -1133,17 +1191,27 @@ fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.writeFileSync(
   importPath,
   JSON.stringify({
-    version: "1.7.9",
+    version: "1.7.10",
     exportedAt: new Date().toISOString(),
     settings: { companyName: "Sperin Services" },
     certificates: [importedCert],
   }),
 );
-await page.evaluate(() => {
-  window.confirm = () => true;
-});
-const importChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
 await page.locator('[data-action="import-backup"]').click();
+await page.waitForSelector(".recovery-confirm-modal");
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Import backup file?",
+  "Import first confirmation missing",
+);
+await page.locator('[data-action="recovery-confirm-next"]').click();
+assert(
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Confirm import",
+  "Import second confirmation missing",
+);
+const importChooserPromise = page.waitForEvent("filechooser");
+await page.getByRole("button", { name: "Import now", exact: true }).click();
 const importChooser = await importChooserPromise;
 await importChooser.setFiles(importPath);
 await page.waitForSelector(".home-page");
@@ -1181,8 +1249,13 @@ fs.writeFileSync(
     certificates: [{ id: "bad-cert", type: "not-a-certificate", fields: {}, tables: {} }],
   }),
 );
-const badChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
 await page.locator('[data-action="import-backup"]').click();
+await page.waitForSelector(".recovery-confirm-modal");
+await page.locator('[data-action="recovery-confirm-next"]').click();
+const badChooserPromise = page.waitForEvent("filechooser");
+await page.getByRole("button", { name: "Import now", exact: true }).click();
 const badChooser = await badChooserPromise;
 await badChooser.setFiles(badImportPath);
 await page.waitForTimeout(120);
@@ -1195,6 +1268,10 @@ assert(
   "Invalid backup changed the saved certificate state",
 );
 console.log("INVALID_IMPORT_GUARD_PASS");
+if ((await page.locator(".profile-modal").count()) > 0) {
+  await page.locator(".profile-modal").locator('[data-action="close-modal"]').click();
+}
+await page.waitForSelector(".home-page");
 
 // Every certificate type must open, stay usable at phone width and generate a real PDF.
 await page.setViewportSize({ width: 390, height: 844 });
@@ -1219,10 +1296,22 @@ for (const type of certificateTypeOrder) {
     if (box) assert(box.height >= 39, type + " critical button is too small: " + box.height);
   }
 
+  if (["eic", "eicr", "minor"].includes(type)) {
+    const bs883Options = page.locator('option[value="BS88-3"]');
+    assert(
+      (await bs883Options.count()) >= 1,
+      type + " missing exact BS88-3 protective-device option",
+    );
+    assert(
+      (await page.locator('option[value="BS 88-3 Type 3"]').count()) === 0,
+      type + " still exposes old BS 88-3 Type 3 wording",
+    );
+  }
+
   if (type === "minor") {
     assert(
-      (await page.locator('[data-field="ocpdBs"] option[value="BS 88-3 Type 3"]').count()) === 1,
-      "Minor Works missing BS 88-3 Type 3",
+      (await page.locator('[data-field="ocpdBs"] option[value="BS88-3"]').count()) === 1,
+      "Minor Works missing BS88-3",
     );
     assert(
       (await page.locator('[data-field="breakingCapacity"] option[value="33"]').count()) === 1,
