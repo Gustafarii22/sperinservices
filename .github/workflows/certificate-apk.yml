@@ -157,5 +157,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.10" --notes "Label correction release: changes BS 88-3 Type 3 to BS 88-3 throughout the certificate app while retaining the v1.7.9 precision fixes."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.10" --notes "Label correction release: changes BS88-3 to BS88-3 throughout the certificate app while retaining the v1.7.9 precision fixes."
           fi
