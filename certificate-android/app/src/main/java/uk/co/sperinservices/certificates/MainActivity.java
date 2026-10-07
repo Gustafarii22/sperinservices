@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
     private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.5";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
+    private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
     private static final int SHEET_CAMERA_REQUEST = 3001;
@@ -332,6 +333,22 @@ public class MainActivity extends Activity {
             pendingSheetScanToken = "";
             return;
         }
+        if (requestCode == BACKUP_IMPORT_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    Uri uri = data.getData();
+                    InputStream in = getContentResolver().openInputStream(uri);
+                    if (in == null) throw new IllegalStateException("Could not open selected backup file");
+                    String json = readFile(in);
+                    sendBackupResult(json, "");
+                } catch (Exception ex) {
+                    sendBackupResult("", ex.getMessage() == null ? "Could not read selected backup" : ex.getMessage());
+                }
+            } else {
+                sendBackupResult("", "Import cancelled");
+            }
+            return;
+        }
         if (requestCode == FILE_CHOOSER_REQUEST) {
             Uri[] result = null;
             if (resultCode == RESULT_OK && data != null) {
@@ -365,6 +382,18 @@ public class MainActivity extends Activity {
                     else MainActivity.super.onBackPressed();
                 }
         );
+    }
+
+    private void openBackupImportPicker() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/json");
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/json", "text/plain", "application/octet-stream"});
+            startActivityForResult(intent, BACKUP_IMPORT_REQUEST);
+        } catch (Exception ex) {
+            sendBackupResult("", ex.getMessage() == null ? "Could not open backup file picker" : ex.getMessage());
+        }
     }
 
     private String safeName(String name, String fallback) {
@@ -1001,6 +1030,11 @@ public class MainActivity extends Activity {
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
             }
+        }
+
+        @JavascriptInterface
+        public void importBackupFile() {
+            runOnUiThread(MainActivity.this::openBackupImportPicker);
         }
 
         @JavascriptInterface

@@ -144,7 +144,10 @@ html{scroll-padding-top:92px}
 @page{size:A4 landscape;margin:10mm}
 .brand-home{appearance:none;border:0;background:transparent;color:inherit;padding:0;text-align:left;cursor:pointer}
 .brand-mark{display:grid;place-items:center}
-.top-action{display:inline-flex;align-items:center;gap:7px}
+.top-actions{display:flex;align-items:center;gap:8px}
+.top-action{display:inline-flex;align-items:center;justify-content:center;min-width:68px;min-height:40px;padding:9px 12px;border-radius:12px;white-space:nowrap}
+.import-action{border-color:#2f86e8;background:linear-gradient(180deg,#1f7edc,#1766bb);color:#fff}
+.import-action:hover{border-color:#62a9f2}
 .top-action svg,.home-page svg,.hero-cta svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .home-page{display:grid;gap:26px}
 .home-hero{position:relative;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:24px;align-items:center;min-height:340px;padding:30px 0 14px;border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
@@ -182,7 +185,7 @@ html{scroll-padding-top:92px}
   .home-hero{grid-template-columns:1fr;min-height:auto;padding-top:16px}.home-visual{min-height:235px}.home-stats{grid-template-columns:1fr 1fr}.home-section-head{align-items:flex-start;flex-direction:column}.home-section-head p{text-align:left}.saved-cert-row{grid-template-columns:44px minmax(0,1fr)}.saved-cert-date{grid-column:2}.saved-cert-actions{grid-column:2}.entry-tools-explainer{grid-template-columns:1fr}
 }
 @media(max-width:560px){
-  .home-hero h2{font-size:38px}.home-visual{min-height:215px}.visual-sheet{height:195px}.home-stats>div{min-height:74px}.saved-cert-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.saved-cert-actions .btn{width:100%}.top-action span:last-child{display:none}.top-action{width:42px;height:42px;justify-content:center;padding:0}.postcode-find{min-width:94px;padding-left:8px;padding-right:8px}.profile-head{align-items:flex-start}.profile-head .btn{flex:none}
+  .home-hero h2{font-size:38px}.home-visual{min-height:215px}.visual-sheet{height:195px}.home-stats>div{min-height:74px}.saved-cert-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.saved-cert-actions .btn{width:100%}.top-actions{gap:5px}.top-action{width:auto;height:38px;min-width:52px;padding:0 8px;font-size:10.5px}.brand h1{font-size:14px}.brand{gap:8px}.bolt{width:34px;height:34px;border-radius:10px}.postcode-find{min-width:94px;padding-left:8px;padding-right:8px}.profile-head{align-items:flex-start}.profile-head .btn{flex:none}
 }
 
 /* v1.6 site sheets, scan review and technical checks */
