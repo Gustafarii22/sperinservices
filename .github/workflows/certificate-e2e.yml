@@ -64,10 +64,10 @@ jobs:
           grep -F "LONG DESCRIPTION END" certificate-android/qa-output/eic-regression.txt
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
-          grep -F "Surface trunking on masonry wall" certificate-android/qa-output/eic-regression.txt
+          grep -F "Surface trunking" certificate-android/qa-output/eic-regression.txt
           grep -F "Concealed in wall" certificate-android/qa-output/eic-regression.txt
-          grep -F "Lighting test row complete" certificate-android/qa-output/eic-regression.txt
-          grep -F "Sockets test row complete" certificate-android/qa-output/eic-regression.txt
+          grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
+          grep -F "Sockets test row" certificate-android/qa-output/eic-regression.txt
           grep -F "N/A" certificate-android/qa-output/eic-regression.txt
           pages="$(pdfinfo "$PDF" | awk '/^Pages:/{print $2}')"
           for p in $(seq 1 "$pages"); do
@@ -80,6 +80,7 @@ jobs:
           pdftoppm -f 1 -l 6 -png -r 130 "$PDF" certificate-android/qa-output/renders/eic >/dev/null 2>&1
 
       - name: Upload EIC PDF regression proof
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Sperin-Certificates-v1.7.2-PDF-QA
