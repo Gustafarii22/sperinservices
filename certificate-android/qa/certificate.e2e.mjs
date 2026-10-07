@@ -629,6 +629,39 @@ assert(
 );
 console.log("CIRCUIT_AUTOSORT_PASS");
 
+// Rotation/reload must preserve the active certificate, circuit page and autosaved data.
+await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator('[data-action="circuit-next"]').click();
+const rotationField = page.locator('[data-circuit-input="tests"][data-col="r2only"]');
+await rotationField.fill("0.20");
+await page.waitForTimeout(450);
+await page.setViewportSize({ width: 844, height: 390 });
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector('[data-circuit-input="tests"][data-col="r2only"]');
+assert(
+  (await page.locator('[data-circuit-input="tests"][data-col="r2only"]').inputValue()) === "0.20",
+  "Reload/rotation lost the active circuit test value",
+);
+assert(
+  (await page.locator(".eyebrow").first().textContent()).includes("2 of 2"),
+  "Reload/rotation did not keep the circuit test page",
+);
+assert(
+  (await page.locator(".form-title h2").textContent()).includes("Circuit 0"),
+  "Reload/rotation changed the active circuit",
+);
+await page.locator('[data-action="circuit-list"]').first().click();
+await page.waitForSelector(".circuit-list");
+const landscapeOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+assert(landscapeOverflow <= 2, "Landscape certificate page overflows horizontally by " + landscapeOverflow);
+await page.setViewportSize({ width: 390, height: 844 });
+const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+assert(mobileOverflow <= 2, "Mobile certificate page overflows horizontally by " + mobileOverflow);
+const inspectionRight = await page.locator(".inspection-section").evaluate((el) => el.getBoundingClientRect().right);
+assert(inspectionRight <= 392, "Inspection checklist extends beyond the mobile page");
+await page.setViewportSize({ width: 1280, height: 900 });
+console.log("ROTATION_RELOAD_MOBILE_PASS");
+
 // Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
 await page
   .locator('[data-field="installationAddress"]')
@@ -653,9 +686,23 @@ fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.copyFileSync(pdfPath, "certificate-android/qa-output/eic-regression.pdf");
 console.log("EIC_LANDSCAPE_PDF_PASS");
 
+// Complete & PDF must create the file before the saved certificate is marked complete.
+const completePdfPromise = page.waitForEvent("download");
+await page.locator('[data-action="complete-pdf"]').click();
+const completedPdf = await completePdfPromise;
+assert((await completedPdf.path()) != null, "Complete & PDF did not create a PDF");
+await page.waitForTimeout(80);
+stored = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(stored.certificates?.[0]?.status === "Complete", "Complete & PDF did not save Complete status");
+await page.locator('[data-action="status"]').click();
+await page.waitForTimeout(40);
+console.log("COMPLETE_PDF_PASS");
+
 // Printable worksheet must also download and be landscape.
 const worksheetPromise = page.waitForEvent("download");
-await page.getByRole("button", { name: /Printable Site Worksheet/ }).click();
+await page.getByRole("button", { name: "Site sheet", exact: true }).click();
 const worksheet = await worksheetPromise;
 assert(worksheet.suggestedFilename().includes("Site-Worksheet"), "Site worksheet filename unclear");
 const worksheetPath = await worksheet.path();
@@ -713,6 +760,16 @@ assert(
 assert(
   (await page.locator('[data-setting="postcodeApiKey"]').count()) === 1,
   "Postcode API profile setting missing",
+);
+
+// Closing Profile must discard unsaved edits.
+await page.locator('[data-setting="testerMake"]').fill("UNSAVED TESTER");
+await page.locator(".profile-modal").locator('[data-action="close-modal"]').click();
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
+assert(
+  (await page.locator('[data-setting="testerMake"]').inputValue()) === "Megger",
+  "Closing Profile without Save changed the in-memory defaults",
 );
 await page.locator('[data-action="save-settings"]').click();
 await page.waitForTimeout(50);
