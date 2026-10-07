@@ -36,3 +36,4 @@ grep -q 'Upgrade preservation check' certificate-android/qa-output/android/rotat
 adb exec-out screencap -p > certificate-android/qa-output/android/release-rotated.png
 adb logcat -d > certificate-android/qa-output/android/logcat.txt
 echo APK_INSTALL_UPGRADE_LAUNCH_ROTATION_PASS
+python3 certificate-android/qa/android-keyboard.py

@@ -70,7 +70,7 @@
     'r1','rn','r2','r1r2','r2only','irVoltage','irLL','irLE','zs','rcdTime',
     'ringR1','ringRn','ringR2','rcdDelay','afddRating'
   ]);
-  const INTEGER_INPUT_KEYS = new Set(['circuitNo','points','irVoltage','ocpdRating','rcdIdn','rcdRating','rcdTime','maximumDemand','supplyDeviceRating','mainSwitchRating']);
+  const INTEGER_INPUT_KEYS = new Set(['circuitNo','points','irVoltage']);
 
   function inputModeAttrs(key){
     if(INTEGER_INPUT_KEYS.has(key)) return ' inputmode="numeric" pattern="[0-9]*"';
@@ -251,7 +251,8 @@
       }
     }
     cert.tables.boards.filter(b=>b.feedSourceType==='Another consumer unit').forEach(b=>syncBoardIncomingCircuit(cert,b));
-    syncPrimaryBoardLegacyFields(cert);saveNow();const y=window.scrollY;render();restoreScroll(y);
+    syncPrimaryBoardLegacyFields(cert);saveNow();
+    if(['ref','feedSourceType','sourceBoardRef','sourceCircuitNo'].includes(key)){const y=window.scrollY;render();restoreScroll(y);}
   }
   let templatePicker=null;
   function saveDesignTemplate(kind,cert,index){
@@ -306,11 +307,18 @@
     cert.tables=cert.tables||{};
     let boards=Array.isArray(cert.tables.boards)?cert.tables.boards.filter(isRecord):[];
     if(!boards.length && !cert.boardWorkflowVersion) boards=[{ref:cert.fields?.dbReference||'DB1'}];
+    const legacyRef=String(cert.fields?.dbReference??'').trim();
+    if(!cert.boardWorkflowVersion && legacyRef && !boards.some(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(legacyRef))){
+      const placeholder=boards.length===1 && Object.entries(boards[0]).every(([k,v])=>['id','ref'].includes(k)||v===undefined||v===null||String(v).trim()==='');
+      if(placeholder) boards[0].ref=legacyRef;
+      else boards.push({ref:legacyRef});
+    }
+    const legacyIndex=legacyRef?boards.findIndex(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(legacyRef)):0;
     boards=boards.map((board,i)=>{
       const b={...board};
       b.id=String(b.id||uid());
       b.ref=String(b.ref||('DB'+(i+1))).trim()||('DB'+(i+1));
-      if(i===0 && !cert.boardWorkflowVersion){
+      if(i===legacyIndex && !cert.boardWorkflowVersion){
         Object.entries(PRIMARY_BOARD_FIELD_MAP).forEach(([boardKey,fieldKey])=>{
           if((b[boardKey]===undefined||b[boardKey]===null||String(b[boardKey]).trim()==='') && cert.fields?.[fieldKey]!==undefined && cert.fields?.[fieldKey]!==null && String(cert.fields[fieldKey]).trim()!==''){
             b[boardKey]=cert.fields[fieldKey];
@@ -336,9 +344,10 @@
 
   function nextBoardRef(cert){
     const used=new Set((cert.tables?.boards||[]).map(b=>normaliseBoardKey(b.ref)));
+    const prefix=String(cert.tables?.boards?.[0]?.ref||'DB1').match(/^([A-Za-z]+)\d+$/)?.[1]||'DB';
     let n=1;
-    while(used.has('DB'+n)) n++;
-    return 'DB'+n;
+    while(used.has(normaliseBoardKey(prefix+n))) n++;
+    return prefix+n;
   }
 
   function removeIncomingFeedCircuit(cert,boardRef){
@@ -1499,8 +1508,8 @@
 
   function boardControl(boardIndex,key,label,value,options=null,extra=''){
     const attrs=`data-board-input="${esc(key)}" data-board-index="${boardIndex}"`;
-    const control=key==='spd' ? comboControl(attrs,{key,label,options},value) : Array.isArray(options)
-      ? `<select ${attrs} ${extra}><option value="">Select…</option>${options.map(o=>`<option value="${esc(o)}" ${String(value??'')===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+    const control=Array.isArray(options)
+      ? comboControl(attrs,{key,label,options},value)
       : `<input ${attrs}${inputModeAttrs(key)} value="${esc(value??'')}" ${extra}/>`;
     return `<div class="field"><label>${esc(label)}</label>${control}</div>`;
   }
@@ -2952,7 +2961,16 @@
 
   document.addEventListener('focusin',e=>{if(e.target.matches('[data-field],[data-board-input],[data-circuit-input],[data-table-input]')) pushEditHistory();});
 
-  document.addEventListener('pointerdown',e=>{if(e.target.closest('.combo-arrow,.combo-option')){e.preventDefault();document.activeElement?.blur();}});
+  document.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.combo-arrow,.combo-option')){e.preventDefault();document.activeElement?.blur();}
+    if(!e.target.closest('.combo-field'))document.querySelectorAll('.combo-field').forEach(c=>{c.querySelector('.combo-menu').hidden=true;c.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded','false'));});
+  });
+  document.addEventListener('keydown',e=>{
+    const combo=e.target.closest('.combo-field');if(!combo)return;
+    const menu=combo.querySelector('.combo-menu');
+    if(e.key==='Escape'){menu.hidden=true;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded','false'));}
+    if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();menu.hidden=false;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded','true'));const options=[...menu.querySelectorAll('button')],i=options.indexOf(document.activeElement);options[(i+(e.key==='ArrowDown'?1:-1)+options.length)%options.length]?.focus();}
+  });
 
   document.addEventListener('input', e => {
     const cert = getCurrent();

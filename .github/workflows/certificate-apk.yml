@@ -189,9 +189,9 @@ jobs:
       - name: Verify real APK installation and upgrade
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: 35
           arch: x86_64
-          target: default
+          target: google_apis
           profile: pixel_2
           disable-animations: true
           script: bash certificate-android/qa/android-upgrade.sh

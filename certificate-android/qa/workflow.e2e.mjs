@@ -344,6 +344,42 @@ cert = await saved();
 assert.equal(cert.tables.boards.length, 0);
 assert.equal(cert.tables.circuits.length, 0);
 assert.equal(cert.tables.tests.length, 0);
+// Legacy header-only data must migrate into its named board, not a phantom DB1.
+await page.evaluate(() =>
+  window.sperinRestoreBackup(
+    JSON.stringify({
+      certificates: [
+        {
+          id: "legacy-header",
+          type: "eic",
+          fields: {
+            dbReference: "CU9",
+            dbLocation: "Legacy garage",
+            distributionOcpd: "63A isolator",
+            zdb: "0.27",
+            dbIpf: "0.85",
+            dbSpd: "Type 2",
+            dbPolarity: "Pass",
+          },
+          tables: {
+            circuits: [{ boardRef: "CU9", circuitNo: 0 }],
+            tests: [{ boardRef: "CU9", circuitNo: 0, zs: "0.31" }],
+          },
+        },
+      ],
+    }),
+  ),
+);
+await click('[data-action="edit"]');
+cert = await saved();
+assert.equal(cert.tables.boards.length, 1);
+assert.equal(cert.tables.boards[0].ref, "CU9");
+assert.equal(cert.tables.boards[0].location, "Legacy garage");
+assert.equal(cert.tables.boards[0].zdb, "0.27");
+assert.equal(await page.locator('[data-board-input="polarity"]').inputValue(), "Pass");
+await change('[data-board-input="zdb"]', "");
+await page.reload();
+assert.equal((await saved()).tables.boards[0].zdb, "");
 assert.deepEqual(errors, []);
 console.log("WORKFLOW_E2E_PASS");
 await browser.close();
