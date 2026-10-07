@@ -120,9 +120,9 @@ const jsBridgeCalls = [
 ].sort();
 const nativeBridgeMethods = [
   ...new Set(
-    [...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g)].map(
-      (m) => m[1],
-    ),
+    [
+      ...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g),
+    ].map((m) => m[1]),
   ),
 ].sort();
 const missingNativeBridge = jsBridgeCalls.filter((name) => !nativeBridgeMethods.includes(name));
