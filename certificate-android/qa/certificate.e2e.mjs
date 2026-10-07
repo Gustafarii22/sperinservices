@@ -713,14 +713,25 @@ assert(inspectionRight <= 392, "Inspection checklist extends beyond the mobile p
 await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ROTATION_RELOAD_MOBILE_PASS");
 
-// Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
+// Restore deliberately long PDF values after the quick-entry/postcode tests and verify tester mapping.
+await page
+  .locator('[data-field="clientAddress"]')
+  .fill(
+    "Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham",
+  );
+await page.locator('[data-field="clientPostcode"]').fill("B14 7AA");
 await page
   .locator('[data-field="installationAddress"]')
   .fill(
     "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
   );
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
-await page.waitForTimeout(80);
+await page.locator('[data-field="testerMake"]').fill("Megger");
+await page.locator('[data-field="testerModel"]').fill("MFT-X1");
+await page.locator('[data-field="testerSerial"]').fill("ABC123");
+await page.locator('[data-field="testedBy"]').fill("Augustine Sperin");
+await page.locator('[data-field="testedDate"]').fill("2026-10-01");
+await page.waitForTimeout(450);
 
 // PDF must be a real landscape PDF.
 const pdfDownloadPromise = page.waitForEvent("download");
