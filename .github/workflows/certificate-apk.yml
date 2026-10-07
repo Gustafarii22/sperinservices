@@ -35,8 +35,8 @@ jobs:
           const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
           const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
-          fail(app.includes("const VERSION = '1.7.5'"), 'Certificate UI version is not v1.7.5');
-          fail(gradle.includes('versionCode 175') && gradle.includes("versionName '1.7.5'"), 'Android version is not v1.7.5 / 175');
+          fail(app.includes("const VERSION = '1.7.6'"), 'Certificate UI version is not v1.7.6');
+          fail(gradle.includes('versionCode 176') && gradle.includes("versionName '1.7.6'"), 'Android version is not v1.7.6 / 176');
           fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
           fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
           fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
@@ -117,13 +117,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.5.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.6.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.5
-          path: certificate-android/dist/Sperin-Certificates-v1.7.5.apk
+          name: Sperin-Certificates-v1.7.6
+          path: certificate-android/dist/Sperin-Certificates-v1.7.6.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -131,10 +131,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.5"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.5.apk"
+          TAG="certificates-v1.7.6"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.6.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.5" --notes "Recovery/import release: adds an explicit Android backup-file picker, keeps automatic restore separate, replaces ambiguous top icons with labelled Backup / Import / Profile controls, and preserves undo-before-import recovery."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.6" --notes "Field workflow release: preserves the active certificate through rotation, adds same-as-client address copying, append-safe voice dictation, BS 88-3 Type 3 and 33 kA options, tap-to-select bonding, direct inspection checklist result buttons, apply-all controls, and one-person signatory improvements."
           fi
