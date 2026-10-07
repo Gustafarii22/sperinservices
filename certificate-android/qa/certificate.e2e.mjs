@@ -130,6 +130,27 @@ assert(
 );
 assert(javaSource.includes("loadDataWithBaseURL"), "Same-origin bundled fallback missing");
 assert(
+  javaSource.includes('private static final String APP_PATH = "/certificates-app";'),
+  "Stable certificate APP_PATH missing",
+);
+assert(
+  javaSource.includes("final String prefix = APP_PATH;"),
+  "WebView interceptor is not bound to APP_PATH",
+);
+assert(
+  javaSource.includes("loadBundledIndex();"),
+  "Android startup does not directly load the bundled certificate app",
+);
+assert(
+  !javaSource.includes("webView.loadUrl(APP_URL)") &&
+    !javaSource.includes("webView.loadUrl(LIVE_URL)"),
+  "Android startup can still fall through to the live website",
+);
+assert(
+  !/certificates-app-v\d+/.test(javaSource),
+  "Versioned certificate route remains in Android shell",
+);
+assert(
   !javaSource.includes("file:///android_asset/certificates/index.html"),
   "file:// fallback can hide origin-scoped certificate data",
 );
@@ -1191,7 +1212,7 @@ fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.writeFileSync(
   importPath,
   JSON.stringify({
-    version: "1.7.10",
+    version: "1.7.11",
     exportedAt: new Date().toISOString(),
     settings: { companyName: "Sperin Services" },
     certificates: [importedCert],

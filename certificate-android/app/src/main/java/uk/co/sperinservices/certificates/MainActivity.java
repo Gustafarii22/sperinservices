@@ -67,8 +67,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk/certificates-app-v1710/";
-    private static final String LIVE_URL = BUNDLED_BASE_URL + "?app=1.7.10";
+    private static final String APP_PATH = "/certificates-app";
+    private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.11";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -79,7 +80,6 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> fileChooserCallback;
     private long lastRollingAutoBackup = 0L;
-    private boolean usingLocalFallback = false;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
     private boolean ttsReady = false;
@@ -115,7 +115,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.10");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.11");
 
         setupVoice();
 
@@ -148,10 +148,15 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String host = uri.getHost();
-                if (host == null || host.endsWith("sperinservices.co.uk") || uri.toString().startsWith("file:///android_asset/")) {
-                    return false;
-                }
-                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
+                String path = uri.getPath();
+                boolean isBundledApp =
+                        "sperinservices.co.uk".equalsIgnoreCase(host) &&
+                        path != null &&
+                        (path.equals(APP_PATH) || path.equals(APP_PATH + "/") || path.startsWith(APP_PATH + "/"));
+                if (isBundledApp) return false;
+
+                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+                catch (Exception ignored) {}
                 return true;
             }
 
@@ -159,17 +164,9 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
             }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame() && !usingLocalFallback) {
-                    usingLocalFallback = true;
-                    loadBundledIndexFallback();
-                }
-            }
         });
 
-        webView.loadUrl(LIVE_URL);
+        loadBundledIndex();
     }
 
     private WebResourceResponse bundledCertificateResponse(Uri uri) {
@@ -178,7 +175,7 @@ public class MainActivity extends Activity {
         String path = uri.getPath();
         if (host == null || !"sperinservices.co.uk".equalsIgnoreCase(host) || path == null) return null;
 
-        final String prefix = "/certificates-app-v179";
+        final String prefix = APP_PATH;
         if (!(path.equals(prefix) || path.equals(prefix + "/") || path.startsWith(prefix + "/"))) return null;
 
         String relative;
@@ -206,7 +203,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void loadBundledIndexFallback() {
+    private void loadBundledIndex() {
         try {
             String html = readFile(getAssets().open("certificates/index.html"));
             webView.loadDataWithBaseURL(
@@ -214,7 +211,7 @@ public class MainActivity extends Activity {
                     html,
                     "text/html",
                     "UTF-8",
-                    LIVE_URL
+                    APP_URL
             );
         } catch (Exception ex) {
             runOnUiThread(() -> Toast.makeText(
