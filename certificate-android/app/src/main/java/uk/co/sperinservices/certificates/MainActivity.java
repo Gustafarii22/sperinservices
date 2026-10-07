@@ -64,7 +64,7 @@ import java.util.Comparator;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.3";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.4";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.3");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.4");
 
         setupVoice();
 
