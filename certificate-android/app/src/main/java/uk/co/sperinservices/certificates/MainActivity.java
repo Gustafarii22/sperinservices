@@ -62,9 +62,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.4";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.5";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -100,6 +102,7 @@ public class MainActivity extends Activity {
         // cannot compact/rotate the LevelDB log that may still contain the
         // pre-restore localStorage value.
         recoveredChamberlainBackup = recoverChamberlainFromWebViewStorage();
+        exportForensicRecoveryBundle();
 
         webView = new WebView(this);
         webView.clearCache(true);
@@ -117,7 +120,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.4");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.5");
 
         setupVoice();
 
@@ -425,6 +428,100 @@ public class MainActivity extends Activity {
             int n;
             while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
         }
+    }
+
+
+    private void exportForensicRecoveryBundle() {
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+                String manifest =
+                        "Sperin Certificates emergency recovery bundle\n" +
+                        "Target: 33 Chamberlain Road / Tom Watson\n" +
+                        "Package: " + getPackageName() + "\n" +
+                        "Created: " + System.currentTimeMillis() + "\n" +
+                        "Contains preserved pre-WebView LevelDB snapshot, current LevelDB and internal backups.\n";
+                zip.putNextEntry(new ZipEntry("RECOVERY-README.txt"));
+                zip.write(manifest.getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+
+                File preserved = new File(getFilesDir(), "chamberlain-leveldb-snapshot-original");
+                addDirectoryToZip(zip, preserved, "preserved-original-leveldb");
+
+                File current = new File(getApplicationInfo().dataDir,
+                        "app_webview/Default/Local Storage/leveldb");
+                addDirectoryToZip(zip, current, "current-leveldb");
+
+                addDirectoryToZip(zip, new File(getFilesDir(), "backups"), "internal-backups");
+
+                // Include other WebView Local Storage locations if Android/WebView
+                // has used a different profile path on this device.
+                File webview = new File(getApplicationInfo().dataDir, "app_webview");
+                addMatchingLevelDbDirs(zip, webview, "app-webview");
+            }
+            saveBytes(bytes.toByteArray(),
+                    "Sperin-Chamberlain-Raw-Recovery.zip",
+                    "application/zip", false);
+            Toast.makeText(this,
+                    "Raw recovery ZIP saved to Downloads / Sperin Certificates",
+                    Toast.LENGTH_LONG).show();
+        } catch (Exception ex) {
+            Toast.makeText(this,
+                    "Could not export raw recovery ZIP: " + ex.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void addMatchingLevelDbDirs(ZipOutputStream zip, File root, String prefix) throws Exception {
+        if (root == null || !root.exists()) return;
+        File[] children = root.listFiles();
+        if (children == null) return;
+        for (File child : children) {
+            if (child.isDirectory()) {
+                String lower = child.getAbsolutePath().toLowerCase(Locale.UK);
+                if (child.getName().equalsIgnoreCase("leveldb") && lower.contains("local storage")) {
+                    addDirectoryToZip(zip, child, prefix + "/" + safeZipPath(root, child));
+                } else {
+                    addMatchingLevelDbDirs(zip, child, prefix);
+                }
+            }
+        }
+    }
+
+    private String safeZipPath(File root, File child) {
+        String p = child.getAbsolutePath();
+        String r = root.getAbsolutePath();
+        if (p.startsWith(r)) p = p.substring(r.length());
+        p = p.replace('\\', '/').replaceAll("^/+", "");
+        return p.isEmpty() ? "leveldb" : p;
+    }
+
+    private void addDirectoryToZip(ZipOutputStream zip, File dir, String prefix) throws Exception {
+        if (dir == null || !dir.exists()) return;
+        if (dir.isFile()) {
+            addFileToZip(zip, dir, prefix);
+            return;
+        }
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        Arrays.sort(children, Comparator.comparing(File::getName));
+        for (File child : children) {
+            String name = prefix + "/" + child.getName();
+            if (child.isDirectory()) addDirectoryToZip(zip, child, name);
+            else if (child.isFile() && child.length() <= 64L * 1024L * 1024L) addFileToZip(zip, child, name);
+        }
+    }
+
+    private void addFileToZip(ZipOutputStream zip, File file, String name) throws Exception {
+        ZipEntry entry = new ZipEntry(name.replace('\\', '/'));
+        entry.setTime(file.lastModified());
+        zip.putNextEntry(entry);
+        try (InputStream in = new FileInputStream(file)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) >= 0) zip.write(buf, 0, n);
+        }
+        zip.closeEntry();
     }
 
     private byte[] readAllBytes(File file) throws Exception {
