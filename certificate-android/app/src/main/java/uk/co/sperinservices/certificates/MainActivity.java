@@ -432,6 +432,19 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void writeRecoverySnapshot(String content, String requestedName) throws Exception {
+        File dir = backupDir();
+        File file = new File(dir, safeName(requestedName, "pre-restore-" + System.currentTimeMillis() + ".json"));
+        try (OutputStream out = new FileOutputStream(file)) {
+            out.write(content.getBytes(StandardCharsets.UTF_8));
+        }
+        File[] history = dir.listFiles((d, name) -> name.startsWith("pre-restore-") && name.endsWith(".json"));
+        if (history != null && history.length > 12) {
+            java.util.Arrays.sort(history, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+            for (int i = 0; i < history.length - 12; i++) history[i].delete();
+        }
+    }
+
     private String readFile(InputStream input) throws Exception {
         try (InputStream in = input; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192];
@@ -656,6 +669,14 @@ public class MainActivity extends Activity {
                 try { sendBackupResult(readLatestBackup(), ""); }
                 catch (Exception ex) { sendBackupResult("", ex.getMessage()); }
             }).start();
+        }
+
+        @JavascriptInterface
+        public void saveRecoverySnapshot(String content, String fileName) {
+            try { writeRecoverySnapshot(content, fileName); }
+            catch (Exception ex) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Recovery snapshot failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+            }
         }
 
         @JavascriptInterface
