@@ -706,6 +706,7 @@
   let view = loadView();
   let autosaveTimer = null;
   let nativeBackupTimer = null;
+  let pendingRecoveryAction = null;
 
   function loadState() {
     try {
@@ -961,7 +962,7 @@
   }
 
   function topbar() {
-    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="btn small ghost top-action" data-action="backup">Backup</button><button class="btn small top-action import-action" data-action="import-backup">Import</button><button class="btn small ghost top-action" data-action="settings">Profile</button></div></div></div>`;
+    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="btn small ghost top-action" data-action="backup">Backup</button><button class="btn small ghost top-action restore-action" data-action="restore">Restore</button><button class="btn small ghost top-action" data-action="settings">Profile</button></div></div></div>`;
   }
 
   function homeView() {
@@ -1274,23 +1275,67 @@
     catch(err){alert('Could not load backup: '+err.message);}
   };
 
-  function backup() {
+  function recoveryConfirmCopy(kind,stage) {
+    const copy={
+      backup:{
+        firstTitle:'Backup certificates?',
+        firstText:'This creates a new backup copy. It does not replace your current certificates.',
+        secondTitle:'Confirm backup',
+        secondText:'Press Backup now to create the backup.',
+        finalLabel:'Backup now'
+      },
+      restore:{
+        firstTitle:'Restore latest backup?',
+        firstText:'This replaces the current certificate data with the latest backup. Your current data is saved to recovery first.',
+        secondTitle:'Confirm restore',
+        secondText:'This is the restore action. Press Restore now only if you want to replace the current data.',
+        finalLabel:'Restore now'
+      },
+      import:{
+        firstTitle:'Import backup file?',
+        firstText:'This will load certificate data from a backup file. Your current data is saved to recovery first.',
+        secondTitle:'Confirm import',
+        secondText:'Press Import now to choose and load the backup file.',
+        finalLabel:'Import now'
+      }
+    };
+    const item=copy[kind];
+    if(!item)return null;
+    return stage===2
+      ? {title:item.secondTitle,text:item.secondText,label:item.finalLabel}
+      : {title:item.firstTitle,text:item.firstText,label:'Continue'};
+  }
+
+  function showRecoveryConfirmation(kind,stage=1) {
+    const copy=recoveryConfirmCopy(kind,stage);
+    if(!copy)return;
+    pendingRecoveryAction={kind,stage};
+    document.querySelector('.recovery-confirm-backdrop')?.remove();
+    const danger=kind==='restore' && stage===2 ? ' danger' : '';
+    const html=`<div class="modal-backdrop recovery-confirm-backdrop" data-action="recovery-confirm-cancel"><div class="card modal recovery-confirm-modal" data-modal><div class="eyebrow">BACKUP & RECOVERY</div><h2>${esc(copy.title)}</h2><p>${esc(copy.text)}</p><div class="recovery-confirm-actions"><button class="btn" data-action="recovery-confirm-cancel">Cancel</button><button class="btn primary${danger}" data-action="${stage===1?'recovery-confirm-next':'recovery-confirm-do'}">${esc(copy.label)}</button></div></div></div>`;
+    document.body.insertAdjacentHTML('beforeend',html);
+  }
+
+  function performBackup() {
     const content=backupPayload();
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.saveBackup==='function'){
       try {
         const saved=window.Android.saveBackup(content,filename);
         if(saved===false) throw new Error('Android could not save the backup');
-        toast('Backup saved');
+        toast('Backup complete');
         return;
       } catch(err){console.warn(err);alert('Backup failed: '+(err?.message||err));return;}
     }
     downloadBlob(content,filename,'application/json');
-    toast('Backup downloaded');
+    toast('Backup complete');
   }
 
-  function importBackupFile() {
-    if(!confirm('Import this backup file? Your current certificates will be saved first so you can undo the import.')) return;
+  function backup() {
+    showRecoveryConfirmation('backup',1);
+  }
+
+  function performImportBackupFile() {
     if(window.Android && typeof window.Android.importBackupFile==='function'){
       try { window.Android.importBackupFile(); return; } catch(err){console.warn(err);}
     }
@@ -1298,18 +1343,35 @@
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Backup imported');}catch(err){alert('Could not import backup: '+err.message);}};
+      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
   }
 
-  function restore() {
-    if(!confirm('Restore the app\'s latest automatic backup? Your current certificates will be saved first so you can undo this restore.')) return;
+  function importBackupFile() {
+    showRecoveryConfirmation('import',1);
+  }
+
+  function performRestore() {
     if(window.Android && typeof window.Android.restoreLatestBackup==='function'){
       try { window.Android.restoreLatestBackup(); return; } catch(err){console.warn(err);}
     }
-    importBackupFile();
+    performImportBackupFile();
+  }
+
+  function restore() {
+    showRecoveryConfirmation('restore',1);
+  }
+
+  function completeRecoveryConfirmation() {
+    const pending=pendingRecoveryAction;
+    pendingRecoveryAction=null;
+    document.querySelector('.recovery-confirm-backdrop')?.remove();
+    if(!pending)return;
+    if(pending.kind==='backup') performBackup();
+    else if(pending.kind==='restore') performRestore();
+    else if(pending.kind==='import') performImportBackupFile();
   }
 
   function shareBackup() {
@@ -2680,6 +2742,14 @@
     else if (action === 'backup') backup();
     else if (action === 'import-backup') importBackupFile();
     else if (action === 'restore') restore();
+    else if (action === 'recovery-confirm-next') {
+      if(pendingRecoveryAction) showRecoveryConfirmation(pendingRecoveryAction.kind,2);
+    }
+    else if (action === 'recovery-confirm-do') completeRecoveryConfirmation();
+    else if (action === 'recovery-confirm-cancel') {
+      pendingRecoveryAction=null;
+      document.querySelector('.recovery-confirm-backdrop')?.remove();
+    }
     else if (action === 'undo-restore') undoLastRestore();
   });
 
