@@ -26,6 +26,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Certificate release regression guard
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const fail = (ok, msg) => { if (!ok) { console.error('::error::' + msg); process.exit(1); } };
+          const app = fs.readFileSync('public/certificates/app.js', 'utf8');
+          const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
+          const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
+          const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
+          fail(app.includes("const VERSION = '1.7.1'"), 'Certificate UI version is not v1.7.1');
+          fail(gradle.includes('versionCode 171') && gradle.includes("versionName '1.7.1'"), 'Android version is not v1.7.1 / 171');
+          fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
+          fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
+          fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
+          fail(!iet.includes("cols.map(c=>c[0]+' '+c[1])"), 'Circuit schedule numbering has returned');
+          fail(!iet.includes("tcols.map(c=>c[0]+' '+c[1])"), 'Test schedule numbering has returned');
+          fail(!iet.includes('Outcome ✓ / N/A'), 'Unsupported check glyph remains in PDF heading');
+          fail(e2e.includes("linkedAfter.fields.earthingArrangement==='TN-S'"), 'X-mark photo mapping regression check missing');
+          console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
+          NODE
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -92,13 +113,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.0.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.0
-          path: certificate-android/dist/Sperin-Certificates-v1.7.0.apk
+          name: Sperin-Certificates-v1.7.1
+          path: certificate-android/dist/Sperin-Certificates-v1.7.1.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -106,10 +127,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.0"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.0.apk"
+          TAG="certificates-v1.7.1"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.1.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.0" --notes "Form reset release: EIC, EICR and Minor Works outputs rebuilt around the current BS 7671:2018+A4:2026 IET model-form structure with the IET logo omitted and restrained Sperin Services branding. Printable site worksheets use the same form renderer. Emergency lighting and smoke-alarm certificates use the same Sperin form styling."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.1" --notes "Final certificate layout correction release: retains the BS 7671:2018+A4:2026 IET-style form structure while removing unsupported PDF glyph clutter, removing numbered circuit/test schedule headings, standardising clean X-mark worksheet choices, and preserving machine-readable site-sheet mapping and Sperin Services branding."
           fi
