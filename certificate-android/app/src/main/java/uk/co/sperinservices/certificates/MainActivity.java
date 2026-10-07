@@ -67,7 +67,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates-app-v178/?app=1.7.8";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates-app-v179/?app=1.7.9";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
@@ -77,9 +77,8 @@ public class MainActivity extends Activity {
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
-    private String recoveredChamberlainBackup = null;
-    private int recoveredChamberlainScore = -1;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private long lastRollingAutoBackup = 0L;
     private boolean usingLocalFallback = false;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -100,12 +99,6 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
         createNotificationChannel();
 
-        // IMPORTANT: forensic recovery runs before WebView is opened so Chromium
-        // cannot compact/rotate the LevelDB log that may still contain the
-        // pre-restore localStorage value.
-        recoveredChamberlainBackup = recoverChamberlainFromWebViewStorage();
-        exportForensicRecoveryBundle();
-
         webView = new WebView(this);
         webView.clearCache(true);
         webView.setBackgroundColor(Color.rgb(7, 17, 31));
@@ -122,7 +115,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.8");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.9");
 
         setupVoice();
 
@@ -165,20 +158,6 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (recoveredChamberlainBackup != null && !recoveredChamberlainBackup.isEmpty()) {
-                    final String json = recoveredChamberlainBackup;
-                    recoveredChamberlainBackup = null;
-                    // Save an untouched recovery copy before importing it.
-                    saveBytes(json.getBytes(StandardCharsets.UTF_8),
-                            "Sperin-Recovered-33-Chamberlain-Road.json",
-                            "application/json", false);
-                    String js = "if(window.sperinRestoreBackup){window.sperinRestoreBackup(" +
-                            JSONObject.quote(json) + ",\"\");}";
-                    view.evaluateJavascript(js, null);
-                    Toast.makeText(MainActivity.this,
-                            "Recovered 33 Chamberlain Road from pre-restore app storage",
-                            Toast.LENGTH_LONG).show();
-                }
             }
 
             @Override
@@ -199,7 +178,7 @@ public class MainActivity extends Activity {
         String path = uri.getPath();
         if (host == null || !"sperinservices.co.uk".equalsIgnoreCase(host) || path == null) return null;
 
-        final String prefix = "/certificates-app-v178";
+        final String prefix = "/certificates-app-v179";
         if (!(path.equals(prefix) || path.equals(prefix + "/") || path.startsWith(prefix + "/"))) return null;
 
         String relative;
@@ -389,8 +368,6 @@ public class MainActivity extends Activity {
                 } catch (Exception ex) {
                     sendBackupResult("", ex.getMessage() == null ? "Could not read selected backup" : ex.getMessage());
                 }
-            } else {
-                sendBackupResult("", "Import cancelled");
             }
             return;
         }
@@ -846,6 +823,28 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void writeAutoBackup(String content) throws Exception {
+        File dir = backupDir();
+        File latest = new File(dir, "auto-latest.json");
+        try (OutputStream out = new FileOutputStream(latest)) {
+            out.write(content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        long now = System.currentTimeMillis();
+        if (lastRollingAutoBackup == 0L || now - lastRollingAutoBackup >= 5L * 60L * 1000L) {
+            File rolling = new File(dir, "autosave-" + now + ".json");
+            try (OutputStream out = new FileOutputStream(rolling)) {
+                out.write(content.getBytes(StandardCharsets.UTF_8));
+            }
+            lastRollingAutoBackup = now;
+            File[] history = dir.listFiles((d, name) -> name.startsWith("autosave-") && name.endsWith(".json"));
+            if (history != null && history.length > 12) {
+                Arrays.sort(history, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+                for (int i = 0; i < history.length - 12; i++) history[i].delete();
+            }
+        }
+    }
+
     private void writeRecoverySnapshot(String content, String requestedName) throws Exception {
         File dir = backupDir();
         File file = new File(dir, safeName(requestedName, "pre-restore-" + System.currentTimeMillis() + ".json"));
@@ -869,8 +868,12 @@ public class MainActivity extends Activity {
     }
 
     private String readLatestBackup() throws Exception {
-        File internal = new File(backupDir(), "latest.json");
-        if (internal.exists()) return readFile(new FileInputStream(internal));
+        File manual = new File(backupDir(), "latest.json");
+        File automatic = new File(backupDir(), "auto-latest.json");
+        File newest = null;
+        if (manual.exists()) newest = manual;
+        if (automatic.exists() && (newest == null || automatic.lastModified() > newest.lastModified())) newest = automatic;
+        if (newest != null) return readFile(new FileInputStream(newest));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             String[] projection = {
@@ -1071,10 +1074,16 @@ public class MainActivity extends Activity {
             try {
                 writeInternalBackup(content);
                 saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved automatically", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved", Toast.LENGTH_LONG).show());
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
             }
+        }
+
+        @JavascriptInterface
+        public void saveAutoBackup(String content) {
+            try { writeAutoBackup(content); }
+            catch (Exception ex) { android.util.Log.w("SperinCertificates", "Auto backup failed", ex); }
         }
 
         @JavascriptInterface
