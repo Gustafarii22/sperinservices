@@ -1221,8 +1221,8 @@ for (const type of certificateTypeOrder) {
 
   if (type === "minor") {
     assert(
-      (await page.locator('[data-field="ocpdBs"] option[value="BS 88-3 Type 3"]').count()) === 1,
-      "Minor Works missing BS 88-3 Type 3",
+      (await page.locator('[data-field="ocpdBs"] option[value="BS 88-3"]').count()) === 1,
+      "Minor Works missing BS 88-3",
     );
     assert(
       (await page.locator('[data-field="breakingCapacity"] option[value="33"]').count()) === 1,
