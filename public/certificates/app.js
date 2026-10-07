@@ -1250,7 +1250,12 @@
     const content=backupPayload();
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.saveBackup==='function'){
-      try { window.Android.saveBackup(content,filename); toast('Backup saved automatically'); return; } catch(err){console.warn(err);}
+      try {
+        const saved=window.Android.saveBackup(content,filename);
+        if(saved===false) throw new Error('Android could not save the backup');
+        toast('Backup saved');
+        return;
+      } catch(err){console.warn(err);alert('Backup failed: '+(err?.message||err));return;}
     }
     downloadBlob(content,filename,'application/json');
     toast('Backup downloaded');
@@ -1342,8 +1347,9 @@
       const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
       const pdfName=`${pdfSafeName(cert)}.pdf`;
       if(window.Android && typeof window.Android.savePdfBase64==='function'){
-        window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
-        toast('PDF saved to Downloads');
+        const saved=window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
+        if(saved===false) throw new Error('Android could not save the PDF');
+        toast('PDF saved');
       }else{
         doc.save(pdfName);
         toast('PDF created');
