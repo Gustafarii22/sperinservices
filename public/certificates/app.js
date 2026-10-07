@@ -2592,6 +2592,7 @@
 
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
+    if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
     const action = button.dataset.action;
     const cert=getCurrent();
     if(action==='site-builder') openSiteSheetBuilder();
