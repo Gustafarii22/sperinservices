@@ -828,7 +828,7 @@
   }
 
   function topbar() {
-    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="top-action" data-action="backup">Backup</button><button class="top-action import-action" data-action="import-backup">Import</button><button class="top-action" data-action="settings">Profile</button></div></div></div>`;
+    return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="btn small ghost top-action" data-action="backup">Backup</button><button class="btn small top-action import-action" data-action="import-backup">Import</button><button class="btn small ghost top-action" data-action="settings">Profile</button></div></div></div>`;
   }
 
   function homeView() {
