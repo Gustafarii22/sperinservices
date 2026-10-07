@@ -393,7 +393,7 @@ const inspection = page
   .locator(".form-section")
   .filter({ hasText: "Installation inspection checklist" });
 assert((await inspection.count()) === 1, "EIC inspection checklist section missing");
-const inspectionRows = inspection.locator("tbody tr");
+const inspectionRows = inspection.locator(".inspection-row");
 assert((await inspectionRows.count()) >= 14, "EIC model-form inspection schedule is incomplete");
 assert(
   (await inspection.textContent()).includes("Automatic Disconnection of Supply"),
@@ -402,6 +402,18 @@ assert(
 assert(
   (await inspection.textContent()).includes("Prosumer"),
   "IET EIC inspection categories incomplete",
+);
+assert(
+  (await inspection.locator('[data-action="inspection-outcome"]').count()) >= 42,
+  "Direct tick/cross/N/A inspection buttons missing",
+);
+await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
+stored = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  stored.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "✓"),
+  "Apply-all tick control did not update the inspection schedule",
 );
 
 // Postcode-first address lookup.
