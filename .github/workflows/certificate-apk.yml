@@ -37,9 +37,9 @@ jobs:
           const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
           const e2eWorkflow = fs.readFileSync('.github/workflows/certificate-e2e.yml', 'utf8');
-          fail(app.includes("const VERSION = '1.7.9'"), 'Certificate UI version is not v1.7.9');
-          fail(gradle.includes('versionCode 179') && gradle.includes("versionName '1.7.9'"), 'Android version is not v1.7.9 / 179');
-          fail(java.includes('certificates-app-v179'), 'Bundled certificate origin route missing');
+          fail(app.includes("const VERSION = '1.7.10'"), 'Certificate UI version is not v1.7.10');
+          fail(gradle.includes('versionCode 180') && gradle.includes("versionName '1.7.10'"), 'Android version is not v1.7.10 / 180');
+          fail(java.includes('certificates-app-v1710'), 'Bundled certificate origin route missing');
           fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
           fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
           fail(java.includes('saveAutoBackup'), 'Native rolling recovery backup missing');
@@ -138,13 +138,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.9.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.10.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.9
-          path: certificate-android/dist/Sperin-Certificates-v1.7.9.apk
+          name: Sperin-Certificates-v1.7.10
+          path: certificate-android/dist/Sperin-Certificates-v1.7.10.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -152,10 +152,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.9"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.9.apk"
+          TAG="certificates-v1.7.10"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.10.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.9" --notes "Triple-audited precision release: removes retired emergency auto-restore code, adds rolling recovery backups and validated imports, strengthens per-board circuit handling, and simplifies the field UI with compact one-tap controls."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.10" --notes "Label correction release: changes BS 88-3 Type 3 to BS 88-3 throughout the certificate app while retaining the v1.7.9 precision fixes."
           fi
