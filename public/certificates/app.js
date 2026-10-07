@@ -892,7 +892,11 @@
 
   function scheduleAutosave() {
     clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(() => { persist(); updateSaveState('Saved'); }, 300);
+    autosaveTimer = setTimeout(() => {
+      persist();
+      scheduleNativeAutoBackup();
+      updateSaveState('Saved');
+    }, 300);
     updateSaveState('Saving…');
   }
 
@@ -988,7 +992,7 @@
 
   function renderSection(part, cert) {
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
-    const sameClient=(part.title.startsWith('B · Installation details') && 'clientAddress' in cert.fields)
+    const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
       : '';
     const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
