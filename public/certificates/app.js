@@ -77,7 +77,8 @@
     { key:'rcd', label:'RCD / RCBO details' },
     { key:'spd', label:'SPD' },
     { key:'polarity', label:'Polarity', type:'select', options:OPTIONS.yesNoNA },
-    { key:'phaseSequence', label:'Phase sequence', type:'select', options:OPTIONS.yesNoNA }
+    { key:'phaseSequence', label:'Phase sequence', type:'select', options:OPTIONS.yesNoNA },
+    { key:'spdOperational', label:'SPD operational', type:'select', options:OPTIONS.yesNoNA }
   ];
 
   const circuitColumns = [
@@ -190,10 +191,19 @@
     cert.tables.circuits=cert.tables.circuits.map(row=>isRecord(row)?row:{});
     cert.tables.tests=cert.tables.tests.map(row=>isRecord(row)?row:{});
     cert.tables.circuits.forEach((row,i)=>{
-      row.boardRef = row.boardRef || cert.tables.tests[i]?.boardRef || 'DB1';
-      row.circuitNo = row.circuitNo || cert.tables.tests[i]?.circuitNo || String(i+1);
-      cert.tables.tests[i].boardRef = row.boardRef;
-      cert.tables.tests[i].circuitNo = row.circuitNo;
+      const test=cert.tables.tests[i]||{};
+      const boardRef=String(row.boardRef??'').trim() || String(test.boardRef??'').trim() || 'DB1';
+      const rowNo=row.circuitNo;
+      const testNo=test.circuitNo;
+      const circuitNo=(rowNo!==undefined&&rowNo!==null&&String(rowNo).trim()!=='')
+        ? String(rowNo)
+        : ((testNo!==undefined&&testNo!==null&&String(testNo).trim()!=='') ? String(testNo) : String(i+1));
+      row.id=String(row.id||uid());
+      row.boardRef=boardRef;
+      row.circuitNo=circuitNo;
+      test.boardRef=boardRef;
+      test.circuitNo=circuitNo;
+      cert.tables.tests[i]=test;
     });
   }
 
@@ -284,7 +294,7 @@
     if(force) row.maxZsManual=false;
     if(row.maxZsManual) return;
     const calc=calculateMaxZs(row,cert);
-    if(calc) row.maxZs=calc;
+    row.maxZs=calc||'';
   }
 
   function singleSignatoryMode(cert) {
@@ -354,7 +364,7 @@
         rows=rows.filter(isRecord).map(row=>({...row}));
         if(Array.isArray(part.defaultRows) && part.defaultRows.length){
           if(!rows.length) rows=clone(part.defaultRows);
-          else if(part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
+          else if(part.key!=='boards' && part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
             const keyName=part.defaultRows.some(r=>r.item!==undefined)?'item':'ref';
             const keyedRows=rows.filter(r=>String(r[keyName]??'').trim()!=='');
             const unkeyedRows=rows.filter(r=>String(r[keyName]??'').trim()==='');
