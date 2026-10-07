@@ -201,14 +201,14 @@
     syncCircuitRows(cert);
     const boardOrder=new Map();
     cert.tables.circuits.forEach((row,i)=>{
-      const board=String(row.boardRef||'DB1').trim().toUpperCase()||'DB1';
+      const board=String(row.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
       if(!boardOrder.has(board)) boardOrder.set(board,boardOrder.size);
     });
     const pairs=cert.tables.circuits.map((circuit,index)=>({
       circuit,
       test:cert.tables.tests[index]||{},
       index,
-      board:String(circuit.boardRef||'DB1').trim().toUpperCase()||'DB1',
+      board:String(circuit.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1',
       no:circuitNumberParts(circuit.circuitNo)
     }));
     pairs.sort((a,b)=>{
