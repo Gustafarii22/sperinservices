@@ -98,14 +98,16 @@ export const JOBS: Job[] = [
     id: "outside-socket",
     name: "Outdoor socket",
     price: 0,
-    detail: "New external socket installation. Route, circuit protection and cable length assessed before a fixed quotation.",
+    detail:
+      "New external socket installation. Route, circuit protection and cable length assessed before a fixed quotation.",
     quoteOnly: true,
   },
   {
     id: "new-point",
     name: "New socket / light point",
     price: 0,
-    detail: "New point from existing or new circuit. Cable route, wall construction and circuit capacity assessed first.",
+    detail:
+      "New point from existing or new circuit. Cable route, wall construction and circuit capacity assessed first.",
     quoteOnly: true,
   },
   {
@@ -119,7 +121,8 @@ export const JOBS: Job[] = [
     id: "ev-charger",
     name: "EV charger",
     price: 0,
-    detail: "Survey required for supply, earthing, cable route, load assessment, DNO requirements and charger model.",
+    detail:
+      "Survey required for supply, earthing, cable route, load assessment, DNO requirements and charger model.",
     quoteOnly: true,
   },
   {
@@ -196,7 +199,8 @@ export function estimate(selection: Selection) {
     .filter(
       (j) =>
         j.quoteOnly ||
-        (j.additional === undefined && (packages.length || small.length > 1 || selection[j.id] > 1)),
+        (j.additional === undefined &&
+          (packages.length || small.length > 1 || selection[j.id] > 1)),
     )
     .map((j) => j.id);
   // Individually priced items do not establish an attendance allowance when mixed.
@@ -204,7 +208,9 @@ export function estimate(selection: Selection) {
     ? 0
     : Math.max(
         0,
-        ...small.filter((j) => j.additional !== undefined && !j.quoteOnly).map((j) => j.price - j.additional!),
+        ...small
+          .filter((j) => j.additional !== undefined && !j.quoteOnly)
+          .map((j) => j.price - j.additional!),
       );
   const visit = small.some((j) => j.additional !== undefined && !j.quoteOnly) ? actualAllowance : 0;
   const subtotal = rows.reduce((sum, j) => sum + j.amount, 0) + visit;

@@ -38,7 +38,10 @@ export function Header() {
             </span>
           </Link>
 
-          <nav className="ml-auto hidden items-center justify-end gap-1 lg:flex" aria-label="Primary navigation">
+          <nav
+            className="ml-auto hidden items-center justify-end gap-1 lg:flex"
+            aria-label="Primary navigation"
+          >
             <ServicesDropdown />
             {NAV.map((item) => (
               <NavItem key={item.to} to={item.to} label={item.label} />
