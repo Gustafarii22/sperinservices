@@ -378,6 +378,19 @@ public class MainActivity extends Activity {
 
             File[] files = levelDb.listFiles();
             if (files == null || files.length == 0) return null;
+
+            // Preserve the exact pre-open database bytes once. Later launches can
+            // re-run improved recovery logic against this untouched snapshot even
+            // if Chromium compacts its live LevelDB after this launch.
+            File snapshotDir = new File(getFilesDir(), "chamberlain-leveldb-snapshot-original");
+            if (!snapshotDir.exists() && snapshotDir.mkdirs()) {
+                for (File source : files) {
+                    if (!source.isFile() || source.length() > 32L * 1024L * 1024L) continue;
+                    File dest = new File(snapshotDir, source.getName());
+                    copyFile(source, dest);
+                }
+            }
+
             Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
 
             // The active/recent *.log files are the best recovery source because
@@ -402,6 +415,15 @@ public class MainActivity extends Activity {
             return recoveredChamberlainBackup;
         } catch (Exception ex) {
             return null;
+        }
+    }
+
+    private void copyFile(File source, File dest) throws Exception {
+        try (InputStream in = new FileInputStream(source);
+             OutputStream out = new FileOutputStream(dest)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
         }
     }
 
