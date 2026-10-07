@@ -2368,6 +2368,7 @@
   });
 
   document.addEventListener('change', e => {
+    const cert=getCurrent();
     if(e.target.matches('[data-site-builder="type"]') && siteBuilderState){
       if((siteBuilderState.type==='eic'||siteBuilderState.type==='eicr')&&!siteBuilderState.boards.length) siteBuilderState.boards=[{ref:'DB1',location:'',circuits:12}];
       renderSiteBuilder();
