@@ -326,8 +326,12 @@ await context.addInitScript(() => {
     testerSerial: "ABC123",
     postcodeApiKey: "ak_test",
   };
-  localStorage.setItem("sperin-certificates-data-v1", JSON.stringify({ certificates: [cert] }));
-  localStorage.setItem("sperin-certificates-settings-v1", JSON.stringify(settings));
+  if (!localStorage.getItem("sperin-certificates-data-v1")) {
+    localStorage.setItem("sperin-certificates-data-v1", JSON.stringify({ certificates: [cert] }));
+  }
+  if (!localStorage.getItem("sperin-certificates-settings-v1")) {
+    localStorage.setItem("sperin-certificates-settings-v1", JSON.stringify(settings));
+  }
 });
 
 const page = await context.newPage();
