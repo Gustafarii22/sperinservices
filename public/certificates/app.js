@@ -3,7 +3,8 @@
 
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
-  const VERSION = '1.7.2';
+  const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
+  const VERSION = '1.7.3';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1033,7 +1034,7 @@
         ${textField('testerMake','Tester make')}${textField('testerModel','Tester model')}${textField('testerSerial','Serial number')}${textField('testerCalibrationDue','Calibration due','', 'date')}
       </div></section>
       <section class="profile-section"><h3>UK postcode address lookup</h3><p class="profile-help">Optional. Add an Ideal Postcodes API key to enable postcode-first address selection. The key stays in this app’s local settings on your device.</p><div class="settings-grid">${textField('postcodeApiKey','Ideal Postcodes API key',true)}</div></section>
-      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Backup saves a latest recovery copy inside the app and a dated copy in Downloads. Restore automatically finds the latest backup. Share Backup lets you send a copy elsewhere.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
+      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Backup saves a latest recovery copy inside the app and a dated copy in Downloads. Restore never destroys the current work: a recovery snapshot is created first. Undo Last Restore swaps back to the state immediately before the most recent restore.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo last restore</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
     document.body.insertAdjacentHTML('beforeend',html);
@@ -1045,18 +1046,39 @@
     return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates }, null, 2);
   }
 
-  function applyBackupJson(json) {
+  function savePreRestoreSnapshot() {
+    const content=backupPayload();
+    localStorage.setItem(PRE_RESTORE_KEY,content);
+    if(window.Android && typeof window.Android.saveRecoverySnapshot==='function'){
+      try{window.Android.saveRecoverySnapshot(content,`pre-restore-${Date.now()}.json`);}catch(err){console.warn(err);}
+    }
+    return content;
+  }
+
+  function applyBackupJson(json,preserveCurrent=true) {
     const data=typeof json==='string'?JSON.parse(json):json;
     if(!Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    if(preserveCurrent) savePreRestoreSnapshot();
     state={certificates:data.certificates};
     if(data.settings) settings={...settings,...data.settings};
     state.certificates=state.certificates.map(c=>{try{return migrateCertificate(c)||c;}catch{return c;}});
     persist(); saveSettings(); render();
   }
 
+  function undoLastRestore(){
+    const recovery=localStorage.getItem(PRE_RESTORE_KEY);
+    if(!recovery){alert('No pre-restore recovery snapshot is available on this device.');return;}
+    try{
+      const current=backupPayload();
+      applyBackupJson(recovery,false);
+      localStorage.setItem(PRE_RESTORE_KEY,current);
+      toast('Previous certificate data recovered');
+    }catch(err){alert('Could not recover the previous data: '+err.message);}
+  }
+
   window.sperinRestoreBackup=function(json,error){
     if(error){alert('Restore failed: '+error);return;}
-    try{applyBackupJson(json);toast('Latest backup restored');}
+    try{applyBackupJson(json,true);toast('Latest backup restored — Undo Last Restore is available');}
     catch(err){alert('Could not restore backup: '+err.message);}
   };
 
@@ -1071,6 +1093,7 @@
   }
 
   function restore() {
+    if(!confirm('Restore the latest backup? Your current certificates will be saved to an Undo Last Restore recovery snapshot first.')) return;
     if(window.Android && typeof window.Android.restoreLatestBackup==='function'){
       try { window.Android.restoreLatestBackup(); return; } catch(err){console.warn(err);}
     }
@@ -2360,6 +2383,7 @@
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
     else if (action === 'backup') backup();
     else if (action === 'restore') restore();
+    else if (action === 'undo-restore') undoLastRestore();
   });
 
   setInterval(()=>{ if(state.certificates.length) persist(); },30000);
