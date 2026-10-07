@@ -36,11 +36,18 @@ jobs:
           const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
           const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
-          fail(app.includes("const VERSION = '1.7.8'"), 'Certificate UI version is not v1.7.8');
-          fail(gradle.includes('versionCode 178') && gradle.includes("versionName '1.7.8'"), 'Android version is not v1.7.8 / 178');
-          fail(java.includes('certificates-app-v178'), 'Bundled certificate origin route missing');
+          fail(app.includes("const VERSION = '1.7.9'"), 'Certificate UI version is not v1.7.9');
+          fail(gradle.includes('versionCode 179') && gradle.includes("versionName '1.7.9'"), 'Android version is not v1.7.9 / 179');
+          fail(java.includes('certificates-app-v179'), 'Bundled certificate origin route missing');
           fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
           fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
+          fail(java.includes('saveAutoBackup'), 'Native rolling recovery backup missing');
+          fail(java.includes('auto-latest.json'), 'Automatic latest recovery file missing');
+          fail(!java.includes('recoverChamberlainFromWebViewStorage'), 'Retired Chamberlain auto-restore code remains');
+          fail(!java.includes('exportForensicRecoveryBundle'), 'Retired forensic export code remains');
+          fail(app.includes('prepareBackupData'), 'Validated backup import staging missing');
+          fail(app.includes('normaliseBoardKey'), 'Per-board circuit numbering guard missing');
+          fail(app.includes('scheduleNativeAutoBackup'), 'Automatic backup scheduling missing');
           fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
           fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
           fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
@@ -121,13 +128,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.8.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.9.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.8
-          path: certificate-android/dist/Sperin-Certificates-v1.7.8.apk
+          name: Sperin-Certificates-v1.7.9
+          path: certificate-android/dist/Sperin-Certificates-v1.7.9.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -135,10 +142,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.8"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.8.apk"
+          TAG="certificates-v1.7.9"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.9.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.8" --notes "Bundled-runtime release: includes all v1.7.7 field workflow fixes and serves the packaged certificate UI on the sperinservices.co.uk WebView origin, preserving existing certificate localStorage while avoiding stale Vercel deployments."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.9" --notes "Triple-audited precision release: removes retired emergency auto-restore code, adds rolling recovery backups and validated imports, strengthens per-board circuit handling, and simplifies the field UI with compact one-tap controls."
           fi
