@@ -256,3 +256,175 @@ html{scroll-padding-top:92px}
   .inspection-choices button{width:100%;min-width:0;height:42px}
   .inspection-bulk{padding:10px 12px}.inspection-bulk .btn{flex:1;min-width:72px}
 }
+
+
+/* v1.7.9 precision audit — compact, calm, one-tap field UI */
+:root{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --shadow:0 12px 34px rgba(0,0,0,.24);
+}
+html,body{max-width:100%;overflow-x:hidden}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;background:#07111f}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  font-weight:650;
+  line-height:1.1;
+  transition:border-color .14s ease,background .14s ease,transform .08s ease,opacity .14s ease;
+}
+.btn.small{min-height:40px;padding:8px 10px}
+.btn:active:not(:disabled),.top-action:active:not(:disabled),.cert-launch:active,.bonding-chip:active,.inspection-choices button:active{transform:scale(.98)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid #6eb5ff;
+  outline-offset:2px;
+}
+button:disabled{opacity:.42;cursor:default}
+.card{border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.topbar{padding-bottom:11px}
+.toprow{gap:10px}
+.brand h1{font-weight:720;letter-spacing:-.01em}
+.top-actions{gap:6px}
+.top-action{min-width:64px;min-height:42px;padding:8px 10px;font-size:12px}
+.import-action{background:#1677d2;border-color:#4a9be8}
+.home-page{gap:20px}
+.home-hero{min-height:250px;padding:20px 0 12px;gap:18px}
+.home-hero h2{font-size:clamp(31px,4.2vw,48px);line-height:1.01;letter-spacing:-.04em;margin:7px 0 11px}
+.home-hero p{font-size:14px;line-height:1.5;max-width:600px}
+.home-hero-actions{margin-top:16px}
+.hero-cta{min-height:46px}
+.home-visual{min-height:220px}
+.visual-sheet{width:min(250px,80%);height:198px;padding:22px;border-radius:20px;gap:12px}
+.visual-badge{padding:7px 10px;font-size:11px}
+.home-stats>div{min-height:72px;padding:13px 16px}
+.home-stats strong{font-size:22px}
+.home-section{gap:9px}
+.home-section-head h2{font-size:21px}
+.cert-launch{grid-template-columns:44px minmax(0,1fr) 22px;gap:12px;padding:13px 4px}
+.cert-launch-icon,.saved-cert-accent{
+  width:40px;
+  height:40px;
+  border-radius:11px;
+  font-size:10px;
+  font-weight:780;
+  letter-spacing:.04em;
+  line-height:1;
+}
+.cert-launch strong{font-size:14px}
+.cert-launch small{font-size:11px;margin-top:3px}
+.saved-cert-row{grid-template-columns:44px minmax(0,1fr) minmax(125px,.28fr) auto;gap:11px;padding:12px 4px}
+.saved-cert-copy strong{font-size:14px}
+.saved-cert-copy span{font-size:12px}
+.form-head{gap:11px;margin:12px 0 14px}
+.form-title h2{font-size:21px;line-height:1.12;letter-spacing:-.02em}
+.form-title p{font-size:11px}
+.actions{gap:6px}
+.actions .btn{min-height:42px;padding:8px 11px;font-size:12px}
+.entry-tools-explainer.compact{
+  display:flex;
+  gap:16px;
+  align-items:center;
+  flex-wrap:wrap;
+  padding:9px 12px;
+  margin:0 0 10px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  background:#081522;
+  color:var(--muted);
+  font-size:11px;
+}
+.entry-tools-explainer.compact strong{color:#dfeeff;font-weight:700}
+.form-section{margin:10px 0}
+.form-section h3{padding:12px 14px;font-size:13px;font-weight:720}
+.fields{padding:14px;gap:10px}
+.field label{font-size:11.5px;font-weight:650;margin-bottom:5px}
+.field input,.field select,.field textarea,.field input[list]{
+  min-height:46px;
+  border-radius:11px;
+  padding:10px 11px;
+  font-size:15px;
+}
+.field textarea{min-height:92px;line-height:1.45}
+.voice-control{gap:6px}
+.voice-mic{
+  min-width:66px;
+  min-height:46px;
+  padding:0 10px;
+  border-radius:11px;
+  background:#0f6fc7;
+  border-color:#3c91de;
+  box-shadow:none;
+  font-size:12px;
+  font-weight:700;
+}
+.voice-mic:hover{border-color:#65aaf0}
+.section-quick-actions{padding:0 14px 10px;gap:8px}
+.section-quick-actions span{font-size:10.5px}
+.signatory-summary{margin:0 14px 10px;padding:10px 12px}
+.segmented-choice button{min-height:64px;padding:11px 12px}
+.bonding-options{gap:6px}
+.bonding-chip{min-height:40px;padding:8px 12px;font-weight:650;font-size:11px}
+.inspection-bulk{padding:9px 12px;gap:6px}
+.inspection-row{padding:11px 13px;gap:10px}
+.inspection-copy span{font-size:11.5px;line-height:1.4}
+.inspection-choices button{min-width:44px;height:44px;border-radius:11px}
+.recovery-toolbar .btn{min-width:92px}
+.finish-actions{padding:14px}
+.savebar{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.toast{bottom:calc(18px + env(safe-area-inset-bottom));font-size:12px}
+
+@media(max-width:700px){
+  .shell{padding-top:12px}
+  .home-hero{grid-template-columns:1fr;min-height:0;padding:14px 0 8px}
+  .home-visual{display:none}
+  .home-hero h2{font-size:34px}
+  .home-stats{grid-template-columns:1fr 1fr}
+  .home-section-head{align-items:flex-start;flex-direction:column;gap:5px}
+  .home-section-head p{text-align:left}
+  .form-head{align-items:center}
+  .form-title{min-width:0;flex:1}
+  .form-title h2{font-size:18px}
+  .form-head .actions{
+    width:100%;
+    margin-left:0;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+  .form-head .actions .btn{width:100%;padding-left:7px;padding-right:7px;white-space:nowrap}
+  .entry-tools-explainer.compact{gap:6px 14px;padding:8px 10px}
+  .field input,.field select,.field textarea,.field input[list]{font-size:16px}
+  .voice-mic{min-width:64px}
+  .saved-cert-row{grid-template-columns:42px minmax(0,1fr);gap:9px}
+  .saved-cert-date{grid-column:2}
+  .saved-cert-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}
+  .saved-cert-actions .btn{width:100%}
+  .recovery-toolbar{display:grid;grid-template-columns:1fr 1fr}
+  .recovery-toolbar .btn{width:100%;min-width:0}
+}
+
+@media(max-width:430px){
+  .shell{padding-left:9px;padding-right:9px}
+  .topbar{margin-left:-9px;margin-right:-9px;padding-left:9px;padding-right:9px}
+  .toprow{gap:6px}
+  .bolt{width:32px;height:32px;border-radius:10px}
+  .bolt:before{font-size:18px}
+  .brand{gap:7px}
+  .brand h1{font-size:13px}
+  .top-actions{gap:4px}
+  .top-action{min-width:50px;min-height:42px;padding:7px 7px;font-size:10.5px}
+  .home-hero h2{font-size:31px}
+  .home-hero p{font-size:13px}
+  .home-stats>div{min-height:66px;padding:11px 13px}
+  .home-stats strong{font-size:20px}
+  .fields{padding:11px}
+  .form-head .actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .form-head .actions .btn{font-size:11px}
+  .inspection-row{padding:10px}
+  .inspection-copy{grid-template-columns:34px minmax(0,1fr)}
+  .inspection-bulk{display:grid;grid-template-columns:1fr 1fr}
+  .inspection-bulk>span{grid-column:1/-1}
+}

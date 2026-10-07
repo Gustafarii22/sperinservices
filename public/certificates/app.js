@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.8';
+  const VERSION = '1.7.9';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -167,8 +167,16 @@
     ]}
   ];
 
-  function nextCircuitNumber(cert) {
-    const nums=(cert.tables?.circuits||[]).map(r=>parseInt(r.circuitNo,10)).filter(Number.isFinite);
+  function normaliseBoardKey(value) {
+    return String(value||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+  }
+
+  function nextCircuitNumber(cert, boardRef='DB1') {
+    const boardKey=normaliseBoardKey(boardRef);
+    const nums=(cert.tables?.circuits||[])
+      .filter(r=>normaliseBoardKey(r.boardRef)===boardKey)
+      .map(r=>parseInt(r.circuitNo,10))
+      .filter(Number.isFinite);
     return String((nums.length ? Math.max(...nums) : 0)+1);
   }
 
@@ -201,14 +209,14 @@
     syncCircuitRows(cert);
     const boardOrder=new Map();
     cert.tables.circuits.forEach((row,i)=>{
-      const board=String(row.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+      const board=normaliseBoardKey(row.boardRef);
       if(!boardOrder.has(board)) boardOrder.set(board,boardOrder.size);
     });
     const pairs=cert.tables.circuits.map((circuit,index)=>({
       circuit,
       test:cert.tables.tests[index]||{},
       index,
-      board:String(circuit.boardRef||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1',
+      board:normaliseBoardKey(circuit.boardRef),
       no:circuitNumberParts(circuit.circuitNo)
     }));
     pairs.sort((a,b)=>{
@@ -234,7 +242,7 @@
     const counts={};
     cert.tables.circuits.forEach((row,i)=>{
       const board=String(row.boardRef||'DB1').trim();
-      const boardKey=board.toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+      const boardKey=normaliseBoardKey(board);
       counts[boardKey]=(counts[boardKey]||0)+1;
       const no=String(counts[boardKey]);
       row.boardRef=board;
@@ -348,10 +356,13 @@
           if(!rows.length) rows=clone(part.defaultRows);
           else if(part.defaultRows.every(r=>isRecord(r) && (r.item!==undefined || r.ref!==undefined))){
             const keyName=part.defaultRows.some(r=>r.item!==undefined)?'item':'ref';
-            const existing=new Map(rows.map(r=>[String(r[keyName]??''),r]));
+            const keyedRows=rows.filter(r=>String(r[keyName]??'').trim()!=='');
+            const unkeyedRows=rows.filter(r=>String(r[keyName]??'').trim()==='');
+            const existing=new Map(keyedRows.map(r=>[String(r[keyName]??''),r]));
             rows=part.defaultRows.map(def=>({...clone(def),...(existing.get(String(def[keyName]??''))||{})}));
             const known=new Set(part.defaultRows.map(r=>String(r[keyName]??'')));
-            rows.push(...Array.from(existing.entries()).filter(([k])=>k&&!known.has(k)).map(([,r])=>r));
+            rows.push(...Array.from(existing.entries()).filter(([k])=>!known.has(k)).map(([,r])=>r));
+            rows.push(...unkeyedRows);
           }
         }
         cert.tables[part.key]=rows;
@@ -620,7 +631,7 @@
       sections: [
         section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
         section('B · Earthing & bonding adequacy', [select('earthingArrangement', 'System earthing arrangement', OPTIONS.earthing), f('zdb', 'Earth fault loop impedance at DB Zdb (Ω)'), select('earthingConductorAdequate', 'Adequate earthing conductor present', OPTIONS.yesNoNA), f('bondingPresent', 'Main protective bonding to', 'text', { span: 'full' })]),
-        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), f('ocpdBs', 'OCPD BS (EN)'), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), f('ocpdRating', 'OCPD rating (A)'), f('breakingCapacity', 'Breaking capacity (kA)'), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
+        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
         section('D · Test results', [f('r1r2', 'Protective conductor continuity R1+R2 (Ω)'), f('r2', 'Protective conductor continuity R2 (Ω)'), f('ringR1', 'Ring r1-r1 (Ω)'), f('ringRn', 'Ring rn-rn (Ω)'), f('ringR2', 'Ring r2-r2 (Ω)'), f('irVoltage', 'Insulation resistance test voltage (V)'), f('irLL', 'Insulation resistance Live-Live (MΩ)'), f('irLE', 'Insulation resistance Live-Earth (MΩ)'), select('polarity', 'Polarity satisfactory', OPTIONS.yesNoNA), f('zs', 'Maximum measured Zs (Ω)'), f('rcdTime', 'RCD disconnection time at IΔn (ms)'), select('rcdButton', 'RCD test button satisfactory', OPTIONS.yesNoNA), select('afddButton', 'AFDD test button satisfactory', OPTIONS.yesNoNA), select('spdFunction', 'SPD functionality confirmed', OPTIONS.yesNoNA)]),
         section('E · Declaration', [f('engineerName', 'Name'), f('forOnBehalfOf', 'For/on behalf of'), f('address', 'Address', 'textarea'), f('position', 'Position'), f('signature', 'Signature / typed name'), f('declarationDate', 'Date', 'date')])
       ]
@@ -666,6 +677,7 @@
   let state = loadState();
   let view = loadView();
   let autosaveTimer = null;
+  let nativeBackupTimer = null;
 
   function loadState() {
     try {
@@ -731,22 +743,47 @@
   }
 
   function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    persistView();
     if (view.currentId) {
       const c = getCurrent();
       if (c) c.updatedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    persistView();
+  }
+
+  function autoBackupPayload() {
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, certificates: state.certificates });
+  }
+
+  function flushNativeAutoBackup() {
+    clearTimeout(nativeBackupTimer);
+    nativeBackupTimer=null;
+    if(!state.certificates.length) return;
+    if(window.Android && typeof window.Android.saveAutoBackup==='function'){
+      try { window.Android.saveAutoBackup(autoBackupPayload()); } catch(err) { console.warn('Automatic recovery backup failed',err); }
+    }
+  }
+
+  function scheduleNativeAutoBackup() {
+    clearTimeout(nativeBackupTimer);
+    nativeBackupTimer=setTimeout(flushNativeAutoBackup,1800);
   }
 
   function saveNow() {
     clearTimeout(autosaveTimer);
     persist();
+    scheduleNativeAutoBackup();
     updateSaveState('Saved');
   }
 
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+  function saveSettingsFromModal() {
+    document.querySelectorAll('.profile-modal [data-setting]').forEach(el=>{
+      settings[el.dataset.setting]=el.value;
+    });
+    saveSettings();
+  }
   function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[ch])); }
   function fmtDate(v) { if (!v) return ''; const d = new Date(v + (v.length === 10 ? 'T12:00:00' : '')); return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString('en-GB'); }
   function displayType(type) { return SCHEMAS[type]?.name || type; }
@@ -849,15 +886,20 @@
 
   function deleteCertificate(id) {
     const c = state.certificates.find(x => x.id === id); if (!c) return;
-    if (!confirm(`Delete ${c.number || displayType(c.type)}? This cannot be undone.`)) return;
-    state.certificates = state.certificates.filter(x => x.id !== id); persist();
-    if (view.currentId === id) view = { page: 'home', currentId: null };
-    render(); toast('Certificate deleted');
+    if (!confirm(`Delete ${c.number || displayType(c.type)}? A recovery snapshot will be kept.`)) return;
+    savePreRestoreSnapshot();
+    state.certificates = state.certificates.filter(x => x.id !== id); persist(); scheduleNativeAutoBackup();
+    if (view.currentId === id) view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' };
+    render(); toast('Certificate deleted · recovery saved');
   }
 
   function scheduleAutosave() {
     clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(() => { persist(); updateSaveState('Saved'); }, 300);
+    autosaveTimer = setTimeout(() => {
+      persist();
+      scheduleNativeAutoBackup();
+      updateSaveState('Saved');
+    }, 300);
     updateSaveState('Saving…');
   }
 
@@ -897,8 +939,7 @@
   function homeView() {
     const completed = state.certificates.filter(c => c.status === 'Complete').length;
     const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
-    const typeIcons={eic:'⚡',eicr:'⌕',minor:'✓',emergency:'↗',smoke:'◉'};
-    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon">${typeIcons[key]||s.icon}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow">›</span></button>`).join('');
+    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon">${esc(s.code)}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow">›</span></button>`).join('');
     const rows = state.certificates.length ? state.certificates.map(c => {
       const sch = SCHEMAS[c.type] || {icon:'📄',name:'Certificate'};
       const fields=isRecord(c.fields)?c.fields:{};
@@ -907,7 +948,7 @@
       const postcode=fields.installationPostcode || fields.premisesPostcode || fields.clientPostcode || '';
       const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
       return `<div class="saved-cert-row" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
-        <div class="saved-cert-accent">${sch.icon}</div>
+        <div class="saved-cert-accent">${esc(sch.code||'CERT')}</div>
         <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
         <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
         <div class="saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
@@ -917,7 +958,7 @@
     const recentName=recent ? (recent.fields?.clientName||recent.fields?.occupier||recent.fields?.premisesName||'Recent certificate') : '';
     return `<main class="home-page">
       <section class="home-hero">
-        <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Professional electrical certification, built for work on site.</h2><p>Complete certificates, dictate answers, test circuits, autosave every change and issue a finished PDF from one app.</p>
+        <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
           <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
@@ -943,8 +984,8 @@
       if(part.key==='tests') return '';
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish certificate</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Saves first, marks complete and creates the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & Create PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${schema.icon} ${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">🎙 Voice Fill</button><button class="btn" data-action="rapid-sheet">📝 Printable Site Worksheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Mark draft' : 'Mark complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer"><div><strong>🎙 Voice Fill</strong><span>Speak answers in field order. Say “next field” between answers and the app fills them for you.</span></div><div><strong>📝 Printable Site Worksheet</strong><span>The same Sperin Services certificate form, left blank for site use, so paper and issued PDF match.</span></div></div><div class="note warning">Sperin Services branded model-form layout. Complete only where you are competent and authorised to certify the work.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · local device storage</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions"><button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -954,8 +995,8 @@
 
   function renderSection(part, cert) {
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
-    const sameClient=(part.title.startsWith('B · Installation details') && 'clientAddress' in cert.fields)
-      ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client details</button><span>Copies client address and postcode into the installation details.</span></div>'
+    const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
+      ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
       : '';
     const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
@@ -1049,10 +1090,10 @@
       return `<div class="field full"><label>Certification responsibility</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="segmented-choice"><button type="button" class="${value===one?'selected':''}" data-action="signatory-mode" data-value="${esc(one)}"><strong>One person</strong><span>Design · Installation · Inspection & testing</span></button><button type="button" class="${value===separate?'selected':''}" data-action="signatory-mode" data-value="${esc(separate)}"><strong>Separate people</strong><span>Individual designer, installer and inspector/tester details</span></button></div></div>`;
     }
 
-    if(field.key==='bondingTo'){
+    if(field.key==='bondingTo' || field.key==='bondingPresent'){
       const selected=bondingSelections(value);
-      const chips=BONDING_OPTIONS.map(option=>`<button type="button" class="bonding-chip ${selected.has(option)?'selected':''}" data-action="bonding-toggle" data-value="${esc(option)}">${esc(option)}</button>`).join('');
-      return `<div class="field full bonding-field"><label>Main protective bonding connected to</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="bonding-options">${chips}</div><div class="meta">Tap every service or extraneous-conductive-part that is bonded.</div></div>`;
+      const chips=BONDING_OPTIONS.map(option=>`<button type="button" class="bonding-chip ${selected.has(option)?'selected':''}" data-action="bonding-toggle" data-bonding-field="${esc(field.key)}" data-value="${esc(option)}">${esc(option)}</button>`).join('');
+      return `<div class="field full bonding-field"><label>Main protective bonding connected to</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="bonding-options">${chips}</div><div class="meta">Tap every bonded service.</div></div>`;
     }
 
     let control = '';
@@ -1134,7 +1175,7 @@
   function openSettings() {
     const textField=(k,l,wide=false,type='text')=>`<div class="field ${wide?'full':''}"><label>${l}</label><input data-setting="${k}" type="${type}" value="${esc(settings[k]||'')}" /></div>`;
     const html=`<div class="modal-backdrop" data-action="close-modal"><div class="card modal profile-modal" data-modal>
-      <div class="profile-head"><div><div class="eyebrow">ENGINEER PROFILE</div><h2>Details used on new certificates</h2><p>Fill these once. New certificates start with your details already entered, and you can still edit or remove them on any individual certificate.</p></div><button class="btn" data-action="close-modal">Close</button></div>
+      <div class="profile-head"><div><div class="eyebrow">ENGINEER PROFILE</div><h2>Your defaults</h2><p>Used on new certificates. Every certificate can still be edited.</p></div><button class="btn" data-action="close-modal">Close</button></div>
       <section class="profile-section"><h3>Engineer & business</h3><div class="settings-grid">
         ${textField('engineerName','Engineer name')}${textField('engineerPosition','Position / role')}${textField('companyName','Company name')}${textField('registration','Registration / scheme number')}
         <div class="field full"><label>Business address</label><textarea data-setting="address">${esc(settings.address||'')}</textarea></div>
@@ -1144,7 +1185,7 @@
         ${textField('testerMake','Tester make')}${textField('testerModel','Tester model')}${textField('testerSerial','Serial number')}${textField('testerCalibrationDue','Calibration due','', 'date')}
       </div></section>
       <section class="profile-section"><h3>UK postcode address lookup</h3><p class="profile-help">Optional. Add an Ideal Postcodes API key to enable postcode-first address selection. The key stays in this app’s local settings on your device.</p><div class="settings-grid">${textField('postcodeApiKey','Ideal Postcodes API key',true)}</div></section>
-      <section class="profile-section"><h3>Data & recovery</h3><p class="profile-help">Back up saves a latest recovery copy inside the app and a dated copy in Downloads. Import Backup File lets you choose an exact .json backup from your phone. Restore Latest uses the app's automatic latest backup. Every import or restore first saves your current work so Undo Last Restore can put it back.</p><div class="toolbar"><button class="btn" data-action="backup">Back up now</button><button class="btn primary" data-action="import-backup">Import backup file</button><button class="btn" data-action="restore">Restore latest automatic backup</button><button class="btn" data-action="undo-restore">Undo last restore</button><button class="btn" data-action="share-backup">Share backup</button></div></section>
+      <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">The app keeps an automatic recovery copy. Imports and destructive deletes save an undo snapshot first.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import file</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
     document.body.insertAdjacentHTML('beforeend',html);
@@ -1165,14 +1206,27 @@
     return content;
   }
 
-  function applyBackupJson(json,preserveCurrent=true) {
+  function prepareBackupData(json) {
     const data=typeof json==='string'?JSON.parse(json):json;
-    if(!Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    const certificates=data.certificates.map((raw,index)=>{
+      const copy=clone(raw);
+      const migrated=migrateCertificate(copy);
+      if(!migrated) throw new Error('Unsupported certificate at item '+(index+1));
+      return migrated;
+    });
+    const importedSettings=isRecord(data.settings)?{...settings,...data.settings}:settings;
+    return {certificates,settings:importedSettings};
+  }
+
+  function applyBackupJson(json,preserveCurrent=true) {
+    const prepared=prepareBackupData(json);
     if(preserveCurrent) savePreRestoreSnapshot();
-    state={certificates:data.certificates};
-    if(data.settings) settings={...settings,...data.settings};
-    state.certificates=state.certificates.map(c=>{try{return migrateCertificate(c)||c;}catch{return c;}});
-    persist(); saveSettings(); render();
+    state={certificates:prepared.certificates};
+    settings=prepared.settings;
+    view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
+    closeModal();
+    persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
   }
 
   function undoLastRestore(){
@@ -1196,7 +1250,12 @@
     const content=backupPayload();
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.saveBackup==='function'){
-      try { window.Android.saveBackup(content,filename); toast('Backup saved automatically'); return; } catch(err){console.warn(err);}
+      try {
+        const saved=window.Android.saveBackup(content,filename);
+        if(saved===false) throw new Error('Android could not save the backup');
+        toast('Backup saved');
+        return;
+      } catch(err){console.warn(err);alert('Backup failed: '+(err?.message||err));return;}
     }
     downloadBlob(content,filename,'application/json');
     toast('Backup downloaded');
@@ -1281,23 +1340,38 @@
   }
 
   async function downloadPDF() {
-    const cert=getCurrent(); if(!cert)return;
+    const cert=getCurrent(); if(!cert)return false;
     syncSingleSignatory(cert); persist();
     try{
       if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
       const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
       const pdfName=`${pdfSafeName(cert)}.pdf`;
       if(window.Android && typeof window.Android.savePdfBase64==='function'){
-        window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
-        toast('PDF saved to Downloads');
+        const saved=window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
+        if(saved===false) throw new Error('Android could not save the PDF');
+        toast('PDF saved');
       }else{
         doc.save(pdfName);
         toast('PDF created');
       }
+      return true;
     }catch(err){
       console.error(err);
       alert('Certificate PDF generation failed: '+(err?.message||err));
+      return false;
     }
+  }
+
+  async function completeAndCreatePdf() {
+    const cert=getCurrent(); if(!cert)return;
+    syncSingleSignatory(cert);
+    saveNow();
+    const ok=await downloadPDF();
+    if(!ok)return;
+    cert.status='Complete';
+    saveNow();
+    render();
+    toast('Certificate completed');
   }
 
   function formatPdfValue(field, value) {
@@ -2280,7 +2354,7 @@
       if(existing){el.dataset.voiceDecorated='1';return;}
       el.dataset.voiceDecorated='1';
       const mic=document.createElement('button');
-      mic.type='button';mic.className='voice-mic';mic.dataset.action='voice-one';mic.innerHTML='🎙 <span>Speak</span>';mic.setAttribute('aria-label','Speak answer for '+voiceLabel(el));
+      mic.type='button';mic.className='voice-mic';mic.dataset.action='voice-one';mic.innerHTML='<span>Speak</span>';mic.setAttribute('aria-label','Speak answer for '+voiceLabel(el));
       if(el.type==='checkbox'){
         const field=el.closest('.field');
         if(field) field.appendChild(mic);
@@ -2292,7 +2366,7 @@
     document.querySelectorAll('.form-head .actions').forEach(function(actions){
       if(!actions.querySelector('[data-action="voice-guide"]')){
         const b=document.createElement('button');b.type='button';b.className='btn voice-guide-btn';b.dataset.action='voice-guide';
-        b.textContent=view.circuitIndex!==null ? '🎙 Fill this page' : '🎙 Fill certificate';
+        b.textContent=view.circuitIndex!==null ? 'Voice page' : 'Voice certificate';
         actions.insertBefore(b,actions.firstChild);
       }
       if(!actions.querySelector('[data-action="voice-review-later"]')){
@@ -2351,7 +2425,7 @@
       }
       scheduleAutosave();
     }
-    if (e.target.matches('[data-setting]')) settings[e.target.dataset.setting] = e.target.value;
+    if (e.target.matches('[data-setting]')) { /* Profile changes commit only when Save profile is pressed. */ }
     if(e.target.matches('[data-site-builder]') && siteBuilderState){
       const key=e.target.dataset.siteBuilder;
       siteBuilderState[key]=e.target.value;
@@ -2477,9 +2551,10 @@
     }
     else if (action === 'bonding-toggle' && cert) {
       const option=button.dataset.value;
-      const selected=bondingSelections(cert.fields.bondingTo||'');
+      const key=button.dataset.bondingField||'bondingTo';
+      const selected=bondingSelections(cert.fields[key]||'');
       if(selected.has(option)) selected.delete(option); else selected.add(option);
-      cert.fields.bondingTo=BONDING_OPTIONS.filter(x=>selected.has(x)).join(', ');
+      cert.fields[key]=BONDING_OPTIONS.filter(x=>selected.has(x)).join(', ');
       saveNow();
       const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
     }
@@ -2540,33 +2615,39 @@
     else if (action === 'delete') deleteCertificate(button.dataset.id);
     else if (action === 'home') { saveNow(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if (action === 'pdf') downloadPDF();
-    else if (action === 'complete-pdf') { if(cert){cert.status='Complete';syncSingleSignatory(cert);persist();render();downloadPDF();} }
+    else if (action === 'complete-pdf') completeAndCreatePdf();
     else if (action === 'print') printCertificate();
     else if (action === 'status') { if (cert) { cert.status = cert.status === 'Complete' ? 'Draft' : 'Complete'; persist(); render(); toast(`Marked ${cert.status.toLowerCase()}`); } }
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
     else if(action==='circuit-add' && cert){
-      syncCircuitRows(cert);const no=nextCircuitNumber(cert);
-      const board=cert.tables.circuits.at(-1)?.boardRef||'DB1';cert.tables.circuits.push({boardRef:board,circuitNo:no});cert.tables.tests.push({boardRef:board,circuitNo:no});
-      view.circuitIndex=cert.tables.circuits.length-1;view.circuitStep='details';persist();render();goTop();
+      syncCircuitRows(cert);
+      const board=cert.tables.circuits.at(-1)?.boardRef||'DB1';
+      const no=nextCircuitNumber(cert,board);
+      const newCircuit={boardRef:board,circuitNo:no};
+      cert.tables.circuits.push(newCircuit);cert.tables.tests.push({boardRef:board,circuitNo:no});
+      sortCircuitsByNumber(cert,newCircuit);
+      view.circuitIndex=cert.tables.circuits.indexOf(newCircuit);view.circuitStep='details';saveNow();render();goTop();
     }
     else if(action==='circuit-move-up' && cert){moveCircuit(cert,Number(button.dataset.index),-1);}
     else if(action==='circuit-move-down' && cert){moveCircuit(cert,Number(button.dataset.index),1);}
     else if(action==='circuit-duplicate' && cert){
-      syncCircuitRows(cert);const i=Number(button.dataset.index),no=nextCircuitNumber(cert);
-      const c=clone(cert.tables.circuits[i]||{}),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
+      syncCircuitRows(cert);const i=Number(button.dataset.index);
+      const source=cert.tables.circuits[i]||{};
+      const no=nextCircuitNumber(cert,source.boardRef||'DB1');
+      const c=clone(source),t=clone(cert.tables.tests[i]||{});c.circuitNo=no;t.circuitNo=no;
       cert.tables.circuits.push(c);cert.tables.tests.push(t);sortCircuitsByNumber(cert,c);view.circuitIndex=cert.tables.circuits.indexOf(c);view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
-      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();goCircuits();}
+      const i=Number(button.dataset.index);if(confirm('Delete this circuit and its test results?')){savePreRestoreSnapshot();syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();goCircuits();toast('Circuit deleted · recovery saved');}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
     else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuits();}
     else if(action==='circuit-recalc' && cert){const i=Number(button.dataset.index);recalculateCircuitZs(cert,i,true);persist();render();}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
-    else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); cert.tables[key].splice(ri, 1); persist(); render(); }
+    else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if (action === 'settings') openSettings();
-    else if (action === 'save-settings') { saveSettings(); closeModal(); toast('Profile saved'); }
+    else if (action === 'save-settings') { saveSettingsFromModal(); closeModal(); toast('Profile saved'); }
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
     else if (action === 'backup') backup();
     else if (action === 'import-backup') importBackupFile();
@@ -2574,10 +2655,10 @@
     else if (action === 'undo-restore') undoLastRestore();
   });
 
-  setInterval(()=>{ if(state.certificates.length) persist(); },30000);
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') persist(); });
-  window.addEventListener('pagehide',persist);
-  window.addEventListener('beforeunload',persist);
+  setInterval(()=>{ if(state.certificates.length){persist();scheduleNativeAutoBackup();} },30000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){persist();flushNativeAutoBackup();} });
+  window.addEventListener('pagehide',()=>{persist();flushNativeAutoBackup();});
+  window.addEventListener('beforeunload',()=>{persist();flushNativeAutoBackup();});
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

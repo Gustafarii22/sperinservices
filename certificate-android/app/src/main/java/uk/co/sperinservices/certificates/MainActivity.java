@@ -67,8 +67,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates-app-v178/?app=1.7.8";
-    private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
+    private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk/certificates-app-v179/";
+    private static final String LIVE_URL = BUNDLED_BASE_URL + "?app=1.7.9";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -77,9 +77,8 @@ public class MainActivity extends Activity {
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
-    private String recoveredChamberlainBackup = null;
-    private int recoveredChamberlainScore = -1;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private long lastRollingAutoBackup = 0L;
     private boolean usingLocalFallback = false;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -100,12 +99,6 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
         createNotificationChannel();
 
-        // IMPORTANT: forensic recovery runs before WebView is opened so Chromium
-        // cannot compact/rotate the LevelDB log that may still contain the
-        // pre-restore localStorage value.
-        recoveredChamberlainBackup = recoverChamberlainFromWebViewStorage();
-        exportForensicRecoveryBundle();
-
         webView = new WebView(this);
         webView.clearCache(true);
         webView.setBackgroundColor(Color.rgb(7, 17, 31));
@@ -122,7 +115,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.8");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.9");
 
         setupVoice();
 
@@ -165,27 +158,13 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (recoveredChamberlainBackup != null && !recoveredChamberlainBackup.isEmpty()) {
-                    final String json = recoveredChamberlainBackup;
-                    recoveredChamberlainBackup = null;
-                    // Save an untouched recovery copy before importing it.
-                    saveBytes(json.getBytes(StandardCharsets.UTF_8),
-                            "Sperin-Recovered-33-Chamberlain-Road.json",
-                            "application/json", false);
-                    String js = "if(window.sperinRestoreBackup){window.sperinRestoreBackup(" +
-                            JSONObject.quote(json) + ",\"\");}";
-                    view.evaluateJavascript(js, null);
-                    Toast.makeText(MainActivity.this,
-                            "Recovered 33 Chamberlain Road from pre-restore app storage",
-                            Toast.LENGTH_LONG).show();
-                }
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame() && !usingLocalFallback) {
                     usingLocalFallback = true;
-                    view.loadUrl(LOCAL_URL);
+                    loadBundledIndexFallback();
                 }
             }
         });
@@ -199,7 +178,7 @@ public class MainActivity extends Activity {
         String path = uri.getPath();
         if (host == null || !"sperinservices.co.uk".equalsIgnoreCase(host) || path == null) return null;
 
-        final String prefix = "/certificates-app-v178";
+        final String prefix = "/certificates-app-v179";
         if (!(path.equals(prefix) || path.equals(prefix + "/") || path.startsWith(prefix + "/"))) return null;
 
         String relative;
@@ -224,6 +203,25 @@ public class MainActivity extends Activity {
             );
         } catch (Exception ex) {
             return null;
+        }
+    }
+
+    private void loadBundledIndexFallback() {
+        try {
+            String html = readFile(getAssets().open("certificates/index.html"));
+            webView.loadDataWithBaseURL(
+                    BUNDLED_BASE_URL,
+                    html,
+                    "text/html",
+                    "UTF-8",
+                    LIVE_URL
+            );
+        } catch (Exception ex) {
+            runOnUiThread(() -> Toast.makeText(
+                    MainActivity.this,
+                    "Certificate interface could not be opened",
+                    Toast.LENGTH_LONG
+            ).show());
         }
     }
 
@@ -389,8 +387,6 @@ public class MainActivity extends Activity {
                 } catch (Exception ex) {
                     sendBackupResult("", ex.getMessage() == null ? "Could not read selected backup" : ex.getMessage());
                 }
-            } else {
-                sendBackupResult("", "Import cancelled");
             }
             return;
         }
@@ -447,313 +443,8 @@ public class MainActivity extends Activity {
     }
 
 
-    private String recoverChamberlainFromWebViewStorage() {
-        try {
-            File levelDb = new File(getApplicationInfo().dataDir,
-                    "app_webview/Default/Local Storage/leveldb");
-            if (!levelDb.exists() || !levelDb.isDirectory()) return null;
-
-            File[] files = levelDb.listFiles();
-            if (files == null || files.length == 0) return null;
-
-            // Preserve the exact pre-open database bytes once. Later launches can
-            // re-run improved recovery logic against this untouched snapshot even
-            // if Chromium compacts its live LevelDB after this launch.
-            File snapshotDir = new File(getFilesDir(), "chamberlain-leveldb-snapshot-original");
-            if (!snapshotDir.exists() && snapshotDir.mkdirs()) {
-                for (File source : files) {
-                    if (!source.isFile() || source.length() > 32L * 1024L * 1024L) continue;
-                    File dest = new File(snapshotDir, source.getName());
-                    copyFile(source, dest);
-                }
-            }
-
-            Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
-
-            // The active/recent *.log files are the best recovery source because
-            // overwritten LevelDB values remain as older WriteBatch records until
-            // Chromium compacts the log.
-            for (File file : files) {
-                if (!file.isFile() || !file.getName().endsWith(".log")) continue;
-                if (file.length() <= 0 || file.length() > 16L * 1024L * 1024L) continue;
-                byte[] bytes = readAllBytes(file);
-                scanLevelDbLog(bytes);
-            }
-
-            // Fallback: scan other small LevelDB files for uncompressed value bytes.
-            if (recoveredChamberlainBackup == null) {
-                for (File file : files) {
-                    if (!file.isFile() || file.getName().endsWith(".log")) continue;
-                    if (file.length() <= 0 || file.length() > 8L * 1024L * 1024L) continue;
-                    byte[] bytes = readAllBytes(file);
-                    considerCandidateBytes(bytes);
-                }
-            }
-            return recoveredChamberlainBackup;
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    private void copyFile(File source, File dest) throws Exception {
-        try (InputStream in = new FileInputStream(source);
-             OutputStream out = new FileOutputStream(dest)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
-        }
-    }
-
-
-    private void exportForensicRecoveryBundle() {
-        try {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
-                String manifest =
-                        "Sperin Certificates emergency recovery bundle\n" +
-                        "Target: 33 Chamberlain Road / Tom Watson\n" +
-                        "Package: " + getPackageName() + "\n" +
-                        "Created: " + System.currentTimeMillis() + "\n" +
-                        "Contains preserved pre-WebView LevelDB snapshot, current LevelDB and internal backups.\n";
-                zip.putNextEntry(new ZipEntry("RECOVERY-README.txt"));
-                zip.write(manifest.getBytes(StandardCharsets.UTF_8));
-                zip.closeEntry();
-
-                File preserved = new File(getFilesDir(), "chamberlain-leveldb-snapshot-original");
-                addDirectoryToZip(zip, preserved, "preserved-original-leveldb");
-
-                File current = new File(getApplicationInfo().dataDir,
-                        "app_webview/Default/Local Storage/leveldb");
-                addDirectoryToZip(zip, current, "current-leveldb");
-
-                addDirectoryToZip(zip, new File(getFilesDir(), "backups"), "internal-backups");
-
-                // Include other WebView Local Storage locations if Android/WebView
-                // has used a different profile path on this device.
-                File webview = new File(getApplicationInfo().dataDir, "app_webview");
-                addMatchingLevelDbDirs(zip, webview, "app-webview");
-            }
-            saveBytes(bytes.toByteArray(),
-                    "Sperin-Chamberlain-Raw-Recovery.zip",
-                    "application/zip", false);
-            Toast.makeText(this,
-                    "Raw recovery ZIP saved to Downloads / Sperin Certificates",
-                    Toast.LENGTH_LONG).show();
-        } catch (Exception ex) {
-            Toast.makeText(this,
-                    "Could not export raw recovery ZIP: " + ex.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void addMatchingLevelDbDirs(ZipOutputStream zip, File root, String prefix) throws Exception {
-        if (root == null || !root.exists()) return;
-        File[] children = root.listFiles();
-        if (children == null) return;
-        for (File child : children) {
-            if (child.isDirectory()) {
-                String lower = child.getAbsolutePath().toLowerCase(Locale.UK);
-                if (child.getName().equalsIgnoreCase("leveldb") && lower.contains("local storage")) {
-                    addDirectoryToZip(zip, child, prefix + "/" + safeZipPath(root, child));
-                } else {
-                    addMatchingLevelDbDirs(zip, child, prefix);
-                }
-            }
-        }
-    }
-
-    private String safeZipPath(File root, File child) {
-        String p = child.getAbsolutePath();
-        String r = root.getAbsolutePath();
-        if (p.startsWith(r)) p = p.substring(r.length());
-        p = p.replace('\\', '/').replaceAll("^/+", "");
-        return p.isEmpty() ? "leveldb" : p;
-    }
-
-    private void addDirectoryToZip(ZipOutputStream zip, File dir, String prefix) throws Exception {
-        if (dir == null || !dir.exists()) return;
-        if (dir.isFile()) {
-            addFileToZip(zip, dir, prefix);
-            return;
-        }
-        File[] children = dir.listFiles();
-        if (children == null) return;
-        Arrays.sort(children, Comparator.comparing(File::getName));
-        for (File child : children) {
-            String name = prefix + "/" + child.getName();
-            if (child.isDirectory()) addDirectoryToZip(zip, child, name);
-            else if (child.isFile() && child.length() <= 64L * 1024L * 1024L) addFileToZip(zip, child, name);
-        }
-    }
-
-    private void addFileToZip(ZipOutputStream zip, File file, String name) throws Exception {
-        ZipEntry entry = new ZipEntry(name.replace('\\', '/'));
-        entry.setTime(file.lastModified());
-        zip.putNextEntry(entry);
-        try (InputStream in = new FileInputStream(file)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) >= 0) zip.write(buf, 0, n);
-        }
-        zip.closeEntry();
-    }
-
-    private byte[] readAllBytes(File file) throws Exception {
-        try (InputStream in = new FileInputStream(file);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
-            return out.toByteArray();
-        }
-    }
-
-    private void scanLevelDbLog(byte[] data) {
-        final int BLOCK = 32768;
-        ByteArrayOutputStream fragmented = null;
-        for (int blockStart = 0; blockStart < data.length; blockStart += BLOCK) {
-            int blockEnd = Math.min(data.length, blockStart + BLOCK);
-            int p = blockStart;
-            while (p + 7 <= blockEnd) {
-                int len = (data[p + 4] & 0xff) | ((data[p + 5] & 0xff) << 8);
-                int type = data[p + 6] & 0xff;
-                if (len == 0 && type == 0) break;
-                int payloadStart = p + 7;
-                int payloadEnd = payloadStart + len;
-                if (payloadEnd > blockEnd || payloadEnd > data.length) break;
-
-                if (type == 1) { // FULL
-                    byte[] rec = Arrays.copyOfRange(data, payloadStart, payloadEnd);
-                    scanWriteBatch(rec);
-                    fragmented = null;
-                } else if (type == 2) { // FIRST
-                    fragmented = new ByteArrayOutputStream();
-                    fragmented.write(data, payloadStart, len);
-                } else if (type == 3) { // MIDDLE
-                    if (fragmented != null) fragmented.write(data, payloadStart, len);
-                } else if (type == 4) { // LAST
-                    if (fragmented != null) {
-                        fragmented.write(data, payloadStart, len);
-                        scanWriteBatch(fragmented.toByteArray());
-                    }
-                    fragmented = null;
-                }
-                p = payloadEnd;
-            }
-        }
-    }
-
-    private void scanWriteBatch(byte[] batch) {
-        if (batch == null || batch.length < 12) return;
-        int p = 12; // sequence (8) + count (4)
-        while (p < batch.length) {
-            int tag = batch[p++] & 0xff;
-            int[] keyLen = readVarint32(batch, p);
-            if (keyLen == null) return;
-            p = keyLen[1];
-            int kl = keyLen[0];
-            if (kl < 0 || p + kl > batch.length) return;
-            byte[] key = Arrays.copyOfRange(batch, p, p + kl);
-            p += kl;
-
-            if (tag == 1) { // kTypeValue
-                int[] valLen = readVarint32(batch, p);
-                if (valLen == null) return;
-                p = valLen[1];
-                int vl = valLen[0];
-                if (vl < 0 || p + vl > batch.length) return;
-                byte[] value = Arrays.copyOfRange(batch, p, p + vl);
-                p += vl;
-                considerCandidateBytes(key);
-                considerCandidateBytes(value);
-            } else if (tag == 0) { // deletion
-                considerCandidateBytes(key);
-            } else {
-                return;
-            }
-        }
-    }
-
-    private int[] readVarint32(byte[] data, int p) {
-        int result = 0;
-        int shift = 0;
-        for (int i = 0; i < 5 && p < data.length; i++, p++) {
-            int b = data[p] & 0xff;
-            result |= (b & 0x7f) << shift;
-            if ((b & 0x80) == 0) return new int[]{result, p + 1};
-            shift += 7;
-        }
-        return null;
-    }
-
-    private void considerCandidateBytes(byte[] bytes) {
-        if (bytes == null || bytes.length < 20) return;
-        tryCandidateString(new String(bytes, StandardCharsets.UTF_8));
-        if (bytes.length > 1) {
-            tryCandidateString(new String(bytes, 1, bytes.length - 1, StandardCharsets.UTF_8));
-        }
-        try {
-            tryCandidateString(new String(bytes, "UTF-16LE"));
-            if (bytes.length > 2) tryCandidateString(new String(bytes, 1, bytes.length - 1, "UTF-16LE"));
-            tryCandidateString(new String(bytes, "UTF-16BE"));
-            if (bytes.length > 2) tryCandidateString(new String(bytes, 1, bytes.length - 1, "UTF-16BE"));
-        } catch (Exception ignored) {}
-    }
-
-    private void tryCandidateString(String decoded) {
-        if (decoded == null || decoded.length() < 30) return;
-        String lower = decoded.toLowerCase();
-        if (!lower.contains("33 chamberlain road") && !lower.contains("tom watson")) return;
-
-        // Chromium may prefix its localStorage string encoding byte. Pull out the
-        // JSON object and validate it rather than trusting arbitrary byte matches.
-        int first = decoded.indexOf('{');
-        int last = decoded.lastIndexOf('}');
-        if (first < 0 || last <= first) return;
-        String json = decoded.substring(first, last + 1).replace("\u0000", "");
-        try {
-            JSONObject root = new JSONObject(json);
-            JSONArray certs = root.optJSONArray("certificates");
-            if (certs == null || certs.length() == 0) return;
-
-            JSONObject target = null;
-            for (int i = 0; i < certs.length(); i++) {
-                JSONObject cert = certs.optJSONObject(i);
-                if (cert == null) continue;
-                String c = cert.toString().toLowerCase();
-                if (c.contains("33 chamberlain road") || c.contains("tom watson")) {
-                    target = cert;
-                    break;
-                }
-            }
-            if (target == null) return;
-
-            int score = target.toString().length() + countPopulated(target) * 100;
-            if (score > recoveredChamberlainScore) {
-                recoveredChamberlainScore = score;
-                recoveredChamberlainBackup = root.toString();
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private int countPopulated(Object value) {
-        if (value == null || value == JSONObject.NULL) return 0;
-        if (value instanceof JSONObject) {
-            int n = 0;
-            JSONObject o = (JSONObject) value;
-            java.util.Iterator<String> keys = o.keys();
-            while (keys.hasNext()) n += countPopulated(o.opt(keys.next()));
-            return n;
-        }
-        if (value instanceof JSONArray) {
-            int n = 0;
-            JSONArray a = (JSONArray) value;
-            for (int i = 0; i < a.length(); i++) n += countPopulated(a.opt(i));
-            return n;
-        }
-        String s = String.valueOf(value).trim();
-        return s.isEmpty() || "null".equalsIgnoreCase(s) ? 0 : 1;
-    }
+    // Emergency Chamberlain forensic recovery code was intentionally removed in v1.7.9.
+    // Normal rolling backups and explicit import/restore now handle recovery safely.
 
     private Uri saveBytes(byte[] bytes, String requestedName, String mime, boolean notify) {
         final String fileName = safeName(requestedName, "Sperin-Certificate.pdf");
@@ -846,6 +537,28 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void writeAutoBackup(String content) throws Exception {
+        File dir = backupDir();
+        File latest = new File(dir, "auto-latest.json");
+        try (OutputStream out = new FileOutputStream(latest)) {
+            out.write(content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        long now = System.currentTimeMillis();
+        if (lastRollingAutoBackup == 0L || now - lastRollingAutoBackup >= 5L * 60L * 1000L) {
+            File rolling = new File(dir, "autosave-" + now + ".json");
+            try (OutputStream out = new FileOutputStream(rolling)) {
+                out.write(content.getBytes(StandardCharsets.UTF_8));
+            }
+            lastRollingAutoBackup = now;
+            File[] history = dir.listFiles((d, name) -> name.startsWith("autosave-") && name.endsWith(".json"));
+            if (history != null && history.length > 12) {
+                Arrays.sort(history, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+                for (int i = 0; i < history.length - 12; i++) history[i].delete();
+            }
+        }
+    }
+
     private void writeRecoverySnapshot(String content, String requestedName) throws Exception {
         File dir = backupDir();
         File file = new File(dir, safeName(requestedName, "pre-restore-" + System.currentTimeMillis() + ".json"));
@@ -869,8 +582,12 @@ public class MainActivity extends Activity {
     }
 
     private String readLatestBackup() throws Exception {
-        File internal = new File(backupDir(), "latest.json");
-        if (internal.exists()) return readFile(new FileInputStream(internal));
+        File manual = new File(backupDir(), "latest.json");
+        File automatic = new File(backupDir(), "auto-latest.json");
+        File newest = null;
+        if (manual.exists()) newest = manual;
+        if (automatic.exists() && (newest == null || automatic.lastModified() > newest.lastModified())) newest = automatic;
+        if (newest != null) return readFile(new FileInputStream(newest));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             String[] projection = {
@@ -1051,13 +768,15 @@ public class MainActivity extends Activity {
 
     public class AndroidBridge {
         @JavascriptInterface
-        public void savePdfBase64(String dataUri, String fileName) {
+        public boolean savePdfBase64(String dataUri, String fileName) {
             try {
                 int comma = dataUri.indexOf(',');
                 String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
-                saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
+                Uri uri = saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
+                return uri != null;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
+                return false;
             }
         }
 
@@ -1067,14 +786,23 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void saveBackup(String content, String fileName) {
+        public boolean saveBackup(String content, String fileName) {
             try {
                 writeInternalBackup(content);
-                saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved automatically", Toast.LENGTH_LONG).show());
+                Uri uri = saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, "application/json", false);
+                if (uri == null) return false;
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup saved", Toast.LENGTH_LONG).show());
+                return true;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Backup failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+                return false;
             }
+        }
+
+        @JavascriptInterface
+        public void saveAutoBackup(String content) {
+            try { writeAutoBackup(content); }
+            catch (Exception ex) { android.util.Log.w("SperinCertificates", "Auto backup failed", ex); }
         }
 
         @JavascriptInterface

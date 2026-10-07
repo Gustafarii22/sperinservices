@@ -2,6 +2,14 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 
 const base = process.env.CERT_BASE_URL || "http://127.0.0.1:4173/certificates/";
+const auditPass = process.env.CERT_AUDIT_PASS || "forward";
+const certificateTypeOrders = {
+  forward: ["eic", "eicr", "minor", "emergency", "smoke"],
+  reverse: ["smoke", "emergency", "minor", "eicr", "eic"],
+  mixed: ["minor", "smoke", "eic", "emergency", "eicr"],
+};
+const certificateTypeOrder = certificateTypeOrders[auditPass] || certificateTypeOrders.forward;
+console.log("CERT_AUDIT_PASS:", auditPass, certificateTypeOrder.join(" > "));
 const appSource = fs.readFileSync("public/certificates/app.js", "utf8");
 const ietSource = fs.readFileSync("public/certificates/iet-forms.js", "utf8");
 const javaSource = fs.readFileSync(
@@ -67,8 +75,20 @@ assert(
   appSource.includes("Installation inspection checklist"),
   "Detailed EIC inspection checklist missing",
 );
-assert(appSource.includes("Printable Site Worksheet"), "Printable Site Worksheet label missing");
-assert(appSource.includes("Voice Fill"), "Voice Fill label missing");
+assert(
+  appSource.includes('data-action="rapid-sheet">Site sheet'),
+  "Site sheet action label missing",
+);
+assert(appSource.includes('data-action="rapid-entry">Voice'), "Voice action label missing");
+assert(appSource.includes("prepareBackupData"), "Validated backup import staging missing");
+assert(
+  appSource.includes("normaliseBoardKey"),
+  "Per-board circuit numbering normalisation missing",
+);
+assert(
+  appSource.includes("scheduleNativeAutoBackup"),
+  "Rolling recovery backup scheduling missing",
+);
 assert(javaSource.includes("createPrintDocumentAdapter"), "Native Android print route missing");
 assert(javaSource.includes("showFileNotification"), "PDF notification route missing");
 assert(javaSource.includes("restoreLatestBackup"), "Automatic restore route missing");
@@ -84,6 +104,41 @@ assert(appSource.includes("tneCpc"), "Twin & earth CPC derivation missing");
 assert(javaSource.includes("TextRecognition.getClient"), "Bundled ML Kit text recognition missing");
 assert(javaSource.includes("captureAndScanSheet"), "Native camera sheet scan missing");
 assert(javaSource.includes("scanSheetImageBase64"), "Gallery/base64 sheet scan missing");
+assert(
+  javaSource.includes("public boolean savePdfBase64"),
+  "Native PDF save does not report success/failure",
+);
+assert(javaSource.includes("loadDataWithBaseURL"), "Same-origin bundled fallback missing");
+assert(
+  !javaSource.includes("file:///android_asset/certificates/index.html"),
+  "file:// fallback can hide origin-scoped certificate data",
+);
+assert(javaSource.includes("saveAutoBackup"), "Native rolling recovery backup bridge missing");
+assert(javaSource.includes("auto-latest.json"), "Native automatic latest backup missing");
+assert(
+  !javaSource.includes("recoverChamberlainFromWebViewStorage"),
+  "Retired Chamberlain auto-recovery code is still present",
+);
+assert(
+  !javaSource.includes("exportForensicRecoveryBundle"),
+  "Retired forensic export still runs in production",
+);
+
+const jsBridgeCalls = [
+  ...new Set([...appSource.matchAll(/window\.Android\.([A-Za-z0-9_]+)/g)].map((m) => m[1])),
+].sort();
+const nativeBridgeMethods = [
+  ...new Set(
+    [
+      ...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g),
+    ].map((m) => m[1]),
+  ),
+].sort();
+const missingNativeBridge = jsBridgeCalls.filter((name) => !nativeBridgeMethods.includes(name));
+assert(
+  missingNativeBridge.length === 0,
+  "JavaScript calls missing native Android methods: " + missingNativeBridge.join(", "),
+);
 console.log("STATIC_ROUTE_NATIVE_PASS");
 
 const browser = await chromium.launch({ headless: true });
@@ -280,8 +335,12 @@ await context.addInitScript(() => {
     testerSerial: "ABC123",
     postcodeApiKey: "ak_test",
   };
-  localStorage.setItem("sperin-certificates-data-v1", JSON.stringify({ certificates: [cert] }));
-  localStorage.setItem("sperin-certificates-settings-v1", JSON.stringify(settings));
+  if (!localStorage.getItem("sperin-certificates-data-v1")) {
+    localStorage.setItem("sperin-certificates-data-v1", JSON.stringify({ certificates: [cert] }));
+  }
+  if (!localStorage.getItem("sperin-certificates-settings-v1")) {
+    localStorage.setItem("sperin-certificates-settings-v1", JSON.stringify(settings));
+  }
 });
 
 const page = await context.newPage();
@@ -339,7 +398,7 @@ await page.waitForSelector(".saved-cert-row");
 assert((await page.locator(".home-hero").count()) === 1, "Premium home hero missing");
 assert(
   (await page.locator(".home-hero h2").textContent()).includes(
-    "Professional electrical certification",
+    "Electrical certificates, built for site",
   ),
   "Home heading unclear",
 );
@@ -371,22 +430,57 @@ assert(
 );
 assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit render error");
 
-// Voice/worksheet controls must explain themselves.
+// Compact field actions must stay obvious without icon-only controls.
 assert(
-  (await page.getByRole("button", { name: /Voice Fill/ }).count()) === 1,
-  "Voice Fill button missing",
+  (await page.getByRole("button", { name: "Voice", exact: true }).count()) === 1,
+  "Voice button missing",
 );
 assert(
-  (await page.getByRole("button", { name: /Printable Site Worksheet/ }).count()) === 1,
-  "Printable Site Worksheet button missing",
+  (await page.getByRole("button", { name: "Site sheet", exact: true }).count()) === 1,
+  "Site sheet button missing",
 );
 const explainer = await page.locator(".entry-tools-explainer").textContent();
-assert(explainer.includes("Speak answers in field order"), "Voice Fill explanation missing");
+assert(explainer.includes("adds to long answers"), "Voice append explanation missing");
+assert(explainer.includes("matches the issued PDF"), "Site-sheet explanation missing");
+
+// One-tap field helpers: same-client, bonding and signatory mode.
+await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham");
+await page.locator('[data-field="clientPostcode"]').fill("B1 2AA");
+await page.locator('[data-action="copy-client-installation"]').click();
 assert(
-  explainer.includes("same Sperin Services certificate form") &&
-    explainer.includes("paper and issued PDF match"),
-  "Worksheet explanation does not describe the shared form layout",
+  (await page.locator('[data-field="installationAddress"]').inputValue()) ===
+    "1 Copy Road\nBirmingham",
+  "Same-as-client did not copy the address",
 );
+assert(
+  (await page.locator('[data-field="installationPostcode"]').inputValue()) === "B1 2AA",
+  "Same-as-client did not copy the postcode",
+);
+
+const bondingField = page.locator('[data-field="bondingTo"]');
+await page.locator('[data-action="bonding-toggle"][data-value="Gas"]').click();
+assert((await bondingField.inputValue()) === "Water", "Gas bonding toggle did not remove Gas");
+await page.locator('[data-action="bonding-toggle"][data-value="Gas"]').click();
+assert(
+  (await page.locator('[data-field="bondingTo"]').inputValue()).includes("Gas"),
+  "Gas bonding toggle did not restore Gas",
+);
+
+await page.locator('[data-action="signatory-mode"]').filter({ hasText: "Separate people" }).click();
+assert(
+  (await page.locator('[data-field="designer1"]').count()) === 1,
+  "Separate designer fields missing",
+);
+assert(
+  (await page.locator('[data-field="singleSignatoryName"]').count()) === 0,
+  "Single signatory fields remained visible in separate mode",
+);
+await page.locator('[data-action="signatory-mode"]').filter({ hasText: "One person" }).click();
+assert(
+  (await page.locator('[data-field="singleSignatoryName"]').count()) === 1,
+  "One-person signatory fields did not return",
+);
+console.log("QUICK_ENTRY_CONTROLS_PASS");
 
 // Detailed EIC inspection checklist must be present and legacy row preserved.
 const inspection = page
@@ -415,6 +509,26 @@ assert(
   inspectionStored.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "✓"),
   "Apply-all tick control did not update the inspection schedule",
 );
+await inspection.locator('[data-action="inspection-bulk"][data-value="N/A"]').click();
+let inspectionStored2 = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "N/A"),
+  "Apply-all N/A control did not update the inspection schedule",
+);
+await inspection
+  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]')
+  .click();
+inspectionStored2 = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✕",
+  "Direct inspection cross control did not save",
+);
+await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
+console.log("INSPECTION_DIRECT_CONTROLS_PASS");
 
 // Postcode-first address lookup.
 const postcode = page.locator('[data-field="installationPostcode"]');
@@ -505,6 +619,12 @@ await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdRating"
 await page.waitForTimeout(40);
 const maxZs = await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
 assert(maxZs === "1.37", "B32 automatic max Zs should be 1.37 Ω, got " + maxZs);
+await page.locator('[data-circuit-input="details"][data-col="maxZs"]').fill("9.99");
+await page.locator('[data-action="circuit-recalc"]').click();
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue()) === "1.37",
+  "Recalculate did not restore the automatic maximum Zs",
+);
 await page.locator('[data-action="circuit-next"]').click();
 assert(
   (await page.locator(".eyebrow").first().textContent()).includes("2 of 2"),
@@ -560,14 +680,65 @@ assert(
 );
 console.log("CIRCUIT_AUTOSORT_PASS");
 
-// Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
+// Rotation/reload must preserve the active certificate, circuit page and autosaved data.
+await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator('[data-action="circuit-next"]').click();
+const rotationField = page.locator('[data-circuit-input="tests"][data-col="r2only"]');
+await rotationField.fill("0.20");
+await page.waitForTimeout(450);
+await page.setViewportSize({ width: 844, height: 390 });
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector('[data-circuit-input="tests"][data-col="r2only"]');
+assert(
+  (await page.locator('[data-circuit-input="tests"][data-col="r2only"]').inputValue()) === "0.20",
+  "Reload/rotation lost the active circuit test value",
+);
+assert(
+  (await page.locator(".eyebrow").first().textContent()).includes("2 of 2"),
+  "Reload/rotation did not keep the circuit test page",
+);
+assert(
+  (await page.locator(".form-title h2").textContent()).includes("Circuit 0"),
+  "Reload/rotation changed the active circuit",
+);
+await page.locator('[data-action="circuit-list"]').first().click();
+await page.waitForSelector(".circuit-list");
+const landscapeOverflow = await page.evaluate(
+  () => document.documentElement.scrollWidth - window.innerWidth,
+);
+assert(
+  landscapeOverflow <= 2,
+  "Landscape certificate page overflows horizontally by " + landscapeOverflow,
+);
+await page.setViewportSize({ width: 390, height: 844 });
+const mobileOverflow = await page.evaluate(
+  () => document.documentElement.scrollWidth - window.innerWidth,
+);
+assert(mobileOverflow <= 2, "Mobile certificate page overflows horizontally by " + mobileOverflow);
+const inspectionRight = await page
+  .locator(".inspection-section")
+  .evaluate((el) => el.getBoundingClientRect().right);
+assert(inspectionRight <= 392, "Inspection checklist extends beyond the mobile page");
+await page.setViewportSize({ width: 1280, height: 900 });
+console.log("ROTATION_RELOAD_MOBILE_PASS");
+
+// Restore deliberately long PDF values after the quick-entry/postcode tests and verify tester mapping.
+await page
+  .locator('[data-field="clientAddress"]')
+  .fill("Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham");
+await page.locator('[data-field="clientPostcode"]').fill("B14 7AA");
 await page
   .locator('[data-field="installationAddress"]')
   .fill(
     "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
   );
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
-await page.waitForTimeout(80);
+await page.locator('[data-field="testerMake"]').fill("Megger");
+await page.locator('[data-field="testerModel"]').fill("MFT-X1");
+await page.locator('[data-field="testerSerial"]').fill("ABC123");
+await page.locator('[data-field="testedBy"]').fill("Augustine Sperin");
+await page.locator('[data-field="testedDate"]').fill("2026-10-01");
+await page.waitForTimeout(450);
 
 // PDF must be a real landscape PDF.
 const pdfDownloadPromise = page.waitForEvent("download");
@@ -584,9 +755,26 @@ fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.copyFileSync(pdfPath, "certificate-android/qa-output/eic-regression.pdf");
 console.log("EIC_LANDSCAPE_PDF_PASS");
 
+// Complete & PDF must create the file before the saved certificate is marked complete.
+const completePdfPromise = page.waitForEvent("download");
+await page.locator('[data-action="complete-pdf"]').click();
+const completedPdf = await completePdfPromise;
+assert((await completedPdf.path()) != null, "Complete & PDF did not create a PDF");
+await page.waitForTimeout(80);
+stored = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  stored.certificates?.[0]?.status === "Complete",
+  "Complete & PDF did not save Complete status",
+);
+await page.locator('[data-action="status"]').click();
+await page.waitForTimeout(40);
+console.log("COMPLETE_PDF_PASS");
+
 // Printable worksheet must also download and be landscape.
 const worksheetPromise = page.waitForEvent("download");
-await page.getByRole("button", { name: /Printable Site Worksheet/ }).click();
+await page.getByRole("button", { name: "Site sheet", exact: true }).click();
 const worksheet = await worksheetPromise;
 assert(worksheet.suggestedFilename().includes("Site-Worksheet"), "Site worksheet filename unclear");
 const worksheetPath = await worksheet.path();
@@ -644,6 +832,16 @@ assert(
 assert(
   (await page.locator('[data-setting="postcodeApiKey"]').count()) === 1,
   "Postcode API profile setting missing",
+);
+
+// Closing Profile must discard unsaved edits.
+await page.locator('[data-setting="testerMake"]').fill("UNSAVED TESTER");
+await page.locator(".profile-modal").locator('[data-action="close-modal"]').click();
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
+assert(
+  (await page.locator('[data-setting="testerMake"]').inputValue()) === "Megger",
+  "Closing Profile without Save changed the in-memory defaults",
 );
 await page.locator('[data-action="save-settings"]').click();
 await page.waitForTimeout(50);
@@ -895,6 +1093,21 @@ assert(
 );
 console.log("PHOTO_SCAN_MAPPING_PASS");
 
+// On a multi-board certificate, Add circuit must continue the last board's numbering, not the global maximum.
+await page.locator('[data-action="circuit-add"]').click();
+await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="boardRef"]').inputValue()) ===
+    "DB2",
+  "Added circuit did not stay on the last distribution board",
+);
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="circuitNo"]').inputValue()) === "2",
+  "DB2 added circuit should be circuit 2 on DB2",
+);
+await page.locator('[data-action="circuit-list"]').first().click();
+console.log("MULTIBOARD_NUMBERING_PASS");
+
 // Backup browser fallback should create JSON.
 const backupPromise = page.waitForEvent("download");
 await page.locator('[data-action="backup"]').click();
@@ -905,8 +1118,87 @@ console.log("BACKUP_PASS");
 await page.locator(".brand-home").click();
 await page.waitForSelector(".home-page");
 
-// Every certificate type must open without render errors and include voice controls.
-for (const type of ["eic", "eicr", "minor", "emergency", "smoke"]) {
+// Import a valid exact backup, then Undo recovery back to the complete current device state.
+const beforeImportRaw = await page.evaluate(
+  () => localStorage.getItem("sperin-certificates-data-v1") || "",
+);
+const beforeImportState = JSON.parse(beforeImportRaw || "{}");
+const importedCert = JSON.parse(JSON.stringify(beforeImportState.certificates[0]));
+importedCert.id = "audit-imported-cert";
+importedCert.number = "SS-EIC-AUDIT-IMPORT";
+importedCert.fields.certificateNo = importedCert.number;
+importedCert.fields.clientName = "Imported Audit Client";
+const importPath = "certificate-android/qa-output/audit-valid-backup.json";
+fs.mkdirSync("certificate-android/qa-output", { recursive: true });
+fs.writeFileSync(
+  importPath,
+  JSON.stringify({
+    version: "1.7.9",
+    exportedAt: new Date().toISOString(),
+    settings: { companyName: "Sperin Services" },
+    certificates: [importedCert],
+  }),
+);
+await page.evaluate(() => {
+  window.confirm = () => true;
+});
+const importChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="import-backup"]').click();
+const importChooser = await importChooserPromise;
+await importChooser.setFiles(importPath);
+await page.waitForSelector(".home-page");
+await page.waitForTimeout(100);
+let importedState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  importedState.certificates?.length === 1 &&
+    importedState.certificates[0].fields?.clientName === "Imported Audit Client",
+  "Valid backup import did not replace state cleanly",
+);
+
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
+await page.locator('[data-action="undo-restore"]').click();
+await page.waitForSelector(".home-page");
+await page.waitForTimeout(80);
+let undoState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  undoState.certificates?.some((cert) => cert.id === beforeImportState.certificates[0].id),
+  "Undo recovery did not restore the pre-import certificates",
+);
+console.log("IMPORT_UNDO_PASS");
+
+// A malformed/unsupported backup must be rejected before it can replace current state.
+const beforeBadIds = undoState.certificates.map((cert) => cert.id).sort();
+const badImportPath = "certificate-android/qa-output/audit-invalid-backup.json";
+fs.writeFileSync(
+  badImportPath,
+  JSON.stringify({
+    version: "broken",
+    certificates: [{ id: "bad-cert", type: "not-a-certificate", fields: {}, tables: {} }],
+  }),
+);
+const badChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="import-backup"]').click();
+const badChooser = await badChooserPromise;
+await badChooser.setFiles(badImportPath);
+await page.waitForTimeout(120);
+const afterBadState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  JSON.stringify(afterBadState.certificates.map((cert) => cert.id).sort()) ===
+    JSON.stringify(beforeBadIds),
+  "Invalid backup changed the saved certificate state",
+);
+console.log("INVALID_IMPORT_GUARD_PASS");
+
+// Every certificate type must open, stay usable at phone width and generate a real PDF.
+await page.setViewportSize({ width: 390, height: 844 });
+for (const type of certificateTypeOrder) {
   await page.locator('button[data-action="new"][data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
   assert((await page.locator(".app-error").count()) === 0, type + " form hit render error");
@@ -914,9 +1206,66 @@ for (const type of ["eic", "eicr", "minor", "emergency", "smoke"]) {
     (await page.locator('button[data-action="voice-one"]').count()) > 0,
     type + " form missing Speak controls",
   );
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  assert(overflow <= 2, type + " form has horizontal body overflow: " + overflow);
+
+  const criticalButtons = page.locator(".form-head .btn, .topbar .top-action");
+  const criticalCount = await criticalButtons.count();
+  for (let i = 0; i < criticalCount; i += 1) {
+    const box = await criticalButtons.nth(i).boundingBox();
+    if (box) assert(box.height >= 39, type + " critical button is too small: " + box.height);
+  }
+
+  if (type === "minor") {
+    assert(
+      (await page.locator('[data-field="ocpdBs"] option[value="BS 88-3 Type 3"]').count()) === 1,
+      "Minor Works missing BS 88-3 Type 3",
+    );
+    assert(
+      (await page.locator('[data-field="breakingCapacity"] option[value="33"]').count()) === 1,
+      "Minor Works missing 33 kA breaking capacity",
+    );
+    await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();
+    assert(
+      (await page.locator('[data-field="bondingPresent"]').inputValue()).includes("Water"),
+      "Minor Works bonding chip did not save Water",
+    );
+  }
+
+  if (type === "smoke") {
+    const alarmRowsBefore = await page
+      .locator('[data-table-input="alarms"][data-col="ref"]')
+      .count();
+    await page.locator('[data-action="row-add"][data-table="alarms"]').click();
+    assert(
+      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) ===
+        alarmRowsBefore + 1,
+      "Smoke alarm Add row failed",
+    );
+    await page.locator('[data-action="row-delete"][data-table="alarms"]').last().click();
+    assert(
+      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) ===
+        alarmRowsBefore,
+      "Smoke alarm Delete row failed",
+    );
+  }
+
+  const typePdfPromise = page.waitForEvent("download");
+  await page.locator('[data-action="pdf"]').first().click();
+  const typePdf = await typePdfPromise;
+  const typePdfPath = await typePdf.path();
+  assert(typePdfPath && fs.existsSync(typePdfPath), type + " PDF was not created");
+  assert(
+    fs.readFileSync(typePdfPath).subarray(0, 4).toString() === "%PDF",
+    type + " PDF signature invalid",
+  );
   await page.locator(".brand-home").click();
   await page.waitForSelector(".home-page");
 }
+await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ALL_CERTIFICATE_TYPES_PASS");
 
 assert(errors.length === 0, "Browser errors: " + errors.join(" | "));

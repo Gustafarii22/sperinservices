@@ -51,7 +51,19 @@ jobs:
           cat /tmp/certificate-http.log
           exit 1
 
-      - name: Run certificate E2E
+      - name: Audit pass 1 — forward order
+        env:
+          CERT_AUDIT_PASS: forward
+        run: node certificate-android/qa/certificate.e2e.mjs
+
+      - name: Audit pass 2 — reverse order
+        env:
+          CERT_AUDIT_PASS: reverse
+        run: node certificate-android/qa/certificate.e2e.mjs
+
+      - name: Audit pass 3 — mixed order
+        env:
+          CERT_AUDIT_PASS: mixed
         run: node certificate-android/qa/certificate.e2e.mjs
 
       - name: Validate generated EIC PDF
@@ -65,6 +77,8 @@ jobs:
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
+          grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
+          grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
           grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt
           grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
           grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
@@ -86,7 +100,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.7-PDF-QA
+          name: Sperin-Certificates-v1.7.9-PDF-QA
           path: certificate-android/qa-output/
           if-no-files-found: error
           retention-days: 30
