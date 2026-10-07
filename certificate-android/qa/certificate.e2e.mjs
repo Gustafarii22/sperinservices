@@ -1192,7 +1192,8 @@ assert(
 );
 console.log("INVALID_IMPORT_GUARD_PASS");
 
-// Every certificate type must open, expose voice controls and generate a real PDF.
+// Every certificate type must open, stay usable at phone width and generate a real PDF.
+await page.setViewportSize({ width: 390, height: 844 });
 for (const type of certificateTypeOrder) {
   await page.locator('button[data-action="new"][data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
@@ -1201,6 +1202,33 @@ for (const type of certificateTypeOrder) {
     (await page.locator('button[data-action="voice-one"]').count()) > 0,
     type + " form missing Speak controls",
   );
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert(overflow <= 2, type + " form has horizontal body overflow: " + overflow);
+
+  const criticalButtons = page.locator(".form-head .btn, .topbar .top-action");
+  const criticalCount = await criticalButtons.count();
+  for (let i = 0; i < criticalCount; i += 1) {
+    const box = await criticalButtons.nth(i).boundingBox();
+    if (box) assert(box.height >= 39, type + " critical button is too small: " + box.height);
+  }
+
+  if (type === "minor") {
+    assert(
+      (await page.locator('[data-field="ocpdBs"] option[value="BS 88-3 Type 3"]').count()) === 1,
+      "Minor Works missing BS 88-3 Type 3",
+    );
+    assert(
+      (await page.locator('[data-field="breakingCapacity"] option[value="33"]').count()) === 1,
+      "Minor Works missing 33 kA breaking capacity",
+    );
+    await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();
+    assert(
+      (await page.locator('[data-field="bondingPresent"]').inputValue()).includes("Water"),
+      "Minor Works bonding chip did not save Water",
+    );
+  }
+
   if (type === "smoke") {
     const alarmRowsBefore = await page
       .locator('[data-table-input="alarms"][data-col="ref"]')
@@ -1218,6 +1246,7 @@ for (const type of certificateTypeOrder) {
       "Smoke alarm Delete row failed",
     );
   }
+
   const typePdfPromise = page.waitForEvent("download");
   await page.locator('[data-action="pdf"]').first().click();
   const typePdf = await typePdfPromise;
@@ -1230,6 +1259,7 @@ for (const type of certificateTypeOrder) {
   await page.locator(".brand-home").click();
   await page.waitForSelector(".home-page");
 }
+await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ALL_CERTIFICATE_TYPES_PASS");
 
 assert(errors.length === 0, "Browser errors: " + errors.join(" | "));
