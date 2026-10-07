@@ -428,3 +428,39 @@ button:disabled{opacity:.42;cursor:default}
   .inspection-bulk{display:grid;grid-template-columns:1fr 1fr}
   .inspection-bulk>span{grid-column:1/-1}
 }
+
+
+/* v1.7.10 recovery confirmation flow */
+.restore-action{border-color:#6b7f95}
+.recovery-confirm-modal{
+  width:min(440px,calc(100vw - 24px));
+  padding:18px;
+  border-radius:18px;
+}
+.recovery-confirm-modal h2{
+  margin:6px 0 8px;
+  font-size:22px;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+.recovery-confirm-modal p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.recovery-confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:16px;
+}
+.recovery-confirm-actions .btn{width:100%}
+.recovery-confirm-actions .danger{
+  background:#7f2430;
+  border-color:#a94b58;
+}
+@media(max-width:430px){
+  .recovery-confirm-modal{padding:16px}
+  .recovery-confirm-actions{grid-template-columns:1fr}
+}
