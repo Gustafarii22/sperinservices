@@ -66,7 +66,8 @@ test("PDF is branded, itemised, paginated and has a valid xref", () => {
   assert.match(pdf, /COST/);
   assert.doesNotMatch(pdf, /Unit Price/);
   assert.match(pdf, /Standard white socket supplied/);
-  assert.match(pdf, /Consumer unit/);\n  assert.match(pdf, /FuseBox unit/);
+  assert.match(pdf, /Consumer unit/);
+  assert.match(pdf, /FuseBox unit/);
   assert.match(pdf, /VAT .*not registered/);
   assert.match(pdf, /PRICED SUBTOTAL/);
   assert.match(pdf, /Travel to be confirmed/);
