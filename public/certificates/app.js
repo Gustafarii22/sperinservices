@@ -190,9 +190,10 @@
     syncCircuitRows(cert);
     const counts={};
     cert.tables.circuits.forEach((row,i)=>{
-      const board=String(row.boardRef||'DB1');
-      counts[board]=(counts[board]||0)+1;
-      const no=String(counts[board]);
+      const board=String(row.boardRef||'DB1').trim();
+      const boardKey=board.toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
+      counts[boardKey]=(counts[boardKey]||0)+1;
+      const no=String(counts[boardKey]);
       row.boardRef=board;
       row.circuitNo=no;
       cert.tables.tests[i].boardRef=board;
