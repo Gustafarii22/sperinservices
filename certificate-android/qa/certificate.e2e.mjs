@@ -142,7 +142,8 @@ assert(
   "Android startup does not directly load the bundled certificate app",
 );
 assert(
-  !javaSource.includes("webView.loadUrl(APP_URL)") && !javaSource.includes("webView.loadUrl(LIVE_URL)"),
+  !javaSource.includes("webView.loadUrl(APP_URL)") &&
+    !javaSource.includes("webView.loadUrl(LIVE_URL)"),
   "Android startup can still fall through to the live website",
 );
 assert(
