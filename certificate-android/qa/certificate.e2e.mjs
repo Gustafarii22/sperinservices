@@ -2,6 +2,14 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 
 const base = process.env.CERT_BASE_URL || "http://127.0.0.1:4173/certificates/";
+const auditPass = process.env.CERT_AUDIT_PASS || "forward";
+const certificateTypeOrders = {
+  forward: ["eic", "eicr", "minor", "emergency", "smoke"],
+  reverse: ["smoke", "emergency", "minor", "eicr", "eic"],
+  mixed: ["minor", "smoke", "eic", "emergency", "eicr"],
+};
+const certificateTypeOrder = certificateTypeOrders[auditPass] || certificateTypeOrders.forward;
+console.log("CERT_AUDIT_PASS:", auditPass, certificateTypeOrder.join(" > "));
 const appSource = fs.readFileSync("public/certificates/app.js", "utf8");
 const ietSource = fs.readFileSync("public/certificates/iet-forms.js", "utf8");
 const javaSource = fs.readFileSync(
@@ -1130,7 +1138,7 @@ assert(
 console.log("INVALID_IMPORT_GUARD_PASS");
 
 // Every certificate type must open, expose voice controls and generate a real PDF.
-for (const type of ["eic", "eicr", "minor", "emergency", "smoke"]) {
+for (const type of certificateTypeOrder) {
   await page.locator('button[data-action="new"][data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
   assert((await page.locator(".app-error").count()) === 0, type + " form hit render error");
