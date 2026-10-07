@@ -574,6 +574,12 @@ await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdRating"
 await page.waitForTimeout(40);
 const maxZs = await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
 assert(maxZs === "1.37", "B32 automatic max Zs should be 1.37 Ω, got " + maxZs);
+await page.locator('[data-circuit-input="details"][data-col="maxZs"]').fill("9.99");
+await page.locator('[data-action="circuit-recalc"]').click();
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue()) === "1.37",
+  "Recalculate did not restore the automatic maximum Zs",
+);
 await page.locator('[data-action="circuit-next"]').click();
 assert(
   (await page.locator(".eyebrow").first().textContent()).includes("2 of 2"),
@@ -1021,6 +1027,20 @@ assert(
 );
 console.log("PHOTO_SCAN_MAPPING_PASS");
 
+// On a multi-board certificate, Add circuit must continue the last board's numbering, not the global maximum.
+await page.locator('[data-action="circuit-add"]').click();
+await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="boardRef"]').inputValue()) === "DB2",
+  "Added circuit did not stay on the last distribution board",
+);
+assert(
+  (await page.locator('[data-circuit-input="details"][data-col="circuitNo"]').inputValue()) === "2",
+  "DB2 added circuit should be circuit 2 on DB2",
+);
+await page.locator('[data-action="circuit-list"]').first().click();
+console.log("MULTIBOARD_NUMBERING_PASS");
+
 // Backup browser fallback should create JSON.
 const backupPromise = page.waitForEvent("download");
 await page.locator('[data-action="backup"]').click();
@@ -1031,7 +1051,85 @@ console.log("BACKUP_PASS");
 await page.locator(".brand-home").click();
 await page.waitForSelector(".home-page");
 
-// Every certificate type must open without render errors and include voice controls.
+// Import a valid exact backup, then Undo recovery back to the complete current device state.
+const beforeImportRaw = await page.evaluate(() =>
+  localStorage.getItem("sperin-certificates-data-v1") || "",
+);
+const beforeImportState = JSON.parse(beforeImportRaw || "{}");
+const importedCert = JSON.parse(JSON.stringify(beforeImportState.certificates[0]));
+importedCert.id = "audit-imported-cert";
+importedCert.number = "SS-EIC-AUDIT-IMPORT";
+importedCert.fields.certificateNo = importedCert.number;
+importedCert.fields.clientName = "Imported Audit Client";
+const importPath = "certificate-android/qa-output/audit-valid-backup.json";
+fs.mkdirSync("certificate-android/qa-output", { recursive: true });
+fs.writeFileSync(
+  importPath,
+  JSON.stringify({
+    version: "1.7.9",
+    exportedAt: new Date().toISOString(),
+    settings: { companyName: "Sperin Services" },
+    certificates: [importedCert],
+  }),
+);
+await page.evaluate(() => {
+  window.confirm = () => true;
+});
+const importChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="import-backup"]').click();
+const importChooser = await importChooserPromise;
+await importChooser.setFiles(importPath);
+await page.waitForSelector(".home-page");
+await page.waitForTimeout(100);
+let importedState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  importedState.certificates?.length === 1 &&
+    importedState.certificates[0].fields?.clientName === "Imported Audit Client",
+  "Valid backup import did not replace state cleanly",
+);
+
+await page.locator('[data-action="settings"]').first().click();
+await page.waitForSelector(".profile-modal");
+await page.locator('[data-action="undo-restore"]').click();
+await page.waitForSelector(".home-page");
+await page.waitForTimeout(80);
+let undoState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  undoState.certificates?.some((cert) => cert.id === beforeImportState.certificates[0].id),
+  "Undo recovery did not restore the pre-import certificates",
+);
+console.log("IMPORT_UNDO_PASS");
+
+// A malformed/unsupported backup must be rejected before it can replace current state.
+const beforeBadIds = undoState.certificates.map((cert) => cert.id).sort();
+const badImportPath = "certificate-android/qa-output/audit-invalid-backup.json";
+fs.writeFileSync(
+  badImportPath,
+  JSON.stringify({
+    version: "broken",
+    certificates: [{ id: "bad-cert", type: "not-a-certificate", fields: {}, tables: {} }],
+  }),
+);
+const badChooserPromise = page.waitForEvent("filechooser");
+await page.locator('[data-action="import-backup"]').click();
+const badChooser = await badChooserPromise;
+await badChooser.setFiles(badImportPath);
+await page.waitForTimeout(120);
+const afterBadState = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  JSON.stringify(afterBadState.certificates.map((cert) => cert.id).sort()) ===
+    JSON.stringify(beforeBadIds),
+  "Invalid backup changed the saved certificate state",
+);
+console.log("INVALID_IMPORT_GUARD_PASS");
+
+// Every certificate type must open, expose voice controls and generate a real PDF.
 for (const type of ["eic", "eicr", "minor", "emergency", "smoke"]) {
   await page.locator('button[data-action="new"][data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
@@ -1039,6 +1137,29 @@ for (const type of ["eic", "eicr", "minor", "emergency", "smoke"]) {
   assert(
     (await page.locator('button[data-action="voice-one"]').count()) > 0,
     type + " form missing Speak controls",
+  );
+  if (type === "smoke") {
+    const alarmRowsBefore = await page.locator('[data-table-input="alarms"][data-col="ref"]').count();
+    await page.locator('[data-action="row-add"][data-table="alarms"]').click();
+    assert(
+      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) ===
+        alarmRowsBefore + 1,
+      "Smoke alarm Add row failed",
+    );
+    await page.locator('[data-action="row-delete"][data-table="alarms"]').last().click();
+    assert(
+      (await page.locator('[data-table-input="alarms"][data-col="ref"]').count()) === alarmRowsBefore,
+      "Smoke alarm Delete row failed",
+    );
+  }
+  const typePdfPromise = page.waitForEvent("download");
+  await page.locator('[data-action="pdf"]').first().click();
+  const typePdf = await typePdfPromise;
+  const typePdfPath = await typePdf.path();
+  assert(typePdfPath && fs.existsSync(typePdfPath), type + " PDF was not created");
+  assert(
+    fs.readFileSync(typePdfPath).subarray(0, 4).toString() === "%PDF",
+    type + " PDF signature invalid",
   );
   await page.locator(".brand-home").click();
   await page.waitForSelector(".home-page");
