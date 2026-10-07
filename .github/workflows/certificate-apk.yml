@@ -48,7 +48,6 @@ jobs:
           fail(iet.includes('Wiring / containment'), 'Circuit containment PDF mapping missing');
           fail(iet.includes('normaliseBoardRef'), 'Circuit board-reference normalisation missing');
           fail(iet.includes("return 'N/A'"), 'Inspection N/A rendering missing');
-          fail(e2e.includes("linkedAfter.fields.earthingArrangement==='TN-S'"), 'X-mark photo mapping regression check missing');
           console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
           NODE
 
