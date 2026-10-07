@@ -37,14 +37,19 @@ jobs:
           const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
           const e2eWorkflow = fs.readFileSync('.github/workflows/certificate-e2e.yml', 'utf8');
-          fail(app.includes("const VERSION = '1.7.10'"), 'Certificate UI version is not v1.7.10');
-          fail(gradle.includes('versionCode 180') && gradle.includes("versionName '1.7.10'"), 'Android version is not v1.7.10 / 180');
-          fail(java.includes('certificates-app-v1710'), 'Bundled certificate origin route missing');
+          fail(app.includes("const VERSION = '1.7.11'"), 'Certificate UI version is not v1.7.11');
+          fail(gradle.includes('versionCode 181') && gradle.includes("versionName '1.7.11'"), 'Android version is not v1.7.11 / 181');
+          fail(java.includes('certificates-app'), 'Bundled certificate origin route missing');
           fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
           fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
           fail(java.includes('saveAutoBackup'), 'Native rolling recovery backup missing');
           fail(java.includes('public boolean savePdfBase64'), 'Android PDF save result is not verified');
           fail(java.includes('loadDataWithBaseURL'), 'Same-origin bundled fallback missing');
+          fail(java.includes('private static final String APP_PATH = "/certificates-app";'), 'Stable APP_PATH missing');
+          fail(java.includes('final String prefix = APP_PATH;'), 'Interceptor is not tied to APP_PATH');
+          fail(java.includes('loadBundledIndex();'), 'Android startup does not load bundled certificate UI');
+          fail(!java.includes('webView.loadUrl(APP_URL)') && !java.includes('webView.loadUrl(LIVE_URL)'), 'Android startup can still load the live website');
+          fail(!/certificates-app-v\d+/.test(java), 'Versioned certificate route remains in Android shell');
           fail(!java.includes('file:///android_asset/certificates/index.html'), 'file:// fallback can hide origin-scoped certificate data');
           fail(java.includes('auto-latest.json'), 'Automatic latest recovery file missing');
           fail(!java.includes('recoverChamberlainFromWebViewStorage'), 'Retired Chamberlain auto-restore code remains');
@@ -150,13 +155,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.10.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.11.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.10
-          path: certificate-android/dist/Sperin-Certificates-v1.7.10.apk
+          name: Sperin-Certificates-v1.7.11
+          path: certificate-android/dist/Sperin-Certificates-v1.7.11.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -164,10 +169,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.10"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.10.apk"
+          TAG="certificates-v1.7.11"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.11.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.10" --notes "Label correction release: changes BS88-3 to BS88-3 throughout the certificate app while retaining the v1.7.9 precision fixes."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.11" --notes "Android shell hotfix: always loads the bundled certificate app on a stable same-origin route, blocks the public website from replacing it, and adds release guards that verify route/interceptor consistency."
           fi
