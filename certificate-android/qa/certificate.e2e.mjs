@@ -55,7 +55,10 @@ assert(supplyOptionsMatch, "Supply-device option list missing");
 assert(ocpdOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 OCPD option missing");
 assert(supplyOptionsMatch[1].includes("'BS88-3'"), "Exact BS88-3 supply-device option missing");
 assert(!ocpdOptionsMatch[1].includes("Type 3"), "Old Type 3 wording remains in OCPD options");
-assert(!supplyOptionsMatch[1].includes("Type 3"), "Old Type 3 wording remains in supply-device options");
+assert(
+  !supplyOptionsMatch[1].includes("Type 3"),
+  "Old Type 3 wording remains in supply-device options",
+);
 assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
 assert(
   appSource.includes("SperinIetForms.build"),
