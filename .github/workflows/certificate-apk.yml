@@ -26,6 +26,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Certificate release regression guard
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const fail = (ok, msg) => { if (!ok) { console.error('::error::' + msg); process.exit(1); } };
+          const app = fs.readFileSync('public/certificates/app.js', 'utf8');
+          const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
+          const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
+          const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
+          fail(app.includes("const VERSION = '1.7.1'"), 'Certificate UI version is not v1.7.1');
+          fail(gradle.includes('versionCode 171') && gradle.includes("versionName '1.7.1'"), 'Android version is not v1.7.1 / 171');
+          fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
+          fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
+          fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
+          fail(!iet.includes("cols.map(c=>c[0]+' '+c[1])"), 'Circuit schedule numbering has returned');
+          fail(!iet.includes("tcols.map(c=>c[0]+' '+c[1])"), 'Test schedule numbering has returned');
+          fail(!iet.includes('Outcome ✓ / N/A'), 'Unsupported check glyph remains in PDF heading');
+          fail(e2e.includes("linkedAfter.fields.earthingArrangement==='TN-S'"), 'X-mark photo mapping regression check missing');
+          console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
+          NODE
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
