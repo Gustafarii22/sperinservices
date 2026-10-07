@@ -35,8 +35,11 @@ jobs:
           const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
           const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
-          fail(app.includes("const VERSION = '1.7.7'"), 'Certificate UI version is not v1.7.7');
-          fail(gradle.includes('versionCode 177') && gradle.includes("versionName '1.7.7'"), 'Android version is not v1.7.7 / 177');
+          fail(app.includes("const VERSION = '1.7.8'"), 'Certificate UI version is not v1.7.8');
+          fail(gradle.includes('versionCode 178') && gradle.includes("versionName '1.7.8'"), 'Android version is not v1.7.8 / 178');
+          fail(java.includes('certificates-app-v178'), 'Bundled certificate origin route missing');
+          fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
+          fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
           fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
           fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
           fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
@@ -117,13 +120,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.7.apk
+          cp certificate-android/app/build/outputs/apk/debug/app-debug.apk certificate-android/dist/Sperin-Certificates-v1.7.8.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.7
-          path: certificate-android/dist/Sperin-Certificates-v1.7.7.apk
+          name: Sperin-Certificates-v1.7.8
+          path: certificate-android/dist/Sperin-Certificates-v1.7.8.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -131,10 +134,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.7"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.7.apk"
+          TAG="certificates-v1.7.8"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.8.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.7" --notes "Field workflow release: includes all v1.7.6 fixes and automatically sorts circuit/test pairs by the entered circuit number, including circuit 0 first, while keeping manual Up/Down ordering controls."
+            gh release create "$TAG" "$APK" --title "Sperin Certificates v1.7.8" --notes "Bundled-runtime release: includes all v1.7.7 field workflow fixes and serves the packaged certificate UI on the sperinservices.co.uk WebView origin, preserving existing certificate localStorage while avoiding stale Vercel deployments."
           fi
