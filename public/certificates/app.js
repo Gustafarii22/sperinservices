@@ -631,7 +631,7 @@
       sections: [
         section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
         section('B · Earthing & bonding adequacy', [select('earthingArrangement', 'System earthing arrangement', OPTIONS.earthing), f('zdb', 'Earth fault loop impedance at DB Zdb (Ω)'), select('earthingConductorAdequate', 'Adequate earthing conductor present', OPTIONS.yesNoNA), f('bondingPresent', 'Main protective bonding to', 'text', { span: 'full' })]),
-        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), f('ocpdBs', 'OCPD BS (EN)'), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), f('ocpdRating', 'OCPD rating (A)'), f('breakingCapacity', 'Breaking capacity (kA)'), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
+        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
         section('D · Test results', [f('r1r2', 'Protective conductor continuity R1+R2 (Ω)'), f('r2', 'Protective conductor continuity R2 (Ω)'), f('ringR1', 'Ring r1-r1 (Ω)'), f('ringRn', 'Ring rn-rn (Ω)'), f('ringR2', 'Ring r2-r2 (Ω)'), f('irVoltage', 'Insulation resistance test voltage (V)'), f('irLL', 'Insulation resistance Live-Live (MΩ)'), f('irLE', 'Insulation resistance Live-Earth (MΩ)'), select('polarity', 'Polarity satisfactory', OPTIONS.yesNoNA), f('zs', 'Maximum measured Zs (Ω)'), f('rcdTime', 'RCD disconnection time at IΔn (ms)'), select('rcdButton', 'RCD test button satisfactory', OPTIONS.yesNoNA), select('afddButton', 'AFDD test button satisfactory', OPTIONS.yesNoNA), select('spdFunction', 'SPD functionality confirmed', OPTIONS.yesNoNA)]),
         section('E · Declaration', [f('engineerName', 'Name'), f('forOnBehalfOf', 'For/on behalf of'), f('address', 'Address', 'textarea'), f('position', 'Position'), f('signature', 'Signature / typed name'), f('declarationDate', 'Date', 'date')])
       ]
@@ -1090,10 +1090,10 @@
       return `<div class="field full"><label>Certification responsibility</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="segmented-choice"><button type="button" class="${value===one?'selected':''}" data-action="signatory-mode" data-value="${esc(one)}"><strong>One person</strong><span>Design · Installation · Inspection & testing</span></button><button type="button" class="${value===separate?'selected':''}" data-action="signatory-mode" data-value="${esc(separate)}"><strong>Separate people</strong><span>Individual designer, installer and inspector/tester details</span></button></div></div>`;
     }
 
-    if(field.key==='bondingTo'){
+    if(field.key==='bondingTo' || field.key==='bondingPresent'){
       const selected=bondingSelections(value);
-      const chips=BONDING_OPTIONS.map(option=>`<button type="button" class="bonding-chip ${selected.has(option)?'selected':''}" data-action="bonding-toggle" data-value="${esc(option)}">${esc(option)}</button>`).join('');
-      return `<div class="field full bonding-field"><label>Main protective bonding connected to</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="bonding-options">${chips}</div><div class="meta">Tap every service or extraneous-conductive-part that is bonded.</div></div>`;
+      const chips=BONDING_OPTIONS.map(option=>`<button type="button" class="bonding-chip ${selected.has(option)?'selected':''}" data-action="bonding-toggle" data-bonding-field="${esc(field.key)}" data-value="${esc(option)}">${esc(option)}</button>`).join('');
+      return `<div class="field full bonding-field"><label>Main protective bonding connected to</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="bonding-options">${chips}</div><div class="meta">Tap every bonded service.</div></div>`;
     }
 
     let control = '';
@@ -2551,9 +2551,10 @@
     }
     else if (action === 'bonding-toggle' && cert) {
       const option=button.dataset.value;
-      const selected=bondingSelections(cert.fields.bondingTo||'');
+      const key=button.dataset.bondingField||'bondingTo';
+      const selected=bondingSelections(cert.fields[key]||'');
       if(selected.has(option)) selected.delete(option); else selected.add(option);
-      cert.fields.bondingTo=BONDING_OPTIONS.filter(x=>selected.has(x)).join(', ');
+      cert.fields[key]=BONDING_OPTIONS.filter(x=>selected.has(x)).join(', ');
       saveNow();
       const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
     }
