@@ -408,11 +408,11 @@ assert(
   "Direct tick/cross/N/A inspection buttons missing",
 );
 await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
-stored = await page.evaluate(() =>
+const inspectionStored = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
 );
 assert(
-  stored.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "✓"),
+  inspectionStored.certificates?.[0]?.tables?.eicInspection?.every((r) => r.outcome === "✓"),
   "Apply-all tick control did not update the inspection schedule",
 );
 
