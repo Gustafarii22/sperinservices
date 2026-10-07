@@ -184,10 +184,13 @@ function Pricing() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <span className="eyebrow">Job calculator</span>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Build your price</h1>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Build your price
+            </h1>
           </div>
           <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Standard white accessories unless stated. Suitable existing wiring and normal access assumed.
+            Standard white accessories unless stated. Suitable existing wiring and normal access
+            assumed.
           </p>
         </div>
       </section>
@@ -197,7 +200,9 @@ function Pricing() {
             <span className="eyebrow">Tap + to add</span>
             <h2 className="mt-1 text-xl font-semibold sm:text-2xl">Choose your work</h2>
           </div>
-          <p className="text-xs text-muted-foreground">One visit allowance covers multiple small jobs.</p>
+          <p className="text-xs text-muted-foreground">
+            One visit allowance covers multiple small jobs.
+          </p>
         </div>
         <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
           <div>
@@ -208,58 +213,63 @@ function Pricing() {
                     ? "Straightforward replacements"
                     : "Inspection & consumer units"}
                 </h3>
-                <div className="grid gap-2 md:grid-cols-2">{JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
-                  <article key={j.id} className="rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h4 className="font-semibold leading-snug">{j.name}</h4>
-                        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                          {j.detail}
-                        </p>
-                        <p className="mt-3 text-sm">
-                          <strong>From {money(j.price)}</strong>
-                          {j.additional !== undefined && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · additional same visit from {money(j.additional)}
-                            </span>
-                          )}
-                        </p>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
+                    <article
+                      key={j.id}
+                      className="rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h4 className="font-semibold leading-snug">{j.name}</h4>
+                          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                            {j.detail}
+                          </p>
+                          <p className="mt-3 text-sm">
+                            <strong>From {money(j.price)}</strong>
+                            {j.additional !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · additional same visit from {money(j.additional)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        {j.group ? "One package per circuit range" : "Quantity"}
-                      </span>
-                      <div className="flex items-center rounded-md border border-white/20">
-                        <button
-                          type="button"
-                          aria-label={`Remove ${j.name}`}
-                          disabled={!selection[j.id]}
-                          onClick={() => change(j.id, -1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.05] disabled:opacity-30 hover:bg-white/10"
-                        >
-                          <Minus size={18} />
-                        </button>
-                        <output
-                          aria-label={`${j.name} quantity`}
-                          className="min-w-8 text-center text-lg font-semibold"
-                        >
-                          {selection[j.id] || 0}
-                        </output>
-                        <button
-                          type="button"
-                          aria-label={`Add ${j.name}`}
-                          disabled={selection[j.id] >= (j.group ? 1 : 20)}
-                          onClick={() => change(j.id, 1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-electric/15 text-electric disabled:opacity-30 hover:bg-electric/25"
-                        >
-                          <Plus size={18} />
-                        </button>
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {j.group ? "One package per circuit range" : "Quantity"}
+                        </span>
+                        <div className="flex items-center rounded-md border border-white/20">
+                          <button
+                            type="button"
+                            aria-label={`Remove ${j.name}`}
+                            disabled={!selection[j.id]}
+                            onClick={() => change(j.id, -1)}
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.05] disabled:opacity-30 hover:bg-white/10"
+                          >
+                            <Minus size={18} />
+                          </button>
+                          <output
+                            aria-label={`${j.name} quantity`}
+                            className="min-w-8 text-center text-lg font-semibold"
+                          >
+                            {selection[j.id] || 0}
+                          </output>
+                          <button
+                            type="button"
+                            aria-label={`Add ${j.name}`}
+                            disabled={selection[j.id] >= (j.group ? 1 : 20)}
+                            onClick={() => change(j.id, 1)}
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-electric/15 text-electric disabled:opacity-30 hover:bg-electric/25"
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}</div>
+                    </article>
+                  ))}
+                </div>
               </div>
             ))}
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -427,30 +437,35 @@ function Pricing() {
         <div className="border-t border-white/20 pt-8">
           <span className="eyebrow">02 / Other ways we charge</span>
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Hourly & day rates</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">These rates are mainly for fault finding, uncertain scope and work that cannot reasonably be priced in advance. If you selected a defined job above, you do not pay these rates on top.</p>
-          <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          {[
-            ["£75", "First hour on site", "Local weekday visit, including attendance."],
-            ["£50", "Each further hour", "Billed at £25 per started half-hour."],
-            ["£350", "Eight-hour day", "Pre-booked electrician. Mate +£200/day."],
-          ].map(([price, title, detail]) => (
-            <div key={title} className="py-6 sm:px-6 first:sm:pl-0">
-              <div className="text-4xl font-semibold tracking-tight">{price}</div>
-              <h2 className="mt-2 font-semibold">{title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-            </div>
-          ))}
-        </div>
-        <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
-          <summary className="cursor-pointer font-semibold text-foreground/86">
-            Hourly, evening & weekend rates
-          </summary>
-          <p className="mt-3 leading-relaxed">
-            Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday visits:{" "}
-            <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>. A
-            pre-booked day rate replaces hourly attendance charges.
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            These rates are mainly for fault finding, uncertain scope and work that cannot
+            reasonably be priced in advance. If you selected a defined job above, you do not pay
+            these rates on top.
           </p>
-        </details>
+          <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {[
+              ["£75", "First hour on site", "Local weekday visit, including attendance."],
+              ["£50", "Each further hour", "Billed at £25 per started half-hour."],
+              ["£350", "Eight-hour day", "Pre-booked electrician. Mate +£200/day."],
+            ].map(([price, title, detail]) => (
+              <div key={title} className="py-6 sm:px-6 first:sm:pl-0">
+                <div className="text-4xl font-semibold tracking-tight">{price}</div>
+                <h2 className="mt-2 font-semibold">{title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+              </div>
+            ))}
+          </div>
+          <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
+            <summary className="cursor-pointer font-semibold text-foreground/86">
+              Hourly, evening & weekend rates
+            </summary>
+            <p className="mt-3 leading-relaxed">
+              Fault finding uses the hourly rates above. Evenings from 7pm and Saturday/Sunday
+              visits:{" "}
+              <strong className="text-foreground">£140 for the first hour, then £70/hour</strong>. A
+              pre-booked day rate replaces hourly attendance charges.
+            </p>
+          </details>
         </div>
       </section>
       <section id="booking" className="mx-auto mt-16 max-w-7xl scroll-mt-28 px-4 lg:px-8">

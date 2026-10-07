@@ -131,7 +131,9 @@ function RootComponent() {
   const locationKey = useRouterState({ select: (state) => state.location.href });
   return (
     <QueryClientProvider client={queryClient}>
-      {status === "pending" ? <div className="route-progress" role="progressbar" aria-label="Loading page" /> : null}
+      {status === "pending" ? (
+        <div className="route-progress" role="progressbar" aria-label="Loading page" />
+      ) : null}
       <SiteLayout>
         <div key={locationKey} className="page-enter">
           <Outlet />
