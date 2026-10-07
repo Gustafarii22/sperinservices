@@ -4,7 +4,8 @@
   const STORAGE_KEY = 'sperin-certificates-data-v1';
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
-  const VERSION = '1.7.5';
+  const VIEW_KEY = 'sperin-certificates-view-v1';
+  const VERSION = '1.7.6';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -35,18 +36,18 @@
     alarmType: ['Optical smoke', 'Ionisation smoke', 'Heat', 'Multi-sensor', 'CO', 'Sounder', 'Strobe / visual alarm', 'Vibrating pad', 'Control / relay', 'Other'],
     interlink: ['Hard-wired', 'Radio-linked', 'Hybrid', 'Standalone', 'Other'],
     testResult: ['Pass', 'Fail', 'N/A'],
-    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 3036', 'BS 1361', 'Other'],
+    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 88-3 Type 3', 'BS 3036', 'BS 1361', 'Other'],
     ocpdRating: ['2', '4', '6', '10', '16', '20', '25', '32', '40', '50', '63', '80', '100', '125'],
     testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other'],
     nominalVoltage: ['230', '230/400', '400/230', '400', 'Other'],
     frequency: ['50', '60', 'Other'],
-    breakingCapacity: ['3', '4.5', '6', '10', '16', '25', '36', '50', 'Other'],
+    breakingCapacity: ['3', '4.5', '6', '10', '16', '25', '33', '36', '50', 'Other'],
     conductorCsa: ['1', '1.5', '2.5', '4', '6', '10', '16', '25', '35', '50', '70', '95', '120', '150', '185', '240', 'Other'],
     conductorMaterial: ['Copper', 'Aluminium', 'Other'],
     poles: ['1', '2', '3', '4'],
     rcdIdn: ['10', '30', '100', '300', '500', 'Other'],
     earthElectrodeType: ['Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
-    supplyDeviceBs: ['BS 88-2', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
+    supplyDeviceBs: ['BS 88-2', 'BS 88-3 Type 3', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
     spdType: [
       'No SPD / N/A',
       'Type 1 — BS EN IEC 61643-11:2025+A11:2025',
@@ -58,6 +59,8 @@
       'Other'
     ]
   };
+
+  const BONDING_OPTIONS = ['Water', 'Gas', 'Oil', 'Structural steel', 'Lightning protection system', 'Other'];
 
   const f = (key, label, type = 'text', opts = {}) => ({ key, label, type, ...opts });
   const table = (key, title, columns, defaultRows = []) => ({ type: 'table', key, title, columns, defaultRows });
@@ -622,7 +625,7 @@
 
   let settings = loadSettings();
   let state = loadState();
-  let view = { page: 'home', currentId: null, circuitIndex: null, circuitStep: 'details' };
+  let view = loadView();
   let autosaveTimer = null;
 
   function loadState() {
@@ -658,6 +661,25 @@
     }
   }
 
+  function loadView() {
+    const fallback={ page:'home', currentId:null, circuitIndex:null, circuitStep:'details' };
+    try {
+      const saved=JSON.parse(localStorage.getItem(VIEW_KEY)||'null');
+      if(!saved || saved.page!=='form' || !saved.currentId) return fallback;
+      if(!state.certificates.some(c=>c.id===saved.currentId)) return fallback;
+      return {
+        page:'form',
+        currentId:saved.currentId,
+        circuitIndex:Number.isInteger(saved.circuitIndex)?saved.circuitIndex:null,
+        circuitStep:saved.circuitStep==='tests'?'tests':'details'
+      };
+    } catch { return fallback; }
+  }
+
+  function persistView() {
+    try { localStorage.setItem(VIEW_KEY,JSON.stringify(view)); } catch {}
+  }
+
   function loadSettings() {
     const defaults = {
       companyName: 'Sperin Services', engineerName: '', engineerPosition: 'Electrician / Inspector',
@@ -671,6 +693,7 @@
 
   function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    persistView();
     if (view.currentId) {
       const c = getCurrent();
       if (c) c.updatedAt = new Date().toISOString();
@@ -803,6 +826,7 @@
 
   function render() {
     const root = document.getElementById('app');
+    persistView();
     try {
       root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : formView()}</div>`;
       requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } });
@@ -891,7 +915,13 @@
 
   function renderSection(part, cert) {
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
-    return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}<div class="fields">${fields}</div></section>`;
+    const sameClient=(part.title.startsWith('B · Installation details') && 'clientAddress' in cert.fields)
+      ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client details</button><span>Copies client address and postcode into the installation details.</span></div>'
+      : '';
+    const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
+      ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
+      : '';
+    return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></section>`;
   }
 
   const POSTCODE_TARGETS={
@@ -954,9 +984,38 @@
     saveNow();closeModal();render();toast('Address filled');
   }
 
+  function bondingSelections(value) {
+    const raw=String(value||'').toLowerCase();
+    const selected=new Set();
+    BONDING_OPTIONS.forEach(option=>{
+      const key=option.toLowerCase();
+      if(raw.split(/[,;]+/).map(x=>x.trim()).includes(key)) selected.add(option);
+    });
+    if(/\bwater\b/.test(raw)) selected.add('Water');
+    if(/\bgas\b/.test(raw)) selected.add('Gas');
+    if(/\boil\b/.test(raw)) selected.add('Oil');
+    if(/structural\s+steel|\bsteel\b/.test(raw)) selected.add('Structural steel');
+    if(/lightning|\blps\b/.test(raw)) selected.add('Lightning protection system');
+    if(/\bother\b/.test(raw)) selected.add('Other');
+    return selected;
+  }
+
   function renderField(field, value, cert) {
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
+
+    if(field.key==='signatoryMode'){
+      const one='One person — design, construction & inspection';
+      const separate='Separate people';
+      return `<div class="field full"><label>Certification responsibility</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="segmented-choice"><button type="button" class="${value===one?'selected':''}" data-action="signatory-mode" data-value="${esc(one)}"><strong>One person</strong><span>Design · Installation · Inspection & testing</span></button><button type="button" class="${value===separate?'selected':''}" data-action="signatory-mode" data-value="${esc(separate)}"><strong>Separate people</strong><span>Individual designer, installer and inspector/tester details</span></button></div></div>`;
+    }
+
+    if(field.key==='bondingTo'){
+      const selected=bondingSelections(value);
+      const chips=BONDING_OPTIONS.map(option=>`<button type="button" class="bonding-chip ${selected.has(option)?'selected':''}" data-action="bonding-toggle" data-value="${esc(option)}">${esc(option)}</button>`).join('');
+      return `<div class="field full bonding-field"><label>Main protective bonding connected to</label><input ${attrs} type="hidden" value="${esc(value)}"/><div class="bonding-options">${chips}</div><div class="meta">Tap every service or extraneous-conductive-part that is bonded.</div></div>`;
+    }
+
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
@@ -1009,7 +1068,17 @@
     return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions"><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list">Circuits</button></div></div>`;
   }
 
+  function renderInspectionChecklist(part, cert) {
+    const rows=cert.tables[part.key]||[];
+    const body=rows.map((row,ri)=>{
+      const selected=String(row.outcome||'');
+      return `<div class="inspection-row"><div class="inspection-copy"><strong>${esc(row.item||String(ri+1))}</strong><span>${esc(row.description||'')}</span></div><div class="inspection-choices" role="group" aria-label="Result for item ${esc(row.item||String(ri+1))}">${OPTIONS.passNA.map(v=>`<button type="button" class="${selected===v?'selected':''} ${v==='✕'?'fail':''}" data-action="inspection-outcome" data-row="${ri}" data-value="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>`;
+    }).join('');
+    return `<section class="card form-section inspection-section"><h3>${esc(part.title)}</h3><div class="inspection-bulk"><span>Apply to all:</span><button class="btn small" data-action="inspection-bulk" data-value="✓">✓ All</button><button class="btn small danger" data-action="inspection-bulk" data-value="✕">✕ All</button><button class="btn small" data-action="inspection-bulk" data-value="N/A">N/A All</button><button class="btn small ghost" data-action="inspection-bulk" data-value="">Clear</button></div><div class="inspection-list">${body}</div></section>`;
+  }
+
   function renderTable(part, cert) {
+    if(part.key==='eicInspection') return renderInspectionChecklist(part,cert);
     const rows = cert.tables[part.key] || [];
     const head = part.columns.map(c => `<th>${esc(c.label)}</th>`).join('') + `<th></th>`;
     const body = rows.map((row, ri) => `<tr>${part.columns.map(c => `<td>${renderTableControl(part.key, ri, c, row[c.key] ?? '')}</td>`).join('')}<td><button class="btn small danger" data-action="row-delete" data-table="${part.key}" data-row="${ri}">×</button></td></tr>`).join('');
@@ -1829,7 +1898,7 @@
     return null;
   }
 
-  function applyVoiceValue(el, raw) {
+  function applyVoiceValue(el, raw, opts={}) {
     const text=String(raw||'').trim();
     const label=voiceLabel(el);
     if(el.type==='checkbox'){
@@ -1853,7 +1922,11 @@
         const numeric=/rating|amps?|voltage|zs|ohm|csa|mm²|milliamps?|breaking|capacity|time|points|resistance|r1|r2|rn|frequency|prospective|ka\b/i.test(label);
         const number=numeric ? spokenNumber(text) : null;
         const isAddress=/address/i.test(label);
-        el.value=number!==null ? number : (isAddress ? formatSpokenAddress(text) : text);
+        const incoming=number!==null ? number : (isAddress ? formatSpokenAddress(text) : text);
+        if(opts.appendLongText && el.tagName==='TEXTAREA' && String(el.value||'').trim()){
+          const joiner=isAddress ? '\n' : ' ';
+          el.value=String(el.value||'').trimEnd()+joiner+incoming;
+        } else el.value=incoming;
       }
     }
     el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -2138,9 +2211,9 @@
     toast('Listening…');
     voiceAsk(voiceQuestion(el),function(text,error){
       if(error||!text){toast(error||'Nothing heard');return;}
-      if(applyVoiceValue(el,text)){
+      if(applyVoiceValue(el,text,{appendLongText:true})){
         markVoiceDone(el);
-        toast(voiceLabel(el)+' completed');
+        toast((el.tagName==='TEXTAREA' && String(el.value||'').trim()) ? voiceLabel(el)+' updated' : voiceLabel(el)+' completed');
         if(typeof after==='function') after(text);
       } else toast('Could not match that answer');
     });
@@ -2152,7 +2225,8 @@
       const key=voiceControlKey(el);
       if(key) el.dataset.voiceKey=key;
       if(el.dataset.voiceDecorated==='1') return;
-      const existing=el.parentElement && el.parentElement.querySelector(':scope > .voice-mic');
+      const holder=el.closest('.field,td');
+      const existing=holder && holder.querySelector('.voice-mic');
       if(existing){el.dataset.voiceDecorated='1';return;}
       el.dataset.voiceDecorated='1';
       const mic=document.createElement('button');
@@ -2327,6 +2401,47 @@
     else if(action==='auto-info' && cert){const meta=cert.autoMeta?.['circuit:'+button.dataset.index+':'+button.dataset.key];if(meta)alert('Auto-filled\n\n'+meta.reason+'\n\nYou can overwrite this value manually.');}
     else if (action === 'postcode-find') postcodeLookup(button.dataset.postcodeKey);
     else if (action === 'postcode-select') selectPostcodeAddress(button.dataset.postcodeKey,button.dataset.addressIndex);
+    else if (action === 'copy-client-installation' && cert) {
+      const address=String(cert.fields.clientAddress||'').trim();
+      const postcode=String(cert.fields.clientPostcode||'').trim();
+      if(!address && !postcode){toast('Enter the client address first');}
+      else {
+        cert.fields.installationAddress=address;
+        cert.fields.installationPostcode=postcode;
+        saveNow();
+        const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
+        toast('Installation details copied from client');
+      }
+    }
+    else if (action === 'bonding-toggle' && cert) {
+      const option=button.dataset.value;
+      const selected=bondingSelections(cert.fields.bondingTo||'');
+      if(selected.has(option)) selected.delete(option); else selected.add(option);
+      cert.fields.bondingTo=BONDING_OPTIONS.filter(x=>selected.has(x)).join(', ');
+      saveNow();
+      const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
+    }
+    else if (action === 'signatory-mode' && cert) {
+      cert.fields.signatoryMode=button.dataset.value;
+      syncSingleSignatory(cert);
+      saveNow();
+      const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
+    }
+    else if (action === 'inspection-outcome' && cert) {
+      const ri=Number(button.dataset.row);
+      if(cert.tables?.eicInspection?.[ri]){
+        cert.tables.eicInspection[ri].outcome=button.dataset.value||'';
+        saveNow();
+        const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
+      }
+    }
+    else if (action === 'inspection-bulk' && cert) {
+      const value=button.dataset.value||'';
+      (cert.tables?.eicInspection||[]).forEach(row=>row.outcome=value);
+      saveNow();
+      const y=window.scrollY;render();requestAnimationFrame(()=>window.scrollTo(0,y));
+      toast(value ? 'Inspection results applied to all' : 'Inspection results cleared');
+    }
     else if (action === 'share-backup') shareBackup();
     else if (action === 'rapid-entry') openRapidEntry(false);
     else if (action === 'rapid-sheet') downloadRapidSheet();
