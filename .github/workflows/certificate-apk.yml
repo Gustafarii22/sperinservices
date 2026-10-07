@@ -34,6 +34,7 @@ jobs:
           const app = fs.readFileSync('public/certificates/app.js', 'utf8');
           const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
           const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
+          const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
           fail(app.includes("const VERSION = '1.7.8'"), 'Certificate UI version is not v1.7.8');
           fail(gradle.includes('versionCode 178') && gradle.includes("versionName '1.7.8'"), 'Android version is not v1.7.8 / 178');
