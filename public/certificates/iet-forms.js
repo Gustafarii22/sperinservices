@@ -691,9 +691,13 @@
         });
         const ty=Math.min(doc.internal.pageSize.getHeight()-17,doc.lastAutoTable.finalY+4);
         const ff=cert.fields||{};
+        const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
+        const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
+        const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
+        const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
         write(doc,'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet)+'   Continuity: __________   Insulation resistance: __________   Earth fault loop impedance: __________   RCD: __________   Earth electrode resistance: __________',x,ty+4,w,{size:4.8});
-        write(doc,'Tested by name (Capitals): '+display(ff.testedBy,worksheet)+'     Signature: __________________________     Date: '+(worksheet?'':fmtDate(ff.testedDate)),x,ty+9,w,{size:5.2});
+        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+9,w,{size:5.2});
       });
     });
   }
