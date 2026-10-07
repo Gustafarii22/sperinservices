@@ -428,15 +428,21 @@
   function moveCircuit(cert,index,direction) {
     syncCircuitRows(cert);
     const from=Number(index);
-    const to=from+Number(direction);
-    if(!Number.isInteger(from)||!Number.isInteger(to)||from<0||to<0||from>=cert.tables.circuits.length||to>=cert.tables.circuits.length) return;
-    const circuit=cert.tables.circuits.splice(from,1)[0];
-    const test=cert.tables.tests.splice(from,1)[0];
-    cert.tables.circuits.splice(to,0,circuit);
-    cert.tables.tests.splice(to,0,test);
+    if(!Number.isInteger(from)||from<0||from>=cert.tables.circuits.length) return;
+    const row=cert.tables.circuits[from];
+    if(row?._incomingFeed) return;
+    const sameBoard=boardCircuitIndices(cert,row?.boardRef);
+    const position=sameBoard.indexOf(from);
+    const nextPosition=position+Number(direction);
+    if(position<0||nextPosition<0||nextPosition>=sameBoard.length) return;
+    const to=sameBoard[nextPosition];
+    pushEditHistory('Move circuit');
+    const y=window.scrollY;
+    [cert.tables.circuits[from],cert.tables.circuits[to]]=[cert.tables.circuits[to],cert.tables.circuits[from]];
+    [cert.tables.tests[from],cert.tables.tests[to]]=[cert.tables.tests[to],cert.tables.tests[from]];
     saveNow();
     render();
-    goCircuits();
+    restoreScroll(y);
   }
 
   function calculateMaxZs(row, cert) {
