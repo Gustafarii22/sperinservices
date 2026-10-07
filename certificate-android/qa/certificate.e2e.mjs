@@ -45,8 +45,8 @@ assert(
   "Certificate app is not using the shared IET-style renderer",
 );
 assert(
-  ietSource.includes("orientation:'portrait'"),
-  "IET-style certificate renderer must start on portrait A4",
+  ietSource.includes("orientation:cert.type==='eic'?'landscape':'portrait'"),
+  "EIC certificate renderer must start on landscape A4",
 );
 assert(ietSource.includes("function pdfText"), "PDF glyph-safety normalizer missing");
 assert(ietSource.includes("MARK ONE BOX WITH X"), "Worksheet X-mark instruction missing");
@@ -99,33 +99,170 @@ await context.addInitScript(() => {
     updatedAt: "2026-10-01T10:00:00.000Z",
     fields: {
       clientName: "Jane Smith",
-      clientAddress: "1 Test Road\nBirmingham",
-      installationAddress: "1 Test Road\nBirmingham",
+      clientAddress:
+        "Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham",
+      clientPostcode: "B14 7AA",
+      installationAddress: "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands",
+      installationPostcode: "B13 0AA",
+      description:
+        "Install new 15 way RCBO SPD consumer unit. Install new cooker circuit using 10mm2 cable. Alter kitchen socket circuit. Complete inspection, testing, labelling and certification. LONG DESCRIPTION END.",
+      extent:
+        "Fixed wiring, new consumer unit, new cooker circuit and the altered kitchen circuit, including all associated inspection and testing. EXTENT END.",
+      workType: "Alteration to existing installation",
       issueDate: "2026-10-01",
+      signatoryMode: "One person — design, construction & inspection",
+      singleSignatoryName: "Augustine Sperin",
+      singleSignatoryCompany: "Sperin Services",
+      singleSignatoryAddress: "18 Dawson Street\nSmethwick\nWest Midlands",
+      singleSignatoryPostcode: "B66 4JB",
+      singleSignatoryPhone: "07817360156",
+      singleSignatorySignature: "Augustine Sperin",
+      singleSignatoryDate: "2026-10-01",
+      designDepartures: "None",
+      constructionDepartures: "None",
+      inspectionDepartures: "None",
+      permittedExceptions: "N/A",
+      riskAssessmentAttached: "No",
+      nextInspectionInterval: "10 years",
+      earthingArrangement: "TN-S",
+      liveConductors: "1-phase, 2-wire",
+      supplyACDC: "AC",
       nominalVoltage: "230",
+      frequency: "50",
+      ipf: "2.10",
+      ze: "0.13",
+      supplyDeviceBs: "BS 88-2",
+      supplyDeviceType: "BS 88 fuse",
+      supplyDeviceRating: "80",
+      supplyBreakingCapacity: "Other",
+      supplyPolarity: "Yes",
+      otherSources: "No",
+      meansOfEarthing: "Distributor",
+      maximumDemand: "60",
+      maximumDemandUnit: "A",
+      earthingConductorMaterial: "Copper",
+      earthingConductorCsa: "16",
+      earthingContinuity: "Yes",
+      bondingMaterial: "Copper",
+      bondingCsa: "10",
+      bondingContinuity: "Yes",
+      bondingTo: "Water and Gas",
+      mainSwitchLocation: "Garage",
+      mainSwitchBs: "60947-3",
+      mainSwitchPoles: "2",
+      mainSwitchCurrent: "100",
+      mainSwitchVoltage: "230",
+      mainSwitchDeviceType: "BS 88 fuse",
+      mainSwitchBreaking: "Other",
+      mainRcdType: "N/A",
+      existingComments: "Circuits tested well and decently segregated.",
     },
     tables: {
+      boards: [
+        {
+          ref: "DB1",
+          location: "Lean To",
+          suppliedFrom: "Main intake",
+          mainSwitch: "BS 88 80A",
+          rcd: "RCBO board",
+          spd: "Type 2",
+          zdb: "0.13",
+          ipf: "2.10",
+          polarity: "Pass",
+          phaseSequence: "N/A",
+          spdOperational: "Pass",
+        },
+      ],
       circuits: [
         {
+          boardRef: "DB 1",
           circuitNo: "1",
           description: "Lighting",
+          wiringType: "Twin & earth (flat)",
+          installMethod: "Surface trunking on masonry wall",
+          refMethod: "B",
+          points: "8",
+          liveCsa: "1.5",
+          cpcCsa: "1",
           ocpdBs: "BS EN 60898-1",
           ocpdType: "B",
           ocpdRating: "6",
+          breakingCapacity: "6",
+          maxZs: "7.28",
+          rcdBs: "BS EN 61009-1",
+          rcdType: "A",
+          rcdIdn: "30",
+          rcdRating: "6",
         },
         {
+          boardRef: "db1",
           circuitNo: "2",
           description: "Sockets",
+          wiringType: "Twin & earth (flat)",
+          installMethod: "Concealed in wall",
+          refMethod: "C",
+          points: "10",
+          liveCsa: "2.5",
+          cpcCsa: "1.5",
           ocpdBs: "BS EN 60898-1",
           ocpdType: "B",
           ocpdRating: "32",
+          breakingCapacity: "6",
+          maxZs: "1.37",
+          rcdBs: "BS EN 61009-1",
+          rcdType: "A",
+          rcdIdn: "30",
+          rcdRating: "32",
         },
       ],
       tests: [
-        { circuitNo: "1", zs: "1.11" },
-        { circuitNo: "2", zs: "0.22" },
+        {
+          boardRef: "DB1",
+          circuitNo: "1",
+          r1: "0.12",
+          rn: "0.12",
+          r2: "0.20",
+          r1r2: "0.32",
+          irVoltage: "500",
+          irLL: "200",
+          irLE: "200",
+          polarity: "Pass",
+          zs: "1.11",
+          rcdTime: "24",
+          rcdButton: "Pass",
+          afddButton: "N/A",
+          remarks: "Lighting test row complete",
+        },
+        {
+          boardRef: "DB1",
+          circuitNo: "2",
+          r1: "0.08",
+          rn: "0.08",
+          r2: "0.15",
+          r1r2: "0.23",
+          irVoltage: "500",
+          irLL: "200",
+          irLE: "200",
+          polarity: "Pass",
+          zs: "0.22",
+          rcdTime: "21",
+          rcdButton: "Pass",
+          afddButton: "N/A",
+          remarks: "Sockets test row complete",
+        },
       ],
-      eicInspection: [{ item: "1.0", description: "Legacy inspection row", outcome: "✓" }],
+      eicInspection: [
+        {
+          item: "1.0",
+          description: "Condition of consumer’s intake equipment (visual inspection only)",
+          outcome: "✓",
+        },
+        {
+          item: "2.0",
+          description: "Parallel or switched alternative sources of supply",
+          outcome: "N/A",
+        },
+      ],
     },
   };
   const settings = {
@@ -220,7 +357,7 @@ assert(
 const saved = page.locator(".saved-cert-row").first();
 const savedText = await saved.textContent();
 assert(savedText.includes("Jane Smith"), "Saved row must show customer name");
-assert(savedText.includes("1 Test Road"), "Saved row must show address");
+assert(savedText.includes("33 Chamberlain Road"), "Saved row must show address");
 assert(savedText.includes("01/10/2026"), "Saved row must show date");
 
 // Whole row opens the saved certificate.
@@ -382,6 +519,15 @@ assert(
 );
 console.log("CIRCUIT_FLOW_PASS");
 
+// Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
+await page
+  .locator('[data-field="installationAddress"]')
+  .fill(
+    "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
+  );
+await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
+await page.waitForTimeout(80);
+
 // PDF must be a real landscape PDF.
 const pdfDownloadPromise = page.waitForEvent("download");
 await page.locator('[data-action="pdf"]').first().click();
@@ -392,11 +538,10 @@ const pdfBytes = fs.readFileSync(pdfPath);
 assert(pdfBytes.subarray(0, 4).toString() === "%PDF", "PDF signature invalid");
 const pdfText = pdfBytes.toString("latin1");
 const media = pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
-assert(
-  media && Number(media[1]) < Number(media[2]),
-  "EIC certificate first page is not portrait like the IET model form",
-);
-console.log("IET_STYLE_PDF_PASS");
+assert(media && Number(media[1]) > Number(media[2]), "EIC certificate first page is not landscape");
+fs.mkdirSync("certificate-android/qa-output", { recursive: true });
+fs.copyFileSync(pdfPath, "certificate-android/qa-output/eic-regression.pdf");
+console.log("EIC_LANDSCAPE_PDF_PASS");
 
 // Printable worksheet must also download and be landscape.
 const worksheetPromise = page.waitForEvent("download");
@@ -408,8 +553,8 @@ const worksheetBytes = fs.readFileSync(worksheetPath);
 const worksheetText = worksheetBytes.toString("latin1");
 const worksheetMedia = worksheetText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
 assert(
-  worksheetMedia && Number(worksheetMedia[1]) < Number(worksheetMedia[2]),
-  "Site worksheet first page is not portrait like the certificate",
+  worksheetMedia && Number(worksheetMedia[1]) > Number(worksheetMedia[2]),
+  "Site worksheet first page is not landscape like the certificate",
 );
 
 // Print browser fallback.
@@ -516,8 +661,8 @@ assert(
 const sitePdfText = sitePdfBytes.toString("latin1");
 const siteMedia = sitePdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
 assert(
-  siteMedia && Number(siteMedia[1]) < Number(siteMedia[2]),
-  "Configured site sheet first page is not portrait like the certificate",
+  siteMedia && Number(siteMedia[1]) > Number(siteMedia[2]),
+  "Configured site sheet first page is not landscape like the certificate",
 );
 
 let plans = await page.evaluate(() =>

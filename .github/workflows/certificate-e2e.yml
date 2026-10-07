@@ -2,6 +2,11 @@ name: Certificate App E2E
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "public/certificates/**"
+      - "certificate-android/qa/**"
+      - ".github/workflows/certificate-e2e.yml"
   push:
     branches: [main]
     paths:
@@ -28,10 +33,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: sperin-certificates-playwright-1.56.1-chromium
 
-      - name: Install Playwright
+      - name: Install Playwright and PDF inspection tools
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install chromium
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
 
       - name: Start certificate server
         run: |
@@ -46,3 +53,40 @@ jobs:
 
       - name: Run certificate E2E
         run: node certificate-android/qa/certificate.e2e.mjs
+
+      - name: Validate generated EIC PDF
+        run: |
+          set -euo pipefail
+          PDF="certificate-android/qa-output/eic-regression.pdf"
+          test -s "$PDF"
+          pdftotext -layout "$PDF" certificate-android/qa-output/eic-regression.txt
+          grep -F "Long Client Address House" certificate-android/qa-output/eic-regression.txt
+          grep -F "LONG DESCRIPTION END" certificate-android/qa-output/eic-regression.txt
+          grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
+          grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
+          grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
+          grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt
+          grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
+          grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
+          grep -F "Sockets test row" certificate-android/qa-output/eic-regression.txt
+          grep -E "^ *1 +Sockets" certificate-android/qa-output/eic-regression.txt
+          grep -E "^ *2 +Lighting" certificate-android/qa-output/eic-regression.txt
+          grep -F "N/A" certificate-android/qa-output/eic-regression.txt
+          pages="$(pdfinfo "$PDF" | awk '/^Pages:/{print $2}')"
+          for p in $(seq 1 "$pages"); do
+            size="$(pdfinfo -f "$p" -l "$p" "$PDF" | awk -v p="$p" '$1=="Page" && $2==p && $3=="size:" {print $4" "$6; exit}')"
+            width="${size%% *}"
+            height="${size##* }"
+            awk -v w="$width" -v h="$height" 'BEGIN{if(!(w>h))exit 1}'
+          done
+          mkdir -p certificate-android/qa-output/renders
+          pdftoppm -f 1 -l 6 -png -r 130 "$PDF" certificate-android/qa-output/renders/eic >/dev/null 2>&1
+
+      - name: Upload EIC PDF regression proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v1.7.2-PDF-QA
+          path: certificate-android/qa-output/
+          if-no-files-found: error
+          retention-days: 30

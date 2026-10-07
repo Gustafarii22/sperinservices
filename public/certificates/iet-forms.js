@@ -161,18 +161,49 @@
   }
   function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
   function safeRows(rows){return Array.isArray(rows)?rows:[];}
-  function boardRows(cert){
-    const boards=safeRows(cert.tables?.boards);
-    if(boards.length)return boards;
-    return [{ref:cert.fields?.dbReference||'DB1',location:cert.fields?.dbLocation||'',suppliedFrom:cert.fields?.suppliedFrom||'',mainSwitch:cert.fields?.distributionOcpd||'',rcd:cert.fields?.dbRcd||'',spd:cert.fields?.dbSpd||'',zdb:cert.fields?.zdb||'',ipf:cert.fields?.dbIpf||''}];
+  function normaliseBoardRef(value){
+    return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   }
-  function circuitsForBoard(cert,boardRef){
+  function boardRows(cert){
+    const source=safeRows(cert.tables?.boards);
+    const boards=source.map(row=>({...row}));
+    if(!boards.length){
+      boards.push({
+        ref:cert.fields?.dbReference||'DB1',
+        location:cert.fields?.dbLocation||'',
+        suppliedFrom:cert.fields?.suppliedFrom||'',
+        mainSwitch:cert.fields?.distributionOcpd||'',
+        rcd:cert.fields?.dbRcd||'',
+        spd:cert.fields?.dbSpd||'',
+        zdb:cert.fields?.zdb||'',
+        ipf:cert.fields?.dbIpf||''
+      });
+    }
+    const known=new Set(boards.map(row=>normaliseBoardRef(row.ref)).filter(Boolean));
     const circuits=safeRows(cert.tables?.circuits),tests=safeRows(cert.tables?.tests);
-    const list=[];
-    circuits.forEach((row,i)=>{
-      const br=String(row.boardRef||'DB1');
-      if(br===String(boardRef||'DB1')) list.push({detail:row,test:tests[i]||{},index:i});
-    });
+    const total=Math.max(circuits.length,tests.length);
+    for(let i=0;i<total;i++){
+      const ref=String(circuits[i]?.boardRef||tests[i]?.boardRef||'').trim();
+      const key=normaliseBoardRef(ref);
+      if(ref&&key&&!known.has(key)){
+        boards.push({ref,location:'',suppliedFrom:'',mainSwitch:'',rcd:'',spd:'',zdb:'',ipf:''});
+        known.add(key);
+      }
+    }
+    return boards;
+  }
+  function circuitsForBoard(cert,boardRef,includeUnassigned=false){
+    const circuits=safeRows(cert.tables?.circuits),tests=safeRows(cert.tables?.tests);
+    const list=[],target=normaliseBoardRef(boardRef||'DB1');
+    const total=Math.max(circuits.length,tests.length);
+    for(let i=0;i<total;i++){
+      const detail=circuits[i]||{},test=tests[i]||{};
+      const ref=detail.boardRef||test.boardRef||'';
+      const key=normaliseBoardRef(ref);
+      if(key===target||(includeUnassigned&&!key)){
+        list.push({detail,test,index:i});
+      }
+    }
     return list;
   }
   function wiringCode(value){
@@ -187,137 +218,171 @@
   }
 
   function renderEic(doc,cert,schema,opts){
-    const worksheet=!!opts.worksheet, f=cert.fields||{};
-    doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
-    const x=10,w=190;
-    let top=box(doc,x,y,w,15,'SECTION A: DETAILS OF THE CLIENT');
-    labelValue(doc,'Client',display(f.clientName,worksheet),x+2,top+6,w-4,{labelW:24});
-    y+=16;
+    const worksheet=!!opts.worksheet,f=cert.fields||{};
+    const frame=()=>pageFrame(doc,'ELECTRICAL INSTALLATION CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
+    doc.setPage(1);
+    let y=frame();
+    const W=doc.internal.pageSize.getWidth(),x=10,w=W-20;
+    const addLandscapePage=()=>{doc.addPage('a4','landscape');y=frame();};
 
-    top=box(doc,x,y,w,48,'SECTION B: INSTALLATION DETAILS');
-    labelValue(doc,'Installation address',display(f.installationAddress,worksheet),x+2,top+6,w-4,{labelW:35,maxLines:2});
-    doc.setDrawColor(...LINE);doc.line(x,top+13,x+w,top+13);
-    write(doc,'DESCRIPTION AND EXTENT OF THE INSTALLATION',x+2,top+18,w-4,{size:6.7,bold:true});
-    labelValue(doc,'Description of installation',display(f.description,worksheet),x+2,top+24,w-47,{labelW:37,maxLines:2});
-    checkbox(doc,x+w-39,top+23,yes(f.workType,'New installation')&&!worksheet,'New installation',{fontSize:6.1,labelWidth:32});
-    labelValue(doc,'Extent of installation covered by this Certificate',display(f.extent,worksheet),x+2,top+33,w-47,{labelW:54,maxLines:2});
-    checkbox(doc,x+w-39,top+31,/adding/i.test(String(f.workType||''))&&!worksheet,'Adding to existing',{fontSize:6.1,labelWidth:31});
-    checkbox(doc,x+w-39,top+39,/alteration/i.test(String(f.workType||''))&&!worksheet,'Alteration',{fontSize:6.1,labelWidth:28});
-    y+=49;
+    const sectionTable=(title,body,columnStyles,extra={})=>{
+      doc.autoTable({
+        startY:y,
+        head:[[{content:title,colSpan:extra.colSpan||Object.keys(columnStyles).length,styles:{fontStyle:'bold',fontSize:7.1,fillColor:PALE,textColor:INK}}]],
+        body,
+        margin:{left:x,right:10,top:27,bottom:14},
+        tableWidth:w,
+        theme:'grid',
+        pageBreak:'avoid',
+        rowPageBreak:'avoid',
+        styles:{fontSize:5.9,cellPadding:.9,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
+        columnStyles,
+        didDrawPage:()=>frame(),
+        ...extra.auto
+      });
+      y=doc.lastAutoTable.finalY+2;
+    };
+    const pairRows=(rows)=>rows.map(([a,b,c,d])=>[
+      {content:pdfText(a),styles:{fontStyle:'bold'}},worksheet?'':pdfText(b),
+      {content:pdfText(c||''),styles:{fontStyle:'bold'}},worksheet?'':pdfText(d||'')
+    ]);
+
+    sectionTable('SECTION A: DETAILS OF THE CLIENT',[
+      [{content:'Client / person ordering the work',styles:{fontStyle:'bold'}},display(f.clientName,worksheet)],
+      [{content:'Client address',styles:{fontStyle:'bold'}},display(f.clientAddress,worksheet)],
+      [{content:'Client postcode',styles:{fontStyle:'bold'}},display(f.clientPostcode,worksheet)]
+    ],{0:{cellWidth:58},1:{cellWidth:w-58}},{colSpan:2});
+
+    sectionTable('SECTION B: INSTALLATION DETAILS',[
+      [{content:'Installation address',styles:{fontStyle:'bold'}},display(f.installationAddress,worksheet)],
+      [{content:'Installation postcode',styles:{fontStyle:'bold'}},display(f.installationPostcode,worksheet)],
+      [{content:'Description of installation',styles:{fontStyle:'bold'}},display(f.description,worksheet)],
+      [{content:'Extent of installation covered by this Certificate',styles:{fontStyle:'bold'}},display(f.extent,worksheet)],
+      [{content:'Type of work',styles:{fontStyle:'bold'}},display(f.workType,worksheet)]
+    ],{0:{cellWidth:58},1:{cellWidth:w-58}},{colSpan:2});
 
     const d=signatory(cert,'designer'),c=signatory(cert,'constructor'),i=signatory(cert,'inspector');
-    top=box(doc,x,y,w,155,'SECTION C: CERTIFICATION SIGNATORIES');
-    write(doc,'FOR DESIGN',x+2,top+6,w-4,{size:7,bold:true});
-    write(doc,'I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.',x+2,top+11,w-4,{size:6.1,lineHeight:3,maxLines:3});
-    multilineValue(doc,'Details of departures from BS 7671',display(f.designDepartures,worksheet),x+2,top+22,w-4,15,{labelSize:6.1});
-    multilineValue(doc,'Details of permitted exceptions / risk assessment',display(f.permittedExceptions,worksheet),x+2,top+37,w-4,16,{labelSize:6.1});
-    checkbox(doc,x+w-39,top+50,yes(f.riskAssessmentAttached,'Yes')&&!worksheet,'Risk assessment attached',{fontSize:5.8,labelWidth:34});
-    labelValue(doc,'Signature',display(d.signature,worksheet),x+2,top+59,60,{labelW:16});
-    labelValue(doc,'Date',worksheet?'':fmtDate(d.date),x+64,top+59,34,{labelW:10});
-    labelValue(doc,'Name (IN BLOCK CAPITALS)',display(d.name,worksheet),x+100,top+59,88,{labelW:42});
+    const declarationDesign='I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const declarationConstruction='I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const declarationInspection='I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const sigCells=(party)=>[
+      {content:'Signature\n'+display(party.signature,worksheet),styles:{fontStyle:'bold'}},
+      {content:'Date\n'+(worksheet?'':fmtDate(party.date)),styles:{fontStyle:'bold'}},
+      {content:'Name (IN BLOCK CAPITALS)\n'+display(party.name,worksheet),styles:{fontStyle:'bold'}}
+    ];
+    const cBody=[
+      [{content:'FOR DESIGN',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
+      [{content:declarationDesign,colSpan:3}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.designDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet)||(!worksheet?'N/A':''),colSpan:2}],
+      [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
+      sigCells(d),
+      [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
+      [{content:declarationConstruction,colSpan:3}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      sigCells(c),
+      [{content:'FOR INSPECTION AND TESTING',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
+      [{content:declarationInspection,colSpan:3}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.inspectionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      sigCells(i)
+    ];
+    sectionTable('SECTION C: CERTIFICATION SIGNATORIES',cBody,{0:{cellWidth:92},1:{cellWidth:45},2:{cellWidth:w-137}},{colSpan:3});
 
-    doc.line(x,top+66,x+w,top+66);
-    write(doc,'FOR CONSTRUCTION',x+2,top+72,w-4,{size:7,bold:true});
-    write(doc,'I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.',x+2,top+77,w-4,{size:6.1,lineHeight:3,maxLines:3});
-    multilineValue(doc,'Details of departures from BS 7671',display(f.constructionDepartures,worksheet),x+2,top+88,w-4,13,{labelSize:6.1});
-    labelValue(doc,'Signature',display(c.signature,worksheet),x+2,top+106,60,{labelW:16});
-    labelValue(doc,'Date',worksheet?'':fmtDate(c.date),x+64,top+106,34,{labelW:10});
-    labelValue(doc,'Name (IN BLOCK CAPITALS)',display(c.name,worksheet),x+100,top+106,88,{labelW:42});
+    addLandscapePage();
+    sectionTable('SECTION D: NEXT INSPECTION',[
+      [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
+    ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
-    doc.line(x,top+113,x+w,top+113);
-    write(doc,'FOR INSPECTION AND TESTING',x+2,top+119,w-4,{size:7,bold:true});
-    write(doc,'I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.',x+2,top+124,w-4,{size:6.1,lineHeight:3,maxLines:3});
-    multilineValue(doc,'Details of departures from BS 7671',display(f.inspectionDepartures,worksheet),x+2,top+135,w-4,11,{labelSize:6.1});
-    labelValue(doc,'Signature',display(i.signature,worksheet),x+2,top+150,60,{labelW:16});
-    labelValue(doc,'Date',worksheet?'':fmtDate(i.date),x+64,top+150,34,{labelW:10});
-    labelValue(doc,'Name (IN BLOCK CAPITALS)',display(i.name,worksheet),x+100,top+150,88,{labelW:42});
-    y+=156;
-
-    top=box(doc,x,y,w,22,'SECTION D: NEXT INSPECTION');
-    write(doc,'I/We recommend that this installation is further inspected and tested after an interval of not more than:',x+2,top+6,w-4,{size:6.2});
-    labelValue(doc,'Interval',display(f.nextInspectionInterval,worksheet),x+2,top+13,w-4,{labelW:25});
-    doc.addPage('a4','portrait');
-
-    doc.setPage(2);y=pageFrame(doc,'ELECTRICAL INSTALLATION CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
-    top=box(doc,x,y,w,49,'SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C');
     const parties=[['Designer (No 1)',d],['Constructor',c],['Inspector',i]];
-    parties.forEach((entry,idx)=>{
-      const yy=top+6+idx*13;
-      write(doc,entry[0],x+2,yy,29,{size:6.4,bold:true});
-      labelValue(doc,'Name',display(entry[1].name,worksheet),x+31,yy,53,{labelW:12});
-      labelValue(doc,'For/on behalf of',display(entry[1].company,worksheet),x+86,yy,54,{labelW:24});
-      labelValue(doc,'Tel No.',display(entry[1].phone,worksheet),x+142,yy,46,{labelW:14});
-      labelValue(doc,'Address',display(entry[1].address,worksheet),x+31,yy+5,110,{labelW:16,maxLines:1});
-      labelValue(doc,'Postcode',display(entry[1].postcode,worksheet),x+142,yy+5,46,{labelW:17});
-    });
-    y+=50;
+    sectionTable('SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',
+      parties.map(([role,p])=>[
+        {content:role,styles:{fontStyle:'bold'}},
+        display(p.name,worksheet),
+        display(p.company,worksheet),
+        display(p.address,worksheet),
+        display(p.postcode,worksheet),
+        display(p.phone,worksheet)
+      ]),
+      {0:{cellWidth:27},1:{cellWidth:42},2:{cellWidth:42},3:{cellWidth:96},4:{cellWidth:25},5:{cellWidth:45}},
+      {colSpan:6,auto:{head:[[{content:'SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',colSpan:6,styles:{fontStyle:'bold',fontSize:7.1,fillColor:PALE,textColor:INK}}],
+                         ['Role','Name','For/on behalf of','Address','Postcode','Tel.']]}}
+    );
 
-    top=box(doc,x,y,w,47,'SECTION F: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS');
-    choiceLine(doc,'Earthing arrangement',['TN-C','TN-S','TN-C-S PME','TN-C-S PNB','TT','IT'],String(f.earthingArrangement||'').replace(' (PME)',' PME').replace(' (PNB)',' PNB'),worksheet,x+2,top+6,92,{labelW:25,optionSize:4.6});
-    choiceLine(doc,'Supply',['AC','DC'],f.supplyACDC,worksheet,x+96,top+6,42,{labelW:14,optionSize:5.4});
-    labelValue(doc,'Number/type of live conductors',display(f.liveConductors,worksheet),x+140,top+6,48,{labelW:28,maxLines:1});
-    labelValue(doc,'Nominal voltage U/U0 (V)',display(f.nominalVoltage,worksheet),x+2,top+15,52,{labelW:31});
-    labelValue(doc,'Nominal frequency (Hz)',display(f.frequency,worksheet),x+56,top+15,45,{labelW:28});
-    labelValue(doc,'Prospective fault current Ipf (kA)',display(f.ipf,worksheet),x+103,top+15,45,{labelW:31});
-    labelValue(doc,'External earth fault loop impedance Ze (Ω)',display(f.ze,worksheet),x+150,top+15,38,{labelW:30});
-    write(doc,'Supply protective device',x+2,top+25,45,{size:6.4,bold:true});
-    labelValue(doc,'BS (EN)',display(f.supplyDeviceBs,worksheet),x+2,top+31,46,{labelW:14});
-    labelValue(doc,'Type',display(f.supplyDeviceType,worksheet),x+50,top+31,35,{labelW:10});
-    labelValue(doc,'Rated current (A)',display(f.supplyDeviceRating,worksheet),x+87,top+31,45,{labelW:23});
-    labelValue(doc,'Breaking capacity (kA)',display(f.supplyBreakingCapacity,worksheet),x+134,top+31,54,{labelW:28});
-    choiceLine(doc,'Supply polarity confirmed',['Yes','No'],f.supplyPolarity,worksheet,x+2,top+40,90,{labelW:36});
-    choiceLine(doc,'Other sources of supply',['Yes','No'],f.otherSources,worksheet,x+96,top+40,92,{labelW:35});
-    y+=48;
+    sectionTable('SECTION F: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS',pairRows([
+      ['Earthing arrangement',f.earthingArrangement,'Supply',f.supplyACDC],
+      ['Number/type of live conductors',f.liveConductors,'Nominal voltage U/U0 (V)',f.nominalVoltage],
+      ['Nominal frequency (Hz)',f.frequency,'Prospective fault current Ipf (kA)',f.ipf],
+      ['External earth fault loop impedance Ze (Ohms)',f.ze,'Supply protective device BS (EN)',f.supplyDeviceBs],
+      ['Supply protective device type',f.supplyDeviceType,'Rated current (A)',f.supplyDeviceRating],
+      ['Breaking capacity (kA)',f.supplyBreakingCapacity,'Supply polarity confirmed',f.supplyPolarity],
+      ['Other sources of supply',f.otherSources,'','']
+    ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
-    top=box(doc,x,y,w,74,'SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE');
-    choiceLine(doc,'Means of earthing',['Distributor','Earth electrode','Both','Other'],String(f.meansOfEarthing||'').replace('Distributor’s facility','Distributor').replace('Installation earth electrode','Earth electrode'),worksheet,x+2,top+6,88,{labelW:25,optionSize:5});
-    labelValue(doc,'Maximum demand',display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet),x+61,top+6,56,{labelW:27});
-    labelValue(doc,'Earth electrode type',display(f.earthElectrodeType,worksheet),x+119,top+6,69,{labelW:27});
-    labelValue(doc,'Earth electrode location',display(f.earthElectrodeLocation,worksheet),x+2,top+13,92,{labelW:31});
-    labelValue(doc,'RA/Ze (Ω)',display(f.earthElectrodeResistance,worksheet),x+96,top+13,92,{labelW:17});
-    write(doc,'Main Protective Conductors',x+2,top+22,55,{size:6.5,bold:true});
-    labelValue(doc,'Earthing conductor material',display(f.earthingConductorMaterial,worksheet),x+2,top+29,56,{labelW:34});
-    labelValue(doc,'csa mm²',display(f.earthingConductorCsa,worksheet),x+60,top+29,35,{labelW:15});
-    labelValue(doc,'Continuity verified',display(f.earthingContinuity,worksheet),x+97,top+29,40,{labelW:24});
-    labelValue(doc,'Bonding conductor material',display(f.bondingMaterial,worksheet),x+2,top+36,56,{labelW:34});
-    labelValue(doc,'csa mm²',display(f.bondingCsa,worksheet),x+60,top+36,35,{labelW:15});
-    labelValue(doc,'Continuity verified',display(f.bondingContinuity,worksheet),x+97,top+36,40,{labelW:24});
-    labelValue(doc,'Main protective bonding to',display(f.bondingTo,worksheet),x+139,top+29,49,{labelW:31,maxLines:2});
-    write(doc,'Main switch (Isolation device / Switch-fuse / Circuit-breaker / RCD etc.)',x+2,top+47,w-4,{size:6.5,bold:true});
-    labelValue(doc,'Location',display(f.mainSwitchLocation,worksheet),x+2,top+54,45,{labelW:14});
-    labelValue(doc,'BS (EN)',display(f.mainSwitchBs,worksheet),x+49,top+54,35,{labelW:14});
-    labelValue(doc,'No. poles',display(f.mainSwitchPoles,worksheet),x+86,top+54,31,{labelW:16});
-    labelValue(doc,'Current A',display(f.mainSwitchCurrent,worksheet),x+119,top+54,31,{labelW:15});
-    labelValue(doc,'Voltage V',display(f.mainSwitchVoltage,worksheet),x+152,top+54,36,{labelW:15});
-    labelValue(doc,'OCPD type/setting',display(f.mainSwitchDeviceType,worksheet),x+2,top+63,55,{labelW:27});
-    labelValue(doc,'Breaking kA',display(f.mainSwitchBreaking,worksheet),x+59,top+63,38,{labelW:19});
-    labelValue(doc,'RCD type',display(f.mainRcdType,worksheet),x+99,top+63,32,{labelW:17});
-    labelValue(doc,'IΔn mA',display(f.mainRcdIdn,worksheet),x+133,top+63,27,{labelW:14});
-    labelValue(doc,'Delay ms',display(f.mainRcdDelay,worksheet),x+162,top+63,26,{labelW:15});
-    y+=75;
+    sectionTable('SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE',pairRows([
+      ['Means of earthing',f.meansOfEarthing,'Maximum demand',[f.maximumDemand,f.maximumDemandUnit].filter(Boolean).join(' ')],
+      ['Earth electrode type',f.earthElectrodeType,'Earth electrode location',f.earthElectrodeLocation],
+      ['RA/Ze (Ohms)',f.earthElectrodeResistance,'Earthing conductor material',f.earthingConductorMaterial],
+      ['Earthing conductor csa mm2',f.earthingConductorCsa,'Earthing continuity verified',f.earthingContinuity],
+      ['Bonding conductor material',f.bondingMaterial,'Bonding conductor csa mm2',f.bondingCsa],
+      ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
+      ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
+      ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')]
+    ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
-    top=box(doc,x,y,w,62,'SECTION H: SCHEDULE OF INSPECTIONS');
-    const rows=safeRows(cert.tables?.eicInspection);
+    addLandscapePage();
+    const inspectionRows=safeRows(cert.tables?.eicInspection);
+    const outcomeText=(value)=>{
+      const raw=String(value||'').trim();
+      if(worksheet)return '';
+      if(yes(raw,'✓')||['yes','pass','satisfactory','true'].includes(raw.toLowerCase()))return '';
+      if(/^n\/?a$/i.test(raw)||/^not applicable$/i.test(raw))return 'N/A';
+      if(raw==='✕'||/^no$|^fail$/i.test(raw))return 'NOT SAT.';
+      return pdfText(raw);
+    };
     doc.autoTable({
-      startY:top+1,
-      head:[['Item No.','Description','Outcome: Satisfactory / N/A','Item No.','Description','Outcome: Satisfactory / N/A']],
-      body:Array.from({length:7},(_,r)=>{
-        const a=rows[r]||{},b=rows[r+7]||{};
-        return [a.item||'',a.description||'',worksheet?'':pdfText(a.outcome||''),b.item||'',b.description||'',worksheet?'':pdfText(b.outcome||'')];
-      }),
-      margin:{left:x,right:210-(x+w)},tableWidth:w,theme:'grid',
-      styles:{fontSize:5.3,cellPadding:.8,minCellHeight:6.2,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      startY:y,
+      head:[
+        [{content:'SECTION H: SCHEDULE OF INSPECTIONS',colSpan:3,styles:{fontStyle:'bold',fontSize:7.1,fillColor:PALE,textColor:INK}}],
+        ['Item No.','Description','Outcome']
+      ],
+      body:inspectionRows.map(r=>[pdfText(r.item||''),pdfText(r.description||''),outcomeText(r.outcome)]),
+      margin:{left:x,right:10,top:27,bottom:14},
+      tableWidth:w,
+      theme:'grid',
+      rowPageBreak:'avoid',
+      styles:{fontSize:5.8,cellPadding:1.05,minCellHeight:6.4,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
-      columnStyles:{0:{cellWidth:12},1:{cellWidth:61},2:{cellWidth:18,halign:'center'},3:{cellWidth:12},4:{cellWidth:61},5:{cellWidth:18,halign:'center'}}
+      columnStyles:{0:{cellWidth:18},1:{cellWidth:w-43},2:{cellWidth:25,halign:'center'}},
+      didDrawPage:()=>frame(),
+      didDrawCell:(data)=>{
+        if(worksheet||data.section!=='body'||data.column.index!==2)return;
+        const raw=String(inspectionRows[data.row.index]?.outcome||'').trim();
+        if(!(yes(raw,'✓')||['yes','pass','satisfactory','true'].includes(raw.toLowerCase())))return;
+        const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
+        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
+        doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
+        doc.line(cx+.55,cy-1.0,cx+1.25,cy-.3);
+        doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
+        doc.setLineWidth(.18);
+      }
     });
-    y=doc.lastAutoTable.finalY+2;
-    top=box(doc,x,y,w,18,'SECTION I: COMMENTS ON EXISTING INSTALLATION');
-    multilineValue(doc,'',display(f.existingComments,worksheet),x+1,top+1,w-2,10,{labelSize:1});
-    y+=19;
-    top=box(doc,x,y,w,17,'SECTION J: SCHEDULES');
-    const boardCount=boardRows(cert).length,circuitCount=safeRows(cert.tables?.circuits).length;
-    write(doc,'Continuation sheet(s): ________   Schedule(s) of Inspection: 1   Schedule(s) of Circuit Details / Test Results: '+Math.max(1,boardCount),x+2,top+6,w-4,{size:6.2});
-    write(doc,'The schedules and continuation sheets listed form part of this certificate.',x+2,top+12,w-4,{size:5.8});
+    y=doc.lastAutoTable.finalY+3;
+
+    sectionTable('SECTION I: COMMENTS ON EXISTING INSTALLATION',[
+      [{content:'Comments',styles:{fontStyle:'bold'}},display(f.existingComments,worksheet)]
+    ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
+
+    const boards=boardRows(cert);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/12)),0);
+    sectionTable('SECTION J: SCHEDULES',[
+      [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
+      [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
+      [{content:'Schedule(s) of Circuit Details / Test Results',styles:{fontStyle:'bold'}},worksheet?'':String(Math.max(1,scheduleSets))],
+      [{content:'Statement',styles:{fontStyle:'bold'}},'The schedules and continuation sheets listed form part of this certificate.']
+    ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
+
     renderCircuitSchedules(doc,cert,schema,opts);
   }
 
@@ -538,7 +603,7 @@
     const boards=boardRows(cert);
     boards.forEach((board,bi)=>{
       const ref=board.ref||('DB'+(bi+1));
-      const circuits=circuitsForBoard(cert,ref);
+      const circuits=circuitsForBoard(cert,ref,bi===0);
       const chunks=[];
       if(circuits.length){
         for(let i=0;i<circuits.length;i+=12)chunks.push(circuits.slice(i,i+12));
@@ -558,17 +623,21 @@
         labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+124,y+14,40,{labelW:13});
         labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+166,y+14,40,{labelW:13});
         const cols=[
-          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
+          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
           ['9','Type','ocpdType'],['10','Rating A','ocpdRating'],['11','Breaking kA','breakingCapacity'],['12','Max permitted Zs Ω','maxZs'],
-          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn mA','rcdIdn'],['16','Rating A','rcdRating']
+          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','RCD mA','rcdIdn'],['16','Rating A','rcdRating']
         ];
         const rows=[];
         for(let r=0;r<12;r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
-            if(c[2]==='wiringType') z=wiringCode(z);
+            if(c[2]==='wiringType'){
+              const wiring=wiringCode(z);
+              const containment=String(item.installMethod||'').trim();
+              z=[wiring,containment].filter(Boolean).join(' / ');
+            }
             return worksheet?'':pdfText(z||'');
           }));
         }
@@ -591,12 +660,12 @@
         doc.addPage('a4','landscape');
         pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
-        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,55,{labelW:24});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+57,y+7,43,{labelW:13});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+102,y+7,43,{labelW:13});
-        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+147,y+7,50,{labelW:26});
-        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+199,y+7,50,{labelW:25});
-        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+251,y+7,w-251,{labelW:27});
+        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
+        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20});
+        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12});
+        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25});
+        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
+        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
         const tcols=[
           ['17','Circuit','circuitNo'],['18','r1 line Ω','r1'],['19','rn neutral Ω','rn'],['20','r2 CPC Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
           ['23','IR test V','irVoltage'],['24','Live-Live MΩ','irLL'],['25','Live-Earth MΩ','irLE'],['26','Polarity','polarity'],['27','Max measured Zs Ω','zs'],
@@ -678,7 +747,7 @@
   function build({cert,schema,settings={},worksheet=false}){
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
-    const doc=new C({unit:'mm',format:'a4',orientation:'portrait'});
+    const doc=new C({unit:'mm',format:'a4',orientation:cert.type==='eic'?'landscape':'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     doc.__sperinWorksheet=!!worksheet;
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
