@@ -35,6 +35,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -66,7 +67,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates/?app=1.7.7";
+    private static final String LIVE_URL = "https://sperinservices.co.uk/certificates-app-v178/?app=1.7.8";
     private static final String LOCAL_URL = "file:///android_asset/certificates/index.html";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
@@ -121,7 +122,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.7");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.8");
 
         setupVoice();
 
@@ -144,6 +145,12 @@ public class MainActivity extends Activity {
         });
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse bundled = bundledCertificateResponse(request == null ? null : request.getUrl());
+                return bundled != null ? bundled : super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -184,6 +191,40 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl(LIVE_URL);
+    }
+
+    private WebResourceResponse bundledCertificateResponse(Uri uri) {
+        if (uri == null) return null;
+        String host = uri.getHost();
+        String path = uri.getPath();
+        if (host == null || !"sperinservices.co.uk".equalsIgnoreCase(host) || path == null) return null;
+
+        final String prefix = "/certificates-app-v178";
+        if (!(path.equals(prefix) || path.equals(prefix + "/") || path.startsWith(prefix + "/"))) return null;
+
+        String relative;
+        if (path.equals(prefix) || path.equals(prefix + "/")) relative = "index.html";
+        else relative = path.substring((prefix + "/").length());
+
+        if (relative.isEmpty()) relative = "index.html";
+        if (relative.contains("..") || relative.startsWith("/")) return null;
+
+        String mime = "application/octet-stream";
+        if (relative.endsWith(".html")) mime = "text/html";
+        else if (relative.endsWith(".css")) mime = "text/css";
+        else if (relative.endsWith(".js")) mime = "application/javascript";
+        else if (relative.endsWith(".svg")) mime = "image/svg+xml";
+        else if (relative.endsWith(".webmanifest")) mime = "application/manifest+json";
+
+        try {
+            return new WebResourceResponse(
+                    mime,
+                    "UTF-8",
+                    getAssets().open("certificates/" + relative)
+            );
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private void createNotificationChannel() {
