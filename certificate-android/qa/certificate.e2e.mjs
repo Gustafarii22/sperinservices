@@ -384,7 +384,9 @@ await page.waitForSelector(".saved-cert-row");
 
 assert((await page.locator(".home-hero").count()) === 1, "Premium home hero missing");
 assert(
-  (await page.locator(".home-hero h2").textContent()).includes("Electrical certificates, built for site"),
+  (await page.locator(".home-hero h2").textContent()).includes(
+    "Electrical certificates, built for site",
+  ),
   "Home heading unclear",
 );
 assert((await page.locator(".home-visual").count()) === 1, "Home visual treatment missing");
