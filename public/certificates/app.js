@@ -600,7 +600,12 @@
       }
     }
     if(cert.type==='eic'||cert.type==='eicr'){
+      ensureBoardWorkflowData(cert);
       syncCircuitRows(cert);
+      (cert.tables.boards||[]).forEach(board=>{
+        if(board.feedSourceType==='Another consumer unit') syncBoardIncomingCircuit(cert,board);
+      });
+      syncPrimaryBoardLegacyFields(cert);
       const f=cert.fields;
       f.testerMake=f.testerMake||'';
       f.testerModel=f.testerModel||'';
@@ -617,7 +622,27 @@
 
   function goCircuits() {
     requestAnimationFrame(()=>{
-      const target=document.querySelector('.circuit-list');
+      const target=document.querySelector('.consumer-unit-workflow')||document.querySelector('.circuit-list');
+      if(target) target.scrollIntoView({behavior:'auto',block:'start'});
+    });
+  }
+
+  function restoreScroll(y){
+    requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'}));
+  }
+
+  function goCircuitBottom(boardRef){
+    requestAnimationFrame(()=>{
+      const key=normaliseBoardKey(boardRef);
+      const target=document.querySelector('[data-board-key="'+CSS.escape(key)+'"] [data-board-add-circuit]') ||
+        document.querySelector('.consumer-unit-workflow .add-consumer-unit');
+      if(target) target.scrollIntoView({behavior:'auto',block:'end'});
+    });
+  }
+
+  function goBoardCard(boardId){
+    requestAnimationFrame(()=>{
+      const target=document.querySelector('[data-board-id="'+CSS.escape(String(boardId||''))+'"]');
       if(target) target.scrollIntoView({behavior:'auto',block:'start'});
     });
   }
