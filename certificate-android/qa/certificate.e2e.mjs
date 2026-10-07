@@ -520,9 +520,11 @@ assert(
 console.log("CIRCUIT_FLOW_PASS");
 
 // Restore deliberately long PDF values after the postcode lookup / circuit reorder tests.
-await page.locator('[data-field="installationAddress"]').fill(
-  "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
-);
+await page
+  .locator('[data-field="installationAddress"]')
+  .fill(
+    "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
+  );
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
 await page.waitForTimeout(80);
 
