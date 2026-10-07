@@ -52,6 +52,10 @@ jobs:
           fail(app.includes('prepareBackupData'), 'Validated backup import staging missing');
           fail(app.includes('normaliseBoardKey'), 'Per-board circuit numbering guard missing');
           fail(app.includes('scheduleNativeAutoBackup'), 'Automatic backup scheduling missing');
+          fail(!app.includes('BS 88-3 Type 3'), 'Old BS 88-3 Type 3 wording remains');
+          fail(!app.includes("'BS 88-3'"), 'Old spaced BS 88-3 selectable wording remains');
+          fail(app.includes("'BS88-3'"), 'Exact BS88-3 option missing');
+          fail(app.includes('normaliseLegacyDeviceLabels'), 'Legacy BS88-3 migration missing');
           fail(app.includes("select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs)"), 'Minor Works OCPD selector missing');
           fail(app.includes("select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity)"), 'Minor Works breaking-capacity selector missing');
           fail(app.includes("field.key==='bondingTo' || field.key==='bondingPresent'"), 'Shared one-tap bonding controls missing');
