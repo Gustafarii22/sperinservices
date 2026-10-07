@@ -1268,6 +1268,10 @@ assert(
   "Invalid backup changed the saved certificate state",
 );
 console.log("INVALID_IMPORT_GUARD_PASS");
+if ((await page.locator(".profile-modal").count()) > 0) {
+  await page.locator(".profile-modal").locator('[data-action="close-modal"]').click();
+}
+await page.waitForSelector(".home-page");
 
 // Every certificate type must open, stay usable at phone width and generate a real PDF.
 await page.setViewportSize({ width: 390, height: 844 });
