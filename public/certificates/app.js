@@ -186,6 +186,155 @@
     return String(value||'DB1').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')||'DB1';
   }
 
+  const PRIMARY_BOARD_FIELD_MAP = {
+    ref:'dbReference',
+    location:'dbLocation',
+    suppliedFrom:'suppliedFrom',
+    mainSwitch:'distributionOcpd',
+    rcd:'dbRcd',
+    spd:'dbSpd',
+    zdb:'zdb',
+    ipf:'dbIpf',
+    polarity:'dbPolarity',
+    phaseSequence:'phaseSequence',
+    spdOperational:'spdOperational'
+  };
+
+  function boardIndexByRef(cert,ref){
+    const key=normaliseBoardKey(ref);
+    return (cert?.tables?.boards||[]).findIndex(b=>normaliseBoardKey(b?.ref)===key);
+  }
+
+  function boardCircuitIndices(cert,ref){
+    const key=normaliseBoardKey(ref);
+    return (cert?.tables?.circuits||[]).map((row,i)=>({row,i})).filter(x=>normaliseBoardKey(x.row?.boardRef)===key).map(x=>x.i);
+  }
+
+  function syncPrimaryBoardLegacyFields(cert){
+    if(!cert || !['eic','eicr'].includes(cert.type)) return;
+    const board=cert.tables?.boards?.[0];
+    if(!board) return;
+    Object.entries(PRIMARY_BOARD_FIELD_MAP).forEach(([boardKey,fieldKey])=>{
+      const boardValue=board[boardKey];
+      if(boardValue!==undefined&&boardValue!==null&&String(boardValue).trim()!=='') cert.fields[fieldKey]=boardValue;
+    });
+  }
+
+  function ensureBoardWorkflowData(cert){
+    if(!cert || !['eic','eicr'].includes(cert.type)) return;
+    cert.tables=cert.tables||{};
+    let boards=Array.isArray(cert.tables.boards)?cert.tables.boards.filter(isRecord):[];
+    if(!boards.length) boards=[{ref:'DB1'}];
+    boards=boards.map((board,i)=>{
+      const b={...board};
+      b.id=String(b.id||uid());
+      b.ref=String(b.ref||('DB'+(i+1))).trim()||('DB'+(i+1));
+      if(i===0){
+        Object.entries(PRIMARY_BOARD_FIELD_MAP).forEach(([boardKey,fieldKey])=>{
+          if((b[boardKey]===undefined||b[boardKey]===null||String(b[boardKey]).trim()==='') && cert.fields?.[fieldKey]!==undefined && cert.fields?.[fieldKey]!==null && String(cert.fields[fieldKey]).trim()!==''){
+            b[boardKey]=cert.fields[fieldKey];
+          }
+        });
+      }
+      if(!b.feedSourceType){
+        if(b.sourceBoardRef&&String(b.sourceCircuitNo??'').trim()!=='') b.feedSourceType='Another consumer unit';
+        else if(/^mains$/i.test(String(b.suppliedFrom||'').trim()) || (i===0&&!String(b.suppliedFrom||'').trim())) b.feedSourceType='Mains';
+        else b.feedSourceType='';
+      }
+      if(i===0 && !String(b.suppliedFrom||'').trim() && b.feedSourceType==='Mains') b.suppliedFrom='Mains';
+      return b;
+    });
+    cert.tables.boards=boards;
+    syncPrimaryBoardLegacyFields(cert);
+  }
+
+  function nextBoardRef(cert){
+    const used=new Set((cert.tables?.boards||[]).map(b=>normaliseBoardKey(b.ref)));
+    let n=1;
+    while(used.has('DB'+n)) n++;
+    return 'DB'+n;
+  }
+
+  function removeIncomingFeedCircuit(cert,boardRef){
+    syncCircuitRows(cert);
+    const key=normaliseBoardKey(boardRef);
+    for(let i=cert.tables.circuits.length-1;i>=0;i--){
+      const row=cert.tables.circuits[i];
+      if(normaliseBoardKey(row.boardRef)===key && row._incomingFeed===true){
+        cert.tables.circuits.splice(i,1);
+        cert.tables.tests.splice(i,1);
+      }
+    }
+  }
+
+  function syncBoardIncomingCircuit(cert,board){
+    if(!cert||!board) return;
+    syncCircuitRows(cert);
+    if(board.feedSourceType!=='Another consumer unit'){
+      removeIncomingFeedCircuit(cert,board.ref);
+      if(board.feedSourceType==='Mains') board.suppliedFrom='Mains';
+      board.sourceBoardRef='';
+      board.sourceCircuitNo='';
+      return;
+    }
+    const sourceBoard=String(board.sourceBoardRef||'').trim();
+    const sourceNo=String(board.sourceCircuitNo??'').trim();
+    if(!sourceBoard||sourceNo==='') return;
+    const sourceIndex=cert.tables.circuits.findIndex(row=>
+      normaliseBoardKey(row.boardRef)===normaliseBoardKey(sourceBoard) &&
+      String(row.circuitNo??'').trim()===sourceNo
+    );
+    if(sourceIndex<0) return;
+    const sourceDetail=cert.tables.circuits[sourceIndex]||{};
+    const sourceTest=cert.tables.tests[sourceIndex]||{};
+    const childKey=normaliseBoardKey(board.ref);
+    let incomingIndex=cert.tables.circuits.findIndex(row=>
+      normaliseBoardKey(row.boardRef)===childKey &&
+      (row._incomingFeed===true || String(row.circuitNo??'').trim()==='0')
+    );
+    const oldId=incomingIndex>=0 ? cert.tables.circuits[incomingIndex]?.id : '';
+    const incomingDetail={
+      ...clone(sourceDetail),
+      id:String(oldId||uid()),
+      boardRef:board.ref,
+      circuitNo:'0',
+      _incomingFeed:true,
+      _sourceBoardRef:sourceBoard,
+      _sourceCircuitNo:sourceNo
+    };
+    const incomingTest={
+      ...clone(sourceTest),
+      boardRef:board.ref,
+      circuitNo:'0',
+      _incomingFeed:true,
+      _sourceBoardRef:sourceBoard,
+      _sourceCircuitNo:sourceNo
+    };
+    if(incomingIndex>=0){
+      cert.tables.circuits[incomingIndex]=incomingDetail;
+      cert.tables.tests[incomingIndex]=incomingTest;
+    }else{
+      cert.tables.circuits.push(incomingDetail);
+      cert.tables.tests.push(incomingTest);
+      incomingIndex=cert.tables.circuits.length-1;
+    }
+    board.suppliedFrom=sourceBoard+' · Circuit '+sourceNo;
+    sortCircuitsByNumber(cert,incomingDetail);
+  }
+
+  function syncDependentBoardFeeds(cert,sourceBoardRef,sourceCircuitNo){
+    if(!cert||!['eic','eicr'].includes(cert.type)) return;
+    const boardKey=normaliseBoardKey(sourceBoardRef);
+    const no=String(sourceCircuitNo??'').trim();
+    (cert.tables?.boards||[]).forEach(board=>{
+      if(board.feedSourceType==='Another consumer unit' &&
+         normaliseBoardKey(board.sourceBoardRef)===boardKey &&
+         String(board.sourceCircuitNo??'').trim()===no){
+        syncBoardIncomingCircuit(cert,board);
+      }
+    });
+  }
+
   function nextCircuitNumber(cert, boardRef='DB1') {
     const boardKey=normaliseBoardKey(boardRef);
     const nums=(cert.tables?.circuits||[])
