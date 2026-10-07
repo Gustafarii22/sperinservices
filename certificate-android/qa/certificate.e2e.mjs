@@ -120,11 +120,9 @@ const jsBridgeCalls = [
 ].sort();
 const nativeBridgeMethods = [
   ...new Set(
-    [
-      ...javaSource.matchAll(
-        /@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g,
-      ),
-    ].map((m) => m[1]),
+    [...javaSource.matchAll(/@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(/g)].map(
+      (m) => m[1],
+    ),
   ),
 ].sort();
 const missingNativeBridge = jsBridgeCalls.filter((name) => !nativeBridgeMethods.includes(name));
@@ -455,10 +453,7 @@ assert(
   "Gas bonding toggle did not restore Gas",
 );
 
-await page
-  .locator('[data-action="signatory-mode"]')
-  .filter({ hasText: "Separate people" })
-  .click();
+await page.locator('[data-action="signatory-mode"]').filter({ hasText: "Separate people" }).click();
 assert(
   (await page.locator('[data-field="designer1"]').count()) === 1,
   "Separate designer fields missing",
