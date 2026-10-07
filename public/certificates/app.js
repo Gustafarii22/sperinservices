@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.9';
+  const VERSION = '1.7.10';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -36,7 +36,7 @@
     alarmType: ['Optical smoke', 'Ionisation smoke', 'Heat', 'Multi-sensor', 'CO', 'Sounder', 'Strobe / visual alarm', 'Vibrating pad', 'Control / relay', 'Other'],
     interlink: ['Hard-wired', 'Radio-linked', 'Hybrid', 'Standalone', 'Other'],
     testResult: ['Pass', 'Fail', 'N/A'],
-    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 88-3 Type 3', 'BS 3036', 'BS 1361', 'Other'],
+    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS 88-3', 'BS 3036', 'BS 1361', 'Other'],
     ocpdRating: ['2', '4', '6', '10', '16', '20', '25', '32', '40', '50', '63', '80', '100', '125'],
     testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other'],
     nominalVoltage: ['230', '230/400', '400/230', '400', 'Other'],
@@ -47,7 +47,7 @@
     poles: ['1', '2', '3', '4'],
     rcdIdn: ['10', '30', '100', '300', '500', 'Other'],
     earthElectrodeType: ['Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
-    supplyDeviceBs: ['BS 88-2', 'BS 88-3 Type 3', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
+    supplyDeviceBs: ['BS 88-2', 'BS 88-3', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
     spdType: [
       'No SPD / N/A',
       'Type 1 — BS EN IEC 61643-11:2025+A11:2025',
