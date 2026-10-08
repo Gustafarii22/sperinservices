@@ -4,7 +4,10 @@ import { chromium } from "playwright";
 
 const base = process.env.CERT_BASE_URL || "http://127.0.0.1:4173/certificates/";
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+const page = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  acceptDownloads: true,
+});
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 
@@ -27,10 +30,13 @@ try {
   await page.waitForSelector(".circuit-list");
 
   // Font sizes must be legible on actual phone-size viewport.
-  const style = await page.locator(".field input").first().evaluate((el) => ({
-    size: Number.parseFloat(getComputedStyle(el).fontSize),
-    background: getComputedStyle(el).backgroundColor,
-  }));
+  const style = await page
+    .locator(".field input")
+    .first()
+    .evaluate((el) => ({
+      size: Number.parseFloat(getComputedStyle(el).fontSize),
+      background: getComputedStyle(el).backgroundColor,
+    }));
   assert(style.size >= 16, "Form input font is too small for mobile readability");
   await page.evaluate(() => {
     window.__nativePrinted = null;
@@ -43,8 +49,14 @@ try {
   });
   await page.locator('[data-action="print"]').first().click();
   const native = await page.evaluate(() => window.__nativePrinted);
-  assert(native && native.name.endsWith(".pdf"), "Print did not hand native Android a PDF filename");
-  assert(native.dataUri.startsWith("data:application/pdf;"), "Print did not send the real certificate PDF");
+  assert(
+    native && native.name.endsWith(".pdf"),
+    "Print did not hand native Android a PDF filename",
+  );
+  assert(
+    native.dataUri.startsWith("data:application/pdf;"),
+    "Print did not send the real certificate PDF",
+  );
   const pdf = Buffer.from(native.dataUri.slice(native.dataUri.indexOf(",") + 1), "base64");
   assert.equal(pdf.subarray(0, 4).toString(), "%PDF", "Print PDF signature invalid");
   const med = pdf.toString("latin1").match(/\/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)/);
