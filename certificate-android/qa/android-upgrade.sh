@@ -16,6 +16,27 @@ for i in $(seq 1 30); do
   sleep 1
 done
 node certificate-android/qa/seed-upgrade.mjs
+# Give Android WebView time to commit the test certificate to disk before
+# killing the old process. Otherwise the test can report a false upgrade loss
+# from a fixture written immediately before force-stop.
+adb shell input keyevent KEYCODE_HOME
+sleep 8
+adb shell am force-stop "$PKG"
+
+# Prove the ORIGINAL APK itself can cold-start with the preserved fixture.
+# Only then is the new APK eligible for an upgrade/data-retention check.
+adb shell monkey -p "$PKG" 1
+for i in $(seq 1 35); do
+  pid="$(adb shell pidof "$PKG" | tr -d '\r' || true)"
+  if [ -n "$pid" ]; then
+    adb forward tcp:9222 localabstract:webview_devtools_remote_"$pid"
+    if curl -fsS http://127.0.0.1:9222/json/version >/dev/null; then break; fi
+  fi
+  sleep 1
+done
+node certificate-android/qa/check-upgrade.mjs
+echo OLD_APK_COLD_RESTART_PERSISTENCE_PASS
+
 adb shell am force-stop "$PKG"
 adb install -r "$APK"
 adb shell monkey -p "$PKG" 1
