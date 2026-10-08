@@ -1311,6 +1311,22 @@ const importChooserPromise = page.waitForEvent("filechooser");
 await page.getByRole("button", { name: "Import now", exact: true }).click();
 const importChooser = await importChooserPromise;
 await importChooser.setFiles(importPath);
+await page.waitForSelector(".backup-preview-modal");
+assert(
+  (await page.locator(".backup-preview-modal").innerText()).includes("Imported Audit Client"),
+  "Imported backup contents are not shown for review",
+);
+assert(
+  (await page.locator('[data-action="backup-preview-apply"]').isDisabled()) === true,
+  "Backup replacement must stay disabled until explicit consent",
+);
+assert(
+  (await page.evaluate(() => localStorage.getItem("sperin-certificates-data-v1"))) ===
+    beforeImportRaw,
+  "Opening a valid backup preview changed the current certificates",
+);
+await page.locator("[data-backup-preview-consent]").check();
+await page.locator('[data-action="backup-preview-apply"]').click();
 await page.waitForSelector(".home-page");
 await page.waitForTimeout(100);
 let importedState = await page.evaluate(() =>
