@@ -60,8 +60,14 @@ assert(
   "Old Type 3 wording remains in supply-device options",
 );
 assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
-assert(appSource.includes('data-action="section-toggle"'), "Certificate accordion section action missing");
-assert(appSource.includes('data-template-mode="replace"'), "Direct circuit Load template action missing");
+assert(
+  appSource.includes('data-action="section-toggle"'),
+  "Certificate accordion section action missing",
+);
+assert(
+  appSource.includes('data-template-mode="replace"'),
+  "Direct circuit Load template action missing",
+);
 assert(appSource.includes(">Load template</button>"), "Load template label missing");
 assert(
   appSource.includes("SperinIetForms.build"),
