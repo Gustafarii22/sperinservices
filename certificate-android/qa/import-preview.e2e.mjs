@@ -38,7 +38,7 @@ try {
   const rescue = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), PRE);
   assert(rescue.certificates.some(c => c.id === backedUpId), "Pre-import recovery snapshot missing");
 
-  await page.locator('[data-action="settings"]').click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.locator('[data-action="undo-restore"]').click();
   const recovered = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), KEY);
   assert(recovered.certificates.some(c => c.id === backedUpId), "Undo failed to recover certificate");
