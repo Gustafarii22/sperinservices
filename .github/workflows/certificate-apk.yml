@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: sperin-certificates-apk-signing
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-apk:
@@ -213,6 +213,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish direct APK release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -225,6 +226,7 @@ jobs:
           fi
 
       - name: Download and verify published artifact
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
