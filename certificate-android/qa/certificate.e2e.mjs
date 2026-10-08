@@ -454,12 +454,8 @@ await page.goto(base, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".saved-cert-row");
 
 assert((await page.locator(".home-hero").count()) === 1, "Premium home hero missing");
-assert(
-  (await page.locator(".home-hero h2").textContent()).includes(
-    "Your certificates.",
-  ),
-  "Home heading unclear",
-);
+const heroHeading = await page.locator(".home-hero h2").textContent();
+assert(heroHeading.includes("Your certificates."), "Home heading unclear");
 assert((await page.locator(".home-visual").count()) === 1, "Home visual treatment missing");
 assert((await page.locator(".cert-launch").count()) === 5, "Certificate launch list incomplete");
 assert(
