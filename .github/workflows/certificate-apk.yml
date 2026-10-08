@@ -221,7 +221,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.7.12" --notes "Consumer-unit workflow, linked incoming circuits, editable dropdowns, live maximum Zs, compact design-only templates with backup support, undo/redo, stable scrolling and complete board PDFs. Existing storage key, package and signing identity preserved. See release verification notes for device-test limitations."
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.7.12" --notes "Consumer-unit workflow, linked incoming circuits, editable dropdowns, live maximum Zs, compact design-only templates with backup support, undo/redo, stable scrolling and complete board PDFs. Existing storage key, package and signing identity preserved. Verified with certificate E2E in three orders, EIC/EICR workflow tests and PDF generation, APK byte-for-byte bundled-file checks, and Android 35 emulator installation over v1.7.11 with saved-data, rotation and native keyboard tests. Physical handset testing is not available in this environment."
           fi
 
       - name: Download and verify published artifact

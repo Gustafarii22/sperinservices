@@ -31,6 +31,7 @@ for i in $(seq 1 30); do
 done
 grep -q 'Sperin Certificates' certificate-android/qa-output/android/window.xml
 grep -q 'Upgrade preservation check' certificate-android/qa-output/android/window.xml
+sleep 2
 adb exec-out screencap -p > certificate-android/qa-output/android/release-launch.png
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
