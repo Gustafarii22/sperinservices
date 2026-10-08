@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 PKG=uk.co.sperinservices.certificates.stable
 APK=certificate-android/dist/Sperin-Certificates-v1.7.12.apk
 curl -fL --retry 3 https://github.com/Gustafarii22/sperinservices/releases/download/certificates-v1.7.11/Sperin-Certificates-v1.7.11.apk -o /tmp/previous-certificates.apk
+mkdir -p certificate-android/qa-output/android
+trap 'adb logcat -d > certificate-android/qa-output/android/logcat.txt; adb exec-out screencap -p > certificate-android/qa-output/android/last-screen.png; adb shell uiautomator dump /sdcard/window.xml >/dev/null; adb pull /sdcard/window.xml certificate-android/qa-output/android/last-window.xml >/dev/null' EXIT
 adb install /tmp/previous-certificates.apk
 adb shell monkey -p "$PKG" 1
 for i in $(seq 1 30); do
-  pid="$(adb shell pidof "$PKG" | tr -d '\r')"
+  pid="$(adb shell pidof "$PKG" | tr -d '\r' || true)"
   if [ -n "$pid" ]; then
     adb forward tcp:9222 localabstract:webview_devtools_remote_"$pid"
     if curl -fsS http://127.0.0.1:9222/json/version >/dev/null; then break; fi
