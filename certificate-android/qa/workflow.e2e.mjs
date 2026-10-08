@@ -186,6 +186,22 @@ assert(incoming >= 0);
 assert.equal(cert.tables.circuits[incoming].liveCsa, "10");
 assert(!cert.tables.tests[incoming].zs);
 assert.equal(child.sourceCircuitNo, "7");
+// Measured incoming readings belong to the selected feed. Changing that feed must clear them.
+await board(child.ref).locator('[data-action="circuit-open"]').first().click();
+await click('[data-action="circuit-next"]');
+await input("zs").fill("0.88");
+await click('[data-action="circuit-complete"]');
+assert.equal((await saved()).tables.tests.find((t) => t._incomingFeed).zs, "0.88");
+await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("3");
+cert = await saved();
+incoming = cert.tables.circuits.findIndex((c) => c.boardRef === child.ref && c.circuitNo === "0");
+assert.equal(cert.tables.boards[1].sourceCircuitNo, "3");
+assert.equal(cert.tables.tests[incoming].zs || "", "");
+await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("7");
+cert = await saved();
+incoming = cert.tables.circuits.findIndex((c) => c.boardRef === child.ref && c.circuitNo === "0");
+assert.equal(cert.tables.circuits[incoming].liveCsa, "10");
+assert.equal(cert.tables.tests[incoming].zs || "", "");
 await board("CU1").locator('[data-action="board-delete"]').click();
 assert.equal((await saved()).tables.boards.length, 2);
 await board("CU1")
