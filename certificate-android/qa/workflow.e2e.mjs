@@ -233,7 +233,10 @@ promptName = "Domestic RCBO + SPD";
 await board("CU1").locator('[data-action="template-save-board"]').click();
 await click('[data-action="template-open"][data-kind="board"]');
 fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });
-await page.screenshot({ path: "certificate-android/qa-output/visual/template-picker.png", fullPage: true });
+await page.screenshot({
+  path: "certificate-android/qa-output/visual/template-picker.png",
+  fullPage: true,
+});
 await click('[data-action="template-use"]');
 cert = await saved();
 assert.equal(cert.tables.boards.length, 3);
@@ -268,15 +271,20 @@ await click('[data-action="circuit-next"]');
 assert.equal(await page.locator('[data-col="zs"]').inputValue(), "");
 await click('[data-action="circuit-complete"]');
 await page.waitForTimeout(100);
-const addCircuitBox = await board(child.ref).locator('[data-board-add-circuit]').boundingBox();
+const addCircuitBox = await board(child.ref).locator("[data-board-add-circuit]").boundingBox();
 assert(addCircuitBox, "Add circuit button missing after completing circuit");
 const viewport = page.viewportSize();
 assert(
   addCircuitBox.y + addCircuitBox.height <= viewport.height - 72,
   "Add circuit button is obscured by the fixed save bar",
 );
-await board(child.ref).screenshot({ path: "certificate-android/qa-output/visual/consumer-unit.png" });
-await page.screenshot({ path: "certificate-android/qa-output/visual/grouped-workflow.png", fullPage: true });
+await board(child.ref).screenshot({
+  path: "certificate-android/qa-output/visual/consumer-unit.png",
+});
+await page.screenshot({
+  path: "certificate-android/qa-output/visual/grouped-workflow.png",
+  fullPage: true,
+});
 // Reload durability, template backup/export and import through the app's public import bridge.
 await page.reload();
 cert = await saved();
