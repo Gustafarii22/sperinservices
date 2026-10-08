@@ -1377,7 +1377,7 @@
       const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
       const postcode=fields.installationPostcode || fields.premisesPostcode || fields.clientPostcode || '';
       const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
-      return `<div class="saved-cert-row" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
+      return `<div class="saved-cert-row" data-cert-status="${esc(c.status)}" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
         <div class="saved-cert-accent">${esc(sch.code||'CERT')}</div>
         <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
         <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
@@ -1399,8 +1399,35 @@
       <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
       ${siteWorkflowHome()}
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
-      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Tap anywhere on a row to open it.</p></div><div class="saved-cert-list">${rows}</div></section>
+      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Search by customer, address, postcode or certificate number.</p></div>
+        <div class="saved-work-tools">
+          <label class="saved-search-label" for="saved-cert-search">Find a certificate<input type="search" id="saved-cert-search" data-certificate-search placeholder="Name, postcode or reference" autocomplete="off" /></label>
+          <label class="saved-search-label" for="saved-cert-status">Status<select id="saved-cert-status" data-certificate-status><option value="all">All certificates</option><option value="Draft">Drafts</option><option value="Complete">Completed</option></select></label>
+          <span class="saved-work-count" data-certificate-count aria-live="polite">${state.certificates.length} shown</span>
+        </div>
+        <div class="saved-cert-list">${rows}</div>
+        <p class="saved-work-no-match" hidden>No certificates match your search. Try another name, postcode or status.</p>
+      </section>
     </main>`;
+  }
+
+  function filterSavedWork() {
+    const root=document.querySelector('.home-page');
+    if(!root)return;
+    const query=String(root.querySelector('[data-certificate-search]')?.value||'').trim().toLocaleLowerCase('en-GB');
+    const status=root.querySelector('[data-certificate-status]')?.value||'all';
+    let shown=0;
+    root.querySelectorAll('.saved-cert-row').forEach(row=>{
+      const inText=row.textContent.toLocaleLowerCase('en-GB').includes(query);
+      const inStatus=status==='all'||row.dataset.certStatus===status;
+      const visible=inText&&inStatus;
+      row.hidden=!visible;
+      if(visible)shown++;
+    });
+    const counter=root.querySelector('[data-certificate-count]');
+    if(counter)counter.textContent=shown+' shown';
+    const noMatch=root.querySelector('.saved-work-no-match');
+    if(noMatch)noMatch.hidden=shown!==0;
   }
 
   function accordionSection(key,title,body,className='') {
@@ -3413,6 +3440,15 @@
       toast('Import cancelled; your certificates were not replaced');
     }
     else if (action === 'undo-restore') undoLastRestore();
+  });
+
+
+  // Search only hides/shows existing rows; it never changes stored certificates.
+  document.addEventListener('input',e=>{
+    if(e.target.matches?.('[data-certificate-search]'))filterSavedWork();
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.matches?.('[data-certificate-status]'))filterSavedWork();
   });
 
   setInterval(()=>{ if(state.certificates.length){persist();scheduleNativeAutoBackup();} },30000);
