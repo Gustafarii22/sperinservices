@@ -1039,6 +1039,7 @@
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
+  let pendingBackupPreview = null;
   let editHistory = { certId:null, undo:[], redo:[] };
 
   function resetEditHistory(certId=null){
@@ -1775,6 +1776,62 @@
     persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
   }
 
+
+  // Stage ALL imported/restored backups for inspection before replacing local certificates.
+  // This also applies to callbacks from the native Android file/recovery picker.
+  function showBackupPreview(json, source='backup') {
+    const prepared=prepareBackupData(json);
+    const backupJson=typeof json==='string'?json:JSON.stringify(json);
+    pendingBackupPreview={json:backupJson,source};
+    document.querySelector('.backup-preview-backdrop')?.remove();
+    const existingCount=state.certificates.length;
+    const incomingCount=prepared.certificates.length;
+    const items=prepared.certificates.slice(0,10).map(c=>{
+      const fields=isRecord(c.fields)?c.fields:{};
+      const customer=fields.clientName||fields.customerName||fields.occupier||fields.premisesName||fields.responsiblePerson||'No client name';
+      const address=fields.installationAddress||fields.premisesAddress||fields.clientAddress||fields.siteAddress||'No address';
+      return `<li><strong>${esc(c.number||displayType(c.type))}</strong><span>${esc(customer)} · ${esc(String(address).split('\n')[0])}</span></li>`;
+    }).join('');
+    const hiddenCount=incomingCount-10;
+    const summary=existingCount===0
+      ? 'No existing certificates on this device.'
+      : `Your ${existingCount} existing certificate${existingCount===1?'':'s'} will be REPLACED, not merged.`;
+    const html=`<div class="modal-backdrop backup-preview-backdrop" data-action="backup-preview-cancel">
+      <div class="card modal backup-preview-modal" data-modal role="dialog" aria-modal="true" aria-labelledby="backup-preview-heading">
+        <div class="eyebrow">FINAL SAFETY CHECK · ${esc(source)}</div>
+        <h2 id="backup-preview-heading">Review before restoring</h2>
+        <p class="backup-preview-warning">${esc(summary)} This cannot be undone without the pre-restore recovery copy.</p>
+        <div class="backup-preview-counts"><div><strong>${existingCount}</strong><span>Currently saved</span></div><div><strong>${incomingCount}</strong><span>In backup</span></div></div>
+        <h3>Incoming certificates</h3>
+        ${incomingCount?`<ul class="backup-preview-list">${items}</ul>${hiddenCount>0?`<p class="meta">Plus ${hiddenCount} more certificates.</p>`:''}`:'<p class="backup-preview-warning">This backup contains NO certificates. Restoring it will empty the certificate list.</p>'}
+        <label class="backup-preview-consent"><input type="checkbox" data-backup-preview-consent /><span>I understand that restoring this backup replaces all currently saved certificates. Save a separate backup first if needed.</span></label>
+        <div class="backup-preview-actions"><button class="btn" data-action="backup-preview-cancel">Cancel — keep current</button><button class="btn danger" data-action="backup-preview-apply" disabled>Replace with backup</button></div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend',html);
+  }
+
+  function closeBackupPreview() {
+    pendingBackupPreview=null;
+    document.querySelector('.backup-preview-backdrop')?.remove();
+  }
+
+  function applyPreviewedBackup() {
+    const approved=document.querySelector('[data-backup-preview-consent]');
+    if(!pendingBackupPreview || !approved?.checked) return;
+    const json=pendingBackupPreview.json;
+    try {
+      // The existing recovery implementation creates a pre-restore snapshot
+      // (including its Android recovery copy) before touching current records.
+      applyBackupJson(json,true);
+      closeBackupPreview();
+      toast('Backup restored — Undo recovery is available');
+    } catch(err) {
+      closeBackupPreview();
+      alert('Restore was not completed: '+(err?.message||err));
+    }
+  }
+
   function undoLastRestore(){
     const recovery=localStorage.getItem(PRE_RESTORE_KEY);
     if(!recovery){alert('No pre-restore recovery snapshot is available on this device.');return;}
@@ -1788,8 +1845,8 @@
 
   window.sperinRestoreBackup=function(json,error){
     if(error){alert('Backup import/restore failed: '+error);return;}
-    try{applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
-    catch(err){alert('Could not load backup: '+err.message);}
+    try{showBackupPreview(json,'Android backup');}
+    catch(err){alert('Could not preview backup: '+err.message);}
   };
 
   function recoveryConfirmCopy(kind,stage) {
@@ -1860,7 +1917,7 @@
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
+      reader.onload=()=>{try{showBackupPreview(reader.result,'selected file');}catch(err){alert('Could not preview backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
@@ -3125,6 +3182,12 @@
     }
   });
 
+  document.addEventListener('change', e => {
+    if (!e.target.matches?.('[data-backup-preview-consent]')) return;
+    const confirmButton=document.querySelector('[data-action="backup-preview-apply"]');
+    if(confirmButton) confirmButton.disabled=!e.target.checked;
+  });
+
   document.addEventListener('focusout', e => {
     if(e.target.matches?.('[data-field],[data-table-input],[data-circuit-input],[data-setting]')) saveNow();
   });
@@ -3357,6 +3420,8 @@
       document.querySelector('.recovery-confirm-backdrop')?.remove();
     }
     else if (action === 'undo-restore') undoLastRestore();
+    else if (action === 'backup-preview-cancel') closeBackupPreview();
+    else if (action === 'backup-preview-apply') applyPreviewedBackup();
   });
 
   setInterval(()=>{ if(state.certificates.length){persist();scheduleNativeAutoBackup();} },30000);
