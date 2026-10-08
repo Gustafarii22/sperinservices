@@ -1039,6 +1039,7 @@
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
+  let pendingImportReview = null;
   let editHistory = { certId:null, undo:[], redo:[] };
 
   function resetEditHistory(certId=null){
@@ -1427,7 +1428,7 @@
       return renderTable(part,cert,key);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1679,7 +1680,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(circuit.boardRef||'DB1')}" data-template-mode="replace" data-template-index="${i}">Load template</button></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(circuit.boardRef||'DB1')}" data-template-mode="replace" data-template-index="${i}">Load template</button></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert, sectionKey) {
@@ -1763,6 +1764,55 @@
     return {certificates,settings:importedSettings,templates};
   }
 
+  // A selected backup is never applied until its contents have been reviewed.
+  // This also covers payloads arriving from the native Android restore picker.
+  function stageBackupImport(json, source='Selected backup') {
+    const prepared=prepareBackupData(json);
+    const incoming=prepared.certificates;
+    const existing=state.certificates;
+    const readable=cert=>{
+      const f=isRecord(cert.fields)?cert.fields:{};
+      const person=String(f.clientName||f.customerName||f.occupier||f.premisesName||'Unnamed client');
+      const address=String(f.installationAddress||f.premisesAddress||f.siteAddress||'Address not entered').replace(/\s+/g,' ').trim();
+      return person+' — '+address;
+    };
+    const previewList=items=>items.length
+      ? '<ul class="import-review-list">'+items.slice(0,5).map(c=>'<li>'+esc(readable(c))+'</li>').join('')+(items.length>5?'<li>... and '+(items.length-5)+' more</li>':'')+'</ul>'
+      : '<p class="import-review-empty">No certificates in this set.</p>';
+    const idSet=new Set(existing.map(c=>String(c.id||'')));
+    const matched=incoming.filter(c=>idSet.has(String(c.id||''))).length;
+    pendingImportReview={json:typeof json==='string'?json:JSON.stringify(json)};
+    document.querySelector('.import-review-backdrop')?.remove();
+    const html='<div class="modal-backdrop import-review-backdrop" data-action="import-review-cancel">'+
+      '<div class="card modal import-review-modal" data-modal role="dialog" aria-modal="true" aria-labelledby="import-review-title">'+
+      '<div class="eyebrow">SAFE RESTORE — FINAL REVIEW</div>'+
+      '<h2 id="import-review-title">Review before replacing</h2>'+
+      '<p class="import-review-intro">'+esc(source)+' has been read and validated, but <strong>nothing has been replaced yet.</strong></p>'+
+      '<div class="import-review-grid">'+
+        '<section><strong>On this device: '+existing.length+'</strong>'+previewList(existing)+'</section>'+
+        '<section><strong>In selected backup: '+incoming.length+'</strong>'+previewList(incoming)+'</section>'+
+      '</div>'+
+      '<p class="import-review-note">'+matched+' matching record ID'+(matched===1?'':'s')+'. This action replaces the current set; it does not merge certificates. The current set will be saved as a recovery snapshot first.</p>'+
+      (incoming.length===0&&existing.length?'<p class="import-review-danger">Warning: the selected backup is empty and would remove all current certificates from the active list.</p>':'')+
+      '<div class="import-review-actions"><button class="btn" data-action="import-review-cancel">Keep my current certificates</button>'+
+      '<button class="btn danger" data-action="import-review-apply">Replace with reviewed backup</button></div>'+
+      '</div></div>';
+    document.body.insertAdjacentHTML('beforeend',html);
+  }
+
+  function confirmStagedImport() {
+    if(!pendingImportReview) return;
+    // Keep staged data available for a retry if storage is full or a save fails.
+    try {
+      applyBackupJson(pendingImportReview.json,true);
+      pendingImportReview=null;
+      document.querySelector('.import-review-backdrop')?.remove();
+      toast('Backup restored; the previous certificates can be recovered');
+    } catch(err) {
+      alert('Nothing has been intentionally replaced. Import could not complete: '+(err?.message||err));
+    }
+  }
+
   function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
     if(preserveCurrent) savePreRestoreSnapshot();
@@ -1788,8 +1838,8 @@
 
   window.sperinRestoreBackup=function(json,error){
     if(error){alert('Backup import/restore failed: '+error);return;}
-    try{applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
-    catch(err){alert('Could not load backup: '+err.message);}
+    try{stageBackupImport(json,'Android recovery backup');}
+    catch(err){alert('Could not review backup: '+err.message);}
   };
 
   function recoveryConfirmCopy(kind,stage) {
@@ -1860,7 +1910,7 @@
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
+      reader.onload=()=>{try{stageBackupImport(reader.result,'Selected JSON file');}catch(err){alert('Could not review backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
@@ -3355,6 +3405,12 @@
     else if (action === 'recovery-confirm-cancel') {
       pendingRecoveryAction=null;
       document.querySelector('.recovery-confirm-backdrop')?.remove();
+    }
+    else if (action === 'import-review-apply') confirmStagedImport();
+    else if (action === 'import-review-cancel') {
+      pendingImportReview=null;
+      document.querySelector('.import-review-backdrop')?.remove();
+      toast('Import cancelled; your certificates were not replaced');
     }
     else if (action === 'undo-restore') undoLastRestore();
   });
