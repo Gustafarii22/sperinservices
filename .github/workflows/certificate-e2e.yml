@@ -69,6 +69,9 @@ jobs:
       - name: Recovery import preview and rollback
         run: node certificate-android/qa/import-preview.e2e.mjs
 
+      - name: Verify mobile visual redesign and certificate data persistence
+        run: node certificate-android/qa/visual-experience.e2e.mjs
+
       - name: Validate generated EIC PDF
         run: |
           set -euo pipefail
@@ -103,7 +106,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.15-PDF-QA
+          name: Sperin-Certificates-v1.7.16-PDF-QA
           path: certificate-android/qa-output/
           if-no-files-found: error
           retention-days: 30
