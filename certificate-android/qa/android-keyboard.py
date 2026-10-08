@@ -25,7 +25,13 @@ time.sleep(2)
 tap(find('Continue Upgrade preservation check',cls='android.widget.Button',scroll=True))
 tap(find('Circuit 0',cls='android.widget.Button',scroll=True,prefix=True))
 arrow=find('Show Rating (A) options',scroll=True)
+# Put the control away from the viewport edge so the complete popup is genuinely visible/tappable.
+adb('shell','input','swipe','500','1500','500','1050','180');time.sleep(.5)
+arrow=find('Show Rating (A) options')
 tap(arrow);assert not ime(),'Dropdown arrow opened Android keyboard'
+with open(out/'dropdown-open.png','wb') as f:subprocess.run(['adb','exec-out','screencap','-p'],stdout=f,check=True)
+adb('shell','uiautomator','dump','/sdcard/dropdown-open.xml')
+(out/'dropdown-open.xml').write_text(adb('shell','cat','/sdcard/dropdown-open.xml'))
 tap(find('6',not_edit=True));assert not ime(),'Selecting dropdown opened Android keyboard'
 tap(find('Show Rating (A) options'));find('2');find('6');assert not ime(),'Reopening dropdown opened keyboard'
 tap(find('6',not_edit=True));tap(find('6',cls='android.widget.EditText'))
