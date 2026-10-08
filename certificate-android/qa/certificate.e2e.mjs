@@ -491,15 +491,33 @@ assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit
 // Certificate sections behave as a single-open accordion on the real UI.
 const sectionToggles = page.locator('[data-action="section-toggle"]');
 assert((await sectionToggles.count()) >= 3, "Certificate accordion sections missing");
-assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "true");
-assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "false");
+assert(
+  (await sectionToggles.nth(0).getAttribute("aria-expanded")) === "true",
+  "First certificate section should open by default",
+);
+assert(
+  (await sectionToggles.nth(1).getAttribute("aria-expanded")) === "false",
+  "Second certificate section should start collapsed",
+);
 await sectionToggles.nth(1).click();
-assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "false");
-assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "true");
+assert(
+  (await sectionToggles.nth(0).getAttribute("aria-expanded")) === "false",
+  "Opening another section did not close the previous section",
+);
+assert(
+  (await sectionToggles.nth(1).getAttribute("aria-expanded")) === "true",
+  "Second section did not open",
+);
 await sectionToggles.nth(1).click();
-assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "false");
+assert(
+  (await sectionToggles.nth(1).getAttribute("aria-expanded")) === "false",
+  "Tapping the open section did not close it",
+);
 await sectionToggles.nth(0).click();
-assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "true");
+assert(
+  (await sectionToggles.nth(0).getAttribute("aria-expanded")) === "true",
+  "First section did not reopen",
+);
 console.log("SECTION_ACCORDION_PASS");
 
 // The rest of this legacy regression suite intentionally exposes all mounted panels.
