@@ -11,7 +11,7 @@ with zipfile.ZipFile(apk) as z:
     app=z.read('assets/certificates/app.js').decode()
     index=z.read('assets/certificates/index.html').decode()
     assert '<title>Sperin Certificates</title>' in index
-    assert "const VERSION = '1.7.16'" in app
+    assert "const VERSION = '1.7.17'" in app
     assert "const STORAGE_KEY = 'sperin-certificates-data-v1'" in app
     assert 'sperin-certificates-board-templates-v1' in app
     assert 'sperin-certificates-circuit-templates-v1' in app
