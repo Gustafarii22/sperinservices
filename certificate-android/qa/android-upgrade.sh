@@ -39,7 +39,7 @@ try:
     if android_dialog:
         for n in nodes:
             if n.get('package')=='android' and n.get('resource-id')=='android:id/aerr_close':
-                m=re.fullmatch(r'\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]',n.get('bounds',''))
+                m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.get('bounds',''))
                 if m:
                     x1,y1,x2,y2=map(int,m.groups())
                     print(f'{(x1+x2)//2} {(y1+y2)//2}')
