@@ -261,7 +261,30 @@ for (const [i, c] of cert.tables.circuits.entries())
   }
 await board("CU1").locator('[data-action="circuit-open"]').first().click();
 promptName = "32A ring";
+const templateDescription = await input("description").inputValue();
 await click('[data-action="template-save-circuit"]');
+fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });
+await page.screenshot({
+  path: "certificate-android/qa-output/visual/circuit-template-actions.png",
+  fullPage: true,
+});
+await input("description").fill("Temporary changed design");
+await click('[data-action="circuit-next"]');
+await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("0.77");
+await click('[data-action="circuit-prev"]');
+assert.equal(
+  await page.locator('[data-action="template-open"][data-template-mode="replace"]').textContent(),
+  "Load template",
+);
+await click('[data-action="template-open"][data-template-mode="replace"]');
+await click('[data-action="template-use"]');
+assert.equal(await input("description").inputValue(), templateDescription);
+await click('[data-action="circuit-next"]');
+assert.equal(
+  await page.locator('[data-circuit-input="tests"][data-col="zs"]').inputValue(),
+  "0.77",
+);
+await click('[data-action="circuit-prev"]');
 await click('[data-action="circuit-list"]');
 await board(child.ref).locator('[data-action="template-open"]').click();
 await click('[data-action="template-use"]');
