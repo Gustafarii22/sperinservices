@@ -23,9 +23,19 @@ adb('shell','settings','put','system','user_rotation','0')
 adb('shell','settings','put','secure','show_ime_with_hard_keyboard','1')
 time.sleep(2)
 tap(find('Continue Upgrade preservation check',cls='android.widget.Button',scroll=True))
-# Circuit numbers are user-editable and migration may normalise the stored number.
-# Navigate to the real circuit editor by its accessible button prefix, not a fixed "0".
-tap(find('Circuit ',cls='android.widget.Button',scroll=True,prefix=True))
+time.sleep(1.4)
+# Native UI must be able to launch the actual circuit entry screen. Add a normal
+# editable circuit to test the dropdown independently from the preserved
+# upgrade fixture (which may be an incoming/linked circuit after migration).
+tap(find('Add circuit',cls='android.widget.Button',scroll=True))
+time.sleep(1.4)
+# Fail early with the real navigation defect, instead of swiping 45 times and
+# reporting an unrelated "Rating options missing" error.
+def circuit_editor_visible():
+    return any('1 of 2' in (n.get('text','')+' '+n.get('content-desc','')) and 'Circuit details' in (n.get('text','')+' '+n.get('content-desc','')) for n in nodes())
+if not circuit_editor_visible():
+    with open(out/'circuit-entry-navigation.png','wb') as f:subprocess.run(['adb','exec-out','screencap','-p'],stdout=f,check=True)
+    raise AssertionError('Add circuit did not open the native circuit details editor')
 arrow=find('Show Rating (A) options',scroll=True)
 # Put the control away from the viewport edge so the complete popup is genuinely visible/tappable.
 adb('shell','input','swipe','500','1500','500','1050','180');time.sleep(.5)
