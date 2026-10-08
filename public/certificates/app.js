@@ -751,7 +751,14 @@
       const key=normaliseBoardKey(boardRef);
       const target=document.querySelector('[data-board-key="'+CSS.escape(key)+'"] [data-board-add-circuit]') ||
         document.querySelector('.consumer-unit-workflow .add-consumer-unit');
-      if(target) target.scrollIntoView({behavior:'auto',block:'end'});
+      if(!target) return;
+      target.scrollIntoView({behavior:'auto',block:'end'});
+      requestAnimationFrame(()=>{
+        const reserved=110;
+        const rect=target.getBoundingClientRect();
+        const visibleBottom=window.innerHeight-reserved;
+        if(rect.bottom>visibleBottom) window.scrollBy({top:rect.bottom-visibleBottom,left:0,behavior:'auto'});
+      });
     });
   }
 
