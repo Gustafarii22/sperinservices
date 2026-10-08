@@ -1311,6 +1311,19 @@ const importChooserPromise = page.waitForEvent("filechooser");
 await page.getByRole("button", { name: "Import now", exact: true }).click();
 const importChooser = await importChooserPromise;
 await importChooser.setFiles(importPath);
+await page.waitForSelector(".import-review-modal");
+assert(
+  (await page.locator(".import-review-modal").innerText()).includes("In selected backup: 1"),
+  "Selected backup preview did not display incoming certificate count",
+);
+const beforeApproval = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
+);
+assert(
+  JSON.stringify(beforeApproval.certificates) === JSON.stringify(beforeImportState.certificates),
+  "Import preview changed certificates before final approval",
+);
+await page.locator('[data-action="import-review-apply"]').click();
 await page.waitForSelector(".home-page");
 await page.waitForTimeout(100);
 let importedState = await page.evaluate(() =>

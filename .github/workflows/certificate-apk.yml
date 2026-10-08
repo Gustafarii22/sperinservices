@@ -38,8 +38,8 @@ jobs:
           const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
           const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
           const e2eWorkflow = fs.readFileSync('.github/workflows/certificate-e2e.yml', 'utf8');
-          fail(app.includes("const VERSION = '1.7.14'"), 'Certificate UI version is not v1.7.14');
-          fail(gradle.includes('versionCode 184') && gradle.includes("versionName '1.7.14'"), 'Android version is not v1.7.14 / 184');
+          fail(app.includes("const VERSION = '1.7.15'"), 'Certificate UI version is not v1.7.15');
+          fail(gradle.includes('versionCode 185') && gradle.includes("versionName '1.7.15'"), 'Android version is not v1.7.15 / 184');
           fail(java.includes('certificates-app'), 'Bundled certificate origin route missing');
           fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
           fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
@@ -107,6 +107,7 @@ jobs:
             CERT_AUDIT_PASS="$pass" node certificate-android/qa/certificate.e2e.mjs
           done
           node certificate-android/qa/workflow.e2e.mjs
+          node certificate-android/qa/import-preview.e2e.mjs
           CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
 
       - name: Setup Java
@@ -169,22 +170,22 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/release/app-release.apk certificate-android/dist/Sperin-Certificates-v1.7.14.apk
+          cp certificate-android/app/build/outputs/apk/release/app-release.apk certificate-android/dist/Sperin-Certificates-v1.7.15.apk
 
       - name: Inspect final signed APK
         run: |
-          python3 certificate-android/qa/inspect-apk.py certificate-android/dist/Sperin-Certificates-v1.7.14.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs certificate-android/dist/Sperin-Certificates-v1.7.14.apk | tee certificate-android/dist/signing.txt
+          python3 certificate-android/qa/inspect-apk.py certificate-android/dist/Sperin-Certificates-v1.7.15.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs certificate-android/dist/Sperin-Certificates-v1.7.15.apk | tee certificate-android/dist/signing.txt
           grep -i '68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573' certificate-android/dist/signing.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging certificate-android/dist/Sperin-Certificates-v1.7.14.apk | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='184'.*versionName='1.7.14'" certificate-android/dist/package.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging certificate-android/dist/Sperin-Certificates-v1.7.15.apk | tee certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='185'.*versionName='1.7.15'" certificate-android/dist/package.txt
           grep "application-label:'Sperin Certificates'" certificate-android/dist/package.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.14
-          path: certificate-android/dist/Sperin-Certificates-v1.7.14.apk
+          name: Sperin-Certificates-v1.7.15
+          path: certificate-android/dist/Sperin-Certificates-v1.7.15.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -208,7 +209,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.14-verification
+          name: Sperin-Certificates-v1.7.15-verification
           path: certificate-android/qa-output/
           if-no-files-found: warn
 
@@ -217,12 +218,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="certificates-v1.7.14"
-          APK="certificate-android/dist/Sperin-Certificates-v1.7.14.apk"
+          TAG="certificates-v1.7.15"
+          APK="certificate-android/dist/Sperin-Certificates-v1.7.15.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.7.14" --notes "Consumer-unit workflow, linked incoming circuits, editable dropdowns, live maximum Zs, compact design-only templates with backup support, undo/redo, stable scrolling and complete board PDFs. v1.7.14 additionally clears stale measured incoming-circuit readings when a board feed is changed. Existing storage key, package and signing identity preserved. Verified with certificate E2E in three orders, EIC/EICR workflow tests and PDF generation, APK byte-for-byte bundled-file checks, and Android 35 emulator installation over v1.7.11 with saved-data, rotation and native keyboard tests. Physical handset testing is not available in this environment."
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.7.15" --notes "v1.7.15 introduces mandatory final backup review before any import or Android restore changes active certificates. The preview shows counts and sample records, warns when a chosen backup is empty, and permits cancellation without replacing data. The previous certificate set is saved before confirmed restoration and Undo recovery remains available. Recovery dialog presentation and accessibility are improved. The versioned service-worker cache has been corrected for reliable offline updates. Existing v1.7.14 certificate, circuit, consumer-unit, templates, PDFs, storage key, application ID and signing identity are preserved. Tests cover cancellation, confirmation, undo, reload, the full certificate browser suite, PDF and signed APK upgrade checks. Physical handset testing is not available in this environment."
           fi
 
       - name: Download and verify published artifact
@@ -231,6 +232,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/release-download
-          gh release download certificates-v1.7.14 --pattern '*.apk' --dir /tmp/release-download
-          cmp certificate-android/dist/Sperin-Certificates-v1.7.14.apk /tmp/release-download/Sperin-Certificates-v1.7.14.apk
-          python3 certificate-android/qa/inspect-apk.py /tmp/release-download/Sperin-Certificates-v1.7.14.apk
+          gh release download certificates-v1.7.15 --pattern '*.apk' --dir /tmp/release-download
+          cmp certificate-android/dist/Sperin-Certificates-v1.7.15.apk /tmp/release-download/Sperin-Certificates-v1.7.15.apk
+          python3 certificate-android/qa/inspect-apk.py /tmp/release-download/Sperin-Certificates-v1.7.15.apk

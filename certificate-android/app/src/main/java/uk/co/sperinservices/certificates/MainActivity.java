@@ -69,7 +69,7 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.14";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.15";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -606,9 +606,9 @@ public class MainActivity extends Activity {
                     Uri uri = ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id);
                     InputStream in = getContentResolver().openInputStream(uri);
                     if (in != null) {
-                        String json = readFile(in);
-                        writeInternalBackup(json);
-                        return json;
+                        // Reading a candidate must not replace the latest stored backup.
+                        // The WebView presents a separate review/approval screen first.
+                        return readFile(in);
                     }
                 }
             }
