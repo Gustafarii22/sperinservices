@@ -19,6 +19,16 @@ node certificate-android/qa/seed-upgrade.mjs
 adb shell am force-stop "$PKG"
 adb install -r "$APK"
 adb shell monkey -p "$PKG" 1
+# Inspect the same storage origin after upgrading, without seeding or modifying data.
+for i in $(seq 1 35); do
+  pid="$(adb shell pidof "$PKG" | tr -d '\r' || true)"
+  if [ -n "$pid" ]; then
+    adb forward tcp:9222 localabstract:webview_devtools_remote_"$pid"
+    if curl -fsS http://127.0.0.1:9222/json/version >/dev/null; then break; fi
+  fi
+  sleep 1
+done
+node certificate-android/qa/check-upgrade.mjs
 mkdir -p certificate-android/qa-output/android
 for i in $(seq 1 30); do
   adb shell rm -f /sdcard/window.xml
