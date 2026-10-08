@@ -21,7 +21,14 @@ import android.content.ClipData;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.CancellationSignal;
+import android.os.ParcelFileDescriptor;
+import android.os.Handler;
+import android.os.Looper;
 import android.print.PrintDocumentAdapter;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentInfo;
+import android.print.PageRange;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.speech.RecognitionListener;
@@ -40,6 +47,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Button;
+import android.view.Gravity;
+import android.view.View;
+import android.util.TypedValue;
 
 import androidx.core.content.FileProvider;
 
@@ -69,7 +83,7 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.16";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.17";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -78,6 +92,10 @@ public class MainActivity extends Activity {
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
+    private FrameLayout appContainer;
+    private LinearLayout pdfReadyBar;
+    private Uri latestPdfUri;
+    private int pdfBarGeneration = 0;
     private ValueCallback<Uri[]> fileChooserCallback;
     private long lastRollingAutoBackup = 0L;
     private SpeechRecognizer speechRecognizer;
@@ -102,7 +120,10 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.clearCache(true);
         webView.setBackgroundColor(Color.rgb(7, 17, 31));
-        setContentView(webView);
+        appContainer = new FrameLayout(this);
+        appContainer.addView(webView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(appContainer);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -115,7 +136,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.16");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.17");
 
         setupVoice();
 
@@ -469,8 +490,11 @@ public class MainActivity extends Activity {
                 try (OutputStream out = new FileOutputStream(file)) { out.write(bytes); }
                 uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
             }
-            Uri finalUri = uri;
-            runOnUiThread(() -> Toast.makeText(MainActivity.this, fileName + " saved", Toast.LENGTH_LONG).show());
+            if (notify && "application/pdf".equals(mime)) {
+                runOnUiThread(() -> showPdfReadyBar(uri, fileName));
+            } else {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, fileName + " saved", Toast.LENGTH_SHORT).show());
+            }
             if (notify) requestFileNotification(uri, fileName, mime);
             return finalUri;
         } catch (Exception ex) {
@@ -640,10 +664,141 @@ public class MainActivity extends Activity {
         }
     }
 
+
+    private int dp(int value) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                getResources().getDisplayMetrics());
+    }
+
+    private void openSavedPdf(Uri uri) {
+        if (uri == null) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.setClipData(ClipData.newRawUri("Sperin Certificate", uri));
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(this, "No PDF reader available. File is saved in Downloads.", Toast.LENGTH_LONG).show();
+        } catch (Exception ex) {
+            Toast.makeText(this, "Could not open PDF. Find it in Downloads.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showPdfReadyBar(Uri uri, String fileName) {
+        if (appContainer == null || uri == null) return;
+        latestPdfUri = uri;
+        if (pdfReadyBar != null) appContainer.removeView(pdfReadyBar);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(14), dp(12), dp(14), dp(12));
+        row.setBackgroundColor(Color.rgb(16, 34, 54));
+        row.setElevation(dp(12));
+        TextView label = new TextView(this);
+        label.setText("PDF saved to Downloads");
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(14f);
+        label.setMaxLines(2);
+        row.addView(label, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        Button open = new Button(this);
+        open.setText("OPEN PDF");
+        open.setContentDescription("Open saved PDF " + fileName);
+        open.setAllCaps(false);
+        open.setTextColor(Color.WHITE);
+        open.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(29, 115, 215)));
+        open.setOnClickListener(v -> {
+            Uri selected = latestPdfUri;
+            hidePdfReadyBar();
+            openSavedPdf(selected);
+        });
+        row.addView(open, new LinearLayout.LayoutParams(dp(112), dp(50)));
+        Button dismiss = new Button(this);
+        dismiss.setText("×");
+        dismiss.setContentDescription("Dismiss PDF saved message");
+        dismiss.setTextColor(Color.WHITE);
+        dismiss.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(34, 57, 80)));
+        dismiss.setOnClickListener(v -> hidePdfReadyBar());
+        row.addView(dismiss, new LinearLayout.LayoutParams(dp(44), dp(50)));
+        FrameLayout.LayoutParams layout = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        layout.setMargins(dp(8), dp(8), dp(8), dp(12));
+        appContainer.addView(row, layout);
+        pdfReadyBar = row;
+        final int generation = ++pdfBarGeneration;
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (generation == pdfBarGeneration) hidePdfReadyBar();
+        }, 15000);
+    }
+
+    private void hidePdfReadyBar() {
+        pdfBarGeneration++;
+        if (pdfReadyBar != null && appContainer != null) appContainer.removeView(pdfReadyBar);
+        pdfReadyBar = null;
+    }
+
+    // Print the actual ink-friendly PDF, never the dark HTML form currently on screen.
+    // Preselect landscape ISO A4. The printer app may still allow the user to override.
+    private void printCertificatePdf(byte[] pdfBytes, String fileName) {
+        if (pdfBytes == null || pdfBytes.length < 5
+                || pdfBytes[0] != '%' || pdfBytes[1] != 'P'
+                || pdfBytes[2] != 'D' || pdfBytes[3] != 'F') {
+            Toast.makeText(this, "Unable to print: invalid PDF", Toast.LENGTH_LONG).show();
+            return;
+        }
+        PrintManager manager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+        if (manager == null) {
+            Toast.makeText(this, "Printing is not available", Toast.LENGTH_LONG).show();
+            return;
+        }
+        PrintDocumentAdapter adapter = new PrintDocumentAdapter() {
+            @Override
+            public void onLayout(PrintAttributes oldAttributes, PrintAttributes newAttributes,
+                    CancellationSignal cancellationSignal, LayoutResultCallback callback, Bundle extras) {
+                if (cancellationSignal.isCanceled()) {
+                    callback.onLayoutCancelled();
+                    return;
+                }
+                PrintDocumentInfo info = new PrintDocumentInfo.Builder(fileName)
+                        .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                        .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+                        .build();
+                callback.onLayoutFinished(info, true);
+            }
+
+            @Override
+            public void onWrite(PageRange[] pages, ParcelFileDescriptor destination,
+                    CancellationSignal cancellationSignal, WriteResultCallback callback) {
+                if (cancellationSignal.isCanceled()) {
+                    callback.onWriteCancelled();
+                    return;
+                }
+                try (FileOutputStream out = new FileOutputStream(destination.getFileDescriptor())) {
+                    out.write(pdfBytes);
+                    out.flush();
+                    if (cancellationSignal.isCanceled()) callback.onWriteCancelled();
+                    else callback.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES});
+                } catch (Exception ex) {
+                    callback.onWriteFailed("Unable to prepare certificate PDF");
+                }
+            }
+        };
+        PrintAttributes attrs = new PrintAttributes.Builder()
+                .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
+                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                .build();
+        manager.print("Sperin Certificate", adapter, attrs);
+    }
+
     private void printCurrentPage() {
         PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
         PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter("Sperin Certificate");
-        printManager.print("Sperin Certificate", adapter, null);
+        PrintAttributes attrs = new PrintAttributes.Builder()
+                .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
+                .setColorMode(PrintAttributes.COLOR_MODE_MONOCHROME)
+                .build();
+        printManager.print("Sperin Certificate", adapter, attrs);
     }
 
     private Bitmap decodeSheetBitmap(byte[] bytes) {
@@ -773,6 +928,22 @@ public class MainActivity extends Activity {
                 return uri != null;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public boolean printPdfBase64(String dataUri, String fileName) {
+            try {
+                if (dataUri == null || dataUri.length() > 28000000) return false;
+                int comma = dataUri.indexOf(',');
+                String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
+                byte[] bytes = Base64.decode(payload, Base64.DEFAULT);
+                final String printableName = safeName(fileName, "Sperin-Certificate.pdf");
+                runOnUiThread(() -> printCertificatePdf(bytes, printableName));
+                return true;
+            } catch (Exception ex) {
+                android.util.Log.e("SperinCertificates", "PDF print preparation failed", ex);
                 return false;
             }
         }
