@@ -1198,6 +1198,7 @@
   }
 
   function saveNow() {
+    refreshEntryIndicators();
     clearTimeout(autosaveTimer);
     persist();
     scheduleNativeAutoBackup();
@@ -1324,6 +1325,7 @@
   }
 
   function scheduleAutosave() {
+    refreshEntryIndicators();
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => {
       persist();
@@ -1393,6 +1395,28 @@
       total+=n.total;entered+=n.entered;
     }
     return {entered,total,percent:total?Math.round(100*entered/total):0};
+  }
+
+  function refreshEntryIndicators(){
+    const cert=getCurrent();
+    if(!cert)return;
+    const progress=certificateEntryProgress(cert);
+    const count=document.querySelector('[data-form-entry-count]');
+    const percent=document.querySelector('[data-form-entry-percent]');
+    if(count)count.textContent=progress.entered+' of '+progress.total+' fields recorded';
+    if(percent)percent.textContent=progress.percent+'%';
+    const meter=document.querySelector('.form-entry-panel .entry-meter');
+    if(meter){
+      meter.setAttribute('aria-valuenow',String(progress.percent));
+      const fill=meter.querySelector('span');
+      if(fill)fill.style.width=progress.percent+'%';
+    }
+    SCHEMAS[cert.type]?.sections.forEach((part,index)=>{
+      const label=document.querySelector('[data-section-key="part-'+index+'"] .section-toggle-meta');
+      if(!label || part.type!=='section')return;
+      const status=fieldEntryCount(cert,part);
+      label.textContent=status.entered+' / '+status.total+' fields';
+    });
   }
 
   function entryMeter(progress,label){
@@ -1492,7 +1516,7 @@
       return renderTable(part,cert,key);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="form-entry-panel"><div class="form-entry-head"><div><strong>Form entry</strong><span>${progress.entered} of ${progress.total} fields recorded</span></div><strong class="form-entry-percent">${progress.percent}%</strong></div>${entryMeter(progress,'Certificate form fields recorded')}<p>Form field count only — this does not assess test results or compliance.</p></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="form-entry-panel"><div class="form-entry-head"><div><strong>Form entry</strong><span data-form-entry-count>${progress.entered} of ${progress.total} fields recorded</span></div><strong class="form-entry-percent" data-form-entry-percent>${progress.percent}%</strong></div>${entryMeter(progress,'Certificate form fields recorded')}<p>Form field count only — this does not assess test results or compliance.</p></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
