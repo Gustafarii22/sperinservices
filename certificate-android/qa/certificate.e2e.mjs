@@ -60,6 +60,9 @@ assert(
   "Old Type 3 wording remains in supply-device options",
 );
 assert(appSource.includes("normaliseLegacyDeviceLabels"), "Legacy BS88-3 migration missing");
+assert(appSource.includes('data-action="section-toggle"'), "Certificate accordion section action missing");
+assert(appSource.includes('data-template-mode="replace"'), "Direct circuit Load template action missing");
+assert(appSource.includes(">Load template</button>"), "Load template label missing");
 assert(
   appSource.includes("SperinIetForms.build"),
   "Certificate app is not using the shared IET-style renderer",
@@ -478,6 +481,33 @@ assert(
   "Saved certificate did not open",
 );
 assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit render error");
+
+// Certificate sections behave as a single-open accordion on the real UI.
+const sectionToggles = page.locator('[data-action="section-toggle"]');
+assert((await sectionToggles.count()) >= 3, "Certificate accordion sections missing");
+assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "true");
+assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "false");
+await sectionToggles.nth(1).click();
+assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "false");
+assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "true");
+await sectionToggles.nth(1).click();
+assert.equal(await sectionToggles.nth(1).getAttribute("aria-expanded"), "false");
+await sectionToggles.nth(0).click();
+assert.equal(await sectionToggles.nth(0).getAttribute("aria-expanded"), "true");
+console.log("SECTION_ACCORDION_PASS");
+
+// The rest of this legacy regression suite intentionally exposes all mounted panels.
+// The accordion behavior itself is verified above; this keeps the existing deep field coverage intact.
+const qaOpenCss =
+  ".section-panel.collapsed{max-height:5000px!important;opacity:1!important;overflow:visible!important;pointer-events:auto!important}";
+await page.addStyleTag({ content: qaOpenCss });
+await page.addInitScript((css) => {
+  document.addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+  });
+}, qaOpenCss);
 
 // Compact field actions must stay obvious without icon-only controls.
 assert(
