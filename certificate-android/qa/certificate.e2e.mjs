@@ -508,6 +508,11 @@ assert(
   (await sectionToggles.nth(1).getAttribute("aria-expanded")) === "true",
   "Second section did not open",
 );
+fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });
+await page.screenshot({
+  path: "certificate-android/qa-output/visual/certificate-accordion.png",
+  fullPage: true,
+});
 await sectionToggles.nth(1).click();
 assert(
   (await sectionToggles.nth(1).getAttribute("aria-expanded")) === "false",
