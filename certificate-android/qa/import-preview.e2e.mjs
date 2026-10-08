@@ -14,10 +14,7 @@ try {
   await page.goto(base);
   await page.locator('[data-action="new"][data-type="eic"]').click();
 
-  const original = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  const original = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(original?.certificates?.length === 1, "Could not create sample certificate");
   const backedUpId = original.certificates[0].id;
   const emptyBackup = JSON.stringify({
@@ -33,10 +30,7 @@ try {
   assert(preview.includes("In selected backup: 0"), "Backup certificate count not shown");
   assert(preview.includes("selected backup is empty"), "Empty backup warning missing");
 
-  let before = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  let before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(
     before.certificates[0].id === backedUpId,
     "Preview replaced live data before confirmation",
@@ -44,23 +38,14 @@ try {
 
   await page.locator('[data-action="import-review-cancel"]').last().click();
   await page.locator(".import-review-backdrop").waitFor({ state: "detached" });
-  before = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(before.certificates[0].id === backedUpId, "Cancellation lost certificate data");
 
   await page.evaluate((backup) => window.sperinRestoreBackup(backup), emptyBackup);
   await page.locator('[data-action="import-review-apply"]').click();
-  const replaced = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  const replaced = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(replaced.certificates.length === 0, "Confirmed import failed");
-  const rescue = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    PRE,
-  );
+  const rescue = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), PRE);
   assert(
     rescue.certificates.some((cert) => cert.id === backedUpId),
     "Pre-import recovery snapshot missing",
@@ -68,20 +53,14 @@ try {
 
   await page.locator('.topbar [data-action="settings"]').click();
   await page.locator('[data-action="undo-restore"]').click();
-  const recovered = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  const recovered = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(
     recovered.certificates.some((cert) => cert.id === backedUpId),
     "Undo failed to recover certificate",
   );
 
   await page.reload();
-  const afterReload = await page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)),
-    KEY,
-  );
+  const afterReload = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(
     afterReload.certificates.some((cert) => cert.id === backedUpId),
     "Recovered certificate was not persisted",
