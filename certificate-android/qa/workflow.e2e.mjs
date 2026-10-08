@@ -263,6 +263,11 @@ await board("CU1").locator('[data-action="circuit-open"]').first().click();
 promptName = "32A ring";
 const templateDescription = await input("description").inputValue();
 await click('[data-action="template-save-circuit"]');
+fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });
+await page.screenshot({
+  path: "certificate-android/qa-output/visual/circuit-template-actions.png",
+  fullPage: true,
+});
 await input("description").fill("Temporary changed design");
 await click('[data-action="circuit-next"]');
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("0.77");
