@@ -267,6 +267,14 @@ assert.equal(await input("boardRef").inputValue(), child.ref);
 await click('[data-action="circuit-next"]');
 assert.equal(await page.locator('[data-col="zs"]').inputValue(), "");
 await click('[data-action="circuit-complete"]');
+await page.waitForTimeout(100);
+const addCircuitBox = await board(child.ref).locator('[data-board-add-circuit]').boundingBox();
+assert(addCircuitBox, "Add circuit button missing after completing circuit");
+const viewport = page.viewportSize();
+assert(
+  addCircuitBox.y + addCircuitBox.height <= viewport.height - 72,
+  "Add circuit button is obscured by the fixed save bar",
+);
 await board(child.ref).screenshot({ path: "certificate-android/qa-output/visual/consumer-unit.png" });
 await page.screenshot({ path: "certificate-android/qa-output/visual/grouped-workflow.png", fullPage: true });
 // Reload durability, template backup/export and import through the app's public import bridge.
