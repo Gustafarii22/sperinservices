@@ -578,7 +578,7 @@ button:disabled{opacity:.42;cursor:default}
 /* v1.7.16 — Sperin Certificates visual experience.
  * Adapted from Lovable's field-first patterns without changing the app engine. */
 :root{--experience-edge:#2b405c;--experience-surface:#0b1727;--experience-raised:#122238}
-html{scroll-behavior:smooth}
+/* Keep programmatic circuit-return scrolling immediate; only requested jump links animate. */
 #new-certificates,#saved-certificates{scroll-margin-top:100px}
 button:focus-visible,[role="button"]:focus-visible{outline:3px solid #79baff;outline-offset:3px}
 .home-page{display:grid;gap:18px}
