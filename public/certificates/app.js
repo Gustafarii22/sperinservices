@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.16';
+  const VERSION = '1.7.17';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1677,7 +1677,7 @@
       <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Load template</button></div>`;
   }
 
-  function renderBoardWorkflow(cert){
+  function renderBoardWorkflow(cert,sectionKey='consumer-units'){
     ensureBoardWorkflowData(cert);
     syncCircuitRows(cert);
     const boards=cert.tables.boards||[];
@@ -1718,10 +1718,11 @@
         <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Circuits</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div>${renderBoardCircuits(cert,board,bi)}</div>
       </section>`;
     }).join('');
-    return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
+    const content=`<div class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><p>Complete each consumer unit, then its circuits.</p></div></div>
       ${boardCards}
       <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button><button class="btn small" data-action="template-open" data-kind="board">Load template</button></div>
-    </section>`;
+    </div>`;
+    return accordionSection(sectionKey,'Consumer units & circuits',content,'consumer-unit-accordion');
   }
 
   function renderCircuitList(cert){
@@ -2052,10 +2053,26 @@
   }
 
   function printCertificate() {
+    const cert=getCurrent();
+    if(!cert)return;
+    syncSingleSignatory(cert);
     saveNow();
-    if(window.Android && typeof window.Android.printPage==='function'){
-      try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
+    // Print the actual letterheaded PDF instead of the dark data-entry screen.
+    // In the Android wrapper, this also preselects A4 landscape in the print dialog.
+    if(window.Android && typeof window.Android.printPdfBase64==='function'){
+      try{
+        if(!window.SperinIetForms?.build) throw new Error('Certificate PDF generator unavailable');
+        const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
+        const accepted=window.Android.printPdfBase64(doc.output('datauristring'),pdfSafeName(cert)+'.pdf');
+        if(accepted===false) throw new Error('Android print service could not accept this PDF');
+        return;
+      }catch(err){
+        console.error('Could not prepare certificate for printing',err);
+        alert('Could not open print preview: '+(err?.message||err));
+        return;
+      }
     }
+    // Browser fallback uses a white ink-saving print stylesheet at A4 landscape.
     window.print();
   }
 
@@ -2095,10 +2112,10 @@
       if(window.Android && typeof window.Android.savePdfBase64==='function'){
         const saved=window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
         if(saved===false) throw new Error('Android could not save the PDF');
-        toast('PDF saved');
+        // Android shows a native on-screen "Open PDF" button above the app.
       }else{
         doc.save(pdfName);
-        toast('PDF created');
+        toast('PDF downloaded — open it from your browser downloads');
       }
       return true;
     }catch(err){

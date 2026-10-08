@@ -1,12 +1,12 @@
 /* Scoped, versioned offline cache for the web PWA; Android uses bundled assets. */
-const CACHE='sperin-certificates-v1-7-16';
+const CACHE='sperin-certificates-v1-7-17';
 const PREFIX='sperin-certificates-v';
 const LOCAL=[
-  './','./index.html','./styles.css?v=1.7.16',
-  './iet-forms.js?v=1.7.16','./app.js?v=1.7.16',
+  './','./index.html','./styles.css?v=1.7.17',
+  './iet-forms.js?v=1.7.17','./app.js?v=1.7.17',
   './manifest.webmanifest','./icon.svg',
-  './vendor/jspdf.umd.min.js?v=1.7.16',
-  './vendor/jspdf.plugin.autotable.min.js?v=1.7.16'
+  './vendor/jspdf.umd.min.js?v=1.7.17',
+  './vendor/jspdf.plugin.autotable.min.js?v=1.7.17'
 ];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(LOCAL)).then(()=>self.skipWaiting()));

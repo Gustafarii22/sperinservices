@@ -30,6 +30,10 @@ adb('shell','settings','put','secure','show_ime_with_hard_keyboard','1')
 time.sleep(2)
 tap(find('Continue Upgrade preservation check',cls='android.widget.Button',scroll=True))
 time.sleep(1.4)
+# The v1.7.17 circuit workflow is deliberately inside an accessible accordion.
+# Open it before attempting to use Add circuit in the real Android WebView.
+tap(find('Consumer units & circuits',cls='android.widget.Button',scroll=True,prefix=True))
+time.sleep(.5)
 # Native UI must be able to launch the actual circuit entry screen. Add a normal
 # editable circuit to test the dropdown independently from the preserved
 # upgrade fixture (which may be an incoming/linked circuit after migration).

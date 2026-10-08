@@ -700,3 +700,77 @@ button:focus-visible,[role="button"]:focus-visible{outline:3px solid #79baff;out
   .form-entry-panel,.saved-cert-progress,.saved-cert-date .entry-percent{display:none!important}
   .home-hero,.home-stats,.cert-launch-list{background:none;box-shadow:none}
 }
+
+
+/* v1.7.17 field legibility: easier to read without adding more features. */
+:root{--muted:#bed0e2;--line:#38516e}
+body{font-size:15px;line-height:1.5}
+.form-title h2{font-size:clamp(20px,3vw,25px);line-height:1.25;letter-spacing:-.025em}
+.form-title p,.meta,.form-entry-panel p,.field label,.section-quick-actions span{font-size:clamp(13px,2.1vw,14px);line-height:1.5}
+.form-section .section-toggle{min-height:60px;font-size:15px;padding:15px 16px;letter-spacing:0;line-height:1.4}
+.section-toggle-meta{font-size:12px;color:#d1e9ff;background:rgba(65,147,228,.11)}
+.fields{gap:14px;padding:17px}
+.field label{font-weight:650;color:#deebf8;margin-bottom:7px}
+.field input,.field select,.field textarea,.field input[list],.data-table td input,.data-table td select,.data-table td textarea{min-height:48px;font-size:16px;line-height:1.45;letter-spacing:0;padding:11px 12px;background:#111f32;border:1px solid #49647f;color:#f7fbff}
+.field input::placeholder,.field textarea::placeholder{color:#aec2d7;opacity:1}
+.field textarea{min-height:120px}
+.field input:focus,.field select:focus,.field textarea:focus,.field input[list]:focus{outline:2px solid #68baff;outline-offset:1px;box-shadow:0 0 0 3px rgba(47,135,234,.16)}
+.field label,.section-toggle,.field input,.field select,.field textarea{-webkit-font-smoothing:antialiased}
+.consumer-unit-accordion>.section-panel{padding:4px 12px 14px}
+.consumer-unit-accordion .consumer-unit-workflow{margin:0}
+.consumer-unit-accordion .workflow-heading h2{display:none}
+.consumer-unit-accordion .workflow-heading{margin:6px 0 12px}
+.consumer-unit-accordion .workflow-heading p{font-size:13px;color:var(--muted);margin:0 0 4px}
+.consumer-unit-head{gap:12px;flex-wrap:wrap}
+.consumer-unit-head h3{font-size:17px}
+.board-section-title{font-size:15px}
+.board-section-title span,.circuit-card span{font-size:13px}
+.consumer-unit-accordion .add-consumer-unit .btn{min-height:48px}
+.circuit-main{min-height:48px}
+.circuit-main strong{font-size:15px}
+.circuit-main span{white-space:normal;overflow-wrap:anywhere}
+.cert-launch-copy strong,.saved-cert-copy strong{font-size:15px}
+.cert-launch-copy small,.saved-cert-copy span,.home-section-head p{font-size:13px;line-height:1.5}
+.eyebrow{font-size:11.5px;letter-spacing:.085em}
+.btn{font-size:14px;line-height:1.3}
+@media(max-width:700px){
+  .fields{gap:13px;padding:13px}
+  .form-section .section-toggle{font-size:14.5px;min-height:58px}
+  .form-title h2{font-size:20px}
+  .consumer-unit-accordion>.section-panel{padding:3px 6px 12px}
+  .field label{font-size:13.5px}
+  .field input,.field select,.field textarea,.field input[list]{font-size:16px}
+  .consumer-unit-head{gap:7px}
+  .consumer-unit-head .btn{min-height:44px}
+}
+
+/* Paper mode: only the certificate content, never dark UI panels or solid fills. */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  :root{color-scheme:light}
+  html,body,.shell,#app,.form-section,.consumer-unit-card,.consumer-unit-workflow,.board-circuit-list,.circuit-card,.fields,.section-panel,.form-entry-panel{
+    background:#fff!important;color:#111827!important;box-shadow:none!important;
+    text-shadow:none!important;filter:none!important
+  }
+  *{-webkit-print-color-adjust:economy!important;print-color-adjust:economy!important}
+  .topbar,.form-head,.actions,.savebar,.voice-mic,.table-tools,.home-page,.footer-note,.toast,.backup-preview-backdrop,.add-consumer-unit,.board-circuit-tools,.section-chevron,.section-toggle-meta,.consumer-unit-head button,.circuit-actions,.form-entry-panel{display:none!important}
+  .accordion-section .section-panel.collapsed{display:block!important;max-height:none!important;opacity:1!important;overflow:visible!important}
+  .accordion-section,.consumer-unit-card,.form-section{border:1px solid #b6beca!important;border-radius:3px!important;break-inside:auto!important;overflow:visible!important}
+  .section-toggle,.accordion-section .section-toggle,.consumer-unit-head,.form-section h3,.data-table th,.board-section-title{
+    color:#17253a!important;background:#edf3f9!important;border-color:#b6beca!important;box-shadow:none!important
+  }
+  .field label,.meta,.consumer-unit-head span,.circuit-main span{color:#334155!important}
+  .field input,.field select,.field textarea,.field input[list],.data-table td input,.data-table td select,.data-table td textarea{
+    background:transparent!important;color:#111827!important;border:0!important;box-shadow:none!important;outline:0!important;min-height:0!important
+  }
+  .circuit-card{border:1px solid #aab5c3!important}
+  .table-wrap{overflow:visible!important}
+  .data-table th,.data-table td{background:#fff!important;color:#111827!important;border:1px solid #aab5c3!important}
+}
+
+/* Footer is informational except for its Home button. It must not block a
+   circuit or form control underneath it while the page is being scrolled. */
+.savebar,.savebar-inner{pointer-events:none}
+.savebar .btn,.savebar button{pointer-events:auto}
+.circuit-card,.circuit-main,.board-circuit-tools [data-board-add-circuit]{scroll-margin-bottom:130px}
+html{scroll-padding-bottom:130px}

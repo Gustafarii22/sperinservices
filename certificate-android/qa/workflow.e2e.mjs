@@ -92,6 +92,13 @@ await page.addInitScript(
 );
 await page.reload();
 await page.locator('[data-action="edit"]').first().click();
+async function openConsumerUnits() {
+  const toggle = page.locator(".consumer-unit-accordion > .section-toggle");
+  if ((await toggle.count()) && (await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+}
+await openConsumerUnits();
 const saved = async () => {
   await page.waitForTimeout(350);
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key)).certificates[0], key);
@@ -103,9 +110,11 @@ const click = async (sel) => {
   await page.waitForTimeout(100);
 };
 const change = async (sel, value) => {
-  const el = page.locator(sel);
-  await el.fill(value);
-  await el.dispatchEvent("change");
+  await page.locator(sel).evaluate((el, v) => {
+    el.value = v;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
   await page.waitForTimeout(80);
 };
 assert.equal((await saved()).tables.boards[0].location, "Intake cupboard");
@@ -345,6 +354,7 @@ await page.evaluate((backup) => {
 await page.locator(".import-review-modal").waitFor();
 await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
+await openConsumerUnits();
 assert.equal(
   await page.evaluate(
     () => JSON.parse(localStorage.getItem("sperin-certificates-board-templates-v1")).length,
@@ -361,6 +371,7 @@ await page.evaluate((backup) => {
 await page.locator(".import-review-modal").waitFor();
 await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
+await openConsumerUnits();
 assert.equal(
   await page.evaluate(
     () => JSON.parse(localStorage.getItem("sperin-certificates-circuit-templates-v1")).length,
@@ -453,6 +464,7 @@ await page.evaluate(() =>
 await page.locator(".import-review-modal").waitFor();
 await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
+await openConsumerUnits();
 cert = await saved();
 assert.equal(cert.tables.boards.length, 1);
 assert.equal(cert.tables.boards[0].ref, "CU9");
