@@ -5,10 +5,10 @@ def adb(*args):return subprocess.check_output(['adb',*args],text=True)
 def nodes():
     adb('shell','uiautomator','dump','/sdcard/keyboard.xml')
     return list(ET.fromstring(adb('shell','cat','/sdcard/keyboard.xml')).iter('node'))
-def find(label,cls=None,scroll=False):
+def find(label,cls=None,scroll=False,not_edit=False):
     for _ in range(45 if scroll else 4):
         for n in nodes():
-            if (n.get('text')==label or n.get('content-desc')==label) and (not cls or n.get('class')==cls):
+            if (n.get('text')==label or n.get('content-desc')==label) and (not cls or n.get('class')==cls) and (not not_edit or n.get('class')!='android.widget.EditText'):
                 box=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
                 if len(box)==4 and box[3]>box[1] and box[2]>box[0]:return box
         if scroll:adb('shell','input','swipe','500','1500','500','500','180')
@@ -22,13 +22,13 @@ def ime():
 adb('shell','settings','put','system','user_rotation','0')
 adb('shell','settings','put','secure','show_ime_with_hard_keyboard','1')
 time.sleep(2)
-tap(find('Upgrade preservation check'))
+tap(find('Upgrade preservation check',scroll=True))
 tap(find('Circuit 0',scroll=True))
 arrow=find('Show Rating (A) options',scroll=True)
 tap(arrow);assert not ime(),'Dropdown arrow opened Android keyboard'
-tap(find('32'));assert not ime(),'Selecting dropdown opened Android keyboard'
-tap(find('Show Rating (A) options'));find('6');find('32');assert not ime(),'Reopening dropdown opened keyboard'
-tap(find('32'));tap(find('32',cls='android.widget.EditText'))
+tap(find('6',not_edit=True));assert not ime(),'Selecting dropdown opened Android keyboard'
+tap(find('Show Rating (A) options'));find('2');find('6');assert not ime(),'Reopening dropdown opened keyboard'
+tap(find('6',not_edit=True));tap(find('6',cls='android.widget.EditText'))
 assert ime(),'Tapping the editable input did not open Android keyboard'
 with open(out/'numeric-keyboard.png','wb') as f:subprocess.run(['adb','exec-out','screencap','-p'],stdout=f,check=True)
 adb('shell','input','keyevent','4')

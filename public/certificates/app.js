@@ -397,6 +397,10 @@
       _sourceBoardRef:sourceBoard,
       _sourceCircuitNo:sourceNo
     };
+    const previousDetail=incomingIndex>=0?cert.tables.circuits[incomingIndex]:null;
+    if(previousDetail?.maxZsManual && ['ocpdBs','ocpdType','ocpdRating'].every(k=>String(previousDetail[k]??'')===String(incomingDetail[k]??''))){
+      incomingDetail.maxZsManual=true;incomingDetail.maxZs=previousDetail.maxZs;
+    }
     const incomingTest={
       ...(incomingIndex>=0 ? cert.tables.tests[incomingIndex] : {}),
       boardRef:board.ref,
@@ -1604,7 +1608,7 @@
   function editorInput(cert,scope,index,field,value){
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
-    if(field.key==='boardRef'){
+    if(field.key==='boardRef' || (scope==='details' && cert.tables.circuits[index]?._incomingFeed && field.key!=='maxZs')){
       control=`<input ${attrs} value="${esc(value??'')}" readonly/>`;
     }else if(field.textarea){
       control=`<textarea ${attrs}>${esc(value??'')}</textarea>`;
@@ -3120,6 +3124,7 @@
       const combo=button.closest('.combo-field'),menu=combo.querySelector('.combo-menu'),open=menu.hidden;
       document.activeElement?.blur();
       document.querySelectorAll('.combo-menu').forEach(m=>m.hidden=true);
+      combo.classList.toggle('open-up',window.innerHeight-combo.getBoundingClientRect().bottom<250 && combo.getBoundingClientRect().top>250);
       menu.hidden=!open;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded',String(open)));
     }
     else if(action==='combo-option'){

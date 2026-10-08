@@ -492,3 +492,6 @@ button:disabled{opacity:.42;cursor:default}
 .combo-arrow{border-color:var(--line)}
 .consumer-unit-head h3{padding:0;background:none;border:0}
 .consumer-unit-fields .field:has([data-board-input="zdb"]),.consumer-unit-fields .field:has([data-board-input="ipf"]){grid-column:span 6}
+/* Menus must escape the card edge, including the final options in long lists. */
+.form-section:has(.combo-menu:not([hidden])){overflow:visible;position:relative;z-index:25}
+.combo-field.open-up .combo-menu{top:auto;bottom:100%}

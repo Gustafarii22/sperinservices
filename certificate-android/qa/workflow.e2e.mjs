@@ -116,6 +116,9 @@ const combo = input("ocpdRating").locator("..");
 await combo.locator(".combo-arrow").click();
 assert(await input("ocpdRating").evaluate((el) => document.activeElement !== el));
 assert.equal(await combo.locator(".combo-option:visible").count(), 14);
+await combo.locator('[data-value="125"]').click();
+assert.equal(await input("maxZs").inputValue(), "0.35");
+await combo.locator(".combo-arrow").click();
 await combo.locator('[data-value="16"]').click();
 assert.equal(await input("maxZs").inputValue(), "2.73");
 assert(await input("ocpdRating").evaluate((el) => document.activeElement !== el));
@@ -194,6 +197,22 @@ await input("ocpdRating").fill("50");
 await click('[data-action="circuit-list"]');
 cert = await saved();
 assert.equal(cert.tables.circuits.find((c) => c._incomingFeed).ocpdRating, "50");
+// A manual incoming-circuit limit survives unrelated edits, but changes with its source device.
+await board(child.ref).locator('[data-action="circuit-open"]').first().click();
+assert.equal(await input("ocpdRating").getAttribute("readonly"), "");
+await input("maxZs").fill("1.11");
+await click('[data-action="circuit-list"]');
+assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs, "1.11");
+await page.reload();
+assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs, "1.11");
+await board("CU1")
+  .locator(".circuit-card")
+  .filter({ hasText: "Circuit 7" })
+  .locator('[data-action="circuit-open"]')
+  .click();
+await input("ocpdRating").fill("40");
+await click('[data-action="circuit-list"]');
+assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs, "1.09");
 promptName = "Domestic RCBO + SPD";
 await board("CU1").locator('[data-action="template-save-board"]').click();
 await click('[data-action="template-open"][data-kind="board"]');
