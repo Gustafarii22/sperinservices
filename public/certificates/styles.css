@@ -767,3 +767,10 @@ body{font-size:15px;line-height:1.5}
   .table-wrap{overflow:visible!important}
   .data-table th,.data-table td{background:#fff!important;color:#111827!important;border:1px solid #aab5c3!important}
 }
+
+/* Footer is informational except for its Home button. It must not block a
+   circuit or form control underneath it while the page is being scrolled. */
+.savebar,.savebar-inner{pointer-events:none}
+.savebar .btn,.savebar button{pointer-events:auto}
+.circuit-card,.circuit-main,.board-circuit-tools [data-board-add-circuit]{scroll-margin-bottom:130px}
+html{scroll-padding-bottom:130px}
