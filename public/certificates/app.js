@@ -262,22 +262,34 @@
     if(kind==='board'&&confirm('Include the circuit design layout? Measured readings are always excluded.'))item.circuits=boardCircuitIndices(cert,row.ref).filter(i=>!cert.tables.circuits[i]._incomingFeed).map(i=>circuitDesign(cert.tables.circuits[i]));
     try{saveReusableTemplates(kind,[...reusableTemplates(kind),item]);scheduleNativeAutoBackup();toast('Template saved');}catch(err){alert('Template could not be saved: '+err.message);}
   }
-  function openTemplatePicker(kind,boardRef){
-    templatePicker={kind,boardRef};closeModal();
+  function openTemplatePicker(kind,boardRef,mode='add',circuitIndex=null){
+    templatePicker={kind,boardRef,mode,circuitIndex:Number.isInteger(Number(circuitIndex))?Number(circuitIndex):null};closeModal();
     const rows=reusableTemplates(kind).map(t=>`<div class="template-row"><div><strong>${esc(t.name)}</strong><small>${esc(kind==='board'?[t.design.mainSwitch,t.design.spd,(t.circuits?.length||0)+' circuits'].filter(Boolean).join(' · '):[t.design.ocpdRating&&t.design.ocpdRating+' A',t.design.ocpdType,t.design.description].filter(Boolean).join(' · '))}</small></div><div class="template-actions"><button class="btn small" data-action="template-use" data-id="${esc(t.id)}">Use</button><button class="btn small" data-action="template-rename" data-id="${esc(t.id)}">Rename</button><button class="btn small danger" data-action="template-delete" data-id="${esc(t.id)}">Delete</button></div></div>`).join('');
     document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop"><div class="card modal template-picker" data-modal><div class="profile-head"><h3>${kind==='board'?'Consumer unit':'Circuit'} templates</h3><button class="btn small" data-action="close-modal">Close</button></div>${rows||'<p>No saved templates yet.</p>'}</div></div>`);
   }
   function manageDesignTemplate(id,remove){
-    const {kind,boardRef}=templatePicker,list=reusableTemplates(kind),t=list.find(t=>t.id===id);if(!t)return;
+    const {kind,boardRef,mode,circuitIndex}=templatePicker,list=reusableTemplates(kind),t=list.find(t=>t.id===id);if(!t)return;
     if(remove){if(!confirm('Delete template '+t.name+'?'))return;savePreRestoreSnapshot();saveReusableTemplates(kind,list.filter(t=>t.id!==id));}
     else {const name=prompt('Template name',t.name);if(!name?.trim())return;t.name=name.trim();saveReusableTemplates(kind,list);}
-    scheduleNativeAutoBackup();openTemplatePicker(kind,boardRef);
+    scheduleNativeAutoBackup();openTemplatePicker(kind,boardRef,mode,circuitIndex);
   }
   function useDesignTemplate(id){
-    const cert=getCurrent(),{kind,boardRef}=templatePicker,t=reusableTemplates(kind).find(t=>t.id===id);if(!cert||!t)return;
+    const cert=getCurrent(),{kind,boardRef,mode,circuitIndex}=templatePicker,t=reusableTemplates(kind).find(t=>t.id===id);if(!cert||!t)return;
     closeModal();
     if(kind==='board'){addBoard(cert,t);return;}
     if(boardIndexByRef(cert,boardRef)<0)return;
+    if(mode==='replace' && Number.isInteger(circuitIndex) && cert.tables.circuits[circuitIndex]){
+      const row=cert.tables.circuits[circuitIndex];
+      if(row._incomingFeed){toast('Linked incoming circuit design follows its supply circuit');return;}
+      pushEditHistory('Load circuit template');
+      const preserved={id:row.id,boardRef:row.boardRef,circuitNo:row.circuitNo};
+      cert.tables.circuits[circuitIndex]={...row,...circuitDesign(t.design),...preserved};
+      cert.tables.circuits[circuitIndex].maxZsManual=false;
+      recalculateCircuitZs(cert,circuitIndex,true);
+      syncDependentBoardFeeds(cert,row.boardRef,row.circuitNo);
+      view.circuitIndex=circuitIndex;view.circuitStep='details';saveNow();render();toast('Template loaded');
+      return;
+    }
     pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...circuitDesign(t.design),id:uid(),boardRef,circuitNo:no};
     cert.tables.circuits.push(row);cert.tables.tests.push({boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
   }
@@ -1127,7 +1139,7 @@
   }
 
   function loadView() {
-    const fallback={ page:'home', currentId:null, circuitIndex:null, circuitStep:'details' };
+    const fallback={ page:'home', currentId:null, circuitIndex:null, circuitStep:'details', openSection:null };
     try {
       const saved=JSON.parse(localStorage.getItem(VIEW_KEY)||'null');
       if(!saved || saved.page!=='form' || !saved.currentId) return fallback;
@@ -1136,7 +1148,8 @@
         page:'form',
         currentId:saved.currentId,
         circuitIndex:Number.isInteger(saved.circuitIndex)?saved.circuitIndex:null,
-        circuitStep:saved.circuitStep==='tests'?'tests':'details'
+        circuitStep:saved.circuitStep==='tests'?'tests':'details',
+        openSection:typeof saved.openSection==='string'?saved.openSection:null
       };
     } catch { return fallback; }
   }
@@ -1270,7 +1283,7 @@
     try {
       const migrated=migrateCertificate(cert);
       if(!migrated) throw new Error('Unsupported certificate format');
-      view = { page: 'form', currentId: migrated.id, circuitIndex:null, circuitStep:'details' };
+      view = { page: 'form', currentId: migrated.id, circuitIndex:null, circuitStep:'details', openSection:null };
       resetEditHistory(migrated.id);
       persist();
       render();
@@ -1286,7 +1299,7 @@
   function newCertificate(type) {
     const cert = makeCertificate(type);
     state.certificates.unshift(cert);
-    view = { page: 'form', currentId: cert.id, circuitIndex: null, circuitStep: 'details' };
+    view = { page: 'form', currentId: cert.id, circuitIndex: null, circuitStep: 'details', openSection:null };
     resetEditHistory(cert.id);
     persist();
     render(); goTop();
@@ -1389,17 +1402,29 @@
     </main>`;
   }
 
+  function accordionSection(key,title,body,className='') {
+    if(view.openSection===null || view.openSection===undefined) view.openSection=key;
+    const open=view.openSection===key;
+    return `<section class="card form-section accordion-section ${open?'open':''} ${esc(className)}" data-section-key="${esc(key)}">
+      <button type="button" class="section-toggle" data-action="section-toggle" data-section-key="${esc(key)}" aria-expanded="${open?'true':'false'}">
+        <span>${esc(title)}</span><span class="section-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="section-panel" ${open?'':'hidden'}>${body}</div>
+    </section>`;
+  }
+
   function formView() {
-    const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
+    const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details', openSection:null }; return homeView(); }
     migrateCertificate(cert);
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
-    const sections = schema.sections.map(part => {
+    const sections = schema.sections.map((part,index) => {
+      const key='part-'+index;
       if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
-      if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert);
+      if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert,key);
       if(part.key==='circuits' || part.key==='tests') return '';
-      if(part.type==='section') return renderSection(part,cert);
-      return renderTable(part,cert);
+      if(part.type==='section') return renderSection(part,cert,key);
+      return renderTable(part,cert,key);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
@@ -1410,7 +1435,7 @@
     return String(cert.fields[field.showWhen.key]||'')===String(field.showWhen.value);
   }
 
-  function renderSection(part, cert) {
+  function renderSection(part, cert, sectionKey) {
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
@@ -1418,7 +1443,8 @@
     const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
       : '';
-    return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></section>`;
+    const body=`${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div>`;
+    return accordionSection(sectionKey,part.title,body);
   }
 
   const POSTCODE_TARGETS={
@@ -1558,7 +1584,7 @@
       </div>`;
     }).join('');
     return `<div class="board-circuit-list circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
-      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Use template</button></div>`;
+      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Load template</button></div>`;
   }
 
   function renderBoardWorkflow(cert){
@@ -1604,7 +1630,7 @@
     }).join('');
     return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
       ${boardCards}
-      <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button><button class="btn small" data-action="template-open" data-kind="board">Use template</button></div>
+      <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button><button class="btn small" data-action="template-open" data-kind="board">Load template</button></div>
     </section>`;
   }
 
@@ -1653,24 +1679,26 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(circuit.boardRef||'DB1')}" data-template-mode="replace" data-template-index="${i}">Load template</button></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
-  function renderInspectionChecklist(part, cert) {
+  function renderInspectionChecklist(part, cert, sectionKey) {
     const rows=cert.tables[part.key]||[];
     const body=rows.map((row,ri)=>{
       const selected=String(row.outcome||'');
       return `<div class="inspection-row"><div class="inspection-copy"><strong>${esc(row.item||String(ri+1))}</strong><span>${esc(row.description||'')}</span></div><div class="inspection-choices" role="group" aria-label="Result for item ${esc(row.item||String(ri+1))}">${OPTIONS.passNA.map(v=>`<button type="button" class="${selected===v?'selected':''} ${v==='✕'?'fail':''}" data-action="inspection-outcome" data-row="${ri}" data-value="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>`;
     }).join('');
-    return `<section class="card form-section inspection-section"><h3>${esc(part.title)}</h3><div class="inspection-bulk"><span>Apply to all:</span><button class="btn small" data-action="inspection-bulk" data-value="✓">✓ All</button><button class="btn small danger" data-action="inspection-bulk" data-value="✕">✕ All</button><button class="btn small" data-action="inspection-bulk" data-value="N/A">N/A All</button><button class="btn small ghost" data-action="inspection-bulk" data-value="">Clear</button></div><div class="inspection-list">${body}</div></section>`;
+    const content=`<div class="inspection-bulk"><span>Apply to all:</span><button class="btn small" data-action="inspection-bulk" data-value="✓">✓ All</button><button class="btn small danger" data-action="inspection-bulk" data-value="✕">✕ All</button><button class="btn small" data-action="inspection-bulk" data-value="N/A">N/A All</button><button class="btn small ghost" data-action="inspection-bulk" data-value="">Clear</button></div><div class="inspection-list">${body}</div>`;
+    return accordionSection(sectionKey,part.title,content,'inspection-section');
   }
 
-  function renderTable(part, cert) {
-    if(part.key==='eicInspection') return renderInspectionChecklist(part,cert);
+  function renderTable(part, cert, sectionKey) {
+    if(part.key==='eicInspection') return renderInspectionChecklist(part,cert,sectionKey);
     const rows = cert.tables[part.key] || [];
     const head = part.columns.map(c => `<th>${esc(c.label)}</th>`).join('') + `<th></th>`;
     const body = rows.map((row, ri) => `<tr>${part.columns.map(c => `<td>${renderTableControl(part.key, ri, c, row[c.key] ?? '')}</td>`).join('')}<td><button class="btn small danger" data-action="row-delete" data-table="${part.key}" data-row="${ri}">×</button></td></tr>`).join('');
-    return `<section class="card form-section"><h3>${esc(part.title)}</h3><div class="table-wrap"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><div class="table-tools"><button class="btn small" data-action="row-add" data-table="${part.key}">+ Add row</button></div></section>`;
+    const content=`<div class="table-wrap"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><div class="table-tools"><button class="btn small" data-action="row-add" data-table="${part.key}">+ Add row</button></div>`;
+    return accordionSection(sectionKey,part.title,content);
   }
 
   function renderTableControl(tableKey, rowIndex, col, value) {
@@ -3145,11 +3173,24 @@
       combo.querySelector('.combo-menu').hidden=true;combo.querySelectorAll('[aria-expanded]').forEach(el=>el.setAttribute('aria-expanded','false'));
       document.activeElement?.blur();
     }
+    else if(action==='section-toggle'){
+      const key=button.dataset.sectionKey||'';
+      const beforeTop=button.getBoundingClientRect().top;
+      view.openSection=view.openSection===key?'':key;
+      persistView();render();
+      requestAnimationFrame(()=>{
+        const next=document.querySelector('[data-section-key="'+CSS.escape(key)+'"] .section-toggle');
+        if(next){
+          const delta=next.getBoundingClientRect().top-beforeTop;
+          if(Math.abs(delta)>1) window.scrollBy({top:delta,left:0,behavior:'auto'});
+        }
+      });
+    }
     else if(action==='board-add' && cert){addBoard(cert);}
     else if(action==='board-delete' && cert){deleteBoard(cert,Number(button.dataset.boardIndex));}
     else if(action==='template-save-board' && cert){saveDesignTemplate('board',cert,Number(button.dataset.boardIndex));}
     else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,view.circuitIndex);}
-    else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef);}
+    else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef,button.dataset.templateMode||'add',button.dataset.templateIndex);}
     else if(action==='template-use' && cert){useDesignTemplate(button.dataset.id);}
     else if(action==='template-rename'){manageDesignTemplate(button.dataset.id,false);}
     else if(action==='template-delete'){manageDesignTemplate(button.dataset.id,true);}
