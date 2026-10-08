@@ -177,7 +177,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs certificate-android/dist/Sperin-Certificates-v1.7.13.apk | tee certificate-android/dist/signing.txt
           grep -i '68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573' certificate-android/dist/signing.txt
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging certificate-android/dist/Sperin-Certificates-v1.7.13.apk | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='182'.*versionName='1.7.13'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='183'.*versionName='1.7.13'" certificate-android/dist/package.txt
           grep "application-label:'Sperin Certificates'" certificate-android/dist/package.txt
 
       - name: Upload APK
