@@ -189,7 +189,7 @@ assert.equal(child.sourceCircuitNo, "7");
 // Measured incoming readings belong to the selected feed. Changing that feed must clear them.
 await board(child.ref).locator('[data-action="circuit-open"]').first().click();
 await click('[data-action="circuit-next"]');
-await input("zs").fill("0.88");
+await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("0.88");
 await click('[data-action="circuit-complete"]');
 assert.equal((await saved()).tables.tests.find((t) => t._incomingFeed).zs, "0.88");
 await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("3");
