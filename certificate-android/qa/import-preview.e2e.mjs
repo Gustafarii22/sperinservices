@@ -17,6 +17,26 @@ try {
   const original = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), KEY);
   assert(original?.certificates?.length === 1, "Could not create sample certificate");
   const backedUpId = original.certificates[0].id;
+  await page.locator('.form-head [data-action="home"]').click();
+  const find = page.locator("[data-certificate-search]");
+  await find.fill("no-matching-postcode-zz");
+  assert(
+    (await page.locator(".saved-cert-row:not([hidden])").count()) === 0,
+    "Certificate search did not filter unmatched records",
+  );
+  await find.fill("");
+  const status = page.locator("[data-certificate-status]");
+  await status.selectOption("Complete");
+  assert(
+    (await page.locator(".saved-cert-row:not([hidden])").count()) === 0,
+    "Completed-only filter still showed a draft",
+  );
+  await status.selectOption("Draft");
+  assert(
+    (await page.locator(".saved-cert-row:not([hidden])").count()) === 1,
+    "Draft filter hid the current certificate",
+  );
+  await status.selectOption("all");
   const emptyBackup = JSON.stringify({
     version: "1.7.15",
     exportedAt: new Date().toISOString(),
@@ -65,6 +85,7 @@ try {
     afterReload.certificates.some((cert) => cert.id === backedUpId),
     "Recovered certificate was not persisted",
   );
+  console.log("SAVED_CERT_SEARCH_FILTER_PASS");
   console.log("SAFE_IMPORT_PREVIEW_CANCEL_CONFIRM_UNDO_PASS");
 } finally {
   await browser.close();
