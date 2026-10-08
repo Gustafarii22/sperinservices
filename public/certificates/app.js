@@ -401,8 +401,13 @@
     if(previousDetail?.maxZsManual && ['ocpdBs','ocpdType','ocpdRating'].every(k=>String(previousDetail[k]??'')===String(incomingDetail[k]??''))){
       incomingDetail.maxZsManual=true;incomingDetail.maxZs=previousDetail.maxZs;
     }
+    const sameSource=Boolean(
+      previousDetail &&
+      normaliseBoardKey(previousDetail._sourceBoardRef)===normaliseBoardKey(sourceBoard) &&
+      String(previousDetail._sourceCircuitNo??'').trim()===sourceNo
+    );
     const incomingTest={
-      ...(incomingIndex>=0 ? cert.tables.tests[incomingIndex] : {}),
+      ...(sameSource && incomingIndex>=0 ? cert.tables.tests[incomingIndex] : {}),
       boardRef:board.ref,
       circuitNo:'0',
       _incomingFeed:true,
