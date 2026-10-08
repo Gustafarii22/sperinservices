@@ -66,6 +66,9 @@ jobs:
           CERT_AUDIT_PASS: mixed
         run: node certificate-android/qa/certificate.e2e.mjs
 
+      - name: Verify backup preview and zero-loss cancellation
+        run: node certificate-android/qa/recovery-preview.e2e.mjs
+
       - name: Validate generated EIC PDF
         run: |
           set -euo pipefail
