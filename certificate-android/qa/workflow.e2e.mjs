@@ -450,6 +450,8 @@ await page.evaluate(() =>
     }),
   ),
 );
+await page.locator(".import-review-modal").waitFor();
+await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
 cert = await saved();
 assert.equal(cert.tables.boards.length, 1);
