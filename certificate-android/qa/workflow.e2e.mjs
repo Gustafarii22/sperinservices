@@ -342,6 +342,8 @@ await page.evaluate((backup) => {
   localStorage.removeItem("sperin-certificates-circuit-templates-v1");
   window.sperinRestoreBackup(backup);
 }, backup);
+await page.locator(".import-review-modal").waitFor();
+await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
 assert.equal(
   await page.evaluate(
@@ -356,6 +358,8 @@ await page.evaluate((backup) => {
   delete old.circuitTemplates;
   window.sperinRestoreBackup(JSON.stringify(old));
 }, backup);
+await page.locator(".import-review-modal").waitFor();
+await click('[data-action="import-review-apply"]');
 await click('[data-action="edit"]');
 assert.equal(
   await page.evaluate(
