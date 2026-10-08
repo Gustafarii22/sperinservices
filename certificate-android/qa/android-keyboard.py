@@ -23,7 +23,9 @@ adb('shell','settings','put','system','user_rotation','0')
 adb('shell','settings','put','secure','show_ime_with_hard_keyboard','1')
 time.sleep(2)
 tap(find('Continue Upgrade preservation check',cls='android.widget.Button',scroll=True))
-tap(find('Circuit 0',cls='android.widget.Button',scroll=True,prefix=True))
+# Circuit numbers are user-editable and migration may normalise the stored number.
+# Navigate to the real circuit editor by its accessible button prefix, not a fixed "0".
+tap(find('Circuit ',cls='android.widget.Button',scroll=True,prefix=True))
 arrow=find('Show Rating (A) options',scroll=True)
 # Put the control away from the viewport edge so the complete popup is genuinely visible/tappable.
 adb('shell','input','swipe','500','1500','500','1050','180');time.sleep(.5)
