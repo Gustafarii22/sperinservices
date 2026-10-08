@@ -20,29 +20,21 @@ try {
   const form = page.locator(".form-entry-panel");
   await form.waitFor();
   assert.match(await form.innerText(), /Form field count only/);
-  const before = Number(
-    await form.locator('[role="progressbar"]').getAttribute("aria-valuenow"),
-  );
+  const before = Number(await form.locator('[role="progressbar"]').getAttribute("aria-valuenow"));
   await page.locator('[data-field="clientName"]').fill("Example Visual Client");
-  await page.waitForFunction(() =>
-    JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}")
-      .certificates?.some((c) => c.fields?.clientName === "Example Visual Client"),
-  );
+  await page.waitForFunction(() => {
+    const data = JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}");
+    return data.certificates?.some((c) => c.fields?.clientName === "Example Visual Client");
+  });
   const after = Number(await form.locator('[role="progressbar"]').getAttribute("aria-valuenow"));
   assert(after >= before, "The progress meter decreased after a field was entered");
   assert.match(await form.innerText(), /fields recorded/);
 
   await page.locator('[data-action="section-toggle"][data-section-key="part-1"]').click();
-  assert.equal(
-    await page.locator('[data-action="section-toggle"][data-section-key="part-1"]')
-      .getAttribute("aria-expanded"),
-    "true",
-  );
-  assert.equal(
-    await page.locator('[data-action="section-toggle"][data-section-key="part-0"]')
-      .getAttribute("aria-expanded"),
-    "false",
-  );
+  const sectionB = page.locator('[data-action="section-toggle"][data-section-key="part-1"]');
+  const sectionA = page.locator('[data-action="section-toggle"][data-section-key="part-0"]');
+  assert.equal(await sectionB.getAttribute("aria-expanded"), "true");
+  assert.equal(await sectionA.getAttribute("aria-expanded"), "false");
 
   await page.locator('.form-head [data-action="home"]').click();
   const saved = page.locator(".saved-cert-row").filter({ hasText: "Example Visual Client" });
