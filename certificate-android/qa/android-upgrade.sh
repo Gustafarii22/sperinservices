@@ -26,6 +26,34 @@ for i in $(seq 1 30); do
     sleep 1
     continue
   fi
+  # Android Emulator can show a system ANR for Pixel Launcher over a healthy app.
+  # Dismiss only known Android system ANR dialogs, then repeat the app check.
+  # Never click controls inside the Sperin Certificates WebView.
+  anr_coords="$(python3 - <<'PY'
+import re
+import xml.etree.ElementTree as ET
+try:
+    root=ET.parse('certificate-android/qa-output/android/window.xml').getroot()
+    nodes=list(root.iter('node'))
+    android_dialog=any(n.get('package')=='android' and "isn't responding" in n.get('text','') for n in nodes)
+    if android_dialog:
+        for n in nodes:
+            if n.get('package')=='android' and n.get('resource-id')=='android:id/aerr_close':
+                m=re.fullmatch(r'\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]',n.get('bounds',''))
+                if m:
+                    x1,y1,x2,y2=map(int,m.groups())
+                    print(f'{(x1+x2)//2} {(y1+y2)//2}')
+                    break
+except (ET.ParseError,OSError):
+    pass
+PY
+)"
+  if [ -n "$anr_coords" ]; then
+    echo "Android launcher ANR overlay detected; dismissing the system dialog before re-checking certificate UI"
+    adb shell input tap $anr_coords
+    sleep 2
+    continue
+  fi
   if grep -q 'Upgrade preservation check' certificate-android/qa-output/android/window.xml; then break; fi
   sleep 1
 done
