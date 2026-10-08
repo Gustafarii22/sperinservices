@@ -232,7 +232,7 @@ assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs,
 promptName = "Domestic RCBO + SPD";
 await board("CU1").locator('[data-action="template-save-board"]').click();
 await click('[data-action="template-open"][data-kind="board"]');
-await page.screenshot({ path: "/tmp/cert-template-picker.png" });
+fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });\nawait page.screenshot({ path: "certificate-android/qa-output/visual/template-picker.png", fullPage: true });
 await click('[data-action="template-use"]');
 cert = await saved();
 assert.equal(cert.tables.boards.length, 3);
@@ -266,7 +266,8 @@ assert.equal(await input("boardRef").inputValue(), child.ref);
 await click('[data-action="circuit-next"]');
 assert.equal(await page.locator('[data-col="zs"]').inputValue(), "");
 await click('[data-action="circuit-complete"]');
-await board(child.ref).screenshot({ path: "/tmp/cert-consumer-unit.png" });
+await board(child.ref).screenshot({ path: "certificate-android/qa-output/visual/consumer-unit.png" });
+await page.screenshot({ path: "certificate-android/qa-output/visual/grouped-workflow.png", fullPage: true });
 // Reload durability, template backup/export and import through the app's public import bridge.
 await page.reload();
 cert = await saved();
