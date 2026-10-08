@@ -232,7 +232,8 @@ assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs,
 promptName = "Domestic RCBO + SPD";
 await board("CU1").locator('[data-action="template-save-board"]').click();
 await click('[data-action="template-open"][data-kind="board"]');
-fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });\nawait page.screenshot({ path: "certificate-android/qa-output/visual/template-picker.png", fullPage: true });
+fs.mkdirSync("certificate-android/qa-output/visual", { recursive: true });
+await page.screenshot({ path: "certificate-android/qa-output/visual/template-picker.png", fullPage: true });
 await click('[data-action="template-use"]');
 cert = await saved();
 assert.equal(cert.tables.boards.length, 3);
