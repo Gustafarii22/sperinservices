@@ -6,14 +6,20 @@ def nodes():
     adb('shell','uiautomator','dump','/sdcard/keyboard.xml')
     return list(ET.fromstring(adb('shell','cat','/sdcard/keyboard.xml')).iter('node'))
 def find(label,cls=None,scroll=False,not_edit=False,prefix=False):
+    # Android accessibility may return partially visible nodes behind our fixed
+    # bottom Save/Home bar. Tapping those hits the footer instead of the intended
+    # control. Only accept a target entirely inside the real unobscured viewport.
+    screen=int(re.search(r'\d+x(\d+)',adb('shell','wm','size')).group(1))
+    min_y=max(100,int(screen*0.06))
+    max_y=screen-max(220,int(screen*0.12))
     for _ in range(45 if scroll else 4):
         for n in nodes():
             if (any((v.startswith(label) if prefix else v==label) for v in [n.get('text',''),n.get('content-desc','')])) and (not cls or n.get('class')==cls) and (not not_edit or n.get('class')!='android.widget.EditText'):
                 box=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
-                if len(box)==4 and box[3]>box[1] and box[2]>box[0]:return box
+                if len(box)==4 and box[3]>box[1] and box[2]>box[0] and box[1]>=min_y and box[3]<=max_y:return box
         if scroll:adb('shell','input','swipe','500','1500','500','500','180')
         time.sleep(.3)
-    raise AssertionError('Visible control not found: '+label)
+    raise AssertionError('Visible unobscured control not found: '+label)
 def tap(box):adb('shell','input','tap',str((box[0]+box[2])//2),str((box[1]+box[3])//2));time.sleep(.5)
 def ime():
     state=adb('shell','dumpsys','input_method')
