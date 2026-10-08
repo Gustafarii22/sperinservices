@@ -1409,7 +1409,7 @@
       <button type="button" class="section-toggle" data-action="section-toggle" data-section-key="${esc(key)}" aria-expanded="${open?'true':'false'}">
         <span>${esc(title)}</span><span class="section-chevron" aria-hidden="true">⌄</span>
       </button>
-      <div class="section-panel" ${open?'':'hidden'}>${body}</div>
+      <div class="section-panel ${open?'':'collapsed'}" aria-hidden="${open?'false':'true'}">${body}</div>
     </section>`;
   }
 
