@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.12';
+  const VERSION = '1.7.13';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
