@@ -32,7 +32,7 @@ time.sleep(1.4)
 # Fail early with the real navigation defect, instead of swiping 45 times and
 # reporting an unrelated "Rating options missing" error.
 def circuit_editor_visible():
-    return any('1 of 2' in (n.get('text','')+' '+n.get('content-desc','')) and 'Circuit details' in (n.get('text','')+' '+n.get('content-desc','')) for n in nodes())
+    return any('1 of 2' in (n.get('text','')+' '+n.get('content-desc','')).lower() and 'circuit details' in (n.get('text','')+' '+n.get('content-desc','')).lower() for n in nodes())
 if not circuit_editor_visible():
     with open(out/'circuit-entry-navigation.png','wb') as f:subprocess.run(['adb','exec-out','screencap','-p'],stdout=f,check=True)
     raise AssertionError('Add circuit did not open the native circuit details editor')
