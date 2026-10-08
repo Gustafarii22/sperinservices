@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 PKG=uk.co.sperinservices.certificates.stable
-APK=certificate-android/dist/Sperin-Certificates-v1.7.14.apk
+APK=certificate-android/dist/Sperin-Certificates-v1.7.15.apk
 curl -fL --retry 3 https://github.com/Gustafarii22/sperinservices/releases/download/certificates-v1.7.11/Sperin-Certificates-v1.7.11.apk -o /tmp/previous-certificates.apk
 mkdir -p certificate-android/qa-output/android
 trap 'adb logcat -d > certificate-android/qa-output/android/logcat.txt; adb exec-out screencap -p > certificate-android/qa-output/android/last-screen.png; adb shell uiautomator dump /sdcard/window.xml >/dev/null; adb pull /sdcard/window.xml certificate-android/qa-output/android/last-window.xml >/dev/null' EXIT
