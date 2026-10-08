@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.15';
+  const VERSION = '1.7.16';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1366,10 +1366,44 @@
     return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="btn small ghost top-action" data-action="backup">Backup</button><button class="btn small ghost top-action restore-action" data-action="restore">Restore</button><button class="btn small ghost top-action" data-action="settings">Profile</button></div></div></div>`;
   }
 
+
+  // Visual-only entry indicators adapted from the Lovable Experience Lab.
+  // This counts saved form values, NOT test compliance or certificate validity.
+  function fieldEntryCount(cert, part) {
+    if(part?.type!=='section' || !Array.isArray(part.fields))return {entered:0,total:0};
+    let total=0,entered=0;
+    const seen=new Set();
+    for(const field of part.fields){
+      if(!field?.key || seen.has(field.key) || ['certificateNo'].includes(field.key))continue;
+      seen.add(field.key);
+      if(!fieldVisible(field,cert))continue;
+      total++;
+      const value=cert.fields?.[field.key];
+      if(typeof value==='boolean'?value:(value!==undefined && value!==null && String(value).trim()!==''))entered++;
+    }
+    return {entered,total};
+  }
+
+  function certificateEntryProgress(cert){
+    const schema=SCHEMAS[cert.type];
+    if(!schema || !isRecord(cert.fields))return {entered:0,total:0,percent:0};
+    let total=0,entered=0;
+    for(const part of schema.sections){
+      const n=fieldEntryCount(cert,part);
+      total+=n.total;entered+=n.entered;
+    }
+    return {entered,total,percent:total?Math.round(100*entered/total):0};
+  }
+
+  function entryMeter(progress,label){
+    const percent=Math.max(0,Math.min(100,progress.percent||0));
+    return `<div class="entry-meter" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>`;
+  }
+
   function homeView() {
     const completed = state.certificates.filter(c => c.status === 'Complete').length;
     const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
-    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon">${esc(s.code)}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow">›</span></button>`).join('');
+    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon" aria-hidden="true">${esc(s.code)}</span><span class="cert-launch-copy"><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow" aria-hidden="true">›</span></button>`).join('');
     const rows = state.certificates.length ? state.certificates.map(c => {
       const sch = SCHEMAS[c.type] || {icon:'📄',name:'Certificate'};
       const fields=isRecord(c.fields)?c.fields:{};
@@ -1377,10 +1411,12 @@
       const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
       const postcode=fields.installationPostcode || fields.premisesPostcode || fields.clientPostcode || '';
       const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
+      const progress=certificateEntryProgress(c);
+      const circuitCount=(c.type==='eic'||c.type==='eicr') ? (c.tables?.circuits||[]).length : null;
       return `<div class="saved-cert-row" data-cert-status="${esc(c.status)}" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
         <div class="saved-cert-accent">${esc(sch.code||'CERT')}</div>
-        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
-        <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
+        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small><div class="saved-cert-progress"><span>${progress.entered} of ${progress.total} form fields recorded${circuitCount!==null?' · '+circuitCount+' circuits':''}</span>${entryMeter(progress,'Form fields recorded for '+customer)}</div></div>
+        <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill ${c.status==='Complete'?'pill-complete':'pill-draft'}"><span class="status-dot"></span>${esc(c.status)}</span><span class="entry-percent">${progress.percent}% fields</span></div>
         <div class="saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
       </div>`;
     }).join('') : `<div class="home-empty"><span>＋</span><strong>No certificates yet</strong><p>Choose a certificate type above to start your first record.</p></div>`;
@@ -1388,8 +1424,8 @@
     const recentName=recent ? (recent.fields?.clientName||recent.fields?.occupier||recent.fields?.premisesName||'Recent certificate') : '';
     return `<main class="home-page">
       <section class="home-hero">
-        <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+        <div class="home-hero-copy"><div class="eyebrow">SPERIN SERVICES · FIELD WORKSPACE</div><h2>Your certificates.<br>Everything in place.</h2><p>Pick up where you left off, enter results and issue a properly reviewed certificate.</p>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jump-to" data-target="new-certificates">+ New certificate</button><button class="btn ghost hero-cta" data-action="jump-to" data-target="saved-certificates">Saved work ${uiIcon('chevron')}</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
           <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
@@ -1398,8 +1434,8 @@
       </section>
       <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
       ${siteWorkflowHome()}
-      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
-      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Search by customer, address, postcode or certificate number.</p></div>
+      <section class="home-section" id="new-certificates"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
+      <section class="home-section" id="saved-certificates"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Search by customer, address, postcode or certificate number.</p></div>
         <div class="saved-work-tools">
           <label class="saved-search-label" for="saved-cert-search">Find a certificate<input type="search" id="saved-cert-search" data-certificate-search placeholder="Name, postcode or reference" autocomplete="off" /></label>
           <label class="saved-search-label" for="saved-cert-status">Status<select id="saved-cert-status" data-certificate-status><option value="all">All certificates</option><option value="Draft">Drafts</option><option value="Complete">Completed</option></select></label>
@@ -1430,12 +1466,12 @@
     if(noMatch)noMatch.hidden=shown!==0;
   }
 
-  function accordionSection(key,title,body,className='') {
+  function accordionSection(key,title,body,className='',count=null) {
     if(view.openSection===null || view.openSection===undefined) view.openSection=key;
     const open=view.openSection===key;
     return `<section class="card form-section accordion-section ${open?'open':''} ${esc(className)}" data-section-key="${esc(key)}">
       <button type="button" class="section-toggle" data-action="section-toggle" data-section-key="${esc(key)}" aria-expanded="${open?'true':'false'}">
-        <span>${esc(title)}</span><span class="section-chevron" aria-hidden="true">⌄</span>
+        <span class="section-toggle-label">${esc(title)}</span><span class="section-toggle-meta">${count?count.entered+' / '+count.total+' fields':''}</span><span class="section-chevron" aria-hidden="true">⌄</span>
       </button>
       <div class="section-panel ${open?'':'collapsed'}" aria-hidden="${open?'false':'true'}">${body}</div>
     </section>`;
@@ -1446,6 +1482,7 @@
     migrateCertificate(cert);
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
+    const progress=certificateEntryProgress(cert);
     const sections = schema.sections.map((part,index) => {
       const key='part-'+index;
       if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
@@ -1455,7 +1492,7 @@
       return renderTable(part,cert,key);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="form-entry-panel"><div class="form-entry-head"><div><strong>Form entry</strong><span>${progress.entered} of ${progress.total} fields recorded</span></div><strong class="form-entry-percent">${progress.percent}%</strong></div>${entryMeter(progress,'Certificate form fields recorded')}<p>Form field count only — this does not assess test results or compliance.</p></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state aria-live="polite">Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1472,7 +1509,8 @@
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
       : '';
     const body=`${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div>`;
-    return accordionSection(sectionKey,part.title,body);
+    const count=fieldEntryCount(cert,part);
+    return accordionSection(sectionKey,part.title,body,'',count);
   }
 
   const POSTCODE_TARGETS={
@@ -3235,7 +3273,11 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='edit-undo') undoEdit();
+    if(action==='jump-to') {
+      const target=button.dataset.target==='new-certificates'?'new-certificates':'saved-certificates';
+      document.getElementById(target)?.scrollIntoView({block:'start',behavior:'smooth'});
+    }
+    else if(action==='edit-undo') undoEdit();
     else if(action==='edit-redo') redoEdit();
     else if(action==='combo-toggle'){
       const combo=button.closest('.combo-field'),menu=combo.querySelector('.combo-menu'),open=menu.hidden;
