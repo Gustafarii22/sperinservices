@@ -496,7 +496,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, fileName + " saved", Toast.LENGTH_SHORT).show());
             }
             if (notify) requestFileNotification(uri, fileName, mime);
-            return finalUri;
+            return uri;
         } catch (Exception ex) {
             runOnUiThread(() -> Toast.makeText(MainActivity.this, "Save failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
             return null;
