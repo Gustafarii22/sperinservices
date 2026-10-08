@@ -182,7 +182,15 @@ assert(
 );
 console.log("STATIC_ROUTE_NATIVE_PASS");
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  ...(process.env.CHROME_PATH
+    ? {
+        executablePath: process.env.CHROME_PATH,
+        args: ["--no-sandbox", "--disable-dev-shm-usage", "--no-zygote", "--single-process"],
+      }
+    : {}),
+});
 const context = await browser.newContext({ acceptDownloads: true });
 
 await context.addInitScript(() => {
@@ -610,7 +618,8 @@ assert(
   stored.certificates?.[0]?.fields?.clientName === "Jane Smith Updated",
   "Typed field did not autosave",
 );
-await page.locator('[data-field="nominalVoltage"]').selectOption("230/400");
+await page.locator('[data-field="nominalVoltage"]').fill("230/400");
+await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 await page.waitForTimeout(80);
 stored = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
@@ -661,7 +670,12 @@ await page.waitForTimeout(40);
 const maxZs = await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
 assert(maxZs === "1.37", "B32 automatic max Zs should be 1.37 Ω, got " + maxZs);
 await page.locator('[data-circuit-input="details"][data-col="maxZs"]').fill("9.99");
-await page.locator('[data-action="circuit-recalc"]').click();
+assert(
+  (await page.locator('[data-action="circuit-recalc"]').count()) === 0,
+  "Manual recalculate control remains",
+);
+await page.locator('[data-circuit-input="details"][data-col="ocpdRating"]').fill("16");
+await page.locator('[data-circuit-input="details"][data-col="ocpdRating"]').fill("32");
 assert(
   (await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue()) === "1.37",
   "Recalculate did not restore the automatic maximum Zs",
@@ -684,10 +698,10 @@ await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector(".circuit-list");
 await page.waitForTimeout(80);
 const circuitTop = await page
-  .locator(".circuit-list")
+  .locator("[data-board-add-circuit]")
   .evaluate((el) => el.getBoundingClientRect().top);
 assert(
-  circuitTop >= -10 && circuitTop < 190,
+  circuitTop >= 0 && circuitTop < 850,
   "Saving circuit should return to circuit schedule, top=" + circuitTop,
 );
 console.log("CIRCUIT_FLOW_PASS");
@@ -1046,11 +1060,14 @@ assert(linkedAfter.tables.tests[0].rcdTime === "23.9", "RCD time went to wrong f
 assert(linkedAfter.autoMeta?.["circuit:0:cpcCsa"], "Derived CPC is not marked as auto-filled");
 console.log("FIXED_ORDER_VOICE_READBACK_PASS");
 
+await page.locator('[data-field="nominalVoltage"]').fill("230");
+await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
+
 // Technical values remain as entered and a warning triangle explains a failure instead of changing it.
 await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("2.00");
-await page.getByRole("button", { name: "Save circuit" }).click();
+await page.getByRole("button", { name: "Complete circuit" }).click();
 await page.waitForSelector(".validation-banner.warn");
 assert(
   (await page.locator(".validation-banner.warn").textContent()).includes("need checking"),
@@ -1135,7 +1152,7 @@ assert(
 console.log("PHOTO_SCAN_MAPPING_PASS");
 
 // On a multi-board certificate, Add circuit must continue the last board's numbering, not the global maximum.
-await page.locator('[data-action="circuit-add"]').click();
+await page.locator('[data-board-key="DB2"] [data-action="circuit-add"]').click();
 await page.waitForSelector('[data-circuit-input="details"][data-col="circuitNo"]');
 assert(
   (await page.locator('[data-circuit-input="details"][data-col="boardRef"]').inputValue()) ===
@@ -1318,7 +1335,7 @@ for (const type of certificateTypeOrder) {
   }
 
   if (["eic", "eicr", "minor"].includes(type)) {
-    const bs883Options = page.locator('option[value="BS88-3"]');
+    const bs883Options = page.locator('option[value="BS88-3"], .combo-option[data-value="BS88-3"]');
     assert(
       (await bs883Options.count()) >= 1,
       type + " missing exact BS88-3 protective-device option",
@@ -1331,11 +1348,19 @@ for (const type of certificateTypeOrder) {
 
   if (type === "minor") {
     assert(
-      (await page.locator('[data-field="ocpdBs"] option[value="BS88-3"]').count()) === 1,
+      (await page
+        .locator(".combo-field")
+        .filter({ has: page.locator('[data-field="ocpdBs"]') })
+        .locator('[data-value="BS88-3"]')
+        .count()) === 1,
       "Minor Works missing BS88-3",
     );
     assert(
-      (await page.locator('[data-field="breakingCapacity"] option[value="33"]').count()) === 1,
+      (await page
+        .locator(".combo-field")
+        .filter({ has: page.locator('[data-field="breakingCapacity"]') })
+        .locator('[data-value="33"]')
+        .count()) === 1,
       "Minor Works missing 33 kA breaking capacity",
     );
     await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();

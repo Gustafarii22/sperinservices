@@ -32,3 +32,6 @@ dist-ssr
 *.sw?
 
 .vercel/
+
+# Generated certificate QA evidence
+certificate-android/qa-output/
