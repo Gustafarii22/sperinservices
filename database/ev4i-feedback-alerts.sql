@@ -116,3 +116,6 @@ drop trigger if exists ev4i_feedback_remove on public.app_feedback;
 create trigger ev4i_feedback_remove after delete on public.app_feedback for each row execute function ev4i_feedback_private.remove_snapshot();
 drop trigger if exists ev4i_feedback_remove on public.assistant_feedback;
 create trigger ev4i_feedback_remove after delete on public.assistant_feedback for each row execute function ev4i_feedback_private.remove_snapshot();
+
+-- Safe while disabled; starts retrying after operator activation.
+select cron.schedule('ev4i-feedback-alert-retry','* * * * *','select ev4i_feedback_private.dispatch();');
