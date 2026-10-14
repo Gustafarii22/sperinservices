@@ -44,6 +44,13 @@ export const SITE = {
 
 export const SERVICES = [
   {
+    slug: "data-network-cabling",
+    path: "/services/data-network-cabling",
+    title: "Data & Network Cabling",
+    short: "Wi-Fi struggling? Connect your office, TV and smart home with Cat6",
+    image: "data",
+  },
+  {
     slug: "rewires",
     path: "/services/rewires",
     title: "Full & Part Rewires",

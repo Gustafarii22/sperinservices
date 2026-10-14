@@ -302,7 +302,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       const bytes = estimatePdf(p.selection, travel, reference, {
         postcode: p.postcode || undefined,
       });
-      return new Response(bytes, {
+      return new Response(new Uint8Array(bytes).buffer, {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",

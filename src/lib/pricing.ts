@@ -6,8 +6,54 @@ export type Job = {
   detail: string;
   group?: "eicr" | "board";
   quoteOnly?: boolean;
+  category?: "data";
 };
 export const JOBS: Job[] = [
+  {
+    id: "cat6-point",
+    name: "Cat6 hardwired data point",
+    price: 0,
+    quoteOnly: true,
+    category: "data",
+    detail:
+      "A dedicated cable run with terminated, labelled outlets and basic wire-map testing. Price depends on cable length, route and access. Select the number of points required.",
+  },
+  {
+    id: "cat6-wifi",
+    name: "Wi-Fi access point cabling",
+    price: 0,
+    quoteOnly: true,
+    category: "data",
+    detail:
+      "A wired connection for a suitably positioned access point to improve coverage. Access point, PoE equipment and configuration quoted separately where required.",
+  },
+  {
+    id: "cat6-security",
+    name: "Gate, intercom & CCTV data cabling",
+    price: 0,
+    quoteOnly: true,
+    category: "data",
+    detail:
+      "Data cabling for compatible IP gate intercoms, access control and PoE cameras. External routes, equipment, power and system commissioning assessed separately.",
+  },
+  {
+    id: "cat6-network",
+    name: "Patch panel / cabinet / Cat6A network",
+    price: 0,
+    quoteOnly: true,
+    category: "data",
+    detail:
+      "Multiple outlets, patch panels, cabinets, Cat6A upgrades and network tidying for homes, schools and businesses. Share a plan or photos for a tailored quotation.",
+  },
+  {
+    id: "cat6-fault",
+    name: "Data cable fault finding",
+    price: 0,
+    quoteOnly: true,
+    category: "data",
+    detail:
+      "Cable identification, basic wire mapping and termination fault finding. Scope and charges agreed before the visit; full Cat6/Cat6A performance certification is not included.",
+  },
   {
     id: "switch",
     name: "Light switch",

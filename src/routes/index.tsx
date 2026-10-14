@@ -150,7 +150,9 @@ function HomePage() {
             to="/commercial"
             className="group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-white/10 py-4 transition hover:bg-white/[0.018] lg:col-span-2 lg:px-4"
           >
-            <span className="font-mono text-xs text-electric">07</span>
+            <span className="font-mono text-xs text-electric">
+              {String(SERVICES.length + 1).padStart(2, "0")}
+            </span>
             <span>
               <strong className="block text-base sm:text-lg">Commercial Electrical</strong>
               <span className="mt-1 hidden text-sm text-muted-foreground sm:block">

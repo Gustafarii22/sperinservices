@@ -206,15 +206,41 @@ function Pricing() {
         </div>
         <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
           <div>
-            {["replacements", "packages"].map((group) => (
+            <div className="mb-5 rounded-xl border border-electric/20 bg-electric/[0.035] p-4">
+              <h3 className="font-semibold">Better connections, priced around your property.</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Add Cat6 points or network work below and send photos of your router and the rooms
+                you want connected. Cable routes, length, equipment and access determine the price.
+                These items are quoted separately and are not included in the calculator subtotal.
+              </p>
+              <Link
+                to="/services/data-network-cabling"
+                className="mt-3 inline-flex text-sm font-semibold text-electric"
+              >
+                Explore Data & Network Cabling →
+              </Link>
+            </div>
+            {["replacements", "data", "projects", "packages"].map((group) => (
               <div key={group} className="mb-5">
                 <h3 className="mb-2 border-b border-white/15 pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {group === "replacements"
                     ? "Straightforward replacements"
-                    : "Inspection & consumer units"}
+                    : group === "data"
+                      ? "Cat6 & network cabling — quoted for your property"
+                      : group === "projects"
+                        ? "New installations & projects"
+                        : "Inspection & consumer units"}
                 </h3>
                 <div className="grid gap-2 md:grid-cols-2">
-                  {JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
+                  {JOBS.filter((j) =>
+                    group === "packages"
+                      ? !!j.group
+                      : group === "data"
+                        ? j.category === "data"
+                        : group === "projects"
+                          ? j.quoteOnly && !j.category
+                          : !j.group && !j.quoteOnly,
+                  ).map((j) => (
                     <article
                       key={j.id}
                       className="rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5"
@@ -226,7 +252,11 @@ function Pricing() {
                             {j.detail}
                           </p>
                           <p className="mt-3 text-sm">
-                            <strong>From {money(j.price)}</strong>
+                            <strong>
+                              {j.quoteOnly
+                                ? "Quotation after assessment"
+                                : `From ${money(j.price)}`}
+                            </strong>
                             {j.additional !== undefined && (
                               <span className="text-muted-foreground">
                                 {" "}

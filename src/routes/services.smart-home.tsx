@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ServicePage } from "@/components/ServicePage";
 import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
@@ -44,37 +44,45 @@ export const Route = createFileRoute("/services/smart-home")({
     ],
   }),
   component: () => (
-    <ServicePage
-      title="Smart Home Automation"
-      intro="Smart lighting, controls, heating interfaces, security wiring and future-ready cabling planned around the electrical installation — with simple controls rather than unnecessary technology for its own sake."
-      included={[
-        "Smart lighting and dimming",
-        "App, scene and voice control where suitable",
-        "Smart heating controls and zoning",
-        "Security, door-entry and camera cabling/integration where specified",
-        "Custom scenes and automations",
-        "Future-ready wiring planned in during rewires",
-      ]}
-      whyItMatters={[
-        "The useful functions are agreed first so the system solves a real problem rather than adding complexity",
-        "Energy savings from smarter heating and lighting control",
-        "Better security with integrated cameras and alerts",
-        "Adds value and convenience to your home",
-      ]}
-      faqs={[
-        {
-          q: "Do I need to rewire to add smart home?",
-          a: "Not always — many smart products work with existing wiring. For full rewires we plan smart-ready cabling so future upgrades are easy.",
-        },
-        {
-          q: "Which platforms do you work with?",
-          a: "The right platform depends on the job, existing wiring and what needs controlling. We can work with suitable mainstream lighting, control, heating and connected-home products, but we choose the system around the required function rather than promising every ecosystem.",
-        },
-        {
-          q: "Do you cover my area?",
-          a: "Yes — Birmingham, Sutton Coldfield, Tamworth and the wider West Midlands.",
-        },
-      ]}
-    />
+    <>
+      <ServicePage
+        title="Smart Home Automation"
+        intro="Smart lighting, controls, heating interfaces, security wiring and future-ready cabling planned around the electrical installation — with simple controls rather than unnecessary technology for its own sake."
+        included={[
+          "Smart lighting and dimming",
+          "App, scene and voice control where suitable",
+          "Smart heating controls and zoning",
+          "Security, door-entry and camera cabling/integration where specified",
+          "Custom scenes and automations",
+          "Future-ready wiring planned in during rewires",
+          "Cat6 data points, wired Wi-Fi access points and cabling for compatible gate intercoms and connected devices",
+        ]}
+        whyItMatters={[
+          "The useful functions are agreed first so the system solves a real problem rather than adding complexity",
+          "Energy savings from smarter heating and lighting control",
+          "Better security with integrated cameras and alerts",
+          "Adds value and convenience to your home",
+        ]}
+        faqs={[
+          {
+            q: "Do I need to rewire to add smart home?",
+            a: "Not always — many smart products work with existing wiring. For full rewires we plan smart-ready cabling so future upgrades are easy.",
+          },
+          {
+            q: "Which platforms do you work with?",
+            a: "The right platform depends on the job, existing wiring and what needs controlling. We can work with suitable mainstream lighting, control, heating and connected-home products, but we choose the system around the required function rather than promising every ecosystem.",
+          },
+          {
+            q: "Do you cover my area?",
+            a: "Yes — Birmingham, Sutton Coldfield, Tamworth and the wider West Midlands.",
+          },
+        ]}
+      />
+      <div className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+        <Link to="/services/data-network-cabling" className="button-secondary">
+          Give your smart home a reliable wired connection →
+        </Link>
+      </div>
+    </>
   ),
 });

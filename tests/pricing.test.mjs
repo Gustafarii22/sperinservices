@@ -302,3 +302,18 @@ test("travel check has a deterministic fallback when road routing is unavailable
   assert.match(data.message, /travel included/);
   globalThis.__routeFails = false;
 });
+
+test("Cat6 work remains unpriced across quantities, mixed estimates and PDFs", () => {
+  for (const quantity of [1, 4, 20]) {
+    const selection = { "cat6-point": quantity, switch: 1 };
+    const e = estimate(selection);
+    assert.equal(e.subtotal, 80);
+    assert.deepEqual(e.unknown, ["cat6-point"]);
+    assert.equal(e.rows.find((j) => j.id === "cat6-point").quantity, quantity);
+    assert.match(estimateLines(selection).join("\n"), /Cat6 hardwired data point: to be confirmed/);
+    const pdf = new TextDecoder().decode(estimatePdf(selection, undefined, "CAT6-TEST"));
+    assert.match(pdf, /Cat6 hardwired data point/);
+  }
+  assert.equal(estimate({ "cat6-point": 1 }).subtotal, 0);
+  assert.deepEqual(estimate({ "cat6-point": 1 }).unknown, ["cat6-point"]);
+});
