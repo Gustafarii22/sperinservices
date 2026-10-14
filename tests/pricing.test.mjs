@@ -8,7 +8,7 @@ const source = (name) =>
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
 const pricingUrl = url(source("pricing"));
-const pdfUrl = url(source("estimate-pdf").replace('"./pricing"', JSON.stringify(pricingUrl)));
+const pdfUrl = url(source("estimate-pdf").replace('"./pricing.js"', JSON.stringify(pricingUrl)));
 const { estimate, travelCharge, estimateLines } = await import(pricingUrl);
 const { estimatePdf } = await import(pdfUrl);
 test("agreed mixed-job and multiple-switch examples", () => {
@@ -83,9 +83,9 @@ const neonUrl = url(
 );
 const zodUrl = new URL("../node_modules/zod/index.js", import.meta.url).href;
 const backend = source("booking-api.server")
-  .replace('"./pricing"', JSON.stringify(pricingUrl))
-  .replace('"./estimate-pdf"', JSON.stringify(pdfUrl))
-  .replace('"./sperin-review-email.server"', JSON.stringify(emailUrl))
+  .replace('"./pricing.js"', JSON.stringify(pricingUrl))
+  .replace('"./estimate-pdf.js"', JSON.stringify(pdfUrl))
+  .replace('"./sperin-review-email.server.js"', JSON.stringify(emailUrl))
   .replace('"@neondatabase/serverless"', JSON.stringify(neonUrl))
   .replace('"zod"', JSON.stringify(zodUrl));
 const { bookingApi, lookupTravel } = await import(url(backend));

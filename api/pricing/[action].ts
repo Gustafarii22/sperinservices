@@ -1,4 +1,4 @@
-import { bookingApi } from "../../src/lib/booking-api.server";
+import { bookingApi } from "../../src/lib/booking-api.server.js";
 
 // Explicit Vercel API entry: native /api functions take precedence over the SSR fallback.
 export async function POST(request: Request) {
