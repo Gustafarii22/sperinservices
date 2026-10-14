@@ -1,4 +1,4 @@
-import { estimate, type Selection, type Travel } from "./pricing";
+import { estimate, type Selection, type Travel } from "./pricing.js";
 
 export type EstimatePdfDetails = {
   customerName?: string;

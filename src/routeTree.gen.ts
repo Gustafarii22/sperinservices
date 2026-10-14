@@ -25,6 +25,7 @@ import { Route as OurWorkIndexRouteImport } from './routes/our-work.index'
 import { Route as OurWorkSlugRouteImport } from './routes/our-work.$slug'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ServicesConsumerUnitsRouteImport } from './routes/services.consumer-units'
+import { Route as ServicesDataNetworkCablingRouteImport } from './routes/services.data-network-cabling'
 import { Route as ServicesEvChargersRouteImport } from './routes/services.ev-chargers'
 import { Route as ServicesKitchensBathroomsRouteImport } from './routes/services.kitchens-bathrooms'
 import { Route as ServicesRewiresRouteImport } from './routes/services.rewires'
@@ -111,6 +112,12 @@ const ServicesConsumerUnitsRoute = ServicesConsumerUnitsRouteImport.update({
   path: '/services/consumer-units',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesDataNetworkCablingRoute =
+  ServicesDataNetworkCablingRouteImport.update({
+    id: '/services/data-network-cabling',
+    path: '/services/data-network-cabling',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ServicesEvChargersRoute = ServicesEvChargersRouteImport.update({
   id: '/services/ev-chargers',
   path: '/services/ev-chargers',
@@ -153,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/data-network-cabling': typeof ServicesDataNetworkCablingRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
   '/services/rewires': typeof ServicesRewiresRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/data-network-cabling': typeof ServicesDataNetworkCablingRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
   '/services/rewires': typeof ServicesRewiresRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/our-work/$slug': typeof OurWorkSlugRoute
   '/services/consumer-units': typeof ServicesConsumerUnitsRoute
+  '/services/data-network-cabling': typeof ServicesDataNetworkCablingRoute
   '/services/ev-chargers': typeof ServicesEvChargersRoute
   '/services/kitchens-bathrooms': typeof ServicesKitchensBathroomsRoute
   '/services/rewires': typeof ServicesRewiresRoute
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/our-work/$slug'
     | '/services/consumer-units'
+    | '/services/data-network-cabling'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
     | '/services/rewires'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/our-work/$slug'
     | '/services/consumer-units'
+    | '/services/data-network-cabling'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
     | '/services/rewires'
@@ -269,6 +281,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/our-work/$slug'
     | '/services/consumer-units'
+    | '/services/data-network-cabling'
     | '/services/ev-chargers'
     | '/services/kitchens-bathrooms'
     | '/services/rewires'
@@ -292,6 +305,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ReviewsRoute: typeof ReviewsRoute
   ServicesConsumerUnitsRoute: typeof ServicesConsumerUnitsRoute
+  ServicesDataNetworkCablingRoute: typeof ServicesDataNetworkCablingRoute
   ServicesEvChargersRoute: typeof ServicesEvChargersRoute
   ServicesKitchensBathroomsRoute: typeof ServicesKitchensBathroomsRoute
   ServicesRewiresRoute: typeof ServicesRewiresRoute
@@ -414,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesConsumerUnitsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/data-network-cabling': {
+      id: '/services/data-network-cabling'
+      path: '/services/data-network-cabling'
+      fullPath: '/services/data-network-cabling'
+      preLoaderRoute: typeof ServicesDataNetworkCablingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services/ev-chargers': {
       id: '/services/ev-chargers'
       path: '/services/ev-chargers'
@@ -479,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ReviewsRoute: ReviewsRoute,
   ServicesConsumerUnitsRoute: ServicesConsumerUnitsRoute,
+  ServicesDataNetworkCablingRoute: ServicesDataNetworkCablingRoute,
   ServicesEvChargersRoute: ServicesEvChargersRoute,
   ServicesKitchensBathroomsRoute: ServicesKitchensBathroomsRoute,
   ServicesRewiresRoute: ServicesRewiresRoute,

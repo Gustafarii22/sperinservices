@@ -8,7 +8,7 @@ const source = (name) =>
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
 const pricingUrl = url(source("pricing"));
-const pdfUrl = url(source("estimate-pdf").replace('"./pricing"', JSON.stringify(pricingUrl)));
+const pdfUrl = url(source("estimate-pdf").replace('"./pricing.js"', JSON.stringify(pricingUrl)));
 const { estimate, travelCharge, estimateLines } = await import(pricingUrl);
 const { estimatePdf } = await import(pdfUrl);
 test("agreed mixed-job and multiple-switch examples", () => {
@@ -83,9 +83,9 @@ const neonUrl = url(
 );
 const zodUrl = new URL("../node_modules/zod/index.js", import.meta.url).href;
 const backend = source("booking-api.server")
-  .replace('"./pricing"', JSON.stringify(pricingUrl))
-  .replace('"./estimate-pdf"', JSON.stringify(pdfUrl))
-  .replace('"./sperin-review-email.server"', JSON.stringify(emailUrl))
+  .replace('"./pricing.js"', JSON.stringify(pricingUrl))
+  .replace('"./estimate-pdf.js"', JSON.stringify(pdfUrl))
+  .replace('"./sperin-review-email.server.js"', JSON.stringify(emailUrl))
   .replace('"@neondatabase/serverless"', JSON.stringify(neonUrl))
   .replace('"zod"', JSON.stringify(zodUrl));
 const { bookingApi, lookupTravel } = await import(url(backend));
@@ -301,4 +301,19 @@ test("travel check has a deterministic fallback when road routing is unavailable
   assert.equal(data.charge, 0);
   assert.match(data.message, /travel included/);
   globalThis.__routeFails = false;
+});
+
+test("Cat6 work remains unpriced across quantities, mixed estimates and PDFs", () => {
+  for (const quantity of [1, 4, 20]) {
+    const selection = { "cat6-point": quantity, switch: 1 };
+    const e = estimate(selection);
+    assert.equal(e.subtotal, 80);
+    assert.deepEqual(e.unknown, ["cat6-point"]);
+    assert.equal(e.rows.find((j) => j.id === "cat6-point").quantity, quantity);
+    assert.match(estimateLines(selection).join("\n"), /Cat6 hardwired data point: to be confirmed/);
+    const pdf = new TextDecoder().decode(estimatePdf(selection, undefined, "CAT6-TEST"));
+    assert.match(pdf, /Cat6 hardwired data point/);
+  }
+  assert.equal(estimate({ "cat6-point": 1 }).subtotal, 0);
+  assert.deepEqual(estimate({ "cat6-point": 1 }).unknown, ["cat6-point"]);
 });

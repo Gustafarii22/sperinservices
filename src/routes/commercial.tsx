@@ -37,6 +37,11 @@ export const Route = createFileRoute("/commercial")({
 
 const CAPABILITIES = [
   {
+    icon: Cable,
+    title: "Data & network cabling",
+    text: "Cat6 and Cat6A outlets, patch panels, cabinets and cabling for Wi-Fi access points, PoE cameras and access control. Keep desks, classrooms and connected equipment linked with clearly labelled infrastructure.",
+  },
+  {
     icon: ClipboardCheck,
     title: "Inspection, EICRs & remedials",
     text: "Inspection and testing for commercial premises, with faults and remedial requirements explained clearly rather than reduced to a code list with no context.",
@@ -108,6 +113,12 @@ function Commercial() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
+        <Link
+          to="/services/data-network-cabling"
+          className="mb-6 inline-flex text-sm font-semibold text-electric"
+        >
+          Explore Cat6 & network cabling for your premises →
+        </Link>
         <span className="eyebrow">Capability</span>
         <h2 className="mt-4 max-w-3xl text-4xl font-bold sm:text-5xl">
           The work is broader than a list of domestic services.

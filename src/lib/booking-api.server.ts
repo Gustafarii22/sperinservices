@@ -1,9 +1,9 @@
 import { createHash, createHmac } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
-import { JOBS, estimate, estimateLines, travelCharge, type Travel } from "./pricing";
-import { estimatePdf } from "./estimate-pdf";
-import { sendSperinEmail } from "./sperin-review-email.server";
+import { JOBS, estimate, estimateLines, travelCharge, type Travel } from "./pricing.js";
+import { estimatePdf } from "./estimate-pdf.js";
+import { sendSperinEmail } from "./sperin-review-email.server.js";
 const json = (value: unknown, status = 200) =>
   Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
 const postcodeSchema = z
@@ -302,7 +302,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       const bytes = estimatePdf(p.selection, travel, reference, {
         postcode: p.postcode || undefined,
       });
-      return new Response(bytes, {
+      return new Response(new Uint8Array(bytes).buffer, {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",
