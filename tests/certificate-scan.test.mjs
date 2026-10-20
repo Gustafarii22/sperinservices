@@ -76,6 +76,6 @@ test("two uploaded views of one multi-bank CU are treated together, main-first a
   assert.match(scanInstructions, /two or more DIN-rail banks/i);
   assert.match(scanInstructions, /MAIN SWITCH position 0, SPD position 1/i);
   assert.match(scanInstructions, /right-to-left or left-to-right/i);
-  assert.match(scanInstructions, /do NOT by itself mean a different consumer unit/i);
+  assert.match(scanInstructions, /A different bank does NOT by itself mean a different consumer unit/i);
   assert.match(scanInstructions, /blank cover as a spare way/i);
 });
