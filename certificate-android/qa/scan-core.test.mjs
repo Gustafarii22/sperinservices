@@ -249,3 +249,34 @@ test("text-only OCR never invents physical device placement or blank-way counts"
  assert.equal(q.devices[0].fields.find(f=>f.key==="ocpdType")?.value,"B");
  assert.ok(q.warnings.some(w=>w.includes("blank")));
 });
+
+test("a FuseBox RCBO label fills the entire protected-device record without measured test inventions",()=>{
+ const line=(txt,x,y)=>({text:txt,left:x-26,right:x+26,top:y-12,bottom:y+12});
+ const photo={width:1350,height:900,blankWayHint:5,lines:[
+  line("FuseBox MAIN",1300,320),line("SWITCH",1300,345),line("100A",1300,430),
+  line("SPDT2",1220,445),
+  ...[1100,1030,960].flatMap((x,i)=>[
+   line(i===0?"B40":"B32",x,485),line("RTA063240B",x,505),
+   line("BS EN 61009-1",x,530),line("Type A",x,550),line("30mA",x,565),line("6000",x,580)
+  ])
+ ]};
+ const result=core.localOcrCandidates([photo],{mainSide:"right"});
+ assert.equal(result.direction,"right");
+ assert.equal(result.devices.length,8,"three outgoing RCBOs followed by five visually estimated spare ways");
+ const fields=Object.fromEntries(result.devices[0].fields.map(f=>[f.key,f.value]));
+ assert.equal(fields.ocpdBs,"BS EN 61009-1");
+ assert.equal(fields.deviceKind,"RCBO");
+ assert.equal(fields.deviceManufacturer,"FuseBox");
+ assert.equal(fields.deviceModel,"RTA063240B");
+ assert.equal(fields.ocpdType,"B");
+ assert.equal(fields.ocpdRating,"40");
+ assert.equal(fields.breakingCapacity,"6");
+ assert.equal(fields.rcdBs,"BS EN 61009-1");
+ assert.equal(fields.rcdType,"A");
+ assert.equal(fields.rcdIdn,"30");
+ assert.equal(fields.rcdRating,"40");
+ assert.ok(result.devices.slice(3).every(d=>d.fields.find(f=>f.key==="description").value==="SPARE"));
+ const input=cert();input.tables.circuits=[];input.tables.tests=[];
+ core.numberFromMain({board:result.board,circuits:result.devices,warnings:result.warnings},input,"DB1");
+ assert.equal(result.devices.length,8,"numbering does not insert duplicates into original result array");
+});
