@@ -5,7 +5,7 @@ import ts from "typescript";
 const code = ts.transpileModule(readFileSync("src/lib/certificate-scan.server.ts", "utf8"), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { certificateScan: scan } = await import(
+const { certificateScan: scan, scanInstructions } = await import(
   "data:text/javascript;base64," + Buffer.from(code).toString("base64")
 );
 const original = globalThis.fetch,
@@ -69,4 +69,13 @@ test("provider errors/refusals never expose secrets or raw upstream content", as
   assert.ok(!(await r.text()).includes("secret detail"));
   globalThis.fetch = async () => Response.json({ status: "incomplete" });
   assert.equal((await scan(request(data))).status, 502);
+});
+
+test("two uploaded views of one multi-bank CU are treated together, main-first and right-to-left when needed",()=>{
+ assert.match(scanInstructions,/ONE USER-SELECTED consumer unit/i);
+ assert.match(scanInstructions,/two or more DIN-rail banks/i);
+ assert.match(scanInstructions,/MAIN SWITCH position 0, SPD position 1/i);
+ assert.match(scanInstructions,/right-to-left or left-to-right/i);
+ assert.match(scanInstructions,/do NOT by itself mean a different consumer unit/i);
+ assert.match(scanInstructions,/blank cover as a spare way/i);
 });
