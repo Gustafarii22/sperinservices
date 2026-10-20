@@ -3,51 +3,300 @@
 const core=window.SperinBoardScan,esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session=null,seq=0;
 const endpoint='/api/owner/certificate-scan';
-function close(){if(!session)return;if(session.busy||session.images.length||session.result.circuits.length){if(!confirm('Close scanning? Unapplied proposals and photos will be discarded. Saved certificate values stay unchanged.'))return;}session.abort?.abort();session.modal.remove();session.opener?.focus();session=null;}
+function close(){
+ if(!session)return;
+ if(session.images.length||session.result.circuits.length){
+   if(!confirm('Close without saving? Your photos and unsaved changes will be deleted. Your certificate stays as it is.'))return;
+ }
+ session.abort?.abort();session.modal.remove();session.opener?.focus();session=null;
+}
 function error(message){if(session){session.message=message;session.busy=false;render();}}
-function row(r,i,group){const status=r.value?r.confidence:'missing';return `<div class="board-scan-field ${status}"><label class="scan-approve"><input type="checkbox" data-confirm="${group}:${i}" ${r.accepted?'checked':''} ${!r.value?'disabled':''}>Confirm</label><label>${esc((group==='board'?core.boardKeys:core.circuitKeys)[r.key])}<input data-value="${group}:${i}" value="${esc(r.value)}" maxlength="300" ${r.key==='circuitNo'&&session.adapter.getCert().type!=='minor'?'readonly':''}></label><span class="scan-confidence">${status==='high'?'High confidence':status==='missing'?'Missing / unreadable':'Needs checking'}</span><small>${esc(r.reason)} ${r.evidence.map(e=>`Photo ${e.image}: “${esc(e.text)}”`).join(' · ')}</small></div>`;}
-function render(){const s=session;if(!s)return;const cert=s.adapter.getCert();const circuits=(cert.tables?.circuits||[]).filter(c=>c.boardRef===s.boardRef&&!c._incomingFeed);
- s.modal.innerHTML=`<div class="card modal board-scan-modal" role="dialog" aria-modal="true" aria-labelledby="board-scan-title" tabindex="-1"><div class="profile-head"><div><div class="eyebrow">PHOTO ASSISTANT · ${esc(s.boardRef)}</div><h2 id="board-scan-title">Scan Consumer Unit</h2></div><button class="btn" data-scan-command="close">Close</button></div><p>Photograph the whole board, device markings and circuit chart. Only take photographs where safe; do not expose live parts for a scan.</p><div class="scan-controls"><button class="btn primary" data-scan-command="camera" ${s.busy?'disabled':''}>📷 Take photo</button><label class="btn">Choose photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-board-photos hidden ${s.busy?'disabled':''}></label><input type="file" accept="image/*" capture="environment" data-board-camera hidden><span>${s.images.length} / 6 photos</span></div><div class="board-photo-strip">${s.images.map((im,i)=>`<figure><img src="${im}" alt="Consumer unit photo ${i+1}"><figcaption>Photo ${i+1}<button class="btn small" data-rotate="${i}" ${s.busy?'disabled':''}>Rotate</button><button class="btn small danger" data-remove="${i}" ${s.busy?'disabled':''}>Remove</button></figcaption></figure>`).join('')}</div><div class="note">Photos stay on this device until you press Analyse. Cloud analysis sends the selected photos to OpenAI. Our server does not save them; provider abuse-monitoring retention may apply. Avoid customer details in photos. No photos are included in certificates or backups.</div><label class="scan-consent"><input type="checkbox" data-board-consent ${s.consent?'checked':''}>Allow these photos to be sent for cloud analysis</label><div class="toolbar"><button class="btn primary" data-scan-command="analyse" ${s.busy||!s.images.length||!s.consent?'disabled':''}>${s.busy?'Analysing…':'Analyse all photos'}</button><button class="btn" data-scan-command="ocr" ${s.busy||!s.images.length?'disabled':''}>Read text on device</button><button class="btn" data-scan-command="add" ${s.busy?'disabled':''}>Add device manually</button></div><p role="status" aria-live="polite">${esc(s.message||'Review every value and choose the correct circuit. Nothing is applied automatically.')}</p>${s.needsLogin?'<section class="scan-login"><p>Sign in with your Sperin Services owner email to use cloud scanning.</p><button class="btn" data-scan-command="request-code">Send sign-in code</button><label>Email code<input inputmode="numeric" autocomplete="one-time-code" data-login-code></label><button class="btn" data-scan-command="verify-code">Sign in</button></section>':''}${s.ocr?`<details open><summary>On-device OCR — unassociated text only</summary><pre class="scan-ocr">${esc(s.ocr)}</pre><p>OCR does not identify devices or match circuit labels. Use this text to help manual entry below.</p></details>`:''}${s.result.warnings.map(w=>`<p class="note warning">${esc(w)}</p>`).join('')}<h3>Consumer unit information</h3>${s.result.board.map((r,i)=>row(r,i,'board')).join('')}<h3>Protective devices</h3>${s.result.circuits.map((d,i)=>`<section class="scan-device"><h4>Device ${i+1} · ${esc(d.position)}</h4><p>${esc(d.reason)} · Association ${esc(d.association)}</p><label>Apply this device to<select data-target="${i}"><option value="">Choose circuit — required</option>${cert.type==='minor'?`<option value="minor" ${d.target==='minor'?'selected':''}>This Minor Works circuit</option>`:circuits.map(c=>`<option value="${esc(c.id)}" ${d.target===c.id?'selected':''}>${esc(c.circuitNo)} · ${esc(c.description||'Unnamed')}</option>`).join('')+`<option value="new" ${d.target==='new'?'selected':''}>Create a new circuit</option>`}</select></label>${d.target==='new'?`<label>New circuit number<input data-number="${i}" value="${esc(d.number)}" maxlength="20"></label>`:''}${d.fields.map((r,j)=>row(r,j,String(i))).join('')}</section>`).join('')}<div class="board-scan-footer"><button class="btn primary" data-scan-command="apply" ${s.busy?'disabled':''}>Apply Confirmed Information</button><p>Shows existing → proposed values before saving. Unchecked fields stay unchanged.</p></div></div>`;
+function scanField(r,i,group){
+ const key=r.key;
+ const labels={manufacturer:'Manufacturer',description:'Circuit description',ocpdBs:'BS (EN)',ocpdRating:'Rating A',ocpdType:'Type',
+   breakingCapacity:'Breaking kA',rcdBs:'BS (EN)',rcdType:'Type',rcdIdn:'RCD mA',rcdRating:'Rating A'};
+ const options={
+   deviceKind:['MCB','RCBO','MCCB','Fuse','Spare','Other'],
+   ocpdBs:['BS EN 61009-1','BS EN 60898-1','BS 88-3','BS EN 60947-2','BS 3036','BS EN 60269-1'],
+   ocpdType:['B','C','D','gG','gL'],ocpdRating:['2','3','4','6','10','16','20','25','32','40','50','63','80','100'],
+   breakingCapacity:['3','4.5','6','10','16','25','33','50'],rcdBs:['BS EN 61009-1','BS EN 61008-1','BS EN 62423'],
+   rcdType:['AC','A','F','B','N/A'],rcdIdn:['10','30','100','300','500'],rcdRating:['6','10','16','20','25','32','40','50','63','80','100']
+ };
+ const attr='data-value="'+group+':'+i+'"';
+ const opt=options[key];
+ const select=opt?'<select '+attr+'><option value="">Select</option>'+[...new Set([...opt,r.value].filter(Boolean))].map(v=>'<option value="'+esc(v)+'" '+(v===r.value?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>'
+   :'<input '+attr+' value="'+esc(r.value)+'" autocomplete="off" placeholder="'+(key==='description'?'e.g. Sockets':'')+'">';
+ return '<label class="scan-input"><span>'+esc(labels[key]||core.circuitKeys[key]||key)+'</span>'+select+'</label>';
+}
+function render(){
+ const s=session;if(!s)return;
+ const cert=s.adapter.getCert(),boards=cert.tables?.boards||[];
+ const actual=boards.find(b=>b.ref===s.boardRef)||{},brand=s.result.board.find(r=>r.key==='manufacturer');
+ const photoCards=s.images.map((im,i)=>'<div class="scan-photo"><img src="'+im+'" alt="Board photo '+(i+1)+'"><span>Photo '+(i+1)+'</span><button class="btn small" data-rotate="'+i+'">Rotate</button><button class="btn small danger" data-remove="'+i+'">✕</button></div>').join('');
+ const items=s.result.circuits.map((d,i)=>{
+   const kind=d.fields.find(f=>f.key==='deviceKind')?.value||'';
+   const title=d.fields.find(f=>f.key==='description')?.value||'';
+   const rating=d.fields.find(f=>f.key==='ocpdRating')?.value||'';
+   const curve=d.fields.find(f=>f.key==='ocpdType')?.value||'';
+   const n=d.number||String(i);
+   const fixed=kind==='Main switch'||kind==='SPD'||kind==='Spare';
+   const label=kind==='Main switch'?'MAIN SWITCH':kind==='SPD'?'SPD':kind==='Spare'?'SPARE':title||((curve||'')+(rating||'')+(rating?' A':''))||'New circuit';
+   const selected=s.active==='c'+i;
+   const editable=[...d.fields].filter(f=>['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].includes(f.key));
+   const missing=['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].filter(key=>!editable.some(f=>f.key===key)).map(key=>({key,value:'',accepted:false,evidence:[]}));
+   const fields=[...editable,...missing],fkey=k=>fields.findIndex(f=>f.key===k),group=(ks,title)=>'<div class="scan-field-group"><h4>'+title+'</h4><div class="scan-field-grid">'+ks.map(k=>scanField(fields[fkey(k)],fkey(k),''+i)).join('')+'</div></div>';
+   // Add missing fields to the underlying review data, not just a temporary render.
+   for(const f of missing)d.fields.push(f);
+   const realIndices=d.fields;
+   const fi=k=>realIndices.findIndex(f=>f.key===k);
+   const renderKeys=ks=>ks.map(k=>scanField(realIndices[fi(k)],fi(k),String(i))).join('');
+   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
+ }).join('');
+ const expanded=s.active==='board'||String(s.active||'').startsWith('c');
+ const custom=window.Android?.scanSheetImageBase64;
+ const showCloud=s.cloudOpen;
+ s.modal.innerHTML='<div class="card modal board-scan-modal scan-modern" role="dialog" aria-modal="true" aria-labelledby="board-scan-title" tabindex="-1"><header class="scan-top"><div><span class="scan-eyebrow">SPERIN CERTIFICATES</span><h2 id="board-scan-title">Consumer unit '+esc(boards.findIndex(b=>b.ref===s.boardRef)+1||1)+'</h2></div><button class="btn ghost" data-scan-command="close">✕ Close</button></header>'+
+ '<div class="scan-action-bar"><button class="btn primary" data-scan-command="camera">📷 Take photo</button><label class="btn photo-pick">＋ Add photos<input type="file" multiple accept="image/jpeg,image/png,image/webp" data-board-photos hidden></label><input type="file" accept="image/*" capture="environment" data-board-camera hidden></div>'+
+ '<div class="scan-photo-strip">'+photoCards+'</div>'+
+ '<div class="scan-side-switch"><span>Main switch</span><button data-side="right" class="btn small '+(s.mainSide==='right'?'selected':'')+'">Right</button><button data-side="left" class="btn small '+(s.mainSide==='left'?'selected':'')+'">Left</button></div>'+
+ '<div class="scan-action-bar"><button class="btn primary scan-read" data-scan-command="ocr" '+(!custom||s.images.length===0||s.busy?'disabled':'')+'>'+(s.busy?'Reading…':'Read photos')+'</button><button class="btn" data-scan-command="add">＋ Add circuit</button><button class="btn" data-scan-command="spare">＋ Add blank</button><button class="btn" data-scan-command="add-spd">＋ Add SPD</button></div>'+
+ '<p class="scan-status" role="status" aria-live="polite">'+esc(s.message||'Check the details, then save.')+'</p>'+
+ '<section class="scan-board '+(expanded?'expanded':'')+'"><button class="scan-circuit-title" data-open="board" aria-expanded="'+expanded+'"><span class="scan-number">1</span><span class="scan-circuit-name"><strong>Consumer unit</strong><small>'+esc(brand?.value||actual.manufacturer||s.boardRef)+'</small></span><span class="scan-chevron">'+(expanded?'−':'+')+'</span></button>'+(expanded?'<div class="scan-circuit-body"><label class="scan-input"><span>Manufacturer</span><input data-brand value="'+esc(brand?.value||actual.manufacturer||'')+'"></label></div>':'')+(expanded?'<div class="scan-section-heading"><h3>Circuits</h3><span>'+s.result.circuits.length+' listed</span></div><div class="scan-circuits">'+(items||'<div class="scan-empty">Add photos to read your consumer unit, or add a circuit.</div>')+'</div>':'')+'</section>'+
+ '<div class="scan-cloud"><button class="btn small ghost" data-scan-command="cloud-toggle">'+(showCloud?'−':'＋')+' Cloud scan (optional)</button>'+(showCloud?'<div class="scan-cloud-content"><p>Cloud scanning needs a separate AI service with available credit.</p><label class="scan-consent"><input type="checkbox" data-board-consent '+(s.consent?'checked':'')+'> Allow cloud use of these photos</label><button class="btn" data-scan-command="analyse" '+(!s.consent||!s.images.length?'disabled':'')+'>Use cloud scan</button>'+(s.needsLogin?'<div class="scan-login"><p>Sign in to use your business cloud scanner.</p><button class="btn small" data-scan-command="request-code">Email me a sign-in code</button><input data-login-code inputmode="numeric" placeholder="Code from email"><button class="btn" data-scan-command="verify-code">Sign in</button></div>':'')+'</div>':'')+'</div>'+
+ '<div class="scan-savebar"><button class="btn primary" data-scan-command="apply" '+(s.busy?'disabled':'')+'>✓ Save to certificate</button></div></div>';
 }
 async function preparePhoto(source,rotate=0){const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Unreadable image. Choose a JPEG, PNG or WebP photo.'));img.src=source;});const scale=Math.min(1,2400/Math.max(img.width,img.height));const w=Math.round(img.width*scale),h=Math.round(img.height*scale),canvas=document.createElement('canvas');canvas.width=rotate?h:w;canvas.height=rotate?w:h;const ctx=canvas.getContext('2d');if(rotate){ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);}ctx.drawImage(img,0,0,w,h);const data=canvas.toDataURL('image/jpeg',.88);if(data.length>2400000)throw Error('Photo is too detailed to upload safely. Try a closer crop.');return data;}
 async function addPhoto(source){const s=session;if(!s||s.images.length>=6)return error('Up to six photos per scan.');try{const data=await preparePhoto(source);if(session!==s)return;s.images.push(data);s.consent=false;render();}catch(e){error(e.message);}}
 async function files(list){for(const f of list){if(f.size>20*1024*1024){error('Photo exceeds 20 MB. Choose a smaller image.');continue;}const url=URL.createObjectURL(f);try{await addPhoto(url);}finally{URL.revokeObjectURL(url);}}}
-async function analyse(){const s=session;if(!s||s.busy||!s.consent||!s.images.length)return;s.busy=true;s.abort=new AbortController();s.message='Analysing device markings and circuit labels together…';render();const timer=setTimeout(()=>s.abort.abort(),90000);try{const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:s.images,consent:true}),signal:s.abort.signal});const data=await response.json();if(session!==s)return;if(!response.ok){s.needsLogin=response.status===401;throw Error(data.error||'Cloud analysis unavailable. Use on-device text reading or manual entry.');}const next=core.normalise(data,s.images.length);
+async function analyse(){const s=session;if(!s||s.busy||!s.consent||!s.images.length)return;s.busy=true;s.abort=new AbortController();s.message='Analysing device markings and circuit labels together…';render();const timer=setTimeout(()=>s.abort.abort(),90000);try{const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:s.images,consent:true}),signal:s.abort.signal});const data=await response.json();if(session!==s)return;if(!response.ok){s.needsLogin=response.status===401;if(window.Android?.scanSheetImageBase64&&[401,429,502,503].includes(response.status)){s.busy=false;s.message='Cloud scan is unavailable ('+response.status+'). Switching to no-credit, on-device photo reading.';render();return ocr();}throw Error(data.error||'Cloud analysis unavailable. Use on-device text reading or manual entry.');}const next=core.normalise(data,s.images.length);
  // Confirmed edits survive a rescan. New circuit proposals never silently replace old mappings.
  for(const old of s.result.board.filter(r=>r.accepted)){const index=next.board.findIndex(r=>r.key===old.key);if(index>=0){if(next.board[index].value!==old.value)next.warnings.push('New photo differs from confirmed '+core.boardKeys[old.key]+'. Your confirmed value was retained.');next.board[index]=old;}else next.board.push(old);}
  const kept=s.result.circuits.filter(d=>d.fields.some(r=>r.accepted));next.circuits=[...kept,...next.circuits];if(kept.length)next.warnings.push('Previously confirmed devices retained. Review new proposals for duplicates before applying.');
- s.result=next;s.message='Analysis ready. Green is a confidence indication, not a test result. Confirm each value.';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
-function apply(){const s=session;if(!s||s.busy)return;try{const before=JSON.stringify(s.adapter.getCert());const proposed=core.propose(s.adapter.getCert(),s.boardRef,s.result);if(!proposed.changes.length)return error('Confirm at least one changed value first.');const panel=document.createElement('div');panel.className='modal-backdrop board-scan-diff';panel.innerHTML=`<div class="card modal" role="dialog" aria-modal="true" aria-label="Confirm certificate changes"><h2>Review ${proposed.changes.length} changes</h2><div class="scan-diff-list">${proposed.changes.map(c=>`<p><strong>${esc(c.label)}</strong><br><del>${esc(c.before||'(empty)')}</del> → <ins>${esc(c.after)}</ins></p>`).join('')}</div><div class="toolbar"><button class="btn" data-cancel>Back to review</button><button class="btn primary" data-save>Confirm & save</button></div></div>`;document.body.appendChild(panel);panel.querySelector('[data-cancel]').onclick=()=>panel.remove();panel.querySelector('[data-save]').onclick=()=>{if(session!==s||JSON.stringify(s.adapter.getCert())!==before){panel.remove();return error('Certificate changed during review. Please review the changes again.');}try{s.adapter.commit(proposed.certificate);panel.remove();s.modal.remove();session=null;}catch(e){panel.remove();error('Could not save: '+e.message);}};panel.querySelector('[data-cancel]').focus();}catch(e){error(e.message);}}
+ const mapped=(s.adapter.getCert().type!=='minor'&&!kept.length)?(core.numberFromMain(next,s.adapter.getCert(),s.boardRef),next.circuits.length):suggestDeviceTargets(next,s.adapter.getCert(),s.boardRef);s.result=next;s.message='Photos read. Check the details, then save.';s.active='board';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
+function suggestDeviceTargets(result,cert,boardRef){
+ // Only trustworthy, uniquely numbered device/circuit associations may preselect a destination.
+ // Manual review, the one-device confirmation and final diff remain mandatory.
+ if(cert.type==='minor')return 0;
+ const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
+ const numbers=result.circuits.map(d=>{
+   const field=d.fields.find(r=>r.key==='circuitNo');
+   const value=String(field?.value||'').trim();
+   return d.association==='high'&&field?.confidence==='high'&&/^\d+[A-Za-z]?$/.test(value)?value:'';
+ });
+ let mapped=0;
+ result.circuits.forEach((device,i)=>{
+   const number=numbers[i];
+   if(!number||numbers.filter(n=>n===number).length!==1||device.target)return;
+   const matches=existing.filter(c=>String(c.circuitNo)===number);
+   if(matches.length>1)return;
+   device.target=matches.length?matches[0].id:'new';
+   device.number=number;
+   mapped++;
+ });
+ return mapped;
+}
+function apply(){
+ const s=session;if(!s||s.busy)return;
+ try{
+   const cert=s.adapter.getCert(),boardRef=s.boardRef;
+   const board=cert.tables?.boards?.find(b=>b.ref===boardRef);
+   if(!board&&cert.type!=='minor')throw Error('Please select a consumer unit.');
+   const proposal={board:s.result.board.map(f=>({...f,accepted:['manufacturer','model','mainSwitch','spd'].includes(f.key)&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
+   const usedNumbers=new Set();
+   for(let i=0;i<s.result.circuits.length;i++){
+     const d=s.result.circuits[i],n=String(d.number??i).trim();
+     if(!/^\d+$/.test(n))throw Error('Check the number for circuit '+(i+1)+'.');
+     if(usedNumbers.has(n))throw Error('Circuit '+n+' has been entered twice.');
+     usedNumbers.add(n);
+     const same=(cert.tables?.circuits||[]).filter(row=>row.boardRef===boardRef&&String(row.circuitNo)===n&&!row._incomingFeed);
+     if(same.length>1)throw Error('Circuit '+n+' needs checking in the certificate.');
+     const kind=d.fields.find(f=>f.key==='deviceKind')?.value||'';
+     const acceptedKeys=new Set(['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating']);
+     const fields=d.fields.map(f=>({...f,accepted:acceptedKeys.has(f.key)&&!!String(f.value||'').trim()}));
+     // Spare, main switch and SPD are schedule positions, not tested outgoing circuits.
+     if(['Spare','Main switch','SPD'].includes(kind)){
+       for(const f of fields)if(!['description','deviceKind'].includes(f.key))f.accepted=false;
+     }
+     const filled=fields.some(f=>f.accepted);
+     if(!filled)continue;
+     proposal.circuits.push({...d,fields,number:n,target:same.length?same[0].id:cert.type==='minor'?'minor':'new'});
+   }
+   if(!proposal.circuits.length&&!proposal.board.some(f=>f.accepted))throw Error('Add or read a circuit before saving.');
+   const before=JSON.stringify(cert),result=core.propose(cert,boardRef,proposal);
+   if(!result.changes.length){s.message='Everything is already saved.';render();return;}
+   const replaced=result.changes.filter(c=>c.before&&c.before!==c.after&&
+     (/^Circuit \d+/.test(c.label))).length;
+   if(replaced&&!confirm('Some existing circuit details will change. Save these changes?'))return;
+   if(JSON.stringify(s.adapter.getCert())!==before)throw Error('The certificate changed. Please try saving again.');
+   s.adapter.commit(result.certificate);
+   s.modal.remove();session=null;
+   window.scrollTo({top:0,behavior:'smooth'});
+ }catch(ex){error('Could not save. '+ex.message);}
+}
 async function login(verify){const s=session;try{const code=s.modal.querySelector('[data-login-code]')?.value||'';const r=await fetch('/api/owner/'+(verify?'verify-code':'request-code'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'info@sperinservices.co.uk',...(verify?{code}:{})})});const data=await r.json();if(!r.ok)throw Error(data.error||'Sign-in unavailable');if(session!==s)return;s.needsLogin=!verify;s.message=verify?'Signed in. Press Analyse to send your photos.':'Sign-in code sent to your owner email.';render();}catch(e){error(e.message);}}
 // OCR can propose visible device markings, but cannot establish physical way order.
 // Keep proposals unconfirmed and unmapped; the installer must verify each device.
-function ocrCandidates(photos){
- const devices=[],warnings=[];
- for(let p=0;p<photos.length;p++){
-  const lines=String(photos[p]||'').split(/\r?\n/);
-  const matches=[];
-  for(const line of lines){
-   const compact=line.replace(/\s+/g,' ').trim();
-   const match=compact.match(/(?:^|[^A-Z0-9])([BCD])\s?(6|10|16|20|25|32|40|50|63)(?:\s?A)?(?=$|[^0-9])/i);
-   if(!match)continue;
-   matches.push({curve:match[1].toUpperCase(),rating:match[2],evidence:compact.slice(0,100)});
-  }
-  for(const m of matches){
-   const ev=[{image:p+1,text:m.evidence}];
-   const field=(key,value)=>({key,value,confidence:'check',evidence:ev,reason:'OCR candidate only — verify against the photograph and the actual device.',accepted:false});
-   devices.push({id:'ocr-'+p+'-'+devices.length,position:'Photo '+(p+1)+' — position unknown',association:'check',reason:'OCR cannot determine way order or whether this text belongs to a separate device. Verify and remove duplicates.',target:'',number:'',fields:[field('ocpdType',m.curve),field('ocpdRating',m.rating)]});
-  }
- }
- if(devices.length)warnings.push('OCR found '+devices.length+' possible protective-device markings. These are NOT a circuit count. Repeated markings may be duplicates. Confirm physical order, blank ways, and each circuit before saving.');
- else warnings.push('No unambiguous B/C/D protective-device ratings found. Use cloud analysis with consent or manual entry.');
- return {devices,warnings};
-}
 function ocr(){const s=session;if(!window.Android?.scanSheetImageBase64)return error('On-device OCR is available in the Android app. You can still enter visible markings manually.');s.ocr='';s.ocrPhotos=[];s.ocrIndex=0;s.busy=true;nextOcr();}
-function nextOcr(){const s=session;if(!s)return;if(s.ocrIndex>=s.images.length){s.busy=false;const candidates=ocrCandidates(s.ocrPhotos||[]);s.result.circuits=[...s.result.circuits,...candidates.devices];s.result.warnings.push(...candidates.warnings);s.message='Local OCR complete. Possible ratings are shown for manual confirmation; physical way order and circuit associations remain unverified.';render();return;}s.token='board-ocr-'+(++seq);window.Android.scanSheetImageBase64(s.token,s.images[s.ocrIndex]);s.ocrTimer=setTimeout(()=>{if(session===s&&s.busy){s.busy=false;s.token='';error('On-device text reading timed out. You can retry or enter the markings manually.');}},30000);}
-window.SperinConsumerScan={open(adapter,boardRef){if(session)return;const modal=document.createElement('div');modal.className='modal-backdrop board-scan-backdrop';session={adapter,boardRef,modal,opener:document.activeElement,images:[],result:core.blank(),message:'',consent:false,busy:false};document.body.appendChild(modal);render();modal.querySelector('[data-scan-command="close"]').focus();},close,ocrResult(token,json,err){if(!session||token!==session.token)return false;clearTimeout(session.ocrTimer);session.token='';try{const value=err||JSON.parse(json).fullText||'';session.ocrPhotos.push(err?'':value);session.ocr+='Photo '+(session.ocrIndex+1)+'\n'+(value||'No readable text')+'\n\n';}catch{session.ocrPhotos.push('');session.ocr+='Unreadable OCR response\n';}session.ocrIndex++;nextOcr();return true;},isOpen:()=>!!session};
+// Count visible dark spare-module covers by comparing their width to the
+// measured spacing of adjacent B/C/D-labelled devices. This is an estimate,
+// not a certification of positions; the installer can edit the rows.
+async function estimateBlankWayHint(dataUri,ocr){
+ const raw=Array.isArray(ocr?.lines)?ocr.lines.filter(l=>Number.isFinite(l.left)&&Number.isFinite(l.right)&&Number.isFinite(l.top)&&
+ /(?:^|[^A-Z0-9])[BCD]\s?(?:6|10|16|20|25|32|40|50|63)(?:\s?A)?(?:$|[^0-9])/i.test(l.text||'')):[];
+ if(raw.length<3)return 0;
+ const centers=raw.map(l=>(l.left+l.right)/2).sort((a,b)=>a-b);
+ const width=Number(ocr.width)||0;
+ if(width<250)return 0;
+ const distances=centers.slice(1).map((v,i)=>v-centers[i]).filter(v=>v>width*.024&&v<width*.13).sort((a,b)=>a-b);
+ if(distances.length<2)return 0;
+ const pitch=distances[Math.floor(distances.length/2)];
+ const xmin=centers[0],y=Math.round(raw.reduce((sum,l)=>sum+(l.top+l.bottom)/2,0)/raw.length);
+ const photo=new Image();
+ await new Promise((resolve,reject)=>{photo.onload=resolve;photo.onerror=reject;photo.src=dataUri;});
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=Number(ocr.height)||photo.height;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return 0;
+ ctx.drawImage(photo,0,0,canvas.width,canvas.height);
+ const from=Math.max(Math.round(width*.055),Math.round(xmin-pitch*12)),to=Math.min(canvas.width-1,Math.round(xmin-pitch*.55));
+ const y0=Math.max(0,Math.round(y+10)),y1=Math.min(canvas.height,Math.round(y+Math.min(pitch*.85,60)));
+ if(to-from<pitch*2||y1-y0<12)return 0;
+ const pixels=ctx.getImageData(from,y0,to-from,y1-y0).data,rows=y1-y0,cols=to-from,ratio=[];
+ for(let x=0;x<cols;x++){
+   let dark=0;
+   for(let yy=0;yy<rows;yy+=2){
+     const i=(yy*cols+x)*4,grey=.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2];
+     if(grey<145)dark++;
+   }
+   ratio.push(dark/Math.ceil(rows/2));
+ }
+ let start=-1;
+ for(let x=0;x<cols-12;x++){
+   let average=0;
+   for(let k=0;k<12;k++)average+=ratio[x+k];
+   if(average/12>.43){start=x;break;}
+ }
+ if(start<0)return 0;
+ const occupied=ratio.slice(start),mostlyDark=occupied.filter(v=>v>.35).length/occupied.length;
+ if(mostlyDark<.48)return 0;
+ const estimated=Math.round((xmin-(from+start))/pitch);
+ return estimated>=1&&estimated<=12?estimated:0;
+}
+async function nextOcr(){
+ const s=session;if(!s)return;
+ if(s.ocrIndex>=s.images.length){
+   s.busy=false;
+   for(let i=0;i<(s.ocrPhotos||[]).length;i++){
+     try{s.ocrPhotos[i].blankWayHint=await estimateBlankWayHint(s.images[i],s.ocrPhotos[i]);}
+     catch{ /* Keep photo OCR results when the visual gap estimate is uncertain. */ }
+   }
+   if(session!==s)return;
+   const candidates=core.localOcrCandidates(s.ocrPhotos||[],{mainSide:s.mainSide});
+   const cert=s.adapter.getCert();
+   for(const r of candidates.board){
+     const old=s.result.board.find(f=>f.key===r.key);
+     if(old&&!old.accepted){old.value=r.value;old.reason=r.reason;old.confidence='check';old.evidence=r.evidence;}
+     else if(!old)s.result.board.push(r);
+   }
+   for(const d of candidates.devices)
+     for(const key of Object.keys(core.circuitKeys))
+       if(!d.fields.some(f=>f.key===key))d.fields.push({key,value:'',confidence:'missing',evidence:[],reason:'Not identified by OCR. Enter only verified markings.',accepted:false});
+   const approved=s.result.circuits.filter(d=>d.fields.some(f=>f.accepted));
+   s.result.circuits=[...approved,...candidates.devices];
+   s.result.warnings.push(...candidates.warnings);
+   if(candidates.physicalOrderKnown&&!approved.length&&cert.type!=='minor'){
+     try{core.numberFromMain(s.result,cert,s.boardRef);}catch(e){s.result.warnings.push(e.message);}
+   }else if(approved.length){
+     s.result.warnings.push('Previous confirmed devices retained. Check for duplicates; previously approved rows were not automatically renumbered.');
+   }
+   s.message='Photos read. Check the order and details, then save.';
+   s.active='board';
+   render();return;
+ }
+ s.token='board-ocr-'+(++seq);window.Android.scanSheetImageBase64(s.token,s.images[s.ocrIndex]);
+ s.ocrTimer=setTimeout(()=>{if(session===s&&s.busy){s.busy=false;s.token='';error('On-device text reading timed out. You can retry or enter markings manually.');}},30000);
+}
+window.SperinConsumerScan={open(adapter,boardRef){if(session)return;const modal=document.createElement('div');modal.className='modal-backdrop board-scan-backdrop';session={adapter,boardRef,modal,opener:document.activeElement,images:[],result:core.blank(),message:'',consent:false,busy:false,mainSide:'right',cloudOpen:false,active:'board'};document.body.appendChild(modal);render();modal.querySelector('[data-scan-command="close"]').focus();},close,ocrResult(token,json,err){if(!session||token!==session.token)return false;clearTimeout(session.ocrTimer);session.token='';try{const result=err?{fullText:'',lines:[]}:(JSON.parse(json)||{});const value=err||result.fullText||'';session.ocrPhotos.push(err?{fullText:'',lines:[]}:result);session.ocr+='Photo '+(session.ocrIndex+1)+'\n'+(value||'No readable text')+'\n\n';}catch{session.ocrPhotos.push({fullText:'',lines:[]});session.ocr+='Unreadable OCR response\n';}session.ocrIndex++;nextOcr();return true;},isOpen:()=>!!session};
 window.sperinBoardPhotoResult=(token,data,errorMessage)=>{if(!session||session.cameraToken!==token)return;session.cameraToken='';if(errorMessage)return error(errorMessage);addPhoto(data);};
-document.addEventListener('change',e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target,s=session;if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}if(el.dataset.confirm){const [group,index]=el.dataset.confirm.split(':');const r=group==='board'?s.result.board[index]:s.result.circuits[group].fields[index];r.accepted=el.checked;}if(el.dataset.target!==undefined){const d=s.result.circuits[el.dataset.target];d.target=el.value;if(el.value==='new')d.number=d.fields.find(r=>r.key==='circuitNo')?.value||'';render();}});
-document.addEventListener('input',e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target;if(el.dataset.value){const [group,index]=el.dataset.value.split(':');const r=group==='board'?session.result.board[index]:session.result.circuits[group].fields[index];r.value=el.value;r.accepted=false;r.confidence='check';const container=el.closest('.board-scan-field');container.classList.remove('high','missing');container.classList.add('check');container.querySelector('.scan-confidence').textContent='Needs checking';const box=el.closest('.board-scan-field').querySelector('[data-confirm]');box.checked=false;box.disabled=!r.value.trim();}if(el.dataset.number!==undefined)session.result.circuits[el.dataset.number].number=el.value;});
-document.addEventListener('click',async e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target.closest('button');if(!el)return;const s=session;const cmd=el.dataset.scanCommand;if(cmd==='close')return close();if(s.busy)return;if(cmd==='camera'){if(window.Android?.captureBoardPhoto){s.cameraToken='board-photo-'+(++seq);window.Android.captureBoardPhoto(s.cameraToken);}else s.modal.querySelector('[data-board-camera]').click();}if(cmd==='analyse')analyse();if(cmd==='ocr')ocr();if(cmd==='apply')apply();if(cmd==='add'){s.result.circuits.push(core.draftDevice());render();}if(cmd==='request-code')login(false);if(cmd==='verify-code')login(true);if(el.dataset.remove!==undefined){s.images.splice(Number(el.dataset.remove),1);s.result=core.blank();s.consent=false;s.message='Photo removed. Reanalyse to rebuild evidence references.';render();}if(el.dataset.rotate!==undefined){try{const i=Number(el.dataset.rotate);s.images[i]=await preparePhoto(s.images[i],90);s.consent=false;render();}catch(e){error(e.message);}}});
+document.addEventListener('change',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target,s=session;
+ if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
+ if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f)f.value=el.value;}
+});
+document.addEventListener('input',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target,s=session;
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f)f.value=el.value;}
+ if(el.dataset.number!==undefined){s.result.circuits[Number(el.dataset.number)].number=el.value;}
+ if(el.hasAttribute('data-brand')){
+   let f=s.result.board.find(f=>f.key==='manufacturer');
+   if(!f){f={key:'manufacturer',value:'',accepted:false,evidence:[]};s.result.board.push(f);}
+   f.value=el.value;
+ }
+});
+document.addEventListener('click',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target.closest('button');if(!el)return;
+ const s=session,cmd=el.dataset.scanCommand;
+ if(cmd==='close')return close();
+ if(s.busy)return;
+ if(el.dataset.open!==undefined){s.active=s.active===el.dataset.open?'':el.dataset.open;render();return;}
+ if(el.dataset.side){
+   s.mainSide=el.dataset.side;
+   if(s.ocrPhotos?.length){
+     const next=core.localOcrCandidates(s.ocrPhotos,{mainSide:s.mainSide});
+     s.result.circuits=next.devices;
+     if(s.adapter.getCert().type!=='minor')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
+     s.message='Order updated. Check the details, then save.';
+   }
+   s.active='board';render();return;
+ }
+ if(cmd==='cloud-toggle'){s.cloudOpen=!s.cloudOpen;render();return;}
+ if(cmd==='camera'){if(window.Android?.captureBoardPhoto){s.cameraToken='board-photo-'+(++seq);window.Android.captureBoardPhoto(s.cameraToken);}else s.modal.querySelector('[data-board-camera]').click();return;}
+ if(cmd==='analyse')return analyse();
+ if(cmd==='ocr')return ocr();
+ if(cmd==='apply')return apply();
+ if(cmd==='request-code')return login(false);
+ if(cmd==='verify-code')return login(true);
+ if(cmd==='add'||cmd==='spare'||cmd==='add-spd'){
+   const d=core.draftDevice();
+   if(cmd==='spare'){d.fields.find(f=>f.key==='description').value='SPARE';d.fields.find(f=>f.key==='deviceKind').value='Spare';}
+   if(cmd==='add-spd'){d.fields.find(f=>f.key==='description').value='SPD';d.fields.find(f=>f.key==='deviceKind').value='SPD';}
+   const hadDevices=s.result.circuits.length;
+   s.result.circuits.push(d);
+   try{
+     if(s.adapter.getCert().type!=='minor'){
+       if(!hadDevices||cmd==='add-spd')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
+       else d.number=String(Math.max(-1,...s.result.circuits.slice(0,-1).map(v=>Number(v.number)).filter(Number.isFinite))+1);
+     }else d.target='minor';
+   }catch(ex){s.message=ex.message;}
+   s.active='c'+s.result.circuits.indexOf(d);render();return;
+ }
+ if(el.dataset.deviceDelete!==undefined){
+   const i=Number(el.dataset.deviceDelete),d=s.result.circuits[i];
+   s.result.circuits.splice(i,1);
+   if(['Main switch','SPD','Spare'].includes(d?.fields.find(f=>f.key==='deviceKind')?.value)){
+     // Respect manual removal of an SPD, even if the original board still has a value.
+     if(d?.fields.find(f=>f.key==='deviceKind')?.value==='SPD')s.result.board.push({key:'spd',value:'Not fitted',accepted:false,evidence:[]});
+   }
+   s.result.circuits.forEach((d,i)=>{d.number=String(i);});
+   s.active='board';render();return;
+ }
+ if(el.dataset.deviceUp!==undefined||el.dataset.deviceDown!==undefined){
+   const i=Number(el.dataset.deviceUp??el.dataset.deviceDown),j=i+(el.dataset.deviceUp!==undefined?-1:1);
+   if(j>=0&&j<s.result.circuits.length){
+     [s.result.circuits[i],s.result.circuits[j]]=[s.result.circuits[j],s.result.circuits[i]];
+     s.result.circuits.forEach((d,k)=>{d.number=String(k);d.target='';});
+     s.active='c'+j;render();
+   }return;
+ }
+ if(el.dataset.remove!==undefined){
+   s.images.splice(Number(el.dataset.remove),1);s.message='Photo removed.';render();return;
+ }
+ if(el.dataset.rotate!==undefined){
+   (async()=>{try{const i=Number(el.dataset.rotate);s.images[i]=await preparePhoto(s.images[i],90);render();}catch(ex){error(ex.message);}})();return;
+ }
+});
 document.addEventListener('keydown',e=>{if(!session)return;const diff=document.querySelector('.board-scan-diff');if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(diff)diff.remove();else close();}if(e.key==='Tab'){const box=diff||session.modal;const els=[...box.querySelectorAll('button:not(:disabled),input:not([hidden]):not(:disabled),select')].filter(x=>x.getClientRects().length);const first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}},true);
 })();

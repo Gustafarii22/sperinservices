@@ -441,6 +441,20 @@ await page.addInitScript(() => {
   };
 });
 
+
+const accordionQaScript=() => {
+  // Legacy deep-field regression exercises the entire issued certificate at
+  // once; compact-accordion behaviour is tested separately in scan.e2e.mjs.
+  const openAll=()=>document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>{
+    if(!el.open)el.open=true;
+  });
+  document.addEventListener('DOMContentLoaded',()=>{
+    new MutationObserver(openAll).observe(document.body,{childList:true,subtree:true});
+    openAll();
+  },{once:true});
+};
+await page.addInitScript(accordionQaScript);
+
 await page.goto(base, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".saved-cert-row");
 

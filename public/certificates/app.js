@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.8.0';
+  const VERSION = '1.8.5';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -151,7 +151,7 @@
       { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
-      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Other'] },
+      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Spare','Other'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -219,6 +219,9 @@
     pushEditHistory(template?'Insert board template':'Add board');
     const board={...(template?boardDesign(template.design):{}),id:uid(),ref:nextBoardRef(cert),feedSourceType:'Mains',suppliedFrom:'Mains'};
     cert.tables.boards.push(board);
+    rememberAccordions();
+    cert.tables.boards.forEach(b=>accordionState.set('board:'+cert.id+':'+b.id,b.id===board.id));
+    preserveRequestedAccordions=true;
     (template?.circuits||[]).forEach(design=>{const no=nextCircuitNumber(cert,board.ref);cert.tables.circuits.push({...circuitDesign(design),id:uid(),boardRef:board.ref,circuitNo:no});cert.tables.tests.push({boardRef:board.ref,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);});
     saveNow();render();goBoardCard(board.id);
   }
@@ -1025,6 +1028,11 @@
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
+  const accordionState=new Map();
+  let preserveRequestedAccordions=false;
+  const accordionOpen=(key,initial=false)=>accordionState.has(key)?accordionState.get(key):initial;
+  function rememberAccordions(){document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>accordionState.set(el.dataset.accordionKey,el.open));}
+  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('board:'+cert.id+':'+board.id,true);preserveRequestedAccordions=true;}}
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
@@ -1323,6 +1331,8 @@
   function updateSaveState(text) { const el = document.querySelector('[data-save-state]'); if (el) el.textContent = text; }
 
   function render() {
+    if(!preserveRequestedAccordions)rememberAccordions();
+    preserveRequestedAccordions=false;
     const root = document.getElementById('app');
     persistView();
     try {
@@ -1352,7 +1362,7 @@
     window.SperinConsumerScan.open({getCert:()=>cert,commit:(next)=>{
       pushEditHistory('Apply consumer unit scan');
       const old=clone(cert);
-      try{Object.assign(cert,next);if(cert.type!=='minor')syncPrimaryBoardLegacyFields(cert);saveNow();}
+      try{Object.assign(cert,next);if(cert.type!=='minor'){sortCircuitsByNumber(cert);syncPrimaryBoardLegacyFields(cert);}saveNow();}
       catch(err){Object.keys(cert).forEach(k=>delete cert[k]);Object.assign(cert,old);throw err;}
       render();toast('Confirmed photo information saved');
     }},ref);
@@ -1427,7 +1437,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${boardScanButton(cert)}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1443,7 +1453,8 @@
     const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
       : '';
-    return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></section>`;
+    const key='section:'+cert.id+':'+part.title;
+    return `<details class="card form-section cert-accordion" data-accordion-key="${esc(key)}" ${accordionOpen(key,part.title.startsWith('A ·'))?'open':''}><summary class="cert-accordion-head"><h3>${esc(part.title)}</h3><span class="cert-chevron">⌄</span></summary><div class="cert-accordion-body">${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></div></details>`;
   }
 
   const POSTCODE_TARGETS={
@@ -1570,7 +1581,7 @@
       const incoming=row._incomingFeed===true;
       return `<div class="circuit-card ${incoming?'incoming-circuit':''}" data-circuit-id="${esc(row.id||'')}">
         <button class="circuit-main" data-action="circuit-open" data-index="${i}">
-          <strong>Circuit ${esc(number)}${incoming?' · Linked incoming':''}</strong>
+          <strong>${row.deviceKind==='Main switch'?'Main switch':'Circuit '+esc(number)}${incoming?' · Linked incoming':''}</strong>
           <span>${esc(details||'Tap to enter circuit details')}</span>
         </button>
         <div class="circuit-actions">
@@ -1606,10 +1617,12 @@
             ? `<div class="field"><label>Source consumer unit</label><select data-board-input="sourceBoardRef" data-board-index="${bi}"><option value="">Select…</option>${sourceBoardOptions.map(ref=>`<option value="${esc(ref)}" ${String(board.sourceBoardRef||'')===String(ref)?'selected':''}>${esc(ref)}</option>`).join('')}</select></div>
                <div class="field"><label>Source circuit</label><select data-board-input="sourceCircuitNo" data-board-index="${bi}"><option value="">Select…</option>${sourceCircuitOptions.map(no=>`<option value="${esc(no)}" ${String(board.sourceCircuitNo??'')===String(no)?'selected':''}>Circuit ${esc(no)}</option>`).join('')}</select></div>`
             : '');
-      return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
+      const accordionKey='board:'+cert.id+':'+board.id;
+      return `<details class="card form-section consumer-unit-card cu-accordion" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}" data-accordion-key="${esc(accordionKey)}" ${accordionOpen(accordionKey,bi===0)?'open':''}>
+        <summary class="cu-summary"><span class="cu-index">${bi+1}</span><span class="cu-label"><strong>Consumer unit ${bi+1} · ${esc(board.ref||('DB'+(bi+1)))}</strong><small>${esc(board.manufacturer||'')}${boardCircuitIndices(cert,board.ref).length?' · '+boardCircuitIndices(cert,board.ref).length+' circuits':''}</small></span><span class="cert-chevron">⌄</span></summary><div class="cu-accordion-body">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
-          ${boardScanButton(cert,board.ref)}<button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
+          <button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
         </div>
         <div class="fields consumer-unit-fields">
           ${boardControl(bi,'ref','Board reference',board.ref)}
@@ -1624,8 +1637,8 @@
           ${boardControl(bi,'phaseSequence','Phase sequence',board.phaseSequence,OPTIONS.yesNoNA)}
           ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
         </div>
-        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Circuits</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div>${renderBoardCircuits(cert,board,bi)}</div>
-      </section>`;
+        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Board schedule · ${esc(board.ref)}</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div><div class="toolbar">${boardScanButton(cert,board.ref)}<span class="meta">Add one or several photo banks for this board only</span></div>${renderBoardCircuits(cert,board,bi)}</div>
+      </div></details>`;
     }).join('');
     return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
       ${boardCards}
@@ -3151,6 +3164,16 @@
     if(e.key==='Enter' || e.key===' '){e.preventDefault();openCertificate(card.dataset.id);}
   });
 
+  document.addEventListener('click',e=>{
+    const summary=e.target.closest('.cert-accordion-head,.cu-summary');
+    if(!summary)return;
+    const current=summary.closest('details[data-accordion-key]');
+    if(!current||current.open)return;
+    const group=summary.matches('.cu-summary')?'cu-accordion':'cert-accordion';
+    document.querySelectorAll('#app details.'+group+'[open]').forEach(other=>{
+      if(other!==current)other.open=false;
+    });
+  });
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
@@ -3325,8 +3348,8 @@
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
-    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if (action === 'settings') openSettings();

@@ -18,6 +18,182 @@ function normalise(raw,count){
 }
 function blank(){return {board:Object.keys(boardKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Not identified — enter only information you can verify.',accepted:false})),circuits:[],warnings:[]};}
 function draftDevice(){return {id:'manual-'+Date.now(),position:'Manual device',association:'check',reason:'Choose its circuit explicitly.',target:'',number:'',fields:Object.keys(circuitKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Manual entry',accepted:false}))};}
+
+// An enclosure can have multiple photo banks. The installer chooses the bank/photo order,
+// and this routine numbers physical schedule positions from its sole main switch.
+// Main switch and SPD are *schedule position* annotations, not outgoing circuits.
+// Their electrical test fields must remain blank.
+
+// ML Kit returns text AND bounding rectangles. Cluster protective-device markings
+// geometrically instead of flattening them into a text stream. This never auto-accepts
+// a field or claims that an optical reading proves circuit identity or safety.
+function localOcrCandidates(photos,options={}){
+ const devices=[],warnings=[],boardValues={};
+ let mainSide=null,withPositions=true;
+ const override=['left','right'].includes(options.mainSide)?options.mainSide:null;
+ const rating=/(?:^|[^A-Z0-9])([BCD])\s?(6|10|16|20|25|32|40|50|63)(?:\s?A)?(?=$|[^0-9])/i;
+ const read=p=>typeof p==='string'?{fullText:p,lines:[]}:(p&&typeof p==='object'?p:{fullText:'',lines:[]});
+ const clean=s=>text(s,150).replace(/\s+/g,' ');
+ const valid=l=>l&&Number.isFinite(l.left)&&Number.isFinite(l.right)&&Number.isFinite(l.top)&&Number.isFinite(l.bottom)&&l.right>l.left&&l.bottom>l.top;
+ const middle=l=>(l.left+l.right)/2;
+ const evidence=(p,s)=>[{image:p+1,text:clean(s)}];
+ for(let p=0;p<photos.length;p++){
+   const photo=read(photos[p]);
+   const rows=(Array.isArray(photo.lines)?photo.lines:[]).filter(l=>l&&typeof l.text==='string').map(l=>({...l,text:clean(l.text)}));
+   const full=String(photo.fullText||rows.map(l=>l.text).join(' '));
+   const width=Number(photo.width)||Math.max(1,...rows.filter(valid).map(l=>l.right));
+   if(/\bFuseBox\b/i.test(full))boardValues.manufacturer||='FuseBox';
+   const main=rows.find(l=>valid(l)&&/\bMAIN\s*SWITCH\b/i.test(l.text))||
+     rows.find(l=>valid(l)&&/\bMAIN\b/i.test(l.text)&&rows.some(k=>valid(k)&&/\bSWITCH\b/i.test(k.text)&&Math.abs(middle(k)-middle(l))<=Math.max(30,width*.055)));
+   const spd=rows.find(l=>valid(l)&&/\bSPD[A-Z0-9_-]*\b|SURGE\s*PROTECTION/i.test(l.text));
+   if(main&&mainSide===null){mainSide=middle(main)>width/2?'right':'left';}
+   const travel=override||mainSide;
+   if(main&&p===0){
+     const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];
+     boardValues.mainSwitch=amps?'100 A main switch':'Main switch (rating to confirm)';
+   }
+   if(spd)boardValues.spd='SPD (type and markings to confirm)';
+   const raw=rows.filter(l=>rating.test(l.text));
+   // The image can supply multiple markings for the same device, but proximity
+   // only merges matching ratings within one narrow DIN-rail device column.
+   const grouped=[];
+   for(const l of raw){
+     const m=l.text.match(rating);
+     const x=valid(l)?middle(l):null, y=valid(l)?(l.top+l.bottom)/2:null;
+     const tol=Math.max(10,width*.015);
+     const existing=grouped.find(g=>g.curve===m[1].toUpperCase()&&g.amps===m[2]&&x!==null&&g.x!==null&&Math.abs(g.x-x)<=tol&&Math.abs(g.y-y)<=Math.max(30,(Number(photo.height)||800)*.18));
+     if(existing){existing.examples.push(l.text);continue;}
+     grouped.push({curve:m[1].toUpperCase(),amps:m[2],x,y,examples:[l.text]});
+   }
+   // Some OCR engines return text only. Preserve those as unpositioned suggestions
+   // instead of inventing physical layout from flat string order.
+   if(!rows.length){
+     for(const line of String(photo.fullText||'').split(/\r?\n/)){
+       const m=clean(line).match(rating);
+       if(m)grouped.push({curve:m[1].toUpperCase(),amps:m[2],x:null,y:null,examples:[clean(line)]});
+     }
+   }
+   if(grouped.some(g=>g.x===null))withPositions=false;
+   if(travel!==null)grouped.sort((a,b)=>a.y!==null&&b.y!==null&&Math.abs(a.y-b.y)>(Number(photo.height)||800)*.12?a.y-b.y:(travel==='right'?b.x-a.x:a.x-b.x));
+   else grouped.sort((a,b)=>a.x===null||b.x===null?0:a.x-b.x);
+   // Estimate only gaps BETWEEN clearly separated device centres. Blanks
+   // at either end need the enclosure edge and must be added by the electrician.
+   const spaced=grouped.filter(g=>g.x!==null).map(g=>g.x).sort((a,b)=>a-b);
+   const intervals=spaced.slice(1).map((x,i)=>x-spaced[i]).filter(x=>x>Math.max(12,width*.018));
+   const pitch=intervals.length?intervals.slice().sort((a,b)=>a-b)[Math.floor((intervals.length-1)/2)]:0;
+   const blanks=[];
+   if(pitch&&grouped.length>=3){
+     for(let i=0;i<grouped.length-1;i++){
+       const left=grouped[i],right=grouped[i+1];
+       if(left.x===null||right.x===null||Math.abs(left.y-right.y)>(Number(photo.height)||800)*.12)continue;
+       const gap=Math.abs(left.x-right.x);
+       const count=Math.max(0,Math.min(6,Math.round(gap/pitch)-1));
+       if(gap>pitch*1.65&&count)blanks.push({index:i+1,count});
+     }
+   }
+   for(let i=0;i<grouped.length;i++){
+     const g=grouped[i],ev=evidence(p,g.examples[0]);
+     const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
+     const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.38));
+     const joined=near.map(l=>l.text).join(' ');
+     // Read all markings from the same physical device column, not just B32.
+     const model=joined.match(/\b(RTA[0-9A-Z-]{5,20}|MT[0-9A-Z-]{4,18})\b/i)?.[1]||'';
+     const standards=/61009(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 61009-1':/60898(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 60898-1':'';
+     const rcd=/\b(?:10|30|100|300)\s?mA\b|\b0[.,]03\s?A\b|61009|\bRTA[0-9]/i.test(joined);
+     const mcb=/60898|\bMCB\b/i.test(joined);
+     const idn=joined.match(/\b(10|30|100|300)\s?mA\b/i)?.[1]||(/\b0[.,]03\s?A\b/i.test(joined)?'30':'');
+     const rcdType=joined.match(/\bTYPE\s*(AC|A|F|B)\b/i)?.[1]?.toUpperCase()||'';
+     const capacity=/\b6000\b|\b6\s?kA\b/i.test(joined)?'6':/\b10000\b|\b10\s?kA\b/i.test(joined)?'10':'';
+     const deviceKind=rcd?'RCBO':mcb?'MCB':'';
+     const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(travel==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
+     dev.fields=[
+       make('ocpdType',g.curve),make('ocpdRating',g.amps),
+       ...(deviceKind?[make('deviceKind',deviceKind,'Check the device type.')]:[]),
+       ...(standards?[make('ocpdBs',standards)]:[]),
+       ...(model?[make('deviceModel',model)]:[]),
+       ...(capacity?[make('breakingCapacity',capacity)]:[]),
+       ...(rcd&&idn?[make('rcdIdn',idn)]:[]),
+       ...(rcd&&rcdType?[make('rcdType',rcdType)]:[]),
+       ...(rcd?[make('rcdBs',standards==='BS EN 61009-1'?standards:'BS EN 61009-1'),
+                  make('rcdRating',g.amps,'Rated current of the visible RCBO, check the marking.')]:[]),
+       ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Check the device brand.')]:[])
+     ];
+     devices.push(dev);
+     for(const blank of blanks.filter(b=>b.index===i+1))for(let n=0;n<blank.count;n++){
+       const spare=coreDraftForOcr(p,grouped.length+devices.length+n,'possible blank space');
+       spare.fields=[make('description','SPARE','Suggested from the gap between devices; confirm or delete.'),make('deviceKind','Spare','Check the blank space.')];
+       devices.push(spare);
+     }
+   }
+   // Image-derived estimate for blank modules AFTER the last marked device.
+   // Only suggest when image measurements were available; the installer can delete.
+   const possible=Math.min(12,Math.max(0,Math.round(Number(photo.blankWayHint)||0)));
+   if(possible&&grouped.length>=3&&grouped.every(g=>g.x!==null)){
+     for(let n=0;n<possible;n++){
+       const spare=coreDraftForOcr(p,100+n,'end of photo bank · check blank');
+       spare.fields=[
+         {key:'description',value:'SPARE',confidence:'check',evidence:[],reason:'Suggested from visible empty module spaces',accepted:false},
+         {key:'deviceKind',value:'Spare',confidence:'check',evidence:[],reason:'Check the number of spaces',accepted:false}
+       ];
+       devices.push(spare);
+     }
+   }
+ }
+ if((override||mainSide)===null){withPositions=false;warnings.push('Check which side the main switch is on.');}
+ if(!withPositions)warnings.push('Check the fuse order against the photos.');
+ warnings.push('Check blank spaces and add or delete any suggested spaces.');
+ if(!devices.length)warnings.push('No standalone B/C/D ratings were read. Try a close-up of the device markings or enter them manually.');
+ return {board:Object.entries(boardValues).map(([key,value])=>({key,value,confidence:'check',accepted:false,evidence:[],reason:'On-device photo reading; confirm this board detail.'})),devices,warnings,physicalOrderKnown:withPositions&&devices.length>0&&!!(override||mainSide),direction:override||mainSide};
+}
+function coreDraftForOcr(photo,index,position){
+ return {id:'ocr-'+photo+'-'+index,position:'Photo '+(photo+1)+' · '+position,
+  association:'check',reason:'Optical candidate only; confirm device, bank and label association.',
+  target:'',number:'',fields:[]};
+}
+function numberFromMain(result,cert,boardRef){
+ if(cert.type==='minor')throw Error('Minor Works has one circuit; numbering from a CU main switch is unavailable.');
+ const board=(cert.tables?.boards||[]).find(b=>b.ref===boardRef);
+ if(!board)throw Error('Select an existing consumer unit first.');
+ const boardValue=key=>text(result.board.find(f=>f.key===key)?.value||board[key]);
+ const deviceValue=(d,key)=>text(d.fields.find(f=>f.key===key)?.value);
+ const entry=(kind,description,source)=>{
+   const d=draftDevice();
+   d.id='schedule-'+kind.toLowerCase().replace(/\s+/g,'-');
+   d.position=kind==='Main switch'?'Main switch · schedule position 0':'SPD · schedule position 1';
+   d.reason='Board component, not an outgoing circuit. Confirm description; do not enter measured circuit results.';
+   const descriptionField=d.fields.find(f=>f.key==='description');
+   descriptionField.value=description+(source?' · '+source:'');
+   descriptionField.confidence='check';
+   const kindField=d.fields.find(f=>f.key==='deviceKind');
+   kindField.value=kind;
+   kindField.confidence='check';
+   return d;
+ };
+ const original=result.circuits.filter(d=>!['Main switch','SPD'].includes(deviceValue(d,'deviceKind')));
+ const main=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch')||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
+ const spdValue=boardValue('spd');
+ const spdExisting=result.circuits.find(d=>deviceValue(d,'deviceKind')==='SPD');
+ const spdPresent=!!spdExisting || (!!spdValue && !/^(?:no|none|n\/a|not fitted|not present|absent)$/i.test(spdValue));
+ const arranged=[main,...(spdPresent?[spdExisting||entry('SPD','SPD',spdValue)]:[]),...original];
+ const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
+ const occupied=new Set();
+ arranged.forEach((d,i)=>{
+   const number=String(i), matches=existing.filter(c=>String(c.circuitNo)===number);
+   d.number=number;
+   const prior=matches.length===1?matches[0]:null;
+   const proposedKind=deviceValue(d,'deviceKind');
+   const priorKind=text(prior?.deviceKind);
+   const priorUsed=!!(text(prior?.description)||text(prior?.ocpdRating)||text(prior?.ocpdBs));
+   // Never silently replace a populated circuit with a main switch, SPD, spare
+   // or a different protective device. The installer must select it explicitly.
+   const compatible=!!prior&&(!priorUsed||!!priorKind&&priorKind===proposedKind);
+   d.target=!matches.length?'new':compatible&&!occupied.has(prior.id)?prior.id:'';
+   if(d.target&&d.target!=='new')occupied.add(d.target);
+   d.fields.forEach(f=>{f.accepted=false;});
+ });
+ result.circuits=arranged;
+ return result;
+}
 function selected(rows){return rows.filter(r=>r.accepted&&text(r.value));}
 function propose(cert,boardRef,result){
  const copy=JSON.parse(JSON.stringify(cert)),changes=[];
@@ -52,5 +228,5 @@ function propose(cert,boardRef,result){
  if(changes.length)copy.photoScanAudit=[...(copy.photoScanAudit||[]).slice(-19),{at:new Date().toISOString(),boardRef,changes}];
  return {certificate:copy,changes};
 }
-root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,propose};
+root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,localOcrCandidates,numberFromMain,propose};
 })(globalThis);

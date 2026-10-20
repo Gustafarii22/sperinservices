@@ -72,7 +72,7 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.8.0";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.8.5";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -122,7 +122,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.8.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.8.5");
 
         setupVoice();
 
@@ -778,7 +778,12 @@ public class MainActivity extends Activity {
 
     private void sendSheetScanResult(String token, JSONObject payload, String error) {
         String json = payload == null ? "" : payload.toString();
-        String js = "window.sperinSheetScanResult(" +
+        // Consumer-unit OCR and completed-site-sheet OCR share the ML Kit engine
+        // but have different JavaScript receivers. Route by the originating token.
+        String callback = token != null && token.startsWith("board-ocr-")
+                ? "window.SperinConsumerScan?.ocrResult"
+                : "window.sperinSheetScanResult";
+        String js = callback + "(" +
                 JSONObject.quote(token == null ? "" : token) + "," +
                 JSONObject.quote(json) + "," +
                 JSONObject.quote(error == null ? "" : error) + ");";

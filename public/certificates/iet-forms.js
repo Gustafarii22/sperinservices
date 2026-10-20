@@ -617,6 +617,7 @@
         // Flexible board cells preserve long SPD/device/location text without overlap.
         doc.autoTable({startY:y+3,head:[],body:[
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
+          ['Manufacturer: '+display(board.manufacturer,worksheet),'Model: '+display(board.model,worksheet),'Ways: '+display(board.ways,worksheet)+' / Populated: '+display(board.populated,worksheet)+' / Spare: '+display(board.spareWays,worksheet)],
           ['Main switch / device: '+display(board.mainSwitch,worksheet),'RCD / RCBO: '+display(board.rcd,worksheet),'SPD: '+display(board.spd,worksheet)],
           ['Zdb Ohms: '+display(board.zdb,worksheet)+'   Ipf kA: '+display(board.ipf,worksheet),'Polarity: '+display(board.polarity,worksheet)+'   Phase sequence: '+display(board.phaseSequence,worksheet),'SPD operational: '+display(board.spdOperational,worksheet)]
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
