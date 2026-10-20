@@ -72,7 +72,7 @@ jobs:
       - name: Record APK build provenance
         run: |
           APK=certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
-          printf 'commit=%s\\nworkflow_run=%s\\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
+          printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
