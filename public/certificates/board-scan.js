@@ -138,10 +138,59 @@ async function login(verify){const s=session;try{const code=s.modal.querySelecto
 // OCR can propose visible device markings, but cannot establish physical way order.
 // Keep proposals unconfirmed and unmapped; the installer must verify each device.
 function ocr(){const s=session;if(!window.Android?.scanSheetImageBase64)return error('On-device OCR is available in the Android app. You can still enter visible markings manually.');s.ocr='';s.ocrPhotos=[];s.ocrIndex=0;s.busy=true;nextOcr();}
-function nextOcr(){
+// Count visible dark spare-module covers by comparing their width to the
+// measured spacing of adjacent B/C/D-labelled devices. This is an estimate,
+// not a certification of positions; the installer can edit the rows.
+async function estimateBlankWayHint(dataUri,ocr){
+ const raw=Array.isArray(ocr?.lines)?ocr.lines.filter(l=>Number.isFinite(l.left)&&Number.isFinite(l.right)&&Number.isFinite(l.top)&&
+ /(?:^|[^A-Z0-9])[BCD]\s?(?:6|10|16|20|25|32|40|50|63)(?:\s?A)?(?:$|[^0-9])/i.test(l.text||'')):[];
+ if(raw.length<3)return 0;
+ const centers=raw.map(l=>(l.left+l.right)/2).sort((a,b)=>a-b);
+ const width=Number(ocr.width)||0;
+ if(width<250)return 0;
+ const distances=centers.slice(1).map((v,i)=>v-centers[i]).filter(v=>v>width*.024&&v<width*.13).sort((a,b)=>a-b);
+ if(distances.length<2)return 0;
+ const pitch=distances[Math.floor(distances.length/2)];
+ const xmin=centers[0],y=Math.round(raw.reduce((sum,l)=>sum+(l.top+l.bottom)/2,0)/raw.length);
+ const photo=new Image();
+ await new Promise((resolve,reject)=>{photo.onload=resolve;photo.onerror=reject;photo.src=dataUri;});
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=Number(ocr.height)||photo.height;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return 0;
+ ctx.drawImage(photo,0,0,canvas.width,canvas.height);
+ const from=Math.max(0,Math.round(xmin-pitch*12)),to=Math.min(canvas.width-1,Math.round(xmin-pitch*.55));
+ const y0=Math.max(0,Math.round(y+10)),y1=Math.min(canvas.height,Math.round(y+Math.min(pitch*.85,60)));
+ if(to-from<pitch*2||y1-y0<12)return 0;
+ const pixels=ctx.getImageData(from,y0,to-from,y1-y0).data,rows=y1-y0,cols=to-from,ratio=[];
+ for(let x=0;x<cols;x++){
+   let dark=0;
+   for(let yy=0;yy<rows;yy+=2){
+     const i=(yy*cols+x)*4,grey=.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2];
+     if(grey<145)dark++;
+   }
+   ratio.push(dark/Math.ceil(rows/2));
+ }
+ let start=-1;
+ for(let x=0;x<cols-12;x++){
+   let average=0;
+   for(let k=0;k<12;k++)average+=ratio[x+k];
+   if(average/12>.43){start=x;break;}
+ }
+ if(start<0)return 0;
+ const occupied=ratio.slice(start),mostlyDark=occupied.filter(v=>v>.35).length/occupied.length;
+ if(mostlyDark<.48)return 0;
+ const estimated=Math.round((xmin-(from+start))/pitch);
+ return estimated>=1&&estimated<=12?estimated:0;
+}
+async function nextOcr(){
  const s=session;if(!s)return;
  if(s.ocrIndex>=s.images.length){
    s.busy=false;
+   for(let i=0;i<(s.ocrPhotos||[]).length;i++){
+     try{s.ocrPhotos[i].blankWayHint=await estimateBlankWayHint(s.images[i],s.ocrPhotos[i]);}
+     catch{ /* Keep photo OCR results when the visual gap estimate is uncertain. */ }
+   }
+   if(session!==s)return;
    const candidates=core.localOcrCandidates(s.ocrPhotos||[],{mainSide:s.mainSide});
    const cert=s.adapter.getCert();
    for(const r of candidates.board){
