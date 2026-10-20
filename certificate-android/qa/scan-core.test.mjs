@@ -154,3 +154,66 @@ test("reviewed blank ways create numbered SPARE schedule entries, with no invent
  assert.deepEqual(output.tables.tests.slice(1),[{boardRef:"DB1",circuitNo:"2"},{boardRef:"DB1",circuitNo:"3"}]);
  assert.equal(changes.filter(c=>c.label.startsWith("New circuit")).length,2);
 });
+
+test("two photo banks of ONE FuseBox CU number main 0, SPD 1, B40 2, B32 3 and preserve both banks and blanks",()=>{
+ const input=cert();
+ input.tables.circuits=[];input.tables.tests=[];
+ input.tables.boards[0].mainSwitch="100 A"; input.tables.boards[0].spd="Type 2 SPD";
+ const make=(kind,rating,photo,position)=>{
+   const device=core.draftDevice();
+   device.position="Photo "+photo+" · "+position;
+   for(const [key,value] of Object.entries({
+    description:kind==="Spare"?"SPARE":rating?"FuseBox "+kind:"",deviceKind:kind,
+    ...(rating?{ocpdType:"B",ocpdRating:String(rating),ocpdBs:kind==="RCBO"?"BS EN 61009-1":"BS EN 60898-1"}:{})
+   })){device.fields.find(f=>f.key===key).value=value;}
+   return device;
+ };
+ const raw={
+  board:[f("mainSwitch","100 A"),f("spd","Type 2 SPD"),f("manufacturer","FuseBox")],
+  circuits:[
+   make("RCBO",40,1,"nearest SPD"),
+   ...[32,32,32,32,32,16,16,16,16].map((r,i)=>make("RCBO",r,1,"bank 1 outgoing "+i)),
+   ...Array.from({length:5},(_,i)=>make("Spare",null,1,"bank 1 blank "+i)),
+   ...Array.from({length:10},(_,i)=>make(i===0?"MCB":"RCBO",6,2,"bank 2 outgoing "+i)),
+   ...Array.from({length:6},(_,i)=>make("Spare",null,2,"bank 2 blank "+i))
+  ],
+  warnings:[]
+ };
+ core.numberFromMain(raw,input,"DB1");
+ assert.equal(raw.circuits.length,33);
+ assert.deepEqual(raw.circuits.map(d=>d.number),Array.from({length:33},(_,i)=>String(i)));
+ assert.deepEqual(raw.circuits.slice(0,4).map(d=>d.fields.find(f=>f.key==="deviceKind")?.value),["Main switch","SPD","RCBO","RCBO"]);
+ assert.equal(raw.circuits[2].fields.find(f=>f.key==="ocpdRating").value,"40");
+ assert.equal(raw.circuits[3].fields.find(f=>f.key==="ocpdRating").value,"32");
+ assert.equal(raw.circuits[17].fields.find(f=>f.key==="ocpdRating").value,"6");
+ assert.equal(raw.circuits.filter(d=>d.fields.find(f=>f.key==="deviceKind")?.value==="Spare").length,11);
+ for(const device of raw.circuits)device.fields.forEach(f=>{f.accepted=!!f.value;});
+ const {certificate:output}=core.propose(input,"DB1",raw);
+ assert.equal(output.tables.circuits.length,33);
+ for(const [index,row] of output.tables.circuits.entries())assert.equal(row.circuitNo,String(index));
+ assert.equal(output.tables.circuits[0].deviceKind,"Main switch");
+ assert.equal(output.tables.circuits[1].deviceKind,"SPD");
+ assert.equal(output.tables.circuits[2].ocpdRating,"40");
+ assert.equal(output.tables.circuits[3].ocpdRating,"32");
+ assert.equal(output.tables.circuits[17].ocpdRating,"6");
+ assert.ok(output.tables.circuits.slice(27).every(r=>r.description==="SPARE"));
+ assert.ok(output.tables.tests.every(r=>r.zs===undefined&&r.rcdTime===undefined));
+ assert.ok(output.tables.circuits.filter(r=>r.deviceKind==="Spare").every(r=>r.ocpdRating===undefined&&r.ocpdBs===undefined));
+ assert.equal(input.tables.circuits.length,0);
+});
+test("separate consumer units each own their photo groups and sequential number 0",()=>{
+ const c=cert();c.tables.circuits=[];c.tables.tests=[];
+ c.tables.boards=[{ref:"DB1",mainSwitch:"100 A",spd:"Type 2"},{ref:"DB2",mainSwitch:"63 A",spd:""}];
+ const proposal=(rating)=>({board:[],circuits:[{fields:[f("description","Outlets"),f("deviceKind","MCB"),f("ocpdRating",rating)]}]});
+ const p1=core.numberFromMain(proposal("32"),c,"DB1");
+ for(const d of p1.circuits)d.fields.forEach(f=>f.accepted=!!f.value);
+ const after1=core.propose(c,"DB1",p1).certificate;
+ const p2=core.numberFromMain(proposal("6"),after1,"DB2");
+ for(const d of p2.circuits)d.fields.forEach(f=>f.accepted=!!f.value);
+ const after2=core.propose(after1,"DB2",p2).certificate;
+ assert.deepEqual(after2.tables.circuits.filter(r=>r.boardRef==="DB1").map(r=>r.circuitNo),["0","1","2"]);
+ assert.deepEqual(after2.tables.circuits.filter(r=>r.boardRef==="DB2").map(r=>r.circuitNo),["0","1"]);
+ assert.equal(after2.tables.circuits.filter(r=>r.boardRef==="DB1"&&r.deviceKind==="SPD").length,1);
+ assert.equal(after2.tables.circuits.filter(r=>r.boardRef==="DB2"&&r.deviceKind==="SPD").length,0);
+ assert.equal(after2.tables.circuits.find(r=>r.boardRef==="DB2"&&r.ocpdRating).ocpdRating,"6");
+});
