@@ -172,7 +172,7 @@ document.addEventListener('change',function(e){
  if(!session||!session.modal.contains(e.target))return;
  const el=e.target,s=session;
  if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
- if(el.matches('[data-board-consent]'))s.consent=el.checked;
+ if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}
  if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f)f.value=el.value;}
 });
 document.addEventListener('input',function(e){
