@@ -39,8 +39,8 @@ await page.locator('[data-open="c2"]').click();
 assert.equal(await page.locator('.scan-circuit.expanded').count(),1);
 await page.locator('.scan-circuit.expanded').getByLabel('Circuit description').fill('Confirmed lights');
 await page.locator('.scan-circuit.expanded [data-number="2"]').fill('12');
-assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device model').count(),0);
-assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').count(),0);
+assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device model').count(),1);
+assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').count(),1);
 await page.locator('[data-scan-command="apply"]').click();
 await page.waitForSelector('.consumer-unit-card');
 await page.locator('.board-scan-modal').waitFor({state:'detached'});
@@ -80,6 +80,7 @@ assert.ok(fs.statSync(dir+"/scan-with-spares.pdf").size>10000);
 // Two independent boards: scan control belongs to each CU and stays out of the global header.
 await page.locator('[data-action="board-add"]').click();
 assert.equal(await page.locator('.consumer-unit-card').count(),2);
+await page.locator('.consumer-unit-card').nth(1).locator('.cu-summary').click();
 await page.locator('.consumer-unit-card').nth(1).locator('[data-action="board-scan"]').click();
 assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Consumer unit 2'));
 await page.locator('[data-scan-command="close"]').click();
