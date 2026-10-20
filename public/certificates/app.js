@@ -219,6 +219,7 @@
     pushEditHistory(template?'Insert board template':'Add board');
     const board={...(template?boardDesign(template.design):{}),id:uid(),ref:nextBoardRef(cert),feedSourceType:'Mains',suppliedFrom:'Mains'};
     cert.tables.boards.push(board);
+    cert.tables.boards.forEach(b=>accordionState.set('board:'+cert.id+':'+b.id,b.id===board.id));
     (template?.circuits||[]).forEach(design=>{const no=nextCircuitNumber(cert,board.ref);cert.tables.circuits.push({...circuitDesign(design),id:uid(),boardRef:board.ref,circuitNo:no});cert.tables.tests.push({boardRef:board.ref,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);});
     saveNow();render();goBoardCard(board.id);
   }
@@ -1025,6 +1026,10 @@
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
+  const accordionState=new Map();
+  const accordionOpen=(key,initial=false)=>accordionState.has(key)?accordionState.get(key):initial;
+  function rememberAccordions(){document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>accordionState.set(el.dataset.accordionKey,el.open));}
+  function openBoardAccordion(boardRef){const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board)accordionState.set('board:'+cert.id+':'+board.id,true);}
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
@@ -1323,6 +1328,7 @@
   function updateSaveState(text) { const el = document.querySelector('[data-save-state]'); if (el) el.textContent = text; }
 
   function render() {
+    rememberAccordions();
     const root = document.getElementById('app');
     persistView();
     try {
@@ -1443,7 +1449,8 @@
     const signatorySummary=(part.title.startsWith('C · Certification & signatories') && singleSignatoryMode(cert))
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
       : '';
-    return `<section class="card form-section"><h3>${esc(part.title)}</h3>${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></section>`;
+    const key='section:'+cert.id+':'+part.title;
+    return `<details class="card form-section cert-accordion" data-accordion-key="${esc(key)}" ${accordionOpen(key,part.title.startsWith('A ·'))?'open':''}><summary class="cert-accordion-head"><h3>${esc(part.title)}</h3><span class="cert-chevron">⌄</span></summary><div class="cert-accordion-body">${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></div></details>`;
   }
 
   const POSTCODE_TARGETS={
@@ -1570,7 +1577,7 @@
       const incoming=row._incomingFeed===true;
       return `<div class="circuit-card ${incoming?'incoming-circuit':''}" data-circuit-id="${esc(row.id||'')}">
         <button class="circuit-main" data-action="circuit-open" data-index="${i}">
-          <strong>${row.deviceKind==='Main switch'||row.deviceKind==='SPD'?'Board position':'Circuit'} ${esc(number)}${incoming?' · Linked incoming':''}${row.deviceKind==='Main switch'||row.deviceKind==='SPD'?' · Board equipment':''}</strong>
+          <strong>${row.deviceKind==='Main switch'?'Main switch':'Circuit '+esc(number)}${incoming?' · Linked incoming':''}</strong>
           <span>${esc(details||'Tap to enter circuit details')}</span>
         </button>
         <div class="circuit-actions">
@@ -1606,7 +1613,9 @@
             ? `<div class="field"><label>Source consumer unit</label><select data-board-input="sourceBoardRef" data-board-index="${bi}"><option value="">Select…</option>${sourceBoardOptions.map(ref=>`<option value="${esc(ref)}" ${String(board.sourceBoardRef||'')===String(ref)?'selected':''}>${esc(ref)}</option>`).join('')}</select></div>
                <div class="field"><label>Source circuit</label><select data-board-input="sourceCircuitNo" data-board-index="${bi}"><option value="">Select…</option>${sourceCircuitOptions.map(no=>`<option value="${esc(no)}" ${String(board.sourceCircuitNo??'')===String(no)?'selected':''}>Circuit ${esc(no)}</option>`).join('')}</select></div>`
             : '');
-      return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
+      const accordionKey='board:'+cert.id+':'+board.id;
+      return `<details class="card form-section consumer-unit-card cu-accordion" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}" data-accordion-key="${esc(accordionKey)}" ${accordionOpen(accordionKey,bi===0)?'open':''}>
+        <summary class="cu-summary"><span class="cu-index">${bi+1}</span><span class="cu-label"><strong>Consumer unit ${bi+1} · ${esc(board.ref||('DB'+(bi+1)))}</strong><small>${esc(board.manufacturer||'')}${boardCircuitIndices(cert,board.ref).length?' · '+boardCircuitIndices(cert,board.ref).length+' circuits':''}</small></span><span class="cert-chevron">⌄</span></summary><div class="cu-accordion-body">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
           <button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
@@ -1625,7 +1634,7 @@
           ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
         </div>
         <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Board schedule · ${esc(board.ref)}</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div><div class="toolbar">${boardScanButton(cert,board.ref)}<span class="meta">Add one or several photo banks for this board only</span></div>${renderBoardCircuits(cert,board,bi)}</div>
-      </section>`;
+      </div></details>`;
     }).join('');
     return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
       ${boardCards}
@@ -3325,8 +3334,8 @@
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
-    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if (action === 'settings') openSettings();
