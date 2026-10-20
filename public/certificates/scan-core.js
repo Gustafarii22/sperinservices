@@ -46,7 +46,8 @@ function numberFromMain(result,cert,boardRef){
  const main=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch')||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
  const spdValue=boardValue('spd');
  const spdExisting=result.circuits.find(d=>deviceValue(d,'deviceKind')==='SPD');
- const arranged=[main,...(spdValue||spdExisting?[spdExisting||entry('SPD','SPD',spdValue)]:[]),...original];
+ const spdPresent=!!spdExisting || (!!spdValue && !/^(?:no|none|n\/a|not fitted|not present|absent)$/i.test(spdValue));
+ const arranged=[main,...(spdPresent?[spdExisting||entry('SPD','SPD',spdValue)]:[]),...original];
  const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
  const occupied=new Set();
  arranged.forEach((d,i)=>{
