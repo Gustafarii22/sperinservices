@@ -35,7 +35,7 @@ const field = (key, value, confidence = "high") => ({
 await page.route("**/api/owner/certificate-scan", (route) =>
   route.fulfill({
     json: {
-      board: [field("manufacturer", "Wylex"), field("model", "", "missing")],
+      board: [field("manufacturer", "Wylex"), field("model", "", "missing"),field("mainSwitch","100 A"),field("spd","Type 2 SPD")],
       circuits: [
         {
           position: "Left device (test fixture)",
@@ -60,15 +60,17 @@ await page.waitForSelector(".scan-device");
 assert.equal(await page.locator("[data-confirm]:checked").count(), 0);
 assert.equal(await page.locator(".board-scan-modal").getByText("Live conductor csa").count(), 0);
 await page.locator('[data-confirm="board:0"]').check();
-const suggestedTarget=await page.locator('[data-target="0"]').inputValue();
+assert.equal(await page.locator('[data-number="0"]').inputValue(),'0');
+assert.equal(await page.locator('[data-number="1"]').inputValue(),'1');
+const suggestedTarget=await page.locator('[data-target="2"]').inputValue();
 assert.ok(suggestedTarget, 'clear, unique circuit number should suggest a target');
-if(suggestedTarget==='new')assert.equal(await page.locator('[data-number="0"]').inputValue(), '1');
-await page.locator('[data-target="0"]').selectOption("new");
-await page.locator('[data-number="0"]').fill("12");
-await page.locator(".scan-device").first().getByLabel("Circuit description", {exact:true}).fill("Confirmed lights");
+if(suggestedTarget==='new')assert.equal(await page.locator('[data-number="2"]').inputValue(), '2');
+await page.locator('[data-target="2"]').selectOption("new");
+await page.locator('[data-number="2"]').fill("12");
+await page.locator(".scan-device").nth(2).getByLabel("Circuit description", {exact:true}).fill("Confirmed lights");
 assert.equal(await page.locator(".scan-device [data-confirm]").count(), 0);
-await page.locator('[data-device-confirm="0"]').check();
-await page.locator(".scan-device").first().scrollIntoViewIfNeeded();
+await page.locator('[data-device-confirm="2"]').check();
+await page.locator(".scan-device").nth(2).scrollIntoViewIfNeeded();
 await page.screenshot({ path: dir + "/scan-review.png" });
 await page.setViewportSize({ width: 915, height: 412 });
 assert.ok(await page.locator('[data-scan-command="close"]').isVisible());
@@ -179,6 +181,15 @@ const dark = await page.evaluate(
       }).length,
 );
 assert.equal(dark, 0);
+await page.locator('[data-action="board-add"]').click();
+assert.equal(await page.locator('.consumer-unit-card').count(),2);
+assert.equal(await page.locator('.consumer-unit-card [data-action="board-scan"]').count(),2);
+await page.locator('.consumer-unit-card').nth(1).locator('[data-action="board-scan"]').click();
+assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Scan DB2'));
+await page.locator('[data-scan-command="close"]').click();
+await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
+assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Scan DB1'));
+await page.locator('[data-scan-command="close"]').click();
 assert.deepEqual(errors, []);
 await page.close();
 await browser.close();
