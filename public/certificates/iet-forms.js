@@ -628,10 +628,10 @@
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
-          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
-          ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
-          ['9','Type','ocpdType'],['10','Rating A','ocpdRating'],['11','Breaking kA','breakingCapacity'],['12','Max permitted Zs Ω','maxZs'],
-          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','RCD mA','rcdIdn'],['16','Rating A','rcdRating']
+          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
+          ['5','Number of points served','points'],['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],['8','BS (EN)','ocpdBs'],
+          ['9','Type','ocpdType'],['10','Rating (A)','ocpdRating'],['11','Breaking capacity (kA)','breakingCapacity'],['12','Maximum permitted Zs (Ω)','maxZs'],
+          ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
         for(let r=0;r<12;r++){
@@ -639,9 +639,7 @@
           rows.push(cols.map(c=>{
             let z=item[c[2]];
             if(c[2]==='wiringType'){
-              const wiring=wiringCode(z);
-              const containment=String(item.installMethod||'').trim();
-              z=[wiring,containment].filter(Boolean).join(' / ');
+              z=wiringCode(z); // Installation notes stay with internal job data, not appended to the IET wiring-type field.
             }
             return worksheet?'':pdfText(z??'');
           }));
@@ -672,9 +670,9 @@
         labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
         labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
         const tcols=[
-          ['17','Circuit','circuitNo'],['18','r1 line Ω','r1'],['19','rn neutral Ω','rn'],['20','r2 CPC Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
-          ['23','IR test V','irVoltage'],['24','Live-Live MΩ','irLL'],['25','Live-Earth MΩ','irLE'],['26','Polarity','polarity'],['27','Max measured Zs Ω','zs'],
-          ['28','RCD time ms','rcdTime'],['29','RCD test button','rcdButton'],['30','AFDD test button','afddButton'],['31','Remarks','remarks']
+          ['17','Circuit number','circuitNo'],['18','r1 (line) Ω','r1'],['19','rn (neutral) Ω','rn'],['20','r2 (CPC) Ω','r2'],['21','(R1 + R2) Ω','r1r2'],['22','R2 (Ω)','r2only'],
+          ['23','Test voltage (V)','irVoltage'],['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],['27','Maximum measured Zs (Ω)','zs'],
+          ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
         for(let r=0;r<12;r++){
