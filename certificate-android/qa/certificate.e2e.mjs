@@ -448,8 +448,10 @@ const accordionQaScript=() => {
   const openAll=()=>document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>{
     if(!el.open)el.open=true;
   });
-  new MutationObserver(openAll).observe(document.documentElement,{childList:true,subtree:true});
-  document.addEventListener('DOMContentLoaded',openAll);
+  document.addEventListener('DOMContentLoaded',()=>{
+    new MutationObserver(openAll).observe(document.body,{childList:true,subtree:true});
+    openAll();
+  },{once:true});
 };
 await page.addInitScript(accordionQaScript);
 
