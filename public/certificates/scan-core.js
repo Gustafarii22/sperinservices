@@ -27,9 +27,10 @@ function draftDevice(){return {id:'manual-'+Date.now(),position:'Manual device',
 // ML Kit returns text AND bounding rectangles. Cluster protective-device markings
 // geometrically instead of flattening them into a text stream. This never auto-accepts
 // a field or claims that an optical reading proves circuit identity or safety.
-function localOcrCandidates(photos){
+function localOcrCandidates(photos,options={}){
  const devices=[],warnings=[],boardValues={};
  let mainSide=null,withPositions=true;
+ const override=['left','right'].includes(options.mainSide)?options.mainSide:null;
  const rating=/(?:^|[^A-Z0-9])([BCD])\s?(6|10|16|20|25|32|40|50|63)(?:\s?A)?(?=$|[^0-9])/i;
  const read=p=>typeof p==='string'?{fullText:p,lines:[]}:(p&&typeof p==='object'?p:{fullText:'',lines:[]});
  const clean=s=>text(s,150).replace(/\s+/g,' ');
@@ -46,6 +47,7 @@ function localOcrCandidates(photos){
      rows.find(l=>valid(l)&&/\bMAIN\b/i.test(l.text)&&rows.some(k=>valid(k)&&/\bSWITCH\b/i.test(k.text)&&Math.abs(middle(k)-middle(l))<=Math.max(30,width*.055)));
    const spd=rows.find(l=>valid(l)&&/\bSPD[A-Z0-9_-]*\b|SURGE\s*PROTECTION/i.test(l.text));
    if(main&&mainSide===null){mainSide=middle(main)>width/2?'right':'left';}
+   const travel=override||mainSide;
    if(main&&p===0){
      const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];
      boardValues.mainSwitch=amps?'100 A main switch':'Main switch (rating to confirm)';
@@ -72,8 +74,23 @@ function localOcrCandidates(photos){
      }
    }
    if(grouped.some(g=>g.x===null))withPositions=false;
-   if(mainSide!==null)grouped.sort((a,b)=>a.y!==null&&b.y!==null&&Math.abs(a.y-b.y)>(Number(photo.height)||800)*.12?a.y-b.y:(mainSide==='right'?b.x-a.x:a.x-b.x));
+   if(travel!==null)grouped.sort((a,b)=>a.y!==null&&b.y!==null&&Math.abs(a.y-b.y)>(Number(photo.height)||800)*.12?a.y-b.y:(travel==='right'?b.x-a.x:a.x-b.x));
    else grouped.sort((a,b)=>a.x===null||b.x===null?0:a.x-b.x);
+   // Estimate only gaps BETWEEN clearly separated device centres. Blanks
+   // at either end need the enclosure edge and must be added by the electrician.
+   const spaced=grouped.filter(g=>g.x!==null).map(g=>g.x).sort((a,b)=>a-b);
+   const intervals=spaced.slice(1).map((x,i)=>x-spaced[i]).filter(x=>x>Math.max(12,width*.018));
+   const pitch=intervals.length?intervals.slice().sort((a,b)=>a-b)[Math.floor((intervals.length-1)/2)]:0;
+   const blanks=[];
+   if(pitch&&grouped.length>=3){
+     for(let i=0;i<grouped.length-1;i++){
+       const left=grouped[i],right=grouped[i+1];
+       if(left.x===null||right.x===null||Math.abs(left.y-right.y)>(Number(photo.height)||800)*.12)continue;
+       const gap=Math.abs(left.x-right.x);
+       const count=Math.max(0,Math.min(6,Math.round(gap/pitch)-1));
+       if(gap>pitch*1.65&&count)blanks.push({index:i+1,count});
+     }
+   }
    for(let i=0;i<grouped.length;i++){
      const g=grouped[i],ev=evidence(p,g.examples[0]);
      const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
@@ -82,7 +99,7 @@ function localOcrCandidates(photos){
      const rcd=/\b30\s?mA\b|\b0[.,]03\s?A\b|\b61009\b/i.test(joined);
      const mcb=/\b60898\b|\bMCB\b/i.test(joined);
      const standards=/61009/.test(joined)?'BS EN 61009-1':/60898/.test(joined)?'BS EN 60898-1':'';
-     const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(mainSide==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
+     const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(travel==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
      dev.fields=[
        make('ocpdType',g.curve),make('ocpdRating',g.amps),
        ...(rcd||mcb?[make('deviceKind',rcd?'RCBO':'MCB','Classification based on nearby optical text; check actual device type.')]:[]),
@@ -91,13 +108,18 @@ function localOcrCandidates(photos){
        ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Board marking; verify manufacturer on this individual protective device.')]:[])
      ];
      devices.push(dev);
+     for(const blank of blanks.filter(b=>b.index===i+1))for(let n=0;n<blank.count;n++){
+       const spare=coreDraftForOcr(p,grouped.length+devices.length+n,'possible blank space');
+       spare.fields=[make('description','SPARE','Suggested from the gap between devices; confirm or delete.'),make('deviceKind','Spare','Check the blank space.')];
+       devices.push(spare);
+     }
    }
  }
- if(mainSide===null){withPositions=false;warnings.push('Main switch position/direction not identified by OCR. Check bank order and number devices manually from the main switch.');}
- if(!withPositions)warnings.push('Some devices lack optical coordinates. Physical circuit order cannot be verified from text alone.');
- warnings.push('On-device OCR cannot reliably count blank covers. Add and position the spare-way entries visible in the photographs before saving.');
+ if((override||mainSide)===null){withPositions=false;warnings.push('Check which side the main switch is on.');}
+ if(!withPositions)warnings.push('Check the fuse order against the photos.');
+ warnings.push('Check blank spaces and add or delete any suggested spaces.');
  if(!devices.length)warnings.push('No standalone B/C/D ratings were read. Try a close-up of the device markings or enter them manually.');
- return {board:Object.entries(boardValues).map(([key,value])=>({key,value,confidence:'check',accepted:false,evidence:[],reason:'On-device photo reading; confirm this board detail.'})),devices,warnings,physicalOrderKnown:withPositions&&devices.length>0,direction:mainSide};
+ return {board:Object.entries(boardValues).map(([key,value])=>({key,value,confidence:'check',accepted:false,evidence:[],reason:'On-device photo reading; confirm this board detail.'})),devices,warnings,physicalOrderKnown:withPositions&&devices.length>0&&!!(override||mainSide),direction:override||mainSide};
 }
 function coreDraftForOcr(photo,index,position){
  return {id:'ocr-'+photo+'-'+index,position:'Photo '+(photo+1)+' · '+position,
