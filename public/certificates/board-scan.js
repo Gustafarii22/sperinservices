@@ -43,12 +43,12 @@ function render(){
    const selected=s.active==='c'+i;
    const editable=[...d.fields].filter(f=>['description','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].includes(f.key));
    const missing=['description','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].filter(key=>!editable.some(f=>f.key===key)).map(key=>({key,value:'',accepted:false,evidence:[]}));
-   const fields=[...editable,...missing],fkey=k=>fields.findIndex(f=>f.key===k),group=(ks,title)=>'<div class="scan-field-group"><h4>'+title+'</h4><div class="scan-field-grid">'+ks.map(k=>F(fields[fkey(k)],fkey(k),''+i)).join('')+'</div></div>';
+   const fields=[...editable,...missing],fkey=k=>fields.findIndex(f=>f.key===k),group=(ks,title)=>'<div class="scan-field-group"><h4>'+title+'</h4><div class="scan-field-grid">'+ks.map(k=>scanField(fields[fkey(k)],fkey(k),''+i)).join('')+'</div></div>';
    // Add missing fields to the underlying review data, not just a temporary render.
    for(const f of missing)d.fields.push(f);
    const realIndices=d.fields;
    const fi=k=>realIndices.findIndex(f=>f.key===k);
-   const renderKeys=ks=>ks.map(k=>F(realIndices[fi(k)],fi(k),String(i))).join('');
+   const renderKeys=ks=>ks.map(k=>scanField(realIndices[fi(k)],fi(k),String(i))).join('');
    return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
  }).join('');
  const expanded=s.active==='board';
@@ -72,7 +72,7 @@ async function analyse(){const s=session;if(!s||s.busy||!s.consent||!s.images.le
  // Confirmed edits survive a rescan. New circuit proposals never silently replace old mappings.
  for(const old of s.result.board.filter(r=>r.accepted)){const index=next.board.findIndex(r=>r.key===old.key);if(index>=0){if(next.board[index].value!==old.value)next.warnings.push('New photo differs from confirmed '+core.boardKeys[old.key]+'. Your confirmed value was retained.');next.board[index]=old;}else next.board.push(old);}
  const kept=s.result.circuits.filter(d=>d.fields.some(r=>r.accepted));next.circuits=[...kept,...next.circuits];if(kept.length)next.warnings.push('Previously confirmed devices retained. Review new proposals for duplicates before applying.');
- const mapped=(s.adapter.getCert().type!=='minor'&&!kept.length)?(core.numberFromMain(next,s.adapter.getCert(),s.boardRef),next.circuits.length):suggestDeviceTargets(next,s.adapter.getCert(),s.boardRef);s.result=next;s.message='Analysis ready for '+s.boardRef+'. '+(mapped?'Ordered '+mapped+' schedule position(s) from the main switch. ':'')+'Review photo-bank sequence, device order and EVERY blank way. Confirm the main switch/SPD as board components, then tick one checkbox per physical device. Nothing is saved until you confirm.';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
+ const mapped=(s.adapter.getCert().type!=='minor'&&!kept.length)?(core.numberFromMain(next,s.adapter.getCert(),s.boardRef),next.circuits.length):suggestDeviceTargets(next,s.adapter.getCert(),s.boardRef);s.result=next;s.message='Photos read. Check the details, then save.';s.active='board';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
 function suggestDeviceTargets(result,cert,boardRef){
  // Only trustworthy, uniquely numbered device/circuit associations may preselect a destination.
  // Manual review, the one-device confirmation and final diff remain mandatory.
@@ -95,7 +95,44 @@ function suggestDeviceTargets(result,cert,boardRef){
  });
  return mapped;
 }
-function apply(){const s=session;if(!s||s.busy)return;try{const before=JSON.stringify(s.adapter.getCert());const proposed=core.propose(s.adapter.getCert(),s.boardRef,s.result);if(!proposed.changes.length)return error('Confirm at least one changed value first.');const panel=document.createElement('div');panel.className='modal-backdrop board-scan-diff';panel.innerHTML=`<div class="card modal" role="dialog" aria-modal="true" aria-label="Confirm certificate changes"><h2>Review ${proposed.changes.length} changes</h2><div class="scan-diff-list">${proposed.changes.map(c=>`<p><strong>${esc(c.label)}</strong><br><del>${esc(c.before||'(empty)')}</del> → <ins>${esc(c.after)}</ins></p>`).join('')}</div><div class="toolbar"><button class="btn" data-cancel>Back to review</button><button class="btn primary" data-save>Confirm & save</button></div></div>`;document.body.appendChild(panel);panel.querySelector('[data-cancel]').onclick=()=>panel.remove();panel.querySelector('[data-save]').onclick=()=>{if(session!==s||JSON.stringify(s.adapter.getCert())!==before){panel.remove();return error('Certificate changed during review. Please review the changes again.');}try{s.adapter.commit(proposed.certificate);panel.remove();s.modal.remove();session=null;}catch(e){panel.remove();error('Could not save: '+e.message);}};panel.querySelector('[data-cancel]').focus();}catch(e){error(e.message);}}
+function apply(){
+ const s=session;if(!s||s.busy)return;
+ try{
+   const cert=s.adapter.getCert(),boardRef=s.boardRef;
+   const board=cert.tables?.boards?.find(b=>b.ref===boardRef);
+   if(!board&&cert.type!=='minor')throw Error('Please select a consumer unit.');
+   const proposal={board:s.result.board.map(f=>({...f,accepted:f.key==='manufacturer'&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
+   const usedNumbers=new Set();
+   for(let i=0;i<s.result.circuits.length;i++){
+     const d=s.result.circuits[i],n=String(d.number??i).trim();
+     if(!/^\d+$/.test(n))throw Error('Check the number for circuit '+(i+1)+'.');
+     if(usedNumbers.has(n))throw Error('Circuit '+n+' has been entered twice.');
+     usedNumbers.add(n);
+     const same=(cert.tables?.circuits||[]).filter(row=>row.boardRef===boardRef&&String(row.circuitNo)===n&&!row._incomingFeed);
+     if(same.length>1)throw Error('Circuit '+n+' needs checking in the certificate.');
+     const kind=d.fields.find(f=>f.key==='deviceKind')?.value||'';
+     const acceptedKeys=new Set(['description','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','deviceKind']);
+     const fields=d.fields.map(f=>({...f,accepted:acceptedKeys.has(f.key)&&!!String(f.value||'').trim()}));
+     // Spare, main switch and SPD are schedule positions, not tested outgoing circuits.
+     if(['Spare','Main switch','SPD'].includes(kind)){
+       for(const f of fields)if(!['description','deviceKind'].includes(f.key))f.accepted=false;
+     }
+     const filled=fields.some(f=>f.accepted);
+     if(!filled)continue;
+     proposal.circuits.push({...d,fields,number:n,target:same.length?same[0].id:cert.type==='minor'?'minor':'new'});
+   }
+   if(!proposal.circuits.length&&!proposal.board.some(f=>f.accepted))throw Error('Add or read a circuit before saving.');
+   const before=JSON.stringify(cert),result=core.propose(cert,boardRef,proposal);
+   if(!result.changes.length){s.message='Everything is already saved.';render();return;}
+   const replaced=result.changes.filter(c=>c.before&&c.before!==c.after&&
+     (/^Circuit \d+/.test(c.label))).length;
+   if(replaced&&!confirm('Some existing circuit details will change. Save these changes?'))return;
+   if(JSON.stringify(s.adapter.getCert())!==before)throw Error('The certificate changed. Please try saving again.');
+   s.adapter.commit(result.certificate);
+   s.modal.remove();session=null;
+   window.scrollTo({top:0,behavior:'smooth'});
+ }catch(ex){error('Could not save. '+ex.message);}
+}
 async function login(verify){const s=session;try{const code=s.modal.querySelector('[data-login-code]')?.value||'';const r=await fetch('/api/owner/'+(verify?'verify-code':'request-code'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'info@sperinservices.co.uk',...(verify?{code}:{})})});const data=await r.json();if(!r.ok)throw Error(data.error||'Sign-in unavailable');if(session!==s)return;s.needsLogin=!verify;s.message=verify?'Signed in. Press Analyse to send your photos.':'Sign-in code sent to your owner email.';render();}catch(e){error(e.message);}}
 // OCR can propose visible device markings, but cannot establish physical way order.
 // Keep proposals unconfirmed and unmapped; the installer must verify each device.
@@ -104,7 +141,7 @@ function nextOcr(){
  const s=session;if(!s)return;
  if(s.ocrIndex>=s.images.length){
    s.busy=false;
-   const candidates=core.localOcrCandidates(s.ocrPhotos||[]);
+   const candidates=core.localOcrCandidates(s.ocrPhotos||[],{mainSide:s.mainSide});
    const cert=s.adapter.getCert();
    for(const r of candidates.board){
      const old=s.result.board.find(f=>f.key===r.key);
@@ -122,18 +159,89 @@ function nextOcr(){
    }else if(approved.length){
      s.result.warnings.push('Previous confirmed devices retained. Check for duplicates; previously approved rows were not automatically renumbered.');
    }
-   s.message=candidates.physicalOrderKnown
-     ?'On-device OCR complete. Physical positions were ordered using the main-switch side. Verify every device, bank continuation and blank before confirming.'
-     :'On-device OCR complete. Readable ratings are proposals only. Verify physical order, main switch, SPD and blank ways before numbering and saving.';
+   s.message='Photos read. Check the order and details, then save.';
+   s.active='board';
    render();return;
  }
  s.token='board-ocr-'+(++seq);window.Android.scanSheetImageBase64(s.token,s.images[s.ocrIndex]);
  s.ocrTimer=setTimeout(()=>{if(session===s&&s.busy){s.busy=false;s.token='';error('On-device text reading timed out. You can retry or enter markings manually.');}},30000);
 }
-window.SperinConsumerScan={open(adapter,boardRef){if(session)return;const modal=document.createElement('div');modal.className='modal-backdrop board-scan-backdrop';session={adapter,boardRef,modal,opener:document.activeElement,images:[],result:core.blank(),message:'',consent:false,busy:false};document.body.appendChild(modal);render();modal.querySelector('[data-scan-command="close"]').focus();},close,ocrResult(token,json,err){if(!session||token!==session.token)return false;clearTimeout(session.ocrTimer);session.token='';try{const result=err?{fullText:'',lines:[]}:(JSON.parse(json)||{});const value=err||result.fullText||'';session.ocrPhotos.push(err?{fullText:'',lines:[]}:result);session.ocr+='Photo '+(session.ocrIndex+1)+'\n'+(value||'No readable text')+'\n\n';}catch{session.ocrPhotos.push({fullText:'',lines:[]});session.ocr+='Unreadable OCR response\n';}session.ocrIndex++;nextOcr();return true;},isOpen:()=>!!session};
+window.SperinConsumerScan={open(adapter,boardRef){if(session)return;const modal=document.createElement('div');modal.className='modal-backdrop board-scan-backdrop';session={adapter,boardRef,modal,opener:document.activeElement,images:[],result:core.blank(),message:'',consent:false,busy:false,mainSide:'right',cloudOpen:false,active:'board'};document.body.appendChild(modal);render();modal.querySelector('[data-scan-command="close"]').focus();},close,ocrResult(token,json,err){if(!session||token!==session.token)return false;clearTimeout(session.ocrTimer);session.token='';try{const result=err?{fullText:'',lines:[]}:(JSON.parse(json)||{});const value=err||result.fullText||'';session.ocrPhotos.push(err?{fullText:'',lines:[]}:result);session.ocr+='Photo '+(session.ocrIndex+1)+'\n'+(value||'No readable text')+'\n\n';}catch{session.ocrPhotos.push({fullText:'',lines:[]});session.ocr+='Unreadable OCR response\n';}session.ocrIndex++;nextOcr();return true;},isOpen:()=>!!session};
 window.sperinBoardPhotoResult=(token,data,errorMessage)=>{if(!session||session.cameraToken!==token)return;session.cameraToken='';if(errorMessage)return error(errorMessage);addPhoto(data);};
-document.addEventListener('change',e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target,s=session;if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}if(el.dataset.deviceConfirm!==undefined){const d=s.result.circuits[Number(el.dataset.deviceConfirm)];d.fields.forEach(r=>r.accepted=el.checked&&!!r.value.trim());}if(el.dataset.confirm){const [group,index]=el.dataset.confirm.split(':');const r=group==='board'?s.result.board[index]:s.result.circuits[group].fields[index];r.accepted=el.checked;}if(el.dataset.target!==undefined){const d=s.result.circuits[el.dataset.target];d.target=el.value;if(el.value==='new')d.number=d.fields.find(r=>r.key==='circuitNo')?.value||d.number||'';render();}});
-document.addEventListener('input',e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target;if(el.dataset.value){const [group,index]=el.dataset.value.split(':');const r=group==='board'?session.result.board[index]:session.result.circuits[group].fields[index];r.value=el.value;r.accepted=false;r.confidence='check';const container=el.closest('.board-scan-field');container.classList.remove('high','missing');container.classList.add('check');container.querySelector('.scan-confidence').textContent='Needs checking';const box=el.closest('.board-scan-field').querySelector('[data-confirm]');if(box){box.checked=false;box.disabled=!r.value.trim();}else{const d=session.result.circuits[Number(group)];d.fields.forEach(f=>f.accepted=false);el.closest('.scan-device').querySelector('[data-device-confirm]').checked=false;}}if(el.dataset.number!==undefined)session.result.circuits[el.dataset.number].number=el.value;});
-document.addEventListener('click',async e=>{if(!session||!session.modal.contains(e.target))return;const el=e.target.closest('button');if(!el)return;const s=session;const cmd=el.dataset.scanCommand;if(cmd==='close')return close();if(s.busy)return;if(cmd==='camera'){if(window.Android?.captureBoardPhoto){s.cameraToken='board-photo-'+(++seq);window.Android.captureBoardPhoto(s.cameraToken);}else s.modal.querySelector('[data-board-camera]').click();}if(cmd==='analyse')analyse();if(cmd==='ocr')ocr();if(cmd==='apply')apply();if(cmd==='number-order'){try{core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);s.message='Numbered from MAIN SWITCH 0, then SPD if present, then RCBOs/MCBs and blanks in reviewed physical order. Tick each proposed entry only after checking the photographs.';render();}catch(e){error(e.message);}}if(cmd==='spare'){const d=core.draftDevice();d.position='Blank / spare way';d.fields.find(r=>r.key==='description').value='SPARE';d.fields.find(r=>r.key==='deviceKind').value='Spare';s.result.circuits.push(d);render();}if(el.dataset.deviceDelete!==undefined){s.result.circuits.splice(Number(el.dataset.deviceDelete),1);render();}if(el.dataset.deviceUp!==undefined||el.dataset.deviceDown!==undefined){const i=Number(el.dataset.deviceUp??el.dataset.deviceDown),j=i+(el.dataset.deviceUp!==undefined?-1:1);if(j>=0&&j<s.result.circuits.length){[s.result.circuits[i],s.result.circuits[j]]=[s.result.circuits[j],s.result.circuits[i]];s.result.circuits.forEach(d=>{d.target='';d.number='';d.fields.forEach(f=>f.accepted=false);});render();}}if(cmd==='add'){s.result.circuits.push(core.draftDevice());render();}if(cmd==='request-code')login(false);if(cmd==='verify-code')login(true);if(el.dataset.remove!==undefined){s.images.splice(Number(el.dataset.remove),1);s.result=core.blank();s.consent=false;s.message='Photo removed. Reanalyse to rebuild evidence references.';render();}if(el.dataset.rotate!==undefined){try{const i=Number(el.dataset.rotate);s.images[i]=await preparePhoto(s.images[i],90);s.consent=false;render();}catch(e){error(e.message);}}});
+document.addEventListener('change',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target,s=session;
+ if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
+ if(el.matches('[data-board-consent]'))s.consent=el.checked;
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f)f.value=el.value;}
+});
+document.addEventListener('input',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target,s=session;
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f)f.value=el.value;}
+ if(el.dataset.number!==undefined){s.result.circuits[Number(el.dataset.number)].number=el.value;}
+ if(el.hasAttribute('data-brand')){
+   let f=s.result.board.find(f=>f.key==='manufacturer');
+   if(!f){f={key:'manufacturer',value:'',accepted:false,evidence:[]};s.result.board.push(f);}
+   f.value=el.value;
+ }
+});
+document.addEventListener('click',function(e){
+ if(!session||!session.modal.contains(e.target))return;
+ const el=e.target.closest('button');if(!el)return;
+ const s=session,cmd=el.dataset.scanCommand;
+ if(cmd==='close')return close();
+ if(s.busy)return;
+ if(el.dataset.open!==undefined){s.active=s.active===el.dataset.open?'':el.dataset.open;render();return;}
+ if(el.dataset.side){
+   s.mainSide=el.dataset.side;
+   if(s.ocrPhotos?.length){
+     const next=core.localOcrCandidates(s.ocrPhotos,{mainSide:s.mainSide});
+     s.result.circuits=next.devices;
+     if(s.adapter.getCert().type!=='minor')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
+     s.message='Order updated. Check the details, then save.';
+   }
+   s.active='board';render();return;
+ }
+ if(cmd==='cloud-toggle'){s.cloudOpen=!s.cloudOpen;render();return;}
+ if(cmd==='camera'){if(window.Android?.captureBoardPhoto){s.cameraToken='board-photo-'+(++seq);window.Android.captureBoardPhoto(s.cameraToken);}else s.modal.querySelector('[data-board-camera]').click();return;}
+ if(cmd==='analyse')return analyse();
+ if(cmd==='ocr')return ocr();
+ if(cmd==='apply')return apply();
+ if(cmd==='request-code')return login(false);
+ if(cmd==='verify-code')return login(true);
+ if(cmd==='add'||cmd==='spare'||cmd==='add-spd'){
+   const d=core.draftDevice();
+   if(cmd==='spare'){d.fields.find(f=>f.key==='description').value='SPARE';d.fields.find(f=>f.key==='deviceKind').value='Spare';}
+   if(cmd==='add-spd'){d.fields.find(f=>f.key==='description').value='SPD';d.fields.find(f=>f.key==='deviceKind').value='SPD';}
+   s.result.circuits.push(d);
+   try{if(s.adapter.getCert().type!=='minor')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);}catch(ex){s.message=ex.message;}
+   s.active='c'+s.result.circuits.indexOf(d);render();return;
+ }
+ if(el.dataset.deviceDelete!==undefined){
+   const i=Number(el.dataset.deviceDelete),d=s.result.circuits[i];
+   s.result.circuits.splice(i,1);
+   if(['Main switch','SPD','Spare'].includes(d?.fields.find(f=>f.key==='deviceKind')?.value)){
+     // Respect manual removal of an SPD, even if the original board still has a value.
+     if(d?.fields.find(f=>f.key==='deviceKind')?.value==='SPD')s.result.board.push({key:'spd',value:'Not fitted',accepted:false,evidence:[]});
+   }
+   s.result.circuits.forEach((d,i)=>{d.number=String(i);});
+   s.active='board';render();return;
+ }
+ if(el.dataset.deviceUp!==undefined||el.dataset.deviceDown!==undefined){
+   const i=Number(el.dataset.deviceUp??el.dataset.deviceDown),j=i+(el.dataset.deviceUp!==undefined?-1:1);
+   if(j>=0&&j<s.result.circuits.length){
+     [s.result.circuits[i],s.result.circuits[j]]=[s.result.circuits[j],s.result.circuits[i]];
+     s.result.circuits.forEach((d,k)=>{d.number=String(k);d.target='';});
+     s.active='c'+j;render();
+   }return;
+ }
+ if(el.dataset.remove!==undefined){
+   s.images.splice(Number(el.dataset.remove),1);s.message='Photo removed.';render();return;
+ }
+ if(el.dataset.rotate!==undefined){
+   (async()=>{try{const i=Number(el.dataset.rotate);s.images[i]=await preparePhoto(s.images[i],90);render();}catch(ex){error(ex.message);}})();return;
+ }
+});
 document.addEventListener('keydown',e=>{if(!session)return;const diff=document.querySelector('.board-scan-diff');if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(diff)diff.remove();else close();}if(e.key==='Tab'){const box=diff||session.modal;const els=[...box.querySelectorAll('button:not(:disabled),input:not([hidden]):not(:disabled),select')].filter(x=>x.getClientRects().length);const first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}},true);
 })();
