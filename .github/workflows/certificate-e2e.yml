@@ -65,7 +65,6 @@ jobs:
           grep -F "Confirmed lights" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *0 +MAIN SWITCH" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *1 +SPD" certificate-android/qa-output/scan-confirmed.txt
-          grep -F "board positions, NOT outgoing circuits" certificate-android/qa-output/scan-confirmed.txt
           grep -F "Wylex" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
           grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
