@@ -4,6 +4,7 @@ import fs from "node:fs";
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({
   viewport: { width: 412, height: 915 },
+  acceptDownloads: true,
   recordVideo: { dir: "certificate-android/qa-output/video", size: { width: 412, height: 915 } },
 });
 const errors = [];
@@ -99,6 +100,12 @@ assert.equal(
   "Confirmed lights",
 );
 assert.ok(!JSON.stringify(saved).includes("data:image"));
+const [firstScanPdf] = await Promise.all([
+  page.waitForEvent("download"),
+  page.locator('[data-action="pdf"]').first().click(),
+]);
+await firstScanPdf.saveAs(dir + "/scan-confirmed.pdf");
+assert.ok(fs.statSync(dir+"/scan-confirmed.pdf").size > 10000, "populated PDF should not be empty");
 await page.locator('[data-action="board-scan"]').first().click();
 await page.locator('[data-scan-command="add"]').click();
 await page.locator('[data-target="0"]').selectOption(row.id);
@@ -108,6 +115,26 @@ await page.locator('[data-scan-command="apply"]').click();
 await page.locator("[data-cancel]").click();
 assert.equal(await page.locator(".board-scan-diff").count(), 0);
 await page.locator('[data-scan-command="close"]').click();
+await page.locator('[data-action="board-scan"]').first().click();
+for (const [index,number] of [[0,"13"],[1,"14"]]) {
+  await page.locator('[data-scan-command="spare"]').click();
+  await page.locator('[data-target="'+index+'"]').selectOption("new");
+  await page.locator('[data-number="'+index+'"]').fill(number);
+  await page.locator('[data-device-confirm="'+index+'"]').check();
+}
+await page.locator('[data-scan-command="apply"]').click();
+assert.ok((await page.locator(".board-scan-diff").innerText()).includes("SPARE"));
+await page.locator("[data-save]").click();
+const spareState=await page.evaluate(()=>JSON.parse(localStorage.getItem("sperin-certificates-data-v1")));
+for(const n of ["13","14"]) {
+  const spare=spareState.certificates[0].tables.circuits.find(c=>c.circuitNo===n);
+  assert.equal(spare?.description,"SPARE");
+  assert.equal(spare?.deviceKind,"Spare");
+  assert.equal(spare?.ocpdRating,undefined);
+}
+const [sparesPdf]=await Promise.all([page.waitForEvent("download"),page.locator('[data-action="pdf"]').first().click()]);
+await sparesPdf.saveAs(dir+"/scan-with-spares.pdf");
+assert.ok(fs.statSync(dir+"/scan-with-spares.pdf").size>10000);
 await page.locator('[data-board-input="manufacturer"]').first().scrollIntoViewIfNeeded();
 await page.screenshot({ path: dir + "/white-consumer-unit.png" });
 const dark = await page.evaluate(
