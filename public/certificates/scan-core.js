@@ -40,7 +40,7 @@ function localOcrCandidates(photos,options={}){
  for(let p=0;p<photos.length;p++){
    const photo=read(photos[p]);
    const rows=(Array.isArray(photo.lines)?photo.lines:[]).filter(l=>l&&typeof l.text==='string').map(l=>({...l,text:clean(l.text)}));
-   const full=clean(photo.fullText||rows.map(l=>l.text).join(' '));
+   const full=String(photo.fullText||rows.map(l=>l.text).join(' '));
    const width=Number(photo.width)||Math.max(1,...rows.filter(valid).map(l=>l.right));
    if(/\bFuseBox\b/i.test(full))boardValues.manufacturer||='FuseBox';
    const main=rows.find(l=>valid(l)&&/\bMAIN\s*SWITCH\b/i.test(l.text))||
@@ -96,21 +96,45 @@ function localOcrCandidates(photos,options={}){
      const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
      const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.38));
      const joined=near.map(l=>l.text).join(' ');
-     const rcd=/\b30\s?mA\b|\b0[.,]03\s?A\b|\b61009\b/i.test(joined);
-     const mcb=/\b60898\b|\bMCB\b/i.test(joined);
-     const standards=/61009/.test(joined)?'BS EN 61009-1':/60898/.test(joined)?'BS EN 60898-1':'';
+     // Read all markings from the same physical device column, not just B32.
+     const model=joined.match(/\b(RTA[0-9A-Z-]{5,20}|MT[0-9A-Z-]{4,18})\b/i)?.[1]||'';
+     const standards=/61009(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 61009-1':/60898(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 60898-1':'';
+     const rcd=/\b(?:10|30|100|300)\s?mA\b|\b0[.,]03\s?A\b|61009|\bRTA[0-9]/i.test(joined);
+     const mcb=/60898|\bMCB\b/i.test(joined);
+     const idn=joined.match(/\b(10|30|100|300)\s?mA\b/i)?.[1]||(/\b0[.,]03\s?A\b/i.test(joined)?'30':'');
+     const rcdType=joined.match(/\bTYPE\s*(AC|A|F|B)\b/i)?.[1]?.toUpperCase()||'';
+     const capacity=/\b6000\b|\b6\s?kA\b/i.test(joined)?'6':/\b10000\b|\b10\s?kA\b/i.test(joined)?'10':'';
+     const deviceKind=rcd?'RCBO':mcb?'MCB':'';
      const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(travel==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
      dev.fields=[
        make('ocpdType',g.curve),make('ocpdRating',g.amps),
-       ...(rcd||mcb?[make('deviceKind',rcd?'RCBO':'MCB','Classification based on nearby optical text; check actual device type.')]:[]),
+       ...(deviceKind?[make('deviceKind',deviceKind,'Check the device type.')]:[]),
        ...(standards?[make('ocpdBs',standards)]:[]),
-       ...(rcd?[make('rcdIdn','30','Detected residual sensitivity; verify the device marking.'),make('rcdBs','BS EN 61009-1')]:[]),
-       ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Board marking; verify manufacturer on this individual protective device.')]:[])
+       ...(model?[make('deviceModel',model)]:[]),
+       ...(capacity?[make('breakingCapacity',capacity)]:[]),
+       ...(rcd&&idn?[make('rcdIdn',idn)]:[]),
+       ...(rcd&&rcdType?[make('rcdType',rcdType)]:[]),
+       ...(rcd?[make('rcdBs',standards==='BS EN 61009-1'?standards:'BS EN 61009-1'),
+                  make('rcdRating',g.amps,'Rated current of the visible RCBO, check the marking.')]:[]),
+       ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Check the device brand.')]:[])
      ];
      devices.push(dev);
      for(const blank of blanks.filter(b=>b.index===i+1))for(let n=0;n<blank.count;n++){
        const spare=coreDraftForOcr(p,grouped.length+devices.length+n,'possible blank space');
        spare.fields=[make('description','SPARE','Suggested from the gap between devices; confirm or delete.'),make('deviceKind','Spare','Check the blank space.')];
+       devices.push(spare);
+     }
+   }
+   // Image-derived estimate for blank modules AFTER the last marked device.
+   // Only suggest when image measurements were available; the installer can delete.
+   const possible=Math.min(12,Math.max(0,Math.round(Number(photo.blankWayHint)||0)));
+   if(possible&&grouped.length>=3&&grouped.every(g=>g.x!==null)){
+     for(let n=0;n<possible;n++){
+       const spare=coreDraftForOcr(p,100+n,'end of photo bank · check blank');
+       spare.fields=[
+         {key:'description',value:'SPARE',confidence:'check',evidence:[],reason:'Suggested from visible empty module spaces',accepted:false},
+         {key:'deviceKind',value:'Spare',confidence:'check',evidence:[],reason:'Check the number of spaces',accepted:false}
+       ];
        devices.push(spare);
      }
    }
