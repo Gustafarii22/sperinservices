@@ -135,6 +135,38 @@ for(const n of ["13","14"]) {
 const [sparesPdf]=await Promise.all([page.waitForEvent("download"),page.locator('[data-action="pdf"]').first().click()]);
 await sparesPdf.saveAs(dir+"/scan-with-spares.pdf");
 assert.ok(fs.statSync(dir+"/scan-with-spares.pdf").size>10000);
+// Regression: the Android ML Kit bridge must deliver OCR to the consumer-unit scanner,
+// not the unrelated site-sheet callback. This checks that the asynchronous consumer
+// result is displayed, reviewed and saved in the same certificate.
+await page.evaluate(() => {
+  window.Android = {
+    scanSheetImageBase64(token, photo) {
+      if (!token.startsWith("board-ocr-") || !photo.startsWith("data:image/")) throw Error("Wrong consumer-unit OCR route");
+      queueMicrotask(() => window.SperinConsumerScan.ocrResult(
+        token, JSON.stringify({fullText:"B32\\nBS EN 61009-1\\nType A"}), ""
+      ));
+    }
+  };
+});
+await page.locator('[data-action="board-scan"]').first().click();
+await page.locator('[data-board-photos]').setInputFiles('public/projects/nursery-refurbishment/distribution-board.webp');
+await page.waitForSelector('.board-photo-strip img');
+await page.locator('[data-scan-command="ocr"]').click();
+await page.waitForFunction(() => document.querySelectorAll('.scan-device').length === 1);
+assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Local OCR complete'));
+assert.equal(await page.locator('[data-value="0:7"]').inputValue(),'B');
+assert.equal(await page.locator('[data-value="0:8"]').inputValue(),'32');
+await page.locator('[data-target="0"]').selectOption('new');
+await page.locator('[data-number="0"]').fill('15');
+await page.locator('[data-device-confirm="0"]').check();
+await page.locator('[data-scan-command="apply"]').click();
+await page.locator('[data-save]').click();
+const ocrSaved=await page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')));
+const ocrCircuit=ocrSaved.certificates[0].tables.circuits.find(c=>c.circuitNo==='15');
+assert.equal(ocrCircuit?.ocpdType,'B');
+assert.equal(ocrCircuit?.ocpdRating,'32');
+await page.reload();
+assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('sperin-certificates-data-v1')).certificates[0].tables.circuits.find(c=>c.circuitNo==='15')?.ocpdRating),'32');
 await page.locator('[data-board-input="manufacturer"]').first().scrollIntoViewIfNeeded();
 await page.screenshot({ path: dir + "/white-consumer-unit.png" });
 const dark = await page.evaluate(
