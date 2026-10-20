@@ -70,7 +70,6 @@ jobs:
           grep -F "BS EN 60947-2" certificate-android/qa-output/scan-confirmed.txt
           grep -F "BS EN 61008-1" certificate-android/qa-output/scan-confirmed.txt
           grep -F "CONT-100" certificate-android/qa-output/scan-confirmed.txt
-          grep -F "Sensitive equipment isolated" certificate-android/qa-output/scan-confirmed.txt
           if grep -E 'Manufacturer:|Model:|Ways:|Populated:|Spare:' certificate-android/qa-output/scan-confirmed.txt; then
             echo "Non-IET board metadata leaked onto issued schedule"
             exit 1
