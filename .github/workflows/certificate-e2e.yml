@@ -82,6 +82,23 @@ jobs:
           node certificate-android/qa/workflow.e2e.mjs
           CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
 
+      - name: Verify every EICR signatory field is printed
+        run: |
+          set -euo pipefail
+          PDF="certificate-android/qa-output/workflow-eicr.pdf"
+          test -s "$PDF"
+          pdftotext -layout "$PDF" certificate-android/qa-output/workflow-eicr.txt
+          for value in "EICR Inspector QA" "EICR Authoriser QA" \
+            "Inspector signed" "Authoriser signed" \
+            "Inspection Company QA" "Authorisation Company QA" \
+            "Electrical Inspector" "Authorised Person" \
+            "1 Inspection Street" "2 Authorisation Street"; do
+            grep -F "$value" certificate-android/qa-output/workflow-eicr.txt
+          done
+          pdfinfo "$PDF" | grep -E '^Pages:'
+          mkdir -p certificate-android/qa-output/eicr-renders
+          pdftoppm -f 1 -l 2 -png -r 130 "$PDF" certificate-android/qa-output/eicr-renders/eicr
+
       - name: Audit pass 1 — forward order
         env:
           CERT_AUDIT_PASS: forward
