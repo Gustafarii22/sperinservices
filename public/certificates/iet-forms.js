@@ -466,15 +466,15 @@
   function renderEicr(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
     doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
-    let top=box(doc,x,y,w,18,'SECTION A: DETAILS OF THE PERSON ORDERING THE REPORT');
+    let top=box(doc,x,y,w,21,'SECTION A: DETAILS OF THE PERSON ORDERING THE REPORT');
     labelValue(doc,'Name',display(f.clientName,worksheet),x+2,top+6,w-4,{labelW:15});
-    labelValue(doc,'Address',display(f.clientAddress,worksheet),x+2,top+12,w-4,{labelW:18,maxLines:1});y+=19;
+    labelValue(doc,'Address',display(f.clientAddress,worksheet),x+2,top+12,w-4,{labelW:18,maxLines:1});y+=22;
 
-    top=box(doc,x,y,w,20,'SECTION B: REASON FOR PRODUCING THIS REPORT');
+    top=box(doc,x,y,w,22,'SECTION B: REASON FOR PRODUCING THIS REPORT');
     labelValue(doc,'Reason',display(f.reason,worksheet),x+2,top+6,w-4,{labelW:18,maxLines:2});
-    labelValue(doc,'Date(s) inspection and testing carried out',display(f.inspectionDates,worksheet),x+2,top+13,w-4,{labelW:52});y+=21;
+    labelValue(doc,'Date(s) inspection and testing carried out',display(f.inspectionDates,worksheet),x+2,top+13,w-4,{labelW:52});y+=23;
 
-    top=box(doc,x,y,w,42,'SECTION C: DETAILS OF THE INSTALLATION WHICH IS THE SUBJECT OF THIS REPORT');
+    top=box(doc,x,y,w,39,'SECTION C: DETAILS OF THE INSTALLATION WHICH IS THE SUBJECT OF THIS REPORT');
     labelValue(doc,'Occupier',display(f.occupier,worksheet),x+2,top+6,62,{labelW:18});
     labelValue(doc,'Installation address',display(f.installationAddress,worksheet),x+66,top+6,122,{labelW:34,maxLines:2});
     labelValue(doc,'Description of premises',display(f.premisesType,worksheet)+' '+display(f.premisesOther,worksheet),x+2,top+15,w-4,{labelW:34});
@@ -482,24 +482,24 @@
     labelValue(doc,'Evidence of additions/alterations',display(f.additionsEvidence,worksheet),x+69,top+23,63,{labelW:39});
     labelValue(doc,'Estimated age if yes',display(f.additionsAge,worksheet),x+134,top+23,54,{labelW:31});
     labelValue(doc,'Installation records available',display(f.recordsAvailable,worksheet),x+2,top+31,72,{labelW:38});
-    labelValue(doc,'Date of last inspection',worksheet?'':fmtDate(f.lastInspection),x+76,top+31,56,{labelW:29});y+=43;
+    labelValue(doc,'Date of last inspection',worksheet?'':fmtDate(f.lastInspection),x+76,top+31,56,{labelW:29});y+=40;
 
-    top=box(doc,x,y,w,56,'SECTION D: EXTENT AND LIMITATIONS OF INSPECTION AND TESTING');
+    top=box(doc,x,y,w,54,'SECTION D: EXTENT AND LIMITATIONS OF INSPECTION AND TESTING');
     labelValue(doc,'Parts of installation inspected and tested',display(f.extentInspected,worksheet),x+2,top+7,w-4,{labelW:52,maxLines:2});
     labelValue(doc,'Agreed limitations including reasons',display(f.agreedLimitations,worksheet),x+2,top+18,w-4,{labelW:46,maxLines:2});
     labelValue(doc,'Agreed with',display(f.agreedWith,worksheet),x+2,top+29,90,{labelW:22});
     labelValue(doc,'Operational limitations including reasons',display(f.operationalLimitations,worksheet),x+2,top+38,w-4,{labelW:50,maxLines:2});
-    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+49,w-4,{labelW:57});y+=57;
+    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+49,w-4,{labelW:57});y+=55;
 
-    top=box(doc,x,y,w,40,'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION');
+    top=box(doc,x,y,w,30,'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION');
     labelValue(doc,'Overall assessment',display(f.overallAssessment,worksheet),x+2,top+7,80,{labelW:31});
-    labelValue(doc,'General condition of the installation in terms of electrical safety',display(f.generalCondition,worksheet),x+2,top+16,w-4,{labelW:68,maxLines:4});y+=41;
+    labelValue(doc,'General condition of the installation in terms of electrical safety',display(f.generalCondition,worksheet),x+2,top+16,w-4,{labelW:68,maxLines:4});y+=31;
 
-    top=box(doc,x,y,w,28,'SECTION F: RECOMMENDATION FOR NEXT INSPECTION');
+    top=box(doc,x,y,w,23,'SECTION F: RECOMMENDATION FOR NEXT INSPECTION');
     labelValue(doc,'Further inspection recommended before',worksheet?'':fmtDate(f.nextInspectionDate),x+2,top+7,w-4,{labelW:48});
-    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+16,w-4,{labelW:43,maxLines:2});y+=29;
+    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+16,w-4,{labelW:43,maxLines:2});y+=24;
 
-    top=box(doc,x,y,w,47,'SECTION G: DECLARATION');
+    top=box(doc,x,y,w,51,'SECTION G: DECLARATION');
     write(doc,'I/We declare that the information in this report, including observations and attached schedules, provides an accurate assessment of the condition of the electrical installation, taking into account the stated extent and limitations.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
     // All six issued EICR declaration fields for both persons, without
     // inventing extra certificate metadata or omitting their authorisation.
