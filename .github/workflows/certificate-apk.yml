@@ -129,15 +129,22 @@ jobs:
         with:
           gradle-version: "8.10.2"
 
-      - name: Restore permanent signing key
-        id: signing-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/sperin-certificates-stable.jks
-          key: sperin-certificates-signing-key-v1
-
-      - name: Require the existing signing key
-        run: test -f "$HOME/.android/sperin-certificates-stable.jks"
+      # The original cache has expired. Only the ORIGINAL keystore can update users.
+      # Store the existing JKS as a protected encrypted GitHub Actions secret.
+      - name: Restore original signing key from encrypted secret
+        env:
+          ORIGINAL_JKS_BASE64: ${{ secrets.SPERIN_CERTIFICATES_SIGNING_JKS_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ORIGINAL_JKS_BASE64" ]; then
+            echo "::error::Original signing keystore unavailable. Configure SPERIN_CERTIFICATES_SIGNING_JKS_BASE64 with the exact original JKS from a trusted backup. Never replace it with a new keystore."
+            exit 1
+          fi
+          mkdir -p "$HOME/.android"
+          umask 077
+          printf '%s' "$ORIGINAL_JKS_BASE64" | base64 --decode > "$HOME/.android/sperin-certificates-stable.jks"
+          test -s "$HOME/.android/sperin-certificates-stable.jks"
+          chmod 600 "$HOME/.android/sperin-certificates-stable.jks"
 
       - name: Verify permanent signing fingerprint
         run: |

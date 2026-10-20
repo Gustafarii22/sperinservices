@@ -35,3 +35,30 @@ Storage key, package name, signing key/fingerprint, native PDF functions and PDF
 - CI builds the existing stable-signed APK and runs the repository's Android emulator upgrade/rotation/keyboard tests. Consult the actual run, not this document, for its result.
 
 Optional live evaluation after approval: use the local `live-scan.mjs` runner with approved JPEG fixtures and an environment-provided key; it writes redacted result JSON, never prints credentials. No live API tests run in CI.
+
+## Signing-key recovery and independent preview (20 October 2026)
+
+- Production in-place updates need the original Android JKS, matching SHA-256 fingerprint
+  `68:D9:F4:92:6E:DC:07:65:71:83:DE:10:03:9C:11:03:29:D8:94:D3:C6:87:4F:53:14:DF:CC:7C:D1:6B:F5:73`.
+  The prior GitHub Actions cache that held this private key is now missing. The original
+  private signing key CANNOT be extracted from a signed APK or recreated from its fingerprint.
+  Do not invent a replacement signing key or uninstall the existing app.
+- The stable release workflow now expects encrypted GitHub Actions secret
+  `SPERIN_CERTIFICATES_SIGNING_JKS_BASE64`, containing base64 of the **same original**
+  `sperin-certificates-stable.jks`, retrieved from a trusted user-controlled backup.
+  The workflow restores it only in runner memory/disk and verifies the exact known fingerprint.
+  Never put private signing material in source, GitHub cache, published artifacts, or chat.
+- Until that secret is configured, stable APK CI will fail deliberately and cannot
+  release an update that preserves installed data.
+- The v1.8.0 preview build uses Android's **different preview package**
+  `uk.co.sperinservices.certificates.stable.preview` and a debug test signer.
+  It can coexist with stable but **does not share certificate storage or backups**.
+  It is not a substitute for the compatible stable upgrade.
+- The preview workflow now runs an Android 35 emulator smoke check that installs
+  both stable 1.7.11 and preview 1.8.0, checks both package identities, launches the
+  preview, rotates, relaunches, and retains UI screenshots/logs. Confirm the actual
+  workflow result: code configuration alone is not verification.
+- Live cloud image recognition also requires the **server-side** `OPENAI_API_KEY`,
+  deployment of the new backend route at the user's actual certificate origin,
+  and permissioned accuracy evaluation with real labelled board photographs.
+  Never put the provider key in the Android APK or web JavaScript.
