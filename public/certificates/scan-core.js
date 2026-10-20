@@ -23,6 +23,86 @@ function draftDevice(){return {id:'manual-'+Date.now(),position:'Manual device',
 // and this routine numbers physical schedule positions from its sole main switch.
 // Main switch and SPD are *schedule position* annotations, not outgoing circuits.
 // Their electrical test fields must remain blank.
+
+// ML Kit returns text AND bounding rectangles. Cluster protective-device markings
+// geometrically instead of flattening them into a text stream. This never auto-accepts
+// a field or claims that an optical reading proves circuit identity or safety.
+function localOcrCandidates(photos){
+ const devices=[],warnings=[],boardValues={};
+ let mainSide=null,withPositions=true;
+ const rating=/(?:^|[^A-Z0-9])([BCD])\s?(6|10|16|20|25|32|40|50|63)(?:\s?A)?(?=$|[^0-9])/i;
+ const read=p=>typeof p==='string'?{fullText:p,lines:[]}:(p&&typeof p==='object'?p:{fullText:'',lines:[]});
+ const clean=s=>text(s,150).replace(/\s+/g,' ');
+ const valid=l=>l&&Number.isFinite(l.left)&&Number.isFinite(l.right)&&Number.isFinite(l.top)&&Number.isFinite(l.bottom)&&l.right>l.left&&l.bottom>l.top;
+ const middle=l=>(l.left+l.right)/2;
+ const evidence=(p,s)=>[{image:p+1,text:clean(s)}];
+ for(let p=0;p<photos.length;p++){
+   const photo=read(photos[p]);
+   const rows=(Array.isArray(photo.lines)?photo.lines:[]).filter(l=>l&&typeof l.text==='string').map(l=>({...l,text:clean(l.text)}));
+   const full=clean(photo.fullText||rows.map(l=>l.text).join(' '));
+   const width=Number(photo.width)||Math.max(1,...rows.filter(valid).map(l=>l.right));
+   if(/\bFuseBox\b/i.test(full))boardValues.manufacturer||='FuseBox';
+   const main=rows.find(l=>valid(l)&&/\bMAIN\s*SWITCH\b/i.test(l.text));
+   const spd=rows.find(l=>valid(l)&&/\bSPD\b|SURGE\s*PROTECTION/i.test(l.text));
+   if(main&&mainSide===null){mainSide=middle(main)>width/2?'right':'left';}
+   if(main&&p===0){
+     const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];
+     boardValues.mainSwitch=amps?'100 A main switch':'Main switch (rating to confirm)';
+   }
+   if(spd)boardValues.spd='SPD (type and markings to confirm)';
+   const raw=rows.filter(l=>rating.test(l.text));
+   // The image can supply multiple markings for the same device, but proximity
+   // only merges matching ratings within one narrow DIN-rail device column.
+   const grouped=[];
+   for(const l of raw){
+     const m=l.text.match(rating);
+     const x=valid(l)?middle(l):null, y=valid(l)?(l.top+l.bottom)/2:null;
+     const tol=Math.max(10,width*.015);
+     const existing=grouped.find(g=>g.curve===m[1].toUpperCase()&&g.amps===m[2]&&x!==null&&g.x!==null&&Math.abs(g.x-x)<=tol&&Math.abs(g.y-y)<=Math.max(30,(Number(photo.height)||800)*.18));
+     if(existing){existing.examples.push(l.text);continue;}
+     grouped.push({curve:m[1].toUpperCase(),amps:m[2],x,y,examples:[l.text]});
+   }
+   // Some OCR engines return text only. Preserve those as unpositioned suggestions
+   // instead of inventing physical layout from flat string order.
+   if(!rows.length){
+     for(const line of String(photo.fullText||'').split(/\r?\n/)){
+       const m=clean(line).match(rating);
+       if(m)grouped.push({curve:m[1].toUpperCase(),amps:m[2],x:null,y:null,examples:[clean(line)]});
+     }
+   }
+   if(grouped.some(g=>g.x===null))withPositions=false;
+   if(mainSide!==null)grouped.sort((a,b)=>a.y!==null&&b.y!==null&&Math.abs(a.y-b.y)>(Number(photo.height)||800)*.12?a.y-b.y:(mainSide==='right'?b.x-a.x:a.x-b.x));
+   else grouped.sort((a,b)=>a.x===null||b.x===null?0:a.x-b.x);
+   for(let i=0;i<grouped.length;i++){
+     const g=grouped[i],ev=evidence(p,g.examples[0]);
+     const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
+     const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.38));
+     const joined=near.map(l=>l.text).join(' ');
+     const rcd=/\b30\s?mA\b|\b0[.,]03\s?A\b|\b61009\b/i.test(joined);
+     const mcb=/\b60898\b|\bMCB\b/i.test(joined);
+     const standards=/61009/.test(joined)?'BS EN 61009-1':/60898/.test(joined)?'BS EN 60898-1':'';
+     const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(mainSide==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
+     dev.fields=[
+       make('ocpdType',g.curve),make('ocpdRating',g.amps),
+       ...(rcd||mcb?[make('deviceKind',rcd?'RCBO':'MCB','Classification based on nearby optical text; check actual device type.')]:[]),
+       ...(standards?[make('ocpdBs',standards)]:[]),
+       ...(rcd?[make('rcdIdn','30','Detected residual sensitivity; verify the device marking.'),make('rcdBs','BS EN 61009-1')]:[]),
+       ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Board marking; verify manufacturer on this individual protective device.')]:[])
+     ];
+     devices.push(dev);
+   }
+ }
+ if(mainSide===null){withPositions=false;warnings.push('Main switch position/direction not identified by OCR. Check bank order and number devices manually from the main switch.');}
+ if(!withPositions)warnings.push('Some devices lack optical coordinates. Physical circuit order cannot be verified from text alone.');
+ warnings.push('On-device OCR cannot reliably count blank covers. Add and position the spare-way entries visible in the photographs before saving.');
+ if(!devices.length)warnings.push('No standalone B/C/D ratings were read. Try a close-up of the device markings or enter them manually.');
+ return {board:Object.entries(boardValues).map(([key,value])=>({key,value,confidence:'check',accepted:false,evidence:[],reason:'On-device photo reading; confirm this board detail.'})),devices,warnings,physicalOrderKnown:withPositions&&devices.length>0,direction:mainSide};
+}
+function coreDraftForOcr(photo,index,position){
+ return {id:'ocr-'+photo+'-'+index,position:'Photo '+(photo+1)+' · '+position,
+  association:'check',reason:'Optical candidate only; confirm device, bank and label association.',
+  target:'',number:'',fields:[]};
+}
 function numberFromMain(result,cert,boardRef){
  if(cert.type==='minor')throw Error('Minor Works has one circuit; numbering from a CU main switch is unavailable.');
  const board=(cert.tables?.boards||[]).find(b=>b.ref===boardRef);
@@ -101,5 +181,5 @@ function propose(cert,boardRef,result){
  if(changes.length)copy.photoScanAudit=[...(copy.photoScanAudit||[]).slice(-19),{at:new Date().toISOString(),boardRef,changes}];
  return {certificate:copy,changes};
 }
-root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,numberFromMain,propose};
+root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,localOcrCandidates,numberFromMain,propose};
 })(globalThis);
