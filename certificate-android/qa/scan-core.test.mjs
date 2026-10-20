@@ -217,3 +217,35 @@ test("separate consumer units each own their photo groups and sequential number 
  assert.equal(after2.tables.circuits.filter(r=>r.boardRef==="DB2"&&r.deviceKind==="SPD").length,0);
  assert.equal(after2.tables.circuits.find(r=>r.boardRef==="DB2"&&r.ocpdRating).ocpdRating,"6");
 });
+
+
+test("actual ML Kit geometry is retained, duplicates grouped, and dual-bank ratings run away from main switch",()=>{
+ const line=(txt,x,y=500)=>({text:txt,left:x-15,right:x+15,top:y-12,bottom:y+12});
+ const photo1={width:1400,height:900,lines:[
+   line("FuseBox MAIN SWITCH",1290,350),line("100A",1290,470),line("SPD T2",1195,450),
+   line("B40",1110),line("30mA",1110,560),
+   line("B32",1020),line("30mA",1020,560),line("B32",1020,530),
+   line("B16",930),line("30mA",930,560)
+ ]};
+ const photo2={width:1400,height:900,lines:[
+   line("B6",1160),line("30mA",1160,560),line("B6",1060),line("30mA",1060,560)
+ ]};
+ const candidates=core.localOcrCandidates([photo1,photo2]);
+ assert.equal(candidates.physicalOrderKnown,true);
+ assert.equal(candidates.direction,"right");
+ assert.deepEqual(candidates.devices.map(d=>d.fields.find(f=>f.key==="ocpdRating").value),["40","32","16","6","6"]);
+ assert.ok(candidates.devices.every(d=>d.fields.every(f=>f.accepted===false)));
+ assert.equal(candidates.board.find(f=>f.key==="spd")?.value,"SPD (type and markings to confirm)");
+ assert.equal(candidates.devices.filter(d=>d.fields.find(f=>f.key==="ocpdRating").value==="32").length,1);
+ const c=cert();c.tables.circuits=[];c.tables.tests=[];
+ core.numberFromMain({board:candidates.board,circuits:candidates.devices,warnings:candidates.warnings},c,"DB1");
+ assert.equal(candidates.devices.length,5);
+});
+test("text-only OCR never invents physical device placement or blank-way counts",()=>{
+ const q=core.localOcrCandidates([{fullText:"B32\nBS EN 61009-1\nType A"}]);
+ assert.equal(q.physicalOrderKnown,false);
+ assert.equal(q.devices.length,1);
+ assert.equal(q.devices[0].fields.find(f=>f.key==="ocpdRating")?.value,"32");
+ assert.equal(q.devices[0].fields.find(f=>f.key==="ocpdType")?.value,"B");
+ assert.ok(q.warnings.some(w=>w.includes("blank covers")));
+});
