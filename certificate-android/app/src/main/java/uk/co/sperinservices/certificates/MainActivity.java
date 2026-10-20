@@ -778,7 +778,12 @@ public class MainActivity extends Activity {
 
     private void sendSheetScanResult(String token, JSONObject payload, String error) {
         String json = payload == null ? "" : payload.toString();
-        String js = "window.sperinSheetScanResult(" +
+        // Consumer-unit OCR and completed-site-sheet OCR share the ML Kit engine
+        // but have different JavaScript receivers. Route by the originating token.
+        String callback = token != null && token.startsWith("board-ocr-")
+                ? "window.SperinConsumerScan?.ocrResult"
+                : "window.sperinSheetScanResult";
+        String js = callback + "(" +
                 JSONObject.quote(token == null ? "" : token) + "," +
                 JSONObject.quote(json) + "," +
                 JSONObject.quote(error == null ? "" : error) + ");";
