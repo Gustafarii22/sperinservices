@@ -214,8 +214,14 @@ document.addEventListener('click',function(e){
    const d=core.draftDevice();
    if(cmd==='spare'){d.fields.find(f=>f.key==='description').value='SPARE';d.fields.find(f=>f.key==='deviceKind').value='Spare';}
    if(cmd==='add-spd'){d.fields.find(f=>f.key==='description').value='SPD';d.fields.find(f=>f.key==='deviceKind').value='SPD';}
+   const hadDevices=s.result.circuits.length;
    s.result.circuits.push(d);
-   try{if(s.adapter.getCert().type!=='minor')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);}catch(ex){s.message=ex.message;}
+   try{
+     if(s.adapter.getCert().type!=='minor'){
+       if(!hadDevices||cmd==='add-spd')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
+       else d.number=String(Math.max(-1,...s.result.circuits.slice(0,-1).map(v=>Number(v.number)).filter(Number.isFinite))+1);
+     }else d.target='minor';
+   }catch(ex){s.message=ex.message;}
    s.active='c'+s.result.circuits.indexOf(d);render();return;
  }
  if(el.dataset.deviceDelete!==undefined){
