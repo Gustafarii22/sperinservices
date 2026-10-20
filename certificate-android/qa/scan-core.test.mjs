@@ -121,3 +121,36 @@ test("Minor Works description maps to existing correct field with accurate befor
   assert.equal(out.certificate.fields.zs, ".5");
   assert.equal(out.changes[0].before, "Existing");
 });
+
+test("scanned BS EN 61009-1 RCBO marks and Type A residual detection populate the correct existing circuit",()=>{
+ const input=cert();
+ const proposal={board:[],circuits:[{target:"c1",fields:[
+  f("deviceManufacturer","FuseBox"),f("deviceModel","F32M"),
+  f("deviceKind","RCBO"),f("ocpdBs","BS EN 61009-1"),
+  f("ocpdType","B"),f("ocpdRating","32"),
+  f("breakingCapacity","6"),f("rcdBs","BS EN 61009-1"),
+  f("rcdType","A"),f("rcdIdn","30"),f("rcdRating","32")
+ ]}]};
+ const output=core.propose(input,"DB1",proposal).certificate;
+ const row=output.tables.circuits[0];
+ for(const [key,val] of Object.entries({deviceManufacturer:"FuseBox",deviceModel:"F32M",deviceKind:"RCBO",ocpdBs:"BS EN 61009-1",ocpdType:"B",ocpdRating:"32",breakingCapacity:"6",rcdBs:"BS EN 61009-1",rcdType:"A",rcdIdn:"30",rcdRating:"32"}))assert.equal(row[key],val,key);
+ assert.equal(output.tables.tests[0].zs,".44");
+ assert.equal(output.tables.circuits.length,1);
+});
+test("reviewed blank ways create numbered SPARE schedule entries, with no invented electrical ratings",()=>{
+ const input=cert();
+ const proposal={board:[],circuits:[2,3].map(n=>({
+  target:"new",number:String(n),fields:[f("description","SPARE"),f("deviceKind","Spare")]
+ }))};
+ const {certificate:output,changes}=core.propose(input,"DB1",proposal);
+ assert.deepEqual(output.tables.circuits.map(c=>c.circuitNo),["1","2","3"]);
+ for(const n of ["2","3"]){
+  const row=output.tables.circuits.find(c=>c.circuitNo===n);
+  assert.equal(row.description,"SPARE");
+  assert.equal(row.deviceKind,"Spare");
+  assert.equal(row.ocpdBs,undefined);
+  assert.equal(row.ocpdRating,undefined);
+ }
+ assert.deepEqual(output.tables.tests.slice(1),[{boardRef:"DB1",circuitNo:"2"},{boardRef:"DB1",circuitNo:"3"}]);
+ assert.equal(changes.filter(c=>c.label.startsWith("New circuit")).length,2);
+});
