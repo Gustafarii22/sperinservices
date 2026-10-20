@@ -8,12 +8,14 @@ const compile = (f) =>
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
 const config = moduleUrl(compile("../src/lib/review-config.ts"));
+const scanner = moduleUrl(compile("../src/lib/certificate-scan.server.ts"));
 const mail = moduleUrl(compile("../src/lib/sperin-review-email.server.ts"));
 const driver = moduleUrl("export const neon=()=>globalThis.testSql;");
 const { independentReviewApi: api } = await import(
   moduleUrl(
     compile("../src/lib/sperin-independent-reviews.server.ts")
       .replace('"@neondatabase/serverless"', JSON.stringify(driver))
+      .replace('"./certificate-scan.server"', JSON.stringify(scanner))
       .replace('"./review-config"', JSON.stringify(config))
       .replace('"./sperin-review-email.server"', JSON.stringify(mail)),
   )

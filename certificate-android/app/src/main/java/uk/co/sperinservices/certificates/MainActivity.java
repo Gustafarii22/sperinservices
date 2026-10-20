@@ -16,6 +16,9 @@ import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import java.io.ByteArrayInputStream;
 import android.net.Uri;
 import android.content.ClipData;
 import android.os.Build;
@@ -69,12 +72,15 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.7.13";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.8.0";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
     private static final int SHEET_CAMERA_REQUEST = 3001;
+    private static final int BOARD_CAMERA_REQUEST = 3002;
+    private File boardPhotoFile;
+    private String boardPhotoToken = "";
     private static final String DOWNLOAD_CHANNEL = "sperin_downloads";
 
     private WebView webView;
@@ -95,13 +101,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setStatusBarColor(Color.rgb(7, 17, 31));
-        getWindow().setNavigationBarColor(Color.rgb(7, 17, 31));
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().setNavigationBarColor(Color.WHITE);
+        getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         createNotificationChannel();
 
         webView = new WebView(this);
         webView.clearCache(true);
-        webView.setBackgroundColor(Color.rgb(7, 17, 31));
+        webView.setBackgroundColor(Color.WHITE);
         setContentView(webView);
 
         WebSettings settings = webView.getSettings();
@@ -115,7 +122,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
-        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.7.13");
+        settings.setUserAgentString(settings.getUserAgentString() + " SperinCertificatesAndroid/1.8.0");
 
         setupVoice();
 
@@ -363,6 +370,52 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == BOARD_CAMERA_REQUEST) {
+            final File photo = boardPhotoFile;
+            final String token = boardPhotoToken;
+            boardPhotoFile = null; boardPhotoToken = "";
+            if (resultCode != RESULT_OK || photo == null) {
+                if (photo != null) photo.delete();
+                sendBoardPhoto(token, "", "Photo cancelled");
+                return;
+            }
+            new Thread(() -> {
+                Bitmap bitmap = null;
+                try {
+                    if (photo.length() > 20 * 1024 * 1024) throw new IllegalStateException("Photo exceeds 20 MB");
+                    byte[] bytes;
+                    try (InputStream in = new FileInputStream(photo); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                        byte[] buffer = new byte[8192]; int n;
+                        while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+                        bytes = out.toByteArray();
+                    }
+                    bitmap = decodeSheetBitmap(bytes);
+                    if (bitmap == null) throw new IllegalStateException("Could not decode photo");
+                    ExifInterface exif = new ExifInterface(new ByteArrayInputStream(bytes));
+                    Matrix matrix = new Matrix();
+                    int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                    switch (orientation) {
+                        case 2: matrix.setScale(-1, 1); break;
+                        case 3: matrix.setRotate(180); break;
+                        case 4: matrix.setScale(1, -1); break;
+                        case 5: matrix.setRotate(90); matrix.postScale(-1, 1); break;
+                        case 6: matrix.setRotate(90); break;
+                        case 7: matrix.setRotate(-90); matrix.postScale(-1, 1); break;
+                        case 8: matrix.setRotate(-90); break;
+                    }
+                    if (!matrix.isIdentity()) {
+                        Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+                        if (rotated != bitmap) bitmap.recycle();
+                        bitmap = rotated;
+                    }
+                    ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 88, jpeg);
+                    sendBoardPhoto(token, "data:image/jpeg;base64," + Base64.encodeToString(jpeg.toByteArray(), Base64.NO_WRAP), "");
+                } catch (Exception ex) { sendBoardPhoto(token, "", "Could not read photo. Try again or choose from gallery."); }
+                finally { if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle(); photo.delete(); }
+            }).start();
+            return;
+        }
         if (requestCode == SHEET_CAMERA_REQUEST) {
             if (resultCode == RESULT_OK && pendingSheetPhotoUri != null) {
                 scanSheetUri(pendingSheetScanToken, pendingSheetPhotoUri);
@@ -763,7 +816,33 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    private void sendBoardPhoto(String token, String data, String error) {
+        String js = "window.sperinBoardPhotoResult(" + JSONObject.quote(token) + "," + JSONObject.quote(data) + "," + JSONObject.quote(error) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(js, null));
+    }
+
     public class AndroidBridge {
+        @JavascriptInterface
+        public void captureBoardPhoto(String token) {
+            runOnUiThread(() -> {
+                try {
+                    if (boardPhotoFile != null) { sendBoardPhoto(token, "", "A camera capture is already open"); return; }
+                    boardPhotoFile = File.createTempFile("consumer-unit-", ".jpg", getCacheDir());
+                    boardPhotoToken = token;
+                    Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", boardPhotoFile);
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                    intent.setClipData(ClipData.newRawUri("Consumer unit photo", uri));
+                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivityForResult(intent, BOARD_CAMERA_REQUEST);
+                } catch (Exception ex) {
+                    if (boardPhotoFile != null) boardPhotoFile.delete();
+                    boardPhotoFile = null; boardPhotoToken = "";
+                    sendBoardPhoto(token, "", "Camera unavailable. Choose an existing gallery photo.");
+                }
+            });
+        }
+
         @JavascriptInterface
         public boolean savePdfBase64(String dataUri, String fileName) {
             try {

@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.7.13';
+  const VERSION = '1.8.0';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -151,6 +151,7 @@
       { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
+      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Other'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -204,10 +205,10 @@
 
   // Explicit allowlists: templates and linked feeds can never carry measured readings.
   function circuitDesign(row){
-    const keys=['description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
+    const keys=['deviceManufacturer','deviceModel','deviceKind','description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
     return Object.fromEntries(keys.filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));
   }
-  function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
+  function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd','manufacturer','model','ways','populated','spareWays','markings'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
   function templateKey(kind){return kind==='board'?BOARD_TEMPLATES_KEY:CIRCUIT_TEMPLATES_KEY;}
   function cleanTemplate(kind,t){
     return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):circuitDesign(t.design||{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
@@ -979,7 +980,7 @@
       sections: [
         section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
         section('B · Earthing & bonding adequacy', [select('earthingArrangement', 'System earthing arrangement', OPTIONS.earthing), f('zdb', 'Earth fault loop impedance at DB Zdb (Ω)'), select('earthingConductorAdequate', 'Adequate earthing conductor present', OPTIONS.yesNoNA), f('bondingPresent', 'Main protective bonding to', 'text', { span: 'full' })]),
-        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
+        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), f('deviceManufacturer','Device manufacturer'), f('deviceModel','Device model'), f('deviceKind','Device kind'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
         section('D · Test results', [f('r1r2', 'Protective conductor continuity R1+R2 (Ω)'), f('r2', 'Protective conductor continuity R2 (Ω)'), f('ringR1', 'Ring r1-r1 (Ω)'), f('ringRn', 'Ring rn-rn (Ω)'), f('ringR2', 'Ring r2-r2 (Ω)'), f('irVoltage', 'Insulation resistance test voltage (V)'), f('irLL', 'Insulation resistance Live-Live (MΩ)'), f('irLE', 'Insulation resistance Live-Earth (MΩ)'), select('polarity', 'Polarity satisfactory', OPTIONS.yesNoNA), f('zs', 'Maximum measured Zs (Ω)'), f('rcdTime', 'RCD disconnection time at IΔn (ms)'), select('rcdButton', 'RCD test button satisfactory', OPTIONS.yesNoNA), select('afddButton', 'AFDD test button satisfactory', OPTIONS.yesNoNA), select('spdFunction', 'SPD functionality confirmed', OPTIONS.yesNoNA)]),
         section('E · Declaration', [f('engineerName', 'Name'), f('forOnBehalfOf', 'For/on behalf of'), f('address', 'Address', 'textarea'), f('position', 'Position'), f('signature', 'Signature / typed name'), f('declarationDate', 'Date', 'date')])
       ]
@@ -1334,8 +1335,32 @@
     }
   }
 
+  function boardScanButton(cert,ref='') {
+    return ['eic','eicr','minor'].includes(cert.type)?`<button class="btn primary" data-action="board-scan" data-board-ref="${esc(ref)}">${uiIcon('camera')} Scan Consumer Unit</button>`:'';
+  }
+  function openBoardScan(ref) {
+    const cert=getCurrent();if(!cert)return;
+    if(cert.type!=='minor'){
+      ensureBoardWorkflowData(cert);syncCircuitRows(cert);
+      if(!ref && cert.tables.boards.length>1){
+        const m=document.createElement('div');m.className='modal-backdrop';m.innerHTML=`<div class="card modal"><h2>Choose consumer unit</h2>${cert.tables.boards.map(b=>`<button class="btn" data-action="board-scan" data-board-ref="${esc(b.ref)}">${esc(b.ref)} · ${esc(b.location||'')}</button>`).join('')}<button class="btn" data-action="close-modal">Cancel</button></div>`;document.body.appendChild(m);return;
+      }
+      if(!cert.tables.boards.length){addBoard(cert);}
+      ref=ref||cert.tables.boards[0].ref;
+    }else ref=cert.fields.dbReference||'Minor Works';
+    closeModal();saveNow();
+    window.SperinConsumerScan.open({getCert:()=>cert,commit:(next)=>{
+      pushEditHistory('Apply consumer unit scan');
+      const old=clone(cert);
+      try{Object.assign(cert,next);if(cert.type!=='minor')syncPrimaryBoardLegacyFields(cert);saveNow();}
+      catch(err){Object.keys(cert).forEach(k=>delete cert[k]);Object.assign(cert,old);throw err;}
+      render();toast('Confirmed photo information saved');
+    }},ref);
+  }
+
   function uiIcon(name) {
     const icons={
+      camera:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v14H3z"/><circle cx="12" cy="13" r="4"/></svg>',
       home:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
       user:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
       mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
@@ -1383,9 +1408,9 @@
         </div>
       </section>
       <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
-      ${siteWorkflowHome()}
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Tap anywhere on a row to open it.</p></div><div class="saved-cert-list">${rows}</div></section>
+      ${siteWorkflowHome()}
     </main>`;
   }
 
@@ -1402,7 +1427,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${boardScanButton(cert)}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1584,11 +1609,11 @@
       return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
-          <button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
+          ${boardScanButton(cert,board.ref)}<button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
         </div>
         <div class="fields consumer-unit-fields">
           ${boardControl(bi,'ref','Board reference',board.ref)}
-          ${boardControl(bi,'location','Location',board.location)}
+          ${boardControl(bi,'location','Location',board.location)}${boardControl(bi,'manufacturer','Manufacturer',board.manufacturer)}${boardControl(bi,'model','Model',board.model)}${boardControl(bi,'ways','Ways',board.ways)}${boardControl(bi,'populated','Populated circuits',board.populated)}${boardControl(bi,'spareWays','Spare ways',board.spareWays)}${boardControl(bi,'markings','Visible markings',board.markings)}
           ${feedFields}
           ${boardControl(bi,'zdb','Zdb (Ω)',board.zdb)}
           ${boardControl(bi,'ipf','Ipf (kA)',board.ipf)}
@@ -1653,7 +1678,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
@@ -2128,6 +2153,7 @@
     try{window.Android.scanSheetImageBase64(token,dataUrl);}catch(err){siteScanState.pendingToken='';siteScanState.errors.push(err.message);renderSheetScan();scanNextQueuedFile();}
   }
   window.sperinSheetScanResult=function(token,json,error){
+    if(window.SperinConsumerScan?.ocrResult(token,json,error))return;
     if(!siteScanState||String(token)!==String(siteScanState.pendingToken))return;
     siteScanState.pendingToken='';
     if(error){siteScanState.errors.push(String(error));alert('Could not read this photo: '+error);scanNextQueuedFile();return;}
@@ -2204,7 +2230,7 @@
   function warningButton(cert,index,key){return warningForCircuit(cert,index,key).length?'<button class="warning-button" type="button" data-action="warning-open" data-scope="circuit" data-index="'+index+'" data-key="'+esc(key)+'" aria-label="Review warning">⚠</button>':'';}
   function validationBanner(cert){const w=validationWarnings(cert);return w.length?'<button class="validation-banner warn" data-action="warnings-list"><span>⚠</span><div><strong>'+w.length+' item'+(w.length===1?'':'s')+' need checking</strong><small>Tap to see why. Recorded readings are never changed automatically.</small></div><em>›</em></button>':'<div class="validation-banner ok"><span>✓</span><div><strong>No configured technical warnings</strong><small>Still review the complete certificate before issue.</small></div></div>';}
   function openWarningModal(scope,index,key){const cert=getCurrent();if(!cert)return;const list=scope==='circuit'?warningForCircuit(cert,Number(index),key):validationWarnings(cert);const m=document.createElement('div');m.className='modal-backdrop warning-backdrop';m.innerHTML='<div class="card modal warning-modal" data-modal><div class="profile-head"><div><div class="eyebrow">⚠ TECHNICAL CHECK</div><h2>Review before issue</h2><p>Warnings never change your measured value.</p></div><button class="btn" data-action="close-modal">Close</button></div><div class="warning-list">'+list.map(w=>'<article><div class="warning-triangle">!</div><div><h3>'+esc(w.title)+'</h3><p>'+esc(w.note)+'</p><small>'+esc(w.source||'')+'</small></div></article>').join('')+'</div></div>';document.body.appendChild(m);}
-  function siteWorkflowHome(){const plans=sitePlans();return '<section class="home-section site-workflow"><div class="home-section-head"><div><span class="eyebrow">FIELD WORKFLOW</span><h2>Paper, voice or camera — same certificate</h2></div><p>Generate the complete paper pack, fill it on site, then read it back or photograph it into the linked draft.</p></div><div class="workflow-actions"><button class="workflow-card" data-action="site-builder"><span>📝</span><div><strong>Blank Site Sheets</strong><small>Choose certificate, boards and circuit counts, then print.</small></div><em>›</em></button><button class="workflow-card" data-action="site-read"><span>🎙</span><div><strong>Read Completed Site Sheet</strong><small>Read printed headings and handwritten answers in the expected order.</small></div><em>›</em></button><button class="workflow-card" data-action="site-scan"><span>📷</span><div><strong>Scan Completed Sheets</strong><small>Photograph clear block capitals/numbers and review uncertainty.</small></div><em>›</em></button></div>'+(plans.length?'<div class="recent-sheet-plans"><strong>Recent site packs</strong>'+plans.slice(0,3).map(p=>'<span>'+esc(p.name||SCHEMAS[p.type]?.code||p.type)+' · '+esc(p.id)+'</span>').join('')+'</div>':'')+'</section>';}
+  function siteWorkflowHome(){const plans=sitePlans();return '<section class="home-section site-workflow"><div class="home-section-head"><div><span class="eyebrow">FIELD WORKFLOW</span><h2>Paper, voice or camera — same certificate</h2></div><p>Generate the complete paper pack, fill it on site, then read it back or photograph it into the linked draft.</p></div><div class="workflow-actions"><button class="workflow-card" data-action="site-builder"><span>'+uiIcon('pdf')+'</span><div><strong>Blank Site Sheets</strong><small>Choose certificate, boards and circuit counts, then print.</small></div><em>›</em></button><button class="workflow-card" data-action="site-read"><span>'+uiIcon('mic')+'</span><div><strong>Read Completed Site Sheet</strong><small>Read printed headings and handwritten answers in the expected order.</small></div><em>›</em></button><button class="workflow-card" data-action="site-scan"><span>'+uiIcon('camera')+'</span><div><strong>Scan Completed Sheets</strong><small>Photograph clear block capitals/numbers and review uncertainty.</small></div><em>›</em></button></div>'+(plans.length?'<div class="recent-sheet-plans"><strong>Recent site packs</strong>'+plans.slice(0,3).map(p=>'<span>'+esc(p.name||SCHEMAS[p.type]?.code||p.type)+' · '+esc(p.id)+'</span>').join('')+'</div>':'')+'</section>';}
 
   let voiceSeq = 0;
   const voiceHandlers = new Map();
@@ -2958,6 +2984,7 @@
   }
 
   window.sperinHandleBack=function(){
+    if(window.SperinConsumerScan?.isOpen()){const diff=document.querySelector('.board-scan-diff');if(diff)diff.remove();else window.SperinConsumerScan.close();return true;}
     if(document.querySelector('.site-builder-backdrop')){closeSiteBuilder();return true;}
     if(document.querySelector('.sheet-read-backdrop')){if(siteReadState)siteReadState.listening=false;document.querySelector('.sheet-read-backdrop')?.remove();siteReadState=null;return true;}
     if(document.querySelector('.sheet-scan-backdrop')){document.querySelector('.sheet-scan-backdrop')?.remove();siteScanState=null;return true;}
@@ -3165,6 +3192,7 @@
     else if(action==='site-template-load') loadSheetTemplate(button.dataset.templateId);
     else if(action==='site-generate') generateSiteSheetFromBuilder();
     else if(action==='site-read') planPicker('read');
+    else if(action==='board-scan') openBoardScan(button.dataset.boardRef);
     else if(action==='site-scan') planPicker('scan');
     else if(action==='site-read-plan') openSheetRead(button.dataset.planId);
     else if(action==='site-scan-plan') openSheetScan(button.dataset.planId);
