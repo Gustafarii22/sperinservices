@@ -621,11 +621,7 @@
           ['Main switch / device: '+display(board.mainSwitch,worksheet),'RCD / RCBO: '+display(board.rcd,worksheet),'SPD: '+display(board.spd,worksheet)],
           ['Zdb Ohms: '+display(board.zdb,worksheet)+'   Ipf kA: '+display(board.ipf,worksheet),'Polarity: '+display(board.polarity,worksheet)+'   Phase sequence: '+display(board.phaseSequence,worksheet),'SPD operational: '+display(board.spdOperational,worksheet)]
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
-        let circuitStartY=doc.lastAutoTable.finalY+3;
-        if(circuits.some(item=>['Main switch','SPD'].includes(item.detail?.deviceKind))){
-          write(doc,'Numbered MAIN SWITCH / SPD entries are board positions, NOT outgoing circuits; no electrical test readings are implied.',x,circuitStartY,w,{size:5.7});
-          circuitStartY+=4;
-        }
+        const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
