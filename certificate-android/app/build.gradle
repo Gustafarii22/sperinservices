@@ -21,9 +21,17 @@ android {
         targetSdk 35
         versionCode 184
         versionName '1.8.0'
+        manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
 
     buildTypes {
+        preview {
+            initWith release
+            applicationIdSuffix '.preview'
+            signingConfig signingConfigs.debug
+            debuggable false
+            manifestPlaceholders = [appLabel: 'Sperin Certificates Preview']
+        }
         debug {
             debuggable true
             signingConfig signingConfigs.stable
