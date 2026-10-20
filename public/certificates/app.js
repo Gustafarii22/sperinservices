@@ -1352,7 +1352,7 @@
     window.SperinConsumerScan.open({getCert:()=>cert,commit:(next)=>{
       pushEditHistory('Apply consumer unit scan');
       const old=clone(cert);
-      try{Object.assign(cert,next);if(cert.type!=='minor')syncPrimaryBoardLegacyFields(cert);saveNow();}
+      try{Object.assign(cert,next);if(cert.type!=='minor'){sortCircuitsByNumber(cert);syncPrimaryBoardLegacyFields(cert);}saveNow();}
       catch(err){Object.keys(cert).forEach(k=>delete cert[k]);Object.assign(cert,old);throw err;}
       render();toast('Confirmed photo information saved');
     }},ref);
@@ -1427,7 +1427,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${boardScanButton(cert)}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1570,7 +1570,7 @@
       const incoming=row._incomingFeed===true;
       return `<div class="circuit-card ${incoming?'incoming-circuit':''}" data-circuit-id="${esc(row.id||'')}">
         <button class="circuit-main" data-action="circuit-open" data-index="${i}">
-          <strong>Circuit ${esc(number)}${incoming?' · Linked incoming':''}</strong>
+          <strong>${row.deviceKind==='Main switch'||row.deviceKind==='SPD'?'Board position':'Circuit'} ${esc(number)}${incoming?' · Linked incoming':''}${row.deviceKind==='Main switch'||row.deviceKind==='SPD'?' · Board equipment':''}</strong>
           <span>${esc(details||'Tap to enter circuit details')}</span>
         </button>
         <div class="circuit-actions">
@@ -1609,7 +1609,7 @@
       return `<section class="card form-section consumer-unit-card" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
-          ${boardScanButton(cert,board.ref)}<button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
+          <button class="btn small" data-action="template-save-board" data-board-index="${bi}">Save template</button>${boards.length?`<button class="btn small danger" data-action="board-delete" data-board-index="${bi}">Delete CU</button>`:''}
         </div>
         <div class="fields consumer-unit-fields">
           ${boardControl(bi,'ref','Board reference',board.ref)}
@@ -1624,7 +1624,7 @@
           ${boardControl(bi,'phaseSequence','Phase sequence',board.phaseSequence,OPTIONS.yesNoNA)}
           ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
         </div>
-        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Circuits</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div>${renderBoardCircuits(cert,board,bi)}</div>
+        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Board schedule · ${esc(board.ref)}</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div><div class="toolbar">${boardScanButton(cert,board.ref)}<span class="meta">Add one or several photo banks for this board only</span></div>${renderBoardCircuits(cert,board,bi)}</div>
       </section>`;
     }).join('');
     return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
