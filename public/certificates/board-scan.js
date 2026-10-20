@@ -157,7 +157,7 @@ async function estimateBlankWayHint(dataUri,ocr){
  const ctx=canvas.getContext('2d',{willReadFrequently:true});
  if(!ctx)return 0;
  ctx.drawImage(photo,0,0,canvas.width,canvas.height);
- const from=Math.max(0,Math.round(xmin-pitch*12)),to=Math.min(canvas.width-1,Math.round(xmin-pitch*.55));
+ const from=Math.max(Math.round(width*.055),Math.round(xmin-pitch*12)),to=Math.min(canvas.width-1,Math.round(xmin-pitch*.55));
  const y0=Math.max(0,Math.round(y+10)),y1=Math.min(canvas.height,Math.round(y+Math.min(pitch*.85,60)));
  if(to-from<pitch*2||y1-y0<12)return 0;
  const pixels=ctx.getImageData(from,y0,to-from,y1-y0).data,rows=y1-y0,cols=to-from,ratio=[];
