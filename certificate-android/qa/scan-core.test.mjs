@@ -222,7 +222,7 @@ test("separate consumer units each own their photo groups and sequential number 
 test("actual ML Kit geometry is retained, duplicates grouped, and dual-bank ratings run away from main switch",()=>{
  const line=(txt,x,y=500)=>({text:txt,left:x-15,right:x+15,top:y-12,bottom:y+12});
  const photo1={width:1400,height:900,lines:[
-   line("FuseBox MAIN SWITCH",1290,350),line("100A",1290,470),line("SPD T2",1195,450),
+   line("FuseBox MAIN",1290,350),line("100A",1290,470),line("SWITCH",1290,390),line("SPDT2",1195,450),
    line("B40",1110),line("30mA",1110,560),
    line("B32",1020),line("30mA",1020,560),line("B32",1020,530),
    line("B16",930),line("30mA",930,560)

@@ -42,8 +42,9 @@ function localOcrCandidates(photos){
    const full=clean(photo.fullText||rows.map(l=>l.text).join(' '));
    const width=Number(photo.width)||Math.max(1,...rows.filter(valid).map(l=>l.right));
    if(/\bFuseBox\b/i.test(full))boardValues.manufacturer||='FuseBox';
-   const main=rows.find(l=>valid(l)&&/\bMAIN\s*SWITCH\b/i.test(l.text));
-   const spd=rows.find(l=>valid(l)&&/\bSPD\b|SURGE\s*PROTECTION/i.test(l.text));
+   const main=rows.find(l=>valid(l)&&/\bMAIN\s*SWITCH\b/i.test(l.text))||
+     rows.find(l=>valid(l)&&/\bMAIN\b/i.test(l.text)&&rows.some(k=>valid(k)&&/\bSWITCH\b/i.test(k.text)&&Math.abs(middle(k)-middle(l))<=Math.max(30,width*.055)));
+   const spd=rows.find(l=>valid(l)&&/\bSPD[A-Z0-9_-]*\b|SURGE\s*PROTECTION/i.test(l.text));
    if(main&&mainSide===null){mainSide=middle(main)>width/2?'right':'left';}
    if(main&&p===0){
      const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];

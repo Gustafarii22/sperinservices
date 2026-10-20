@@ -202,7 +202,7 @@ await page.evaluate(()=>{
       const box=(text,x,y=450)=>({text,left:x-15,right:x+15,top:y-12,bottom:y+12});
       queueMicrotask(()=>window.SperinConsumerScan.ocrResult(
         token,JSON.stringify({width:1400,height:900,fullText:"FuseBox MAIN SWITCH SPD B40 B32",
-          lines:[box("FuseBox MAIN SWITCH",1290,350),box("100A",1290,470),box("SPD T2",1200,470),
+          lines:[box("FuseBox MAIN",1290,350),box("SWITCH",1290,385),box("100A",1290,470),box("SPDT2",1200,470),
                  box("B40",1100),box("30mA",1100,510),box("B32",1020),box("30mA",1020,510)]
         }),""
       ));
