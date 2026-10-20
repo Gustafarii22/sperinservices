@@ -19,18 +19,18 @@ android {
         applicationId 'uk.co.sperinservices.certificates.stable'
         minSdk 26
         targetSdk 35
-        versionCode 188
-        versionName '1.8.4'
+        versionCode 189
+        versionName '1.8.5'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
 
     buildTypes {
         preview {
             initWith release
-            applicationIdSuffix '.preview.simple'
+            applicationIdSuffix '.preview.navy'
             signingConfig signingConfigs.debug
             debuggable false
-            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.8.4']
+            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.8.5']
         }
         debug {
             debuggable true
