@@ -71,11 +71,11 @@ test("provider errors/refusals never expose secrets or raw upstream content", as
   assert.equal((await scan(request(data))).status, 502);
 });
 
-test("two uploaded views of one multi-bank CU are treated together, main-first and right-to-left when needed",()=>{
- assert.match(scanInstructions,/ONE USER-SELECTED consumer unit/i);
- assert.match(scanInstructions,/two or more DIN-rail banks/i);
- assert.match(scanInstructions,/MAIN SWITCH position 0, SPD position 1/i);
- assert.match(scanInstructions,/right-to-left or left-to-right/i);
- assert.match(scanInstructions,/do NOT by itself mean a different consumer unit/i);
- assert.match(scanInstructions,/blank cover as a spare way/i);
+test("two uploaded views of one multi-bank CU are treated together, main-first and right-to-left when needed", () => {
+  assert.match(scanInstructions, /ONE USER-SELECTED consumer unit/i);
+  assert.match(scanInstructions, /two or more DIN-rail banks/i);
+  assert.match(scanInstructions, /MAIN SWITCH position 0, SPD position 1/i);
+  assert.match(scanInstructions, /right-to-left or left-to-right/i);
+  assert.match(scanInstructions, /do NOT by itself mean a different consumer unit/i);
+  assert.match(scanInstructions, /blank cover as a spare way/i);
 });
