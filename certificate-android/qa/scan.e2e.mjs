@@ -164,7 +164,7 @@ await page.locator('[data-board-photos]').setInputFiles('public/projects/nursery
 await page.waitForSelector('.board-photo-strip img');
 await page.locator('[data-scan-command="ocr"]').click();
 await page.waitForFunction(() => document.querySelectorAll('.scan-device').length === 1);
-assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Local OCR complete'));
+assert.ok((await page.locator('.board-scan-modal').innerText()).includes('OCR complete'));
 assert.equal(await page.locator('[data-value="0:0"]').inputValue(),'B');
 assert.equal(await page.locator('[data-value="0:1"]').inputValue(),'32');
 await page.locator('[data-target="0"]').selectOption('new');
@@ -190,6 +190,38 @@ const dark = await page.evaluate(
       }).length,
 );
 assert.equal(dark, 0);
+// A depleted OpenAI API credit balance must automatically use on-device OCR.
+// The geometry is synthetic here; classification/order remain user-review proposals.
+await page.route("**/api/owner/certificate-scan", route=>route.fulfill({
+  status:429, contentType:"application/json",
+  body:JSON.stringify({error:"Cloud scanning quota or rate limit reached"})
+}));
+await page.evaluate(()=>{
+  window.Android={
+    scanSheetImageBase64(token,data){
+      const box=(text,x,y=450)=>({text,left:x-15,right:x+15,top:y-12,bottom:y+12});
+      queueMicrotask(()=>window.SperinConsumerScan.ocrResult(
+        token,JSON.stringify({width:1400,height:900,fullText:"FuseBox MAIN SWITCH SPD B40 B32",
+          lines:[box("FuseBox MAIN SWITCH",1290,350),box("100A",1290,470),box("SPD T2",1200,470),
+                 box("B40",1100),box("30mA",1100,510),box("B32",1020),box("30mA",1020,510)]
+        }),""
+      ));
+    }
+  };
+});
+await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
+await page.locator('[data-board-photos]').setInputFiles('public/projects/nursery-refurbishment/distribution-board.webp');
+await page.locator('[data-board-consent]').check();
+await page.locator('[data-scan-command="analyse"]').click();
+await page.waitForFunction(()=>document.querySelectorAll('.scan-device').length===4);
+assert.ok((await page.locator('.board-scan-modal').innerText()).includes('On-device OCR complete'));
+assert.equal(await page.locator('[data-number="0"]').inputValue(),'0');
+assert.equal(await page.locator('[data-number="1"]').inputValue(),'1');
+assert.equal(await page.locator('[data-number="2"]').inputValue(),'2');
+assert.equal(await page.locator('[data-number="3"]').inputValue(),'3');
+assert.equal(await page.locator('[data-value="2:1"]').inputValue(),'40');
+assert.equal(await page.locator('[data-value="3:1"]').inputValue(),'32');
+await page.locator('[data-scan-command="close"]').click();
 await page.locator('[data-action="board-add"]').click();
 assert.equal(await page.locator('.consumer-unit-card').count(),2);
 assert.equal(await page.locator('.consumer-unit-card [data-action="board-scan"]').count(),2);
