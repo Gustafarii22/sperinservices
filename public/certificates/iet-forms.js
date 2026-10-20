@@ -615,11 +615,16 @@
         const y=27;
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
         // Flexible board cells preserve long SPD/device/location text without overlap.
+        // The printable header records BS 7671 Appendix 6 circuit-schedule
+        // information only. CU make, model and module counts are internal photo
+        // recognition aids, not extra certificate fields.
+        const distributionBs=board.distributionOcpdBs||'';
+        const distributionType=board.distributionOcpdType||'';
+        const distributionRating=board.distributionOcpdRating||'';
         doc.autoTable({startY:y+3,head:[],body:[
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
-          ['Manufacturer: '+display(board.manufacturer,worksheet),'Model: '+display(board.model,worksheet),'Ways: '+display(board.ways,worksheet)+' / Populated: '+display(board.populated,worksheet)+' / Spare: '+display(board.spareWays,worksheet)],
-          ['Main switch / device: '+display(board.mainSwitch,worksheet),'RCD / RCBO: '+display(board.rcd,worksheet),'SPD: '+display(board.spd,worksheet)],
-          ['Zdb Ohms: '+display(board.zdb,worksheet)+'   Ipf kA: '+display(board.ipf,worksheet),'Polarity: '+display(board.polarity,worksheet)+'   Phase sequence: '+display(board.phaseSequence,worksheet),'SPD operational: '+display(board.spdOperational,worksheet)]
+          ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
+          ['SPD type(s): '+display(board.spd,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
@@ -695,9 +700,18 @@
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
-        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
-        write(doc,'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet)+'   Continuity: __________   Insulation resistance: __________   Earth fault loop impedance: __________   RCD: __________   Earth electrode resistance: __________',x,ty+4,w,{size:4.8});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+9,w,{size:5.2});
+        write(doc,'Circuits or installed equipment vulnerable to damage when testing: '+display(ff.vulnerableEquipment,worksheet),x,ty,w,{size:5.2,maxLines:2});
+        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty+6,w,{size:5.8,bold:true});
+        const instrumentDetails=[
+          'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
+          'Continuity: '+display(ff.instrumentContinuity,worksheet),
+          'Insulation resistance: '+display(ff.instrumentInsulation,worksheet),
+          'Earth fault loop impedance: '+display(ff.instrumentLoop,worksheet),
+          'RCD: '+display(ff.instrumentRcd,worksheet),
+          'Earth electrode resistance: '+display(ff.instrumentEarth,worksheet)
+        ];
+        write(doc,instrumentDetails.join('   '),x,ty+10,w,{size:4.7,maxLines:2});
+        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+17,w,{size:5.2});
       });
     });
   }
