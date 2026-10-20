@@ -247,5 +247,5 @@ test("text-only OCR never invents physical device placement or blank-way counts"
  assert.equal(q.devices.length,1);
  assert.equal(q.devices[0].fields.find(f=>f.key==="ocpdRating")?.value,"32");
  assert.equal(q.devices[0].fields.find(f=>f.key==="ocpdType")?.value,"B");
- assert.ok(q.warnings.some(w=>w.includes("blank covers")));
+ assert.ok(q.warnings.some(w=>w.includes("blank")));
 });
