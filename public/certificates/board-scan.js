@@ -24,11 +24,11 @@ async function login(verify){const s=session;try{const code=s.modal.querySelecto
 function ocrCandidates(photos){
  const devices=[],warnings=[];
  for(let p=0;p<photos.length;p++){
-  const lines=String(photos[p]||'').split(/\\r?\\n/);
+  const lines=String(photos[p]||'').split(/\r?\n/);
   const matches=[];
   for(const line of lines){
-   const compact=line.replace(/\\s+/g,' ').trim();
-   const match=compact.match(/(?:^|[^A-Z0-9])([BCD])\\s?(6|10|16|20|25|32|40|50|63)(?:\\s?A)?(?=$|[^0-9])/i);
+   const compact=line.replace(/\s+/g,' ').trim();
+   const match=compact.match(/(?:^|[^A-Z0-9])([BCD])\s?(6|10|16|20|25|32|40|50|63)(?:\s?A)?(?=$|[^0-9])/i);
    if(!match)continue;
    matches.push({curve:match[1].toUpperCase(),rating:match[2],evidence:compact.slice(0,100)});
   }
