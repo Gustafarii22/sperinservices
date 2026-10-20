@@ -84,8 +84,6 @@ const instrumentSection=page.locator('.cert-accordion').filter({hasText:'Test in
 await instrumentSection.locator('summary').click();
 await page.locator('[data-field="instrumentContinuity"]').fill('CONT-100');
 await page.locator('[data-field="instrumentContinuity"]').dispatchEvent('change');
-await page.locator('[data-field="vulnerableEquipment"]').fill('Sensitive equipment isolated before insulation testing');
-await page.locator('[data-field="vulnerableEquipment"]').dispatchEvent('change');
 const verified=await readCert();
 assert.equal(verified.tables.boards[0].distributionOcpdBs,'BS EN 60947-2');
 assert.equal(verified.tables.boards[0].rcdIdn,'30');
