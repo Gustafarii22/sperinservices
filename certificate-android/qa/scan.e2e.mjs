@@ -92,7 +92,7 @@ assert.ok(fs.statSync(dir+"/scan-with-spares.pdf").size>10000);
 await page.locator('[data-action="board-add"]').click();
 assert.equal(await page.locator('.consumer-unit-card').count(),2);
 assert.ok(await page.locator('.consumer-unit-card').first().locator('[data-action="circuit-open"]').count()>=5);
-await page.locator('.consumer-unit-card').nth(1).locator('.cu-summary').click();
+if(!await page.locator('.consumer-unit-card').nth(1).evaluate(el=>el.open))await page.locator('.consumer-unit-card').nth(1).locator('.cu-summary').click();
 assert.ok(!await page.locator('.consumer-unit-card').first().evaluate(el=>el.open),'board 1 must collapse when opening board 2');
 assert.ok(await page.locator('.consumer-unit-card').nth(1).evaluate(el=>el.open));
 await page.locator('.consumer-unit-card').nth(1).locator('[data-action="board-scan"]').click();
