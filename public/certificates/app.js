@@ -151,7 +151,7 @@
       { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
-      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Other'] },
+      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Spare','Other'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
