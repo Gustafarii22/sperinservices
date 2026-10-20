@@ -112,6 +112,7 @@ await page.evaluate(()=>{
 await page.route("**/api/owner/certificate-scan",route=>route.fulfill({
  status:429,contentType:"application/json",body:JSON.stringify({error:"Cloud scanning quota or rate limit reached"})
 }));
+await page.locator('.consumer-unit-card').first().locator('.cu-summary').click();
 await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
 await page.locator('[data-board-photos]').setInputFiles('public/projects/nursery-refurbishment/distribution-board.webp');
 await page.locator('[data-scan-command="cloud-toggle"]').click();
