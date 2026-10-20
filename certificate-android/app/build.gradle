@@ -19,6 +19,7 @@ android {
         applicationId 'uk.co.sperinservices.certificates.stable'
         minSdk 26
         targetSdk 35
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         versionCode 189
         versionName '1.8.5'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
@@ -57,4 +58,7 @@ configurations.configureEach {
 dependencies {
     implementation 'androidx.core:core:1.15.0'
     implementation 'com.google.mlkit:text-recognition:16.0.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
