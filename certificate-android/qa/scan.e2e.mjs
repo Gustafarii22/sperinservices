@@ -38,7 +38,7 @@ await page.route("**/api/owner/certificate-scan", (route) =>
       circuits: [
         {
           position: "Left device (test fixture)",
-          association: "check",
+          association: "high",
           reason: "Confirm label relationship manually",
           fields: [
             field("circuitNo", "1"),
@@ -59,6 +59,8 @@ await page.waitForSelector(".scan-device");
 assert.equal(await page.locator("[data-confirm]:checked").count(), 0);
 assert.equal(await page.locator(".board-scan-modal").getByText("Live conductor csa").count(), 0);
 await page.locator('[data-confirm="board:0"]').check();
+assert.equal(await page.locator('[data-target="0"]').inputValue(), 'new');
+assert.equal(await page.locator('[data-number="0"]').inputValue(), '1');
 await page.locator('[data-target="0"]').selectOption("new");
 await page.locator('[data-number="0"]').fill("12");
 await page.locator(".scan-device").first().getByLabel("Circuit description", {exact:true}).fill("Confirmed lights");
