@@ -621,10 +621,11 @@
         const distributionBs=board.distributionOcpdBs||'';
         const distributionType=board.distributionOcpdType||'';
         const distributionRating=board.distributionOcpdRating||'';
+        const spdCertified=/^(?:T1|T2|T3|T1\s*\+\s*T2|T2\s*\+\s*T3|N\/A)$/i.test(String(board.spd||'').trim())?String(board.spd).trim():'';
         doc.autoTable({startY:y+3,head:[],body:[
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
           ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
-          ['SPD type(s): '+display(board.spd,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
+          ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
@@ -698,8 +699,7 @@
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
-        write(doc,'Circuits or installed equipment vulnerable to damage when testing: '+display(ff.vulnerableEquipment,worksheet),x,ty,w,{size:5.2,maxLines:2});
-        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty+6,w,{size:5.8,bold:true});
+        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
         const instrumentDetails=[
           'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
           'Continuity: '+display(ff.instrumentContinuity,worksheet),
@@ -708,8 +708,8 @@
           'RCD: '+display(ff.instrumentRcd,worksheet),
           'Earth electrode resistance: '+display(ff.instrumentEarth,worksheet)
         ];
-        write(doc,instrumentDetails.join('   '),x,ty+10,w,{size:4.7,maxLines:2});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+17,w,{size:5.2});
+        write(doc,instrumentDetails.join('   '),x,ty+4,w,{size:4.7,maxLines:2});
+        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+11,w,{size:5.2});
       });
     });
   }
