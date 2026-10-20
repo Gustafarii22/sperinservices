@@ -18,6 +18,47 @@ function normalise(raw,count){
 }
 function blank(){return {board:Object.keys(boardKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Not identified — enter only information you can verify.',accepted:false})),circuits:[],warnings:[]};}
 function draftDevice(){return {id:'manual-'+Date.now(),position:'Manual device',association:'check',reason:'Choose its circuit explicitly.',target:'',number:'',fields:Object.keys(circuitKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Manual entry',accepted:false}))};}
+
+// An enclosure can have multiple photo banks. The installer chooses the bank/photo order,
+// and this routine numbers physical schedule positions from its sole main switch.
+// Main switch and SPD are *schedule position* annotations, not outgoing circuits.
+// Their electrical test fields must remain blank.
+function numberFromMain(result,cert,boardRef){
+ if(cert.type==='minor')throw Error('Minor Works has one circuit; numbering from a CU main switch is unavailable.');
+ const board=(cert.tables?.boards||[]).find(b=>b.ref===boardRef);
+ if(!board)throw Error('Select an existing consumer unit first.');
+ const boardValue=key=>text(result.board.find(f=>f.key===key)?.value||board[key]);
+ const deviceValue=(d,key)=>text(d.fields.find(f=>f.key===key)?.value);
+ const entry=(kind,description,source)=>{
+   const d=draftDevice();
+   d.id='schedule-'+kind.toLowerCase().replace(/\s+/g,'-');
+   d.position=kind==='Main switch'?'Main switch · schedule position 0':'SPD · schedule position 1';
+   d.reason='Board component, not an outgoing circuit. Confirm description; do not enter measured circuit results.';
+   const descriptionField=d.fields.find(f=>f.key==='description');
+   descriptionField.value=description+(source?' · '+source:'');
+   descriptionField.confidence='check';
+   const kindField=d.fields.find(f=>f.key==='deviceKind');
+   kindField.value=kind;
+   kindField.confidence='check';
+   return d;
+ };
+ const original=result.circuits.filter(d=>!['Main switch','SPD'].includes(deviceValue(d,'deviceKind')));
+ const main=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch')||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
+ const spdValue=boardValue('spd');
+ const spdExisting=result.circuits.find(d=>deviceValue(d,'deviceKind')==='SPD');
+ const arranged=[main,...(spdValue||spdExisting?[spdExisting||entry('SPD','SPD',spdValue)]:[]),...original];
+ const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
+ const occupied=new Set();
+ arranged.forEach((d,i)=>{
+   const number=String(i), matches=existing.filter(c=>String(c.circuitNo)===number);
+   d.number=number;
+   d.target=matches.length===1&&!occupied.has(matches[0].id)?matches[0].id:'new';
+   if(d.target!=='new')occupied.add(d.target);
+   d.fields.forEach(f=>{f.accepted=false;});
+ });
+ result.circuits=arranged;
+ return result;
+}
 function selected(rows){return rows.filter(r=>r.accepted&&text(r.value));}
 function propose(cert,boardRef,result){
  const copy=JSON.parse(JSON.stringify(cert)),changes=[];
@@ -52,5 +93,5 @@ function propose(cert,boardRef,result){
  if(changes.length)copy.photoScanAudit=[...(copy.photoScanAudit||[]).slice(-19),{at:new Date().toISOString(),boardRef,changes}];
  return {certificate:copy,changes};
 }
-root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,propose};
+root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,numberFromMain,propose};
 })(globalThis);
