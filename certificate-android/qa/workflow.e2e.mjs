@@ -118,6 +118,9 @@ const click = async (sel) => {
 };
 const change = async (sel, value) => {
   const el = page.locator(sel);
+  await el.evaluate(input=>{
+    for(let details=input.closest('details[data-accordion-key]');details;details=details.parentElement?.closest('details[data-accordion-key]'))details.open=true;
+  });
   await el.fill(value);
   await el.dispatchEvent("change");
   await page.waitForTimeout(80);
