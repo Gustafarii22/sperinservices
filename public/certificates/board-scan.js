@@ -16,7 +16,29 @@ async function analyse(){const s=session;if(!s||s.busy||!s.consent||!s.images.le
  // Confirmed edits survive a rescan. New circuit proposals never silently replace old mappings.
  for(const old of s.result.board.filter(r=>r.accepted)){const index=next.board.findIndex(r=>r.key===old.key);if(index>=0){if(next.board[index].value!==old.value)next.warnings.push('New photo differs from confirmed '+core.boardKeys[old.key]+'. Your confirmed value was retained.');next.board[index]=old;}else next.board.push(old);}
  const kept=s.result.circuits.filter(d=>d.fields.some(r=>r.accepted));next.circuits=[...kept,...next.circuits];if(kept.length)next.warnings.push('Previously confirmed devices retained. Review new proposals for duplicates before applying.');
- s.result=next;s.message='Analysis ready. Green is a confidence indication, not a test result. Review the order, assign circuit numbers, then tick each device once.';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
+ const mapped=suggestDeviceTargets(next,s.adapter.getCert(),s.boardRef);s.result=next;s.message='Analysis ready. '+(mapped?mapped+' circuit destination(s) suggested from clearly labelled circuit numbers. ':'')+'Green is a confidence indication, not a test result. Verify the physical order, spare ways and target circuits, then tick each device once.';s.busy=false;render();}catch(e){if(session===s)error(e.name==='AbortError'?'Analysis timed out. Photos and previous proposals are still available.':e.message);}finally{clearTimeout(timer);}}
+function suggestDeviceTargets(result,cert,boardRef){
+ // Only trustworthy, uniquely numbered device/circuit associations may preselect a destination.
+ // Manual review, the one-device confirmation and final diff remain mandatory.
+ if(cert.type==='minor')return 0;
+ const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
+ const numbers=result.circuits.map(d=>{
+   const field=d.fields.find(r=>r.key==='circuitNo');
+   const value=String(field?.value||'').trim();
+   return d.association==='high'&&field?.confidence==='high'&&/^\\d+[A-Za-z]?$/.test(value)?value:'';
+ });
+ let mapped=0;
+ result.circuits.forEach((device,i)=>{
+   const number=numbers[i];
+   if(!number||numbers.filter(n=>n===number).length!==1||device.target)return;
+   const matches=existing.filter(c=>String(c.circuitNo)===number);
+   if(matches.length>1)return;
+   device.target=matches.length?matches[0].id:'new';
+   device.number=number;
+   mapped++;
+ });
+ return mapped;
+}
 function apply(){const s=session;if(!s||s.busy)return;try{const before=JSON.stringify(s.adapter.getCert());const proposed=core.propose(s.adapter.getCert(),s.boardRef,s.result);if(!proposed.changes.length)return error('Confirm at least one changed value first.');const panel=document.createElement('div');panel.className='modal-backdrop board-scan-diff';panel.innerHTML=`<div class="card modal" role="dialog" aria-modal="true" aria-label="Confirm certificate changes"><h2>Review ${proposed.changes.length} changes</h2><div class="scan-diff-list">${proposed.changes.map(c=>`<p><strong>${esc(c.label)}</strong><br><del>${esc(c.before||'(empty)')}</del> → <ins>${esc(c.after)}</ins></p>`).join('')}</div><div class="toolbar"><button class="btn" data-cancel>Back to review</button><button class="btn primary" data-save>Confirm & save</button></div></div>`;document.body.appendChild(panel);panel.querySelector('[data-cancel]').onclick=()=>panel.remove();panel.querySelector('[data-save]').onclick=()=>{if(session!==s||JSON.stringify(s.adapter.getCert())!==before){panel.remove();return error('Certificate changed during review. Please review the changes again.');}try{s.adapter.commit(proposed.certificate);panel.remove();s.modal.remove();session=null;}catch(e){panel.remove();error('Could not save: '+e.message);}};panel.querySelector('[data-cancel]').focus();}catch(e){error(e.message);}}
 async function login(verify){const s=session;try{const code=s.modal.querySelector('[data-login-code]')?.value||'';const r=await fetch('/api/owner/'+(verify?'verify-code':'request-code'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'info@sperinservices.co.uk',...(verify?{code}:{})})});const data=await r.json();if(!r.ok)throw Error(data.error||'Sign-in unavailable');if(session!==s)return;s.needsLogin=!verify;s.message=verify?'Signed in. Press Analyse to send your photos.':'Sign-in code sent to your owner email.';render();}catch(e){error(e.message);}}
 // OCR can propose visible device markings, but cannot establish physical way order.
