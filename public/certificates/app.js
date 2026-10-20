@@ -151,7 +151,6 @@
       { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
-      { key:'deviceManufacturer', label:'Device manufacturer' },{ key:'deviceModel', label:'Device model' },{ key:'deviceKind', label:'Device kind', options:['MCB','RCBO','MCCB','Fuse','Spare','Other'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -928,6 +927,12 @@
           f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
           f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
           f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
+          f('instrumentContinuity','Continuity instrument serial / asset number'),
+          f('instrumentInsulation','Insulation resistance instrument serial / asset number'),
+          f('instrumentLoop','Earth fault loop impedance instrument serial / asset number'),
+          f('instrumentRcd','RCD instrument serial / asset number'),
+          f('instrumentEarth','Earth electrode resistance instrument serial / asset number'),
+          f('vulnerableEquipment','Equipment vulnerable to damage when testing','textarea',{span:'full'}),
           f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
         ])
       ]
@@ -983,7 +988,7 @@
       sections: [
         section('A · Description of the minor works', [f('certificateNo', 'Certificate number'), f('clientName', 'Client details', 'text', { span: 'full' }), f('completionDate', 'Date minor works completed', 'date'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation location/address', 'textarea', { span: 'full' }), f('description', 'Description of minor works', 'textarea', { span: 'full' }), f('departures', 'Departures from BS 7671', 'textarea', { span: 'full' }), f('permittedExceptions', 'Permitted exceptions / risk assessment details', 'textarea', { span: 'full' }), select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA), f('existingDefects', 'Comments / defects observed in existing installation', 'textarea', { span: 'full' })]),
         section('B · Earthing & bonding adequacy', [select('earthingArrangement', 'System earthing arrangement', OPTIONS.earthing), f('zdb', 'Earth fault loop impedance at DB Zdb (Ω)'), select('earthingConductorAdequate', 'Adequate earthing conductor present', OPTIONS.yesNoNA), f('bondingPresent', 'Main protective bonding to', 'text', { span: 'full' })]),
-        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), f('deviceManufacturer','Device manufacturer'), f('deviceModel','Device model'), f('deviceKind','Device kind'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
+        section('C · Circuit details', [f('dbReference', 'DB reference no.'), f('dbLocationType', 'DB location and type'), f('circuitNo', 'Circuit no.'), f('circuitDescription', 'Circuit description'), select('referenceMethod', 'Reference method', OPTIONS.refMethod), f('liveCsa', 'Live conductor csa (mm²)'), f('cpcCsa', 'CPC csa (mm²)'), select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs), select('ocpdType', 'OCPD type', OPTIONS.ocpdType), select('ocpdRating', 'OCPD rating (A)', OPTIONS.ocpdRating), select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), f('rcdBs', 'RCD BS (EN)'), select('rcdType', 'RCD type', OPTIONS.rcdType), f('rcdRating', 'RCD rating (A)'), f('rcdIdn', 'RCD IΔn (mA)'), f('rcdDelay', 'RCD time delay (ms)'), f('afddBs', 'AFDD BS (EN)'), f('afddRating', 'AFDD rating (A)'), f('spdBs', 'SPD BS (EN)'), f('spdType', 'SPD type')]),
         section('D · Test results', [f('r1r2', 'Protective conductor continuity R1+R2 (Ω)'), f('r2', 'Protective conductor continuity R2 (Ω)'), f('ringR1', 'Ring r1-r1 (Ω)'), f('ringRn', 'Ring rn-rn (Ω)'), f('ringR2', 'Ring r2-r2 (Ω)'), f('irVoltage', 'Insulation resistance test voltage (V)'), f('irLL', 'Insulation resistance Live-Live (MΩ)'), f('irLE', 'Insulation resistance Live-Earth (MΩ)'), select('polarity', 'Polarity satisfactory', OPTIONS.yesNoNA), f('zs', 'Maximum measured Zs (Ω)'), f('rcdTime', 'RCD disconnection time at IΔn (ms)'), select('rcdButton', 'RCD test button satisfactory', OPTIONS.yesNoNA), select('afddButton', 'AFDD test button satisfactory', OPTIONS.yesNoNA), select('spdFunction', 'SPD functionality confirmed', OPTIONS.yesNoNA)]),
         section('E · Declaration', [f('engineerName', 'Name'), f('forOnBehalfOf', 'For/on behalf of'), f('address', 'Address', 'textarea'), f('position', 'Position'), f('signature', 'Signature / typed name'), f('declarationDate', 'Date', 'date')])
       ]
@@ -1626,13 +1631,18 @@
         </div>
         <div class="fields consumer-unit-fields">
           ${boardControl(bi,'ref','Board reference',board.ref)}
-          ${boardControl(bi,'location','Location',board.location)}${boardControl(bi,'manufacturer','Manufacturer',board.manufacturer)}${boardControl(bi,'model','Model',board.model)}${boardControl(bi,'ways','Ways',board.ways)}${boardControl(bi,'populated','Populated circuits',board.populated)}${boardControl(bi,'spareWays','Spare ways',board.spareWays)}${boardControl(bi,'markings','Visible markings',board.markings)}
+          ${boardControl(bi,'location','Location',board.location)}
           ${feedFields}
           ${boardControl(bi,'zdb','Zdb (Ω)',board.zdb)}
           ${boardControl(bi,'ipf','Ipf (kA)',board.ipf)}
-          ${boardControl(bi,'mainSwitch','Main switch / device',board.mainSwitch)}
-          ${boardControl(bi,'rcd','RCD / RCBO details',board.rcd)}
-          ${boardControl(bi,'spd','SPD',board.spd,OPTIONS.spdType)}
+          ${boardControl(bi,'distributionOcpdBs','Distribution circuit OCPD BS (EN)',board.distributionOcpdBs)}
+          ${boardControl(bi,'distributionOcpdType','Distribution circuit OCPD type',board.distributionOcpdType,OPTIONS.ocpdType)}
+          ${boardControl(bi,'distributionOcpdRating','Distribution circuit OCPD rating / setting (A)',board.distributionOcpdRating)}
+          ${boardControl(bi,'spd','SPD type(s)',board.spd,OPTIONS.spdType)}
+          ${boardControl(bi,'rcdBs','RCD BS (EN)',board.rcdBs)}
+          ${boardControl(bi,'rcdType','RCD type',board.rcdType,OPTIONS.rcdType)}
+          ${boardControl(bi,'rcdRating','RCD rating (A)',board.rcdRating,OPTIONS.ocpdRating)}
+          ${boardControl(bi,'rcdIdn','RCD IΔn (mA)',board.rcdIdn,OPTIONS.rcdIdn)}
           ${boardControl(bi,'polarity','Correct polarity',board.polarity,OPTIONS.yesNoNA)}
           ${boardControl(bi,'phaseSequence','Phase sequence',board.phaseSequence,OPTIONS.yesNoNA)}
           ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
