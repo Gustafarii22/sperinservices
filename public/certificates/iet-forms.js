@@ -156,6 +156,7 @@
       };
     }
     if(role==='designer')return {name:f.designer1||'',company:f.designerCompany||'',address:f.designerAddress||'',postcode:f.designerPostcode||'',phone:f.designerPhone||'',signature:f.designer1Signature||'',date:f.designer1Date||''};
+    if(role==='designer2')return {name:f.designer2||'',company:f.designer2Company||'',address:f.designer2Address||'',postcode:f.designer2Postcode||'',phone:f.designer2Phone||'',signature:f.designer2Signature||'',date:f.designer2Date||''};
     if(role==='constructor')return {name:f.constructor||'',company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
@@ -278,6 +279,7 @@
       [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet)||(!worksheet?'N/A':''),colSpan:2}],
       [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
       sigCells(d),
+      ...(f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
       [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationConstruction,colSpan:3}],
       [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
@@ -294,7 +296,7 @@
       [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
-    const parties=[['Designer (No 1)',d],['Constructor',c],['Inspector',i]];
+    const parties=[['Designer (No 1)',d],...(f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
     sectionTable('SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',
       parties.map(([role,p])=>[
         {content:role,styles:{fontStyle:'bold'}},
