@@ -215,10 +215,11 @@ await page.locator('[data-board-consent]').check();
 await page.locator('[data-scan-command="analyse"]').click();
 await page.waitForFunction(()=>document.querySelectorAll('.scan-device').length===4);
 assert.ok((await page.locator('.board-scan-modal').innerText()).includes('On-device OCR complete'));
-assert.equal(await page.locator('[data-number="0"]').inputValue(),'0');
-assert.equal(await page.locator('[data-number="1"]').inputValue(),'1');
-assert.equal(await page.locator('[data-number="2"]').inputValue(),'2');
-assert.equal(await page.locator('[data-number="3"]').inputValue(),'3');
+for(const i of [0,1,2,3]){
+  const target=await page.locator('[data-target="'+i+'"]').inputValue();
+  assert.ok(target,'each ordered position must have a destination or require explicit review');
+  if(target==='new')assert.equal(await page.locator('[data-number="'+i+'"]').inputValue(),String(i));
+}
 assert.equal(await page.locator('[data-value="2:1"]').inputValue(),'40');
 assert.equal(await page.locator('[data-value="3:1"]').inputValue(),'32');
 await page.locator('[data-scan-command="close"]').click();
