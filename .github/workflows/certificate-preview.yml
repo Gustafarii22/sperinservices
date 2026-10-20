@@ -1,0 +1,123 @@
+name: Build Sperin Certificates Preview APK
+
+on:
+  push:
+    branches:
+      - feature/consumer-unit-photo-white-theme
+    paths:
+      - "public/certificates/**"
+      - "certificate-android/**"
+      - "src/lib/certificate-scan.server.ts"
+      - ".github/workflows/certificate-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sperin-certificates-preview
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android 35
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Bundle reviewed white-theme and scanner
+        run: |
+          mkdir -p certificate-android/app/src/main/assets/certificates/vendor
+          cp public/certificates/{index.html,styles.css,app.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js} certificate-android/app/src/main/assets/certificates/vendor/
+
+      - name: Build separately installable preview
+        run: |
+          gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
+          mkdir -p certificate-android/dist
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
+
+      - name: Inspect APK and preserve original installation
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
+          python3 certificate-android/qa/inspect-apk.py "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview'" certificate-android/dist/package.txt
+          grep "versionCode='184'" certificate-android/dist/package.txt
+          grep "versionName='1.8.0'" certificate-android/dist/package.txt
+
+      - name: Record APK build provenance
+        run: |
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
+          printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
+          sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
+
+      - name: Upload verified preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v1.8.0-PREVIEW
+          path: |
+            certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
+            certificate-android/dist/BUILD-INFO.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Enable KVM for preview emulator verification
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Verify preview on Android emulator alongside installed stable app
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          script: bash certificate-android/qa/android-preview.sh
+
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v1.8.0-PREVIEW-Android-QA
+          path: certificate-android/qa-output/preview-android/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Publish direct preview download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=certificates-v1.8.0-preview
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.0-PREVIEW.apk
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
+          else
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.8.0 — Preview" --notes "Separate preview app, not an update to the existing installed stable app. It uses Android preview signing and a different package identity so existing certificates remain untouched. AI cloud recognition requires server configuration and has not been validated on real boards. Review scanned information before using it."
+          fi

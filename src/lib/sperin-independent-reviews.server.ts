@@ -1,3 +1,4 @@
+import { certificateScan } from "./certificate-scan.server";
 import { neon } from "@neondatabase/serverless";
 import { createHmac } from "node:crypto";
 import { REVIEW_FIELDS } from "./review-config";
@@ -240,6 +241,15 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
       return json({ error: "Your session has expired. Please sign in." }, 401, {
         "set-cookie": cookie("", 0),
       });
+    if (path === "/api/owner/certificate-scan") {
+      if (req.method !== "POST") return json({ error: "Use POST" }, 405);
+      const allowed = await rpc("sperin_auth_attempt", {
+        fingerprint: "owner-certificate-scan",
+        max_attempts: 10,
+      });
+      if (!allowed) return json({ error: "Scan limit reached. Try again in 15 minutes." }, 429);
+      return certificateScan(req);
+    }
     if (path === "/api/owner/logout" && req.method === "POST") {
       const result = await auth("/sign-out", { method: "POST", body: "{}" }, sessionCookies);
       if (!result.ok) throw Error("Sign-out unavailable");

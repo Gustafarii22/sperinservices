@@ -51,6 +51,17 @@ jobs:
           cat /tmp/certificate-http.log
           exit 1
 
+      - name: Photo scan safety and API tests
+        run: node --test certificate-android/qa/scan-core.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs
+
+      - name: Photo review workflow (mock analysis, not recognition accuracy)
+        run: node certificate-android/qa/scan.e2e.mjs
+
+      - name: Board workflow regressions
+        run: |
+          node certificate-android/qa/workflow.e2e.mjs
+          CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
+
       - name: Audit pass 1 — forward order
         env:
           CERT_AUDIT_PASS: forward
@@ -100,7 +111,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.7.13-PDF-QA
+          name: Sperin-Certificates-v1.8.0-PDF-QA
           path: certificate-android/qa-output/
           if-no-files-found: error
           retention-days: 30

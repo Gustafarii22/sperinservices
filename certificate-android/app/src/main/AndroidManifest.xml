@@ -8,7 +8,7 @@
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:icon="@drawable/ic_launcher"
-        android:label="Sperin Certificates"
+        android:label="${appLabel}"
         android:supportsRtl="true"
         android:theme="@style/Theme.SperinCertificates"
         android:usesCleartextTraffic="false"

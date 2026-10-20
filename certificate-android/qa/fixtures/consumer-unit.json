@@ -1,0 +1,9 @@
+{
+  "source": "public/projects/nursery-refurbishment/distribution-board.webp",
+  "sourceType": "Existing Sperin Services job photograph, not generated",
+  "expected": {
+    "visibleDeviceBrand": "Wylex",
+    "forbiddenFields": ["liveCsa", "cpcCsa", "zs", "ze", "irLE", "polarity", "installMethod", "earthingArrangement"],
+    "limitations": "560x420 image. Precise model, breaker ratings and circuit label relationships cannot be independently verified at this resolution; they must not be treated as high-confidence fixture ground truth. This is one board/make, not a mixed-manufacturer validation suite."
+  }
+}
