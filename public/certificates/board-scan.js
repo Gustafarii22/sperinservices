@@ -25,7 +25,7 @@ function suggestDeviceTargets(result,cert,boardRef){
  const numbers=result.circuits.map(d=>{
    const field=d.fields.find(r=>r.key==='circuitNo');
    const value=String(field?.value||'').trim();
-   return d.association==='high'&&field?.confidence==='high'&&/^\\d+[A-Za-z]?$/.test(value)?value:'';
+   return d.association==='high'&&field?.confidence==='high'&&/^\d+[A-Za-z]?$/.test(value)?value:'';
  });
  let mapped=0;
  result.circuits.forEach((device,i)=>{
