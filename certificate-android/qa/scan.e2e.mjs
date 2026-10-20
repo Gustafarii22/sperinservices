@@ -11,6 +11,13 @@ page.on("dialog",d=>d.accept());
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/");
 await page.locator('[data-action="new"][data-type="eic"]').click();
 await page.locator('[data-field="clientName"]').fill("Scanner regression customer");
+// Compact IET form sections: opening B closes A. Actual form labels remain unchanged.
+assert.ok(await page.locator('.cert-accordion').first().evaluate(el=>el.open));
+await page.locator('.cert-accordion').nth(1).locator('summary').click();
+assert.ok(await page.locator('.cert-accordion').nth(1).evaluate(el=>el.open));
+assert.ok(!await page.locator('.cert-accordion').first().evaluate(el=>el.open));
+await page.locator('.cert-accordion').first().locator('summary').click();
+assert.ok(!await page.locator('.cert-accordion').nth(1).evaluate(el=>el.open));
 await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
 assert.equal(await page.locator('.scan-board').count(),1);
 assert.equal(await page.locator('.scan-circuits .scan-circuit').count(),0);
@@ -84,7 +91,10 @@ assert.ok(fs.statSync(dir+"/scan-with-spares.pdf").size>10000);
 // Two independent boards: scan control belongs to each CU and stays out of the global header.
 await page.locator('[data-action="board-add"]').click();
 assert.equal(await page.locator('.consumer-unit-card').count(),2);
+assert.equal(await page.locator('.consumer-unit-card').first().locator('[data-action="circuit-open"]').count(),3);
 await page.locator('.consumer-unit-card').nth(1).locator('.cu-summary').click();
+assert.ok(!await page.locator('.consumer-unit-card').first().evaluate(el=>el.open),'board 1 must collapse when opening board 2');
+assert.ok(await page.locator('.consumer-unit-card').nth(1).evaluate(el=>el.open));
 await page.locator('.consumer-unit-card').nth(1).locator('[data-action="board-scan"]').click();
 assert.ok((await page.locator('.board-scan-modal').innerText()).includes('Consumer unit 2'));
 await page.locator('[data-scan-command="close"]').click();
