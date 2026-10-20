@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/consumer-unit-photo-white-theme
+      - fix/scan-device-review-spare-ways
     paths:
       - "public/certificates/**"
       - "certificate-android/**"
@@ -111,6 +112,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish direct preview download
+        if: github.ref == 'refs/heads/feature/consumer-unit-photo-white-theme'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
