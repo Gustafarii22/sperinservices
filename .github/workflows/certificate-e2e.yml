@@ -57,6 +57,16 @@ jobs:
       - name: Photo review workflow (mock analysis, not recognition accuracy)
         run: node certificate-android/qa/scan.e2e.mjs
 
+      - name: Prove scanned values and spare ways survive into the generated PDF
+        run: |
+          set -euo pipefail
+          pdftotext -layout certificate-android/qa-output/scan-confirmed.pdf certificate-android/qa-output/scan-confirmed.txt
+          pdftotext -layout certificate-android/qa-output/scan-with-spares.pdf certificate-android/qa-output/scan-with-spares.txt
+          grep -F "Confirmed lights" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "Wylex" certificate-android/qa-output/scan-confirmed.txt
+          grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
+          grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
+
       - name: Board workflow regressions
         run: |
           node certificate-android/qa/workflow.e2e.mjs
