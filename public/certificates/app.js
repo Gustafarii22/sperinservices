@@ -3160,6 +3160,16 @@
     if(e.key==='Enter' || e.key===' '){e.preventDefault();openCertificate(card.dataset.id);}
   });
 
+  document.addEventListener('click',e=>{
+    const summary=e.target.closest('.cert-accordion-head,.cu-summary');
+    if(!summary)return;
+    const current=summary.closest('details[data-accordion-key]');
+    if(!current||current.open)return;
+    const group=summary.matches('.cu-summary')?'cu-accordion':'cert-accordion';
+    document.querySelectorAll('#app details.'+group+'[open]').forEach(other=>{
+      if(other!==current)other.open=false;
+    });
+  });
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
