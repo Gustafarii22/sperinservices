@@ -1,0 +1,54 @@
+name: Real Android consumer unit OCR integration QA
+on:
+  pull_request:
+    paths:
+      - "certificate-android/app/src/androidTest/**"
+      - "certificate-android/app/src/main/java/**"
+      - "certificate-android/app/build.gradle"
+      - ".github/workflows/certificate-android-real-photo-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mlkit-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Prepare genuine existing consumer-unit image for private test app
+        run: |
+          mkdir -p certificate-android/app/src/androidTest/assets
+          cp public/projects/nursery-refurbishment/distribution-board.webp certificate-android/app/src/androidTest/assets/consumer-unit-qa.webp
+      - name: Allow hardware accelerated Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run real ML Kit device-reading integration test (QA APKs only, no user release)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          script: gradle -p certificate-android :app:connectedPreviewAndroidTest --no-daemon --stacktrace
+      - name: Upload instrumentation test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-real-photo-native-OCR-QA
+          path: |
+            certificate-android/app/build/outputs/androidTest-results/connected/
+            certificate-android/app/build/reports/androidTests/connected/
+          if-no-files-found: warn
+          retention-days: 14
