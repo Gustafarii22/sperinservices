@@ -497,12 +497,24 @@
 
     top=box(doc,x,y,w,47,'SECTION G: DECLARATION');
     write(doc,'I/We declare that the information in this report, including observations and attached schedules, provides an accurate assessment of the condition of the electrical installation, taking into account the stated extent and limitations.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
-    write(doc,'Inspected and tested by:',x+2,top+22,80,{size:6.3,bold:true});
-    labelValue(doc,'Name',display(f.inspectedBy,worksheet),x+2,top+29,80,{labelW:15});
-    labelValue(doc,'Signature',display(f.inspectorSignature,worksheet),x+2,top+36,80,{labelW:20});
-    write(doc,'Report authorised for issue by:',x+98,top+22,90,{size:6.3,bold:true});
-    labelValue(doc,'Name',display(f.authorisedBy,worksheet),x+98,top+29,90,{labelW:15});
-    labelValue(doc,'Signature',display(f.authoriserSignature,worksheet),x+98,top+36,90,{labelW:20});
+    // All six issued EICR declaration fields for both persons, without
+    // inventing extra certificate metadata or omitting their authorisation.
+    const signers=[
+      {name:f.inspectedBy,signature:f.inspectorSignature,company:f.inspectorCompany,position:f.inspectorPosition,address:f.inspectorAddress,date:f.inspectorDate},
+      {name:f.authorisedBy,signature:f.authoriserSignature,company:f.authoriserCompany,position:f.authoriserPosition,address:f.authoriserAddress,date:f.authoriserDate}
+    ];
+    for(let idx=0;idx<2;idx++){
+      const x0=x+2+idx*97,p=signers[idx];
+      write(doc,idx===0?'Inspected and tested by:':'Report authorised for issue by:',x0,top+21,91,{size:6,bold:true});
+      [
+        ['Name (Capitals)',p.name],
+        ['Signature',p.signature],
+        ['For/on behalf of',p.company],
+        ['Position',p.position],
+        ['Address',p.address],
+        ['Date',worksheet?'':fmtDate(p.date)]
+      ].forEach(([label,value],i)=>labelValue(doc,label,display(value,worksheet),x0,top+24+i*4,91,{labelW:30,maxLines:1,valueSize:5.7}));
+    }
 
     doc.addPage('a4','portrait');doc.setPage(2);y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
     top=box(doc,x,y,w,18,'SECTION H: SCHEDULES AND CONTINUATION SHEET(S) ATTACHED');
