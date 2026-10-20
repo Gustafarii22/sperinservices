@@ -61,8 +61,9 @@ assert.equal(await page.locator(".board-scan-modal").getByText("Live conductor c
 await page.locator('[data-confirm="board:0"]').check();
 await page.locator('[data-target="0"]').selectOption("new");
 await page.locator('[data-number="0"]').fill("12");
-await page.locator('[data-value="0:1"]').fill("Confirmed lights");
-for (const i of [1, 2, 3]) await page.locator(`[data-confirm="0:${i}"]`).check();
+await page.locator(".scan-device").first().getByLabel("Circuit description", {exact:true}).fill("Confirmed lights");
+assert.equal(await page.locator(".scan-device [data-confirm]").count(), 0);
+await page.locator('[data-device-confirm="0"]').check();
 await page.locator(".scan-device").first().scrollIntoViewIfNeeded();
 await page.screenshot({ path: dir + "/scan-review.png" });
 await page.setViewportSize({ width: 915, height: 412 });
@@ -82,6 +83,7 @@ const cert = state.certificates[0],
 assert.equal(cert.fields.clientName, "Scanner regression customer");
 assert.equal(row.description, "Confirmed lights");
 assert.equal(row.ocpdRating, "6");
+assert.equal(row.ocpdType, "B");
 assert.equal(row.liveCsa, undefined);
 assert.equal(cert.tables.boards[0].manufacturer, "Wylex");
 await page.reload();
@@ -98,7 +100,7 @@ await page.locator('[data-action="board-scan"]').first().click();
 await page.locator('[data-scan-command="add"]').click();
 await page.locator('[data-target="0"]').selectOption(row.id);
 await page.locator('[data-value="0:6"]').fill("BS EN 60898-1");
-await page.locator('[data-confirm="0:6"]').check();
+await page.locator('[data-device-confirm="0"]').check();
 await page.locator('[data-scan-command="apply"]').click();
 await page.locator("[data-cancel]").click();
 assert.equal(await page.locator(".board-scan-diff").count(), 0);
