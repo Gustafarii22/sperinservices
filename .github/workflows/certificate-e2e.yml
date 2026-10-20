@@ -111,8 +111,13 @@ jobs:
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
           grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
           grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
-          grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt
-          grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
+          # The issued Schedule of Circuit Details records the prescribed wiring code.
+          # Containment descriptions remain internal, not appended to IET field 3.
+          grep -E 'Circuit description|Type of wiring' certificate-android/qa-output/eic-regression.txt
+          if grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt; then
+            echo "Non-IET containment detail leaked into Type of wiring"
+            exit 1
+          fi
           grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
           grep -F "Sockets test row" certificate-android/qa-output/eic-regression.txt
           grep -E "^ *0 +Lighting" certificate-android/qa-output/eic-regression.txt
