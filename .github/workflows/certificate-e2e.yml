@@ -65,7 +65,16 @@ jobs:
           grep -F "Confirmed lights" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *0 +MAIN SWITCH" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *1 +SPD" certificate-android/qa-output/scan-confirmed.txt
-          grep -F "Wylex" certificate-android/qa-output/scan-confirmed.txt
+          # The issuing schedule contains IET A4 data, not manufacturer/model/way-count extras.
+          grep -F "Distribution circuit OCPD" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "BS EN 60947-2" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "BS EN 61008-1" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "CONT-100" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "Sensitive equipment isolated" certificate-android/qa-output/scan-confirmed.txt
+          if grep -E 'Manufacturer:|Model:|Ways:|Populated:|Spare:' certificate-android/qa-output/scan-confirmed.txt; then
+            echo "Non-IET board metadata leaked onto issued schedule"
+            exit 1
+          fi
           grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
           grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
 
