@@ -64,7 +64,7 @@ await page.locator('[data-scan-command="spare"]').click();
 await page.locator('[data-number="1"]').fill("13");
 await page.locator('[data-scan-command="spare"]').click();
 const count=await page.locator('.scan-circuit').count();
-await page.locator('[data-open="c'+(count-1)+'"]').click();
+if(!(await page.locator('[data-number="'+(count-1)+'"]').isVisible()))await page.locator('[data-open="c'+(count-1)+'"]').click();
 await page.locator('[data-number="'+(count-1)+'"]').fill("14");
 await page.locator('[data-scan-command="apply"]').click();
 const after=await readCert();
