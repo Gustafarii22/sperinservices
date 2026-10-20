@@ -219,7 +219,9 @@
     pushEditHistory(template?'Insert board template':'Add board');
     const board={...(template?boardDesign(template.design):{}),id:uid(),ref:nextBoardRef(cert),feedSourceType:'Mains',suppliedFrom:'Mains'};
     cert.tables.boards.push(board);
+    rememberAccordions();
     cert.tables.boards.forEach(b=>accordionState.set('board:'+cert.id+':'+b.id,b.id===board.id));
+    preserveRequestedAccordions=true;
     (template?.circuits||[]).forEach(design=>{const no=nextCircuitNumber(cert,board.ref);cert.tables.circuits.push({...circuitDesign(design),id:uid(),boardRef:board.ref,circuitNo:no});cert.tables.tests.push({boardRef:board.ref,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);});
     saveNow();render();goBoardCard(board.id);
   }
@@ -1027,9 +1029,10 @@
   let state = loadState();
   let view = loadView();
   const accordionState=new Map();
+  let preserveRequestedAccordions=false;
   const accordionOpen=(key,initial=false)=>accordionState.has(key)?accordionState.get(key):initial;
   function rememberAccordions(){document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>accordionState.set(el.dataset.accordionKey,el.open));}
-  function openBoardAccordion(boardRef){const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board)accordionState.set('board:'+cert.id+':'+board.id,true);}
+  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('board:'+cert.id+':'+board.id,true);preserveRequestedAccordions=true;}}
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
@@ -1328,7 +1331,8 @@
   function updateSaveState(text) { const el = document.querySelector('[data-save-state]'); if (el) el.textContent = text; }
 
   function render() {
-    rememberAccordions();
+    if(!preserveRequestedAccordions)rememberAccordions();
+    preserveRequestedAccordions=false;
     const root = document.getElementById('app');
     persistView();
     try {
