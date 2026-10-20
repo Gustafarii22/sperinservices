@@ -16,6 +16,7 @@ function scanField(r,i,group){
  const labels={manufacturer:'Manufacturer',description:'Circuit description',ocpdBs:'BS (EN)',ocpdRating:'Rating A',ocpdType:'Type',
    breakingCapacity:'Breaking kA',rcdBs:'BS (EN)',rcdType:'Type',rcdIdn:'RCD mA',rcdRating:'Rating A'};
  const options={
+   deviceKind:['MCB','RCBO','MCCB','Fuse','Spare','Other'],
    ocpdBs:['BS EN 61009-1','BS EN 60898-1','BS 88-3','BS EN 60947-2','BS 3036','BS EN 60269-1'],
    ocpdType:['B','C','D','gG','gL'],ocpdRating:['2','3','4','6','10','16','20','25','32','40','50','63','80','100'],
    breakingCapacity:['3','4.5','6','10','16','25','33','50'],rcdBs:['BS EN 61009-1','BS EN 61008-1','BS EN 62423'],
@@ -41,15 +42,15 @@ function render(){
    const fixed=kind==='Main switch'||kind==='SPD'||kind==='Spare';
    const label=kind==='Main switch'?'MAIN SWITCH':kind==='SPD'?'SPD':kind==='Spare'?'SPARE':title||((curve||'')+(rating||'')+(rating?' A':''))||'New circuit';
    const selected=s.active==='c'+i;
-   const editable=[...d.fields].filter(f=>['description','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].includes(f.key));
-   const missing=['description','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].filter(key=>!editable.some(f=>f.key===key)).map(key=>({key,value:'',accepted:false,evidence:[]}));
+   const editable=[...d.fields].filter(f=>['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].includes(f.key));
+   const missing=['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating'].filter(key=>!editable.some(f=>f.key===key)).map(key=>({key,value:'',accepted:false,evidence:[]}));
    const fields=[...editable,...missing],fkey=k=>fields.findIndex(f=>f.key===k),group=(ks,title)=>'<div class="scan-field-group"><h4>'+title+'</h4><div class="scan-field-grid">'+ks.map(k=>scanField(fields[fkey(k)],fkey(k),''+i)).join('')+'</div></div>';
    // Add missing fields to the underlying review data, not just a temporary render.
    for(const f of missing)d.fields.push(f);
    const realIndices=d.fields;
    const fi=k=>realIndices.findIndex(f=>f.key===k);
    const renderKeys=ks=>ks.map(k=>scanField(realIndices[fi(k)],fi(k),String(i))).join('');
-   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
+   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
  }).join('');
  const expanded=s.active==='board';
  const custom=window.Android?.scanSheetImageBase64;
@@ -101,7 +102,7 @@ function apply(){
    const cert=s.adapter.getCert(),boardRef=s.boardRef;
    const board=cert.tables?.boards?.find(b=>b.ref===boardRef);
    if(!board&&cert.type!=='minor')throw Error('Please select a consumer unit.');
-   const proposal={board:s.result.board.map(f=>({...f,accepted:f.key==='manufacturer'&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
+   const proposal={board:s.result.board.map(f=>({...f,accepted:['manufacturer','model','mainSwitch','spd'].includes(f.key)&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
    const usedNumbers=new Set();
    for(let i=0;i<s.result.circuits.length;i++){
      const d=s.result.circuits[i],n=String(d.number??i).trim();
@@ -111,7 +112,7 @@ function apply(){
      const same=(cert.tables?.circuits||[]).filter(row=>row.boardRef===boardRef&&String(row.circuitNo)===n&&!row._incomingFeed);
      if(same.length>1)throw Error('Circuit '+n+' needs checking in the certificate.');
      const kind=d.fields.find(f=>f.key==='deviceKind')?.value||'';
-     const acceptedKeys=new Set(['description','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','deviceKind']);
+     const acceptedKeys=new Set(['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating']);
      const fields=d.fields.map(f=>({...f,accepted:acceptedKeys.has(f.key)&&!!String(f.value||'').trim()}));
      // Spare, main switch and SPD are schedule positions, not tested outgoing circuits.
      if(['Spare','Main switch','SPD'].includes(kind)){
