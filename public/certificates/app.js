@@ -932,7 +932,6 @@
           f('instrumentLoop','Earth fault loop impedance instrument serial / asset number'),
           f('instrumentRcd','RCD instrument serial / asset number'),
           f('instrumentEarth','Earth electrode resistance instrument serial / asset number'),
-          f('vulnerableEquipment','Equipment vulnerable to damage when testing','textarea',{span:'full'}),
           f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
         ])
       ]
@@ -979,7 +978,6 @@
           f('instrumentLoop', 'Earth fault loop impedance instrument serial / asset number'),
           f('instrumentRcd', 'RCD instrument serial / asset number'),
           f('instrumentEarth', 'Earth electrode resistance instrument serial / asset number'),
-          f('vulnerableEquipment', 'Equipment vulnerable to damage when testing', 'textarea', { span:'full' }),
           f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
         ])
       ]
