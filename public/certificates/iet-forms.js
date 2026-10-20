@@ -694,7 +694,7 @@
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}}
         });
-        const ty=Math.min(doc.internal.pageSize.getHeight()-17,doc.lastAutoTable.finalY+4);
+        const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
