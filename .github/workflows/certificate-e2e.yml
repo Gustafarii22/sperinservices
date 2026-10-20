@@ -96,6 +96,7 @@ jobs:
             grep -F "$value" certificate-android/qa-output/workflow-eicr.txt
           done
           pdfinfo "$PDF" | grep -E '^Pages:'
+          python3 certificate-android/qa/verify-eicr-footer.py "$PDF"
           mkdir -p certificate-android/qa-output/eicr-renders
           pdftoppm -f 1 -l 2 -png -r 130 "$PDF" certificate-android/qa-output/eicr-renders/eicr
 
