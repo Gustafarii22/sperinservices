@@ -328,7 +328,9 @@
       ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
       ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
       ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
-      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')]
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
+      ['Main switch OCPD rating/setting (A)',f.mainSwitchDeviceSetting,'Main RCD measured operating time (ms)',f.mainRcdTime],
+      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'','']
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     addLandscapePage();
@@ -563,6 +565,9 @@
     labelValue(doc,'RCD type',display(f.mainRcdType,worksheet),x+99,top+63,32,{labelW:17});
     labelValue(doc,'IΔn mA',display(f.mainRcdIdn,worksheet),x+133,top+63,27,{labelW:14});
     labelValue(doc,'Delay ms',display(f.mainRcdDelay,worksheet),x+162,top+63,26,{labelW:15});
+    labelValue(doc,'OCPD rating/setting (A)',display(f.mainSwitchDeviceSetting,worksheet),x+2,top+70,54,{labelW:34});
+    labelValue(doc,'RCD measured time (ms)',display(f.mainRcdTime,worksheet),x+58,top+70,59,{labelW:38});
+    labelValue(doc,'RCD breaking capacity (kA)',display(f.mainRcdBreaking,worksheet),x+119,top+70,69,{labelW:45});
     y+=77;
 
     top=box(doc,x,y,w,80,'SECTION K: OBSERVATIONS');
