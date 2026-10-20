@@ -53,8 +53,15 @@ function numberFromMain(result,cert,boardRef){
  arranged.forEach((d,i)=>{
    const number=String(i), matches=existing.filter(c=>String(c.circuitNo)===number);
    d.number=number;
-   d.target=matches.length===1&&!occupied.has(matches[0].id)?matches[0].id:'new';
-   if(d.target!=='new')occupied.add(d.target);
+   const prior=matches.length===1?matches[0]:null;
+   const proposedKind=deviceValue(d,'deviceKind');
+   const priorKind=text(prior?.deviceKind);
+   const priorUsed=!!(text(prior?.description)||text(prior?.ocpdRating)||text(prior?.ocpdBs));
+   // Never silently replace a populated circuit with a main switch, SPD, spare
+   // or a different protective device. The installer must select it explicitly.
+   const compatible=!!prior&&(!priorUsed||!!priorKind&&priorKind===proposedKind);
+   d.target=!matches.length?'new':compatible&&!occupied.has(prior.id)?prior.id:'';
+   if(d.target&&d.target!=='new')occupied.add(d.target);
    d.fields.forEach(f=>{f.accepted=false;});
  });
  result.circuits=arranged;
