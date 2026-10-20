@@ -41,6 +41,8 @@ await page.locator('.scan-circuit.expanded').getByLabel('Circuit description').f
 await page.locator('.scan-circuit.expanded [data-number="2"]').fill('12');
 assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device model').count(),1);
 assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').count(),1);
+await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').fill('FuseBox');
+await page.locator('.scan-circuit.expanded').getByLabel('Device model').fill('RTA063240B');
 await page.locator('[data-scan-command="apply"]').click();
 await page.waitForSelector('.consumer-unit-card');
 await page.locator('.board-scan-modal').waitFor({state:'detached'});
@@ -52,6 +54,10 @@ assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="1")?.deviceKind,"SPD");
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.description,"Confirmed lights");
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.ocpdRating,"6");
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.rcdType,"A");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.deviceManufacturer,"FuseBox");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.deviceModel,"RTA063240B");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.ocpdBs,"BS EN 61009-1");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.rcdIdn,"30");
 assert.ok(!JSON.stringify(cert).includes("data:image/"));
 await page.reload();
 assert.equal((await readCert()).tables.circuits.find(c=>c.circuitNo==="12")?.description,"Confirmed lights");
@@ -61,11 +67,9 @@ assert.ok(fs.statSync(dir+"/scan-confirmed.pdf").size>10000);
 // Add spare ways through the same one-tap Save, without hidden approval checkboxes.
 await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
 await page.locator('[data-scan-command="spare"]').click();
-await page.locator('[data-number="1"]').fill("13");
+await page.locator('.scan-circuit.expanded [data-number]').fill("13");
 await page.locator('[data-scan-command="spare"]').click();
-const count=await page.locator('.scan-circuit').count();
-if(!(await page.locator('[data-number="'+(count-1)+'"]').isVisible()))await page.locator('[data-open="c'+(count-1)+'"]').click();
-await page.locator('[data-number="'+(count-1)+'"]').fill("14");
+await page.locator('.scan-circuit.expanded [data-number]').fill("14");
 await page.locator('[data-scan-command="apply"]').click();
 const after=await readCert();
 for(const n of ["13","14"]){
