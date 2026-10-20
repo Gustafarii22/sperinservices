@@ -974,6 +974,12 @@
           f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
           f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
           f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
+          f('instrumentContinuity', 'Continuity instrument serial / asset number'),
+          f('instrumentInsulation', 'Insulation resistance instrument serial / asset number'),
+          f('instrumentLoop', 'Earth fault loop impedance instrument serial / asset number'),
+          f('instrumentRcd', 'RCD instrument serial / asset number'),
+          f('instrumentEarth', 'Earth electrode resistance instrument serial / asset number'),
+          f('vulnerableEquipment', 'Equipment vulnerable to damage when testing', 'textarea', { span:'full' }),
           f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
         ])
       ]
