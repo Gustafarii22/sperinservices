@@ -3,6 +3,7 @@ import { createHmac, createHash, randomBytes, randomInt, timingSafeEqual, random
 import { sendSperinEmail } from "./sperin-review-email.server";
 import { certificateScan } from "./certificate-scan.server";
 import { certificateAssistance } from "./certificate-ai.server";
+import { certificateJobsApi, publicCertificateHandover, runCertificateReminders } from "./certificates-jobs.server";
 
 // Dedicated certificates database and tenant-aware access. Fail closed without configuration.
 const cookieName="sperin_cert_session";
@@ -76,6 +77,10 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   if(req.method==="POST"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
   const sql=neon(c.database);
   try{
+    const publicResponse=await publicCertificateHandover(req,sql);
+    if(publicResponse)return publicResponse;
+    const reminderResponse=await runCertificateReminders(req,sql);
+    if(reminderResponse)return reminderResponse;
     if(path==="/api/certificates/request-code"&&req.method==="POST"){
       const email=text(payload.email).toLowerCase();
       if(!validEmail(email))return result({error:"Valid email required"},400);
@@ -145,6 +150,8 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
       if(!response.ok)await sql.query("update cert_ai_usage set used=greatest(0,used-1) where org_id=$1 and period=$2",[s.orgId,period]);
       return response;
     }
+    const jobsResponse=await certificateJobsApi(req,sql,s);
+    if(jobsResponse)return jobsResponse;
     if(path==="/api/certificates/session"&&req.method==="GET")
       return result({email:s.email,organisation:s.name,role:s.role});
     if(path==="/api/certificates/logout"&&req.method==="POST"){
