@@ -221,5 +221,6 @@ if(cmd==="revoke"&&j){if(!confirm("Revoke this link?"))return;await api("jobs/"+
 }
 function reminders(){return jobs.reduce((n,j)=>n+(j.reminders||[]).filter(x=>x.dueDate&&delta(x.dueDate)<=30).length,0);}
 function incomingAsset(){const id=location.hash.match(/asset=([0-9a-f-]{36})/i)?.[1];if(id&&adapter){open(adapter);scanAsset(id);}}
-window.SperinJobCentre={open,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),incomingAsset};
+function importMetadata(records){if(!Array.isArray(records)||records.length>600)throw Error('Invalid job metadata');let added=0;for(const x of records){if(!x||!UUID.test(x.id)||!UUID.test(x.assetId)||JSON.stringify(x).length>180000)continue;if(jobs.some(j=>j.id===x.id))continue;jobs.push({...x,evidence:Array.isArray(x.evidence)?x.evidence:[],reminders:Array.isArray(x.reminders)?x.reminders:[]});added++;}store();return added;}
+window.SperinJobCentre={open,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),importMetadata,incomingAsset};
 })();
