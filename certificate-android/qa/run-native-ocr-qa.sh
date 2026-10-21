@@ -9,5 +9,7 @@ adb install -r "$APP_APK"
 adb install -r "$TEST_APK"
 adb shell pm list instrumentation
 mkdir -p certificate-android/qa-output/native-photo
-adb shell am instrument -w -r uk.co.sperinservices.certificates.stable.preview.navy.test/androidx.test.runner.AndroidJUnitRunner | tee certificate-android/qa-output/native-photo/results.txt
+TEST_INSTRUMENTATION=$(adb shell pm list instrumentation | tr -d '\r' | grep -F '(target=uk.co.sperinservices.certificates.stable.preview.audited.v187)' | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p')
+test -n "$TEST_INSTRUMENTATION"
+adb shell am instrument -w -r "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/results.txt
 grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt
