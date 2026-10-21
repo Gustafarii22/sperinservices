@@ -465,7 +465,8 @@ assert(
   ),
   "Home heading unclear",
 );
-assert((await page.locator(".home-visual").count()) === 1, "Home visual treatment missing");
+assert((await page.locator(".home-hero h2").isVisible()) && (await page.locator('[data-action="speed-quick"]').count()) === 1, "Compact, actionable home dashboard missing");
+assert((await page.locator('#speed-nav [data-speed="home"]').count()) === 1, "Persistent navigation missing");
 assert((await page.locator(".cert-launch").count()) === 9, "Certificate launch list incomplete");
 assert(
   (await page.locator(".workflow-card").count()) === 3,
