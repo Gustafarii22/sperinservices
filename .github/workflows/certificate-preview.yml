@@ -69,7 +69,7 @@ jobs:
       - name: Bundle reviewed white-theme and scanner
         run: |
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
-          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,instrument-import.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
           cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js} certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build separately installable preview
