@@ -622,3 +622,8 @@ details[open]>.cert-accordion-head>.cert-chevron,details[open]>.cu-summary>.cert
 @media(max-width:650px){.cert-accordion-head,.cu-summary{padding:14px}.cert-accordion-body,.cu-accordion-body{padding:12px}.cu-summary{min-height:68px}}
 @media(prefers-reduced-motion:reduce){.cert-chevron{transition:none}}
 }
+
+/* One deliberate approval per scanned device or blank, not per rating field. */
+.scan-review-hint {font-size:.88rem;line-height:1.45;margin:.65rem 0;color:#475569;}
+.scan-review-confirm {display:flex;align-items:center;gap:.65rem;padding:.8rem;margin:.85rem 0;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;font-weight:600;color:#0f172a;cursor:pointer;}
+.scan-review-confirm input {width:22px;height:22px;min-width:22px;accent-color:#1660cb;cursor:pointer;}
