@@ -8,7 +8,7 @@ on:
       - "certificate-android/qa/**"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -52,7 +52,7 @@ jobs:
           exit 1
 
       - name: Photo scan safety and API tests
-        run: node --test certificate-android/qa/scan-core.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs
+        run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs
 
       - name: Photo review workflow (mock analysis, not recognition accuracy)
         run: node certificate-android/qa/scan.e2e.mjs
