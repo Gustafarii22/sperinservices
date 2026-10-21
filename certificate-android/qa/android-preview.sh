@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PKG=uk.co.sperinservices.certificates.stable.preview.team.v193
+PKG=uk.co.sperinservices.certificates.stable.preview.team.v194
 OLD_PREVIEW=uk.co.sperinservices.certificates.stable.preview
 STABLE=uk.co.sperinservices.certificates.stable
-APK=certificate-android/dist/Sperin-Certificates-v1.9.3-INTEGRATED-DEV.apk
+APK=certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
 OUT=certificate-android/qa-output/preview-android
 mkdir -p "$OUT"
 trap 'adb logcat -d > "$OUT/logcat.txt" || true; adb exec-out screencap -p > "$OUT/final-screen.png" || true' EXIT

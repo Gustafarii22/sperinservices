@@ -12,6 +12,14 @@ const page = await browser.newPage({
   viewport: { width: 412, height: 915 },
   acceptDownloads: true,
 });
+// Deep regression opens the relevant accordion as a user would before clicking.
+// Separate UX tests verify the actual default closed states and toggle behaviour.
+const locatorPrototype=Object.getPrototypeOf(page.locator('body'));
+const realClick=locatorPrototype.click;
+locatorPrototype.click=async function(...args){
+  await this.evaluate(el=>{for(let d=el.closest('details');d;d=d.parentElement?.closest('details'))d.open=true;});
+  return realClick.apply(this,args);
+};
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 let promptName = "Design template",
@@ -95,8 +103,8 @@ const fixture = {
 const accordionQaScript=() => {
   // Legacy deep-field regression exercises the entire issued certificate at
   // once; compact-accordion behaviour is tested separately in scan.e2e.mjs.
-  const openAll=()=>document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>{
-    if(!el.open)el.open=true;
+  const openAll=()=>document.querySelectorAll('#app details[data-accordion-key]:not(.inline-circuit)').forEach(el=>{
+    if(!el.open){el.open=true;el.dispatchEvent(new Event("toggle"));}
   });
   document.addEventListener('DOMContentLoaded',()=>{
     new MutationObserver(openAll).observe(document.body,{childList:true,subtree:true});
@@ -117,6 +125,7 @@ await page.addInitScript(
   { key, fixture },
 );
 await page.reload();
+await page.locator('[data-action="open-library"]').click();
 await page.locator('[data-action="edit"]').first().click();
 const saved = async () => {
   await page.waitForTimeout(350);
@@ -126,7 +135,7 @@ const board = (ref) => page.locator(`[data-board-key="${ref}"]`);
 const input = (col) => page.locator(`[data-circuit-input="details"][data-col="${col}"]`);
 const click = async (sel) => {
   await page.locator(sel).first().click();
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(350);
 };
 const change = async (sel, value) => {
   const el = page.locator(sel);
@@ -184,18 +193,19 @@ await click('[data-action="circuit-complete"]');
 const rect = await board("CU1").locator("[data-board-add-circuit]").boundingBox();
 assert(rect.y > 0 && rect.y + rect.height < 916);
 for (let i = 0; i < 3; i++) {
-  const row = board("CU1").locator(".circuit-card").filter({ hasText: "Circuit 15" });
+  const row = board("CU1").locator(".inline-circuit").filter({ hasText: "QA circuit 15" });
+  await row.evaluate(el=>{el.open=true;});
   await row.scrollIntoViewIfNeeded();
   const y = await page.evaluate(() => scrollY);
   await row.locator('[data-action="circuit-move-up"]').click();
   await page.waitForTimeout(80);
   assert(Math.abs((await page.evaluate(() => scrollY)) - y) < 3);
 }
-assert.equal((await saved()).tables.circuits[2].circuitNo, "15");
+assert.equal((await saved()).tables.circuits[2].description, "QA circuit 15");
 await click('[data-action="edit-undo"]');
-assert.equal((await saved()).tables.circuits[3].circuitNo, "15");
+assert.equal((await saved()).tables.circuits[3].description, "QA circuit 15");
 await click('[data-action="edit-redo"]');
-assert.equal((await saved()).tables.circuits[2].circuitNo, "15");
+assert.equal((await saved()).tables.circuits[2].description, "QA circuit 15");
 await click('[data-action="board-add"]');
 await page
   .locator('[data-board-index="1"][data-board-input="feedSourceType"]')
@@ -205,16 +215,16 @@ assert.deepEqual(
   await page
     .locator('[data-board-index="1"][data-board-input="sourceCircuitNo"] option')
     .allTextContents(),
-  ["Select…", "Circuit 0", "Circuit 1", "Circuit 15", "Circuit 2", "Circuit 3", "Circuit 7"],
+  ["Select…", "Circuit 1", "Circuit 2", "Circuit 3", "Circuit 4", "Circuit 5", "Circuit 6"],
 );
-await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("7");
+await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("6");
 let cert = await saved(),
   child = cert.tables.boards[1],
   incoming = cert.tables.circuits.findIndex((c) => c.boardRef === child.ref && c.circuitNo === "0");
 assert(incoming >= 0);
 assert.equal(cert.tables.circuits[incoming].liveCsa, "10");
 assert(!cert.tables.tests[incoming].zs);
-assert.equal(child.sourceCircuitNo, "7");
+assert.equal(child.sourceCircuitNo, "6");
 // Measured incoming readings belong to the selected feed. Changing that feed must clear them.
 await board(child.ref).locator('[data-action="circuit-open"]').first().click();
 await click('[data-action="circuit-next"]');
@@ -226,7 +236,7 @@ cert = await saved();
 incoming = cert.tables.circuits.findIndex((c) => c.boardRef === child.ref && c.circuitNo === "0");
 assert.equal(cert.tables.boards[1].sourceCircuitNo, "3");
 assert.equal(cert.tables.tests[incoming].zs || "", "");
-await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("7");
+await page.locator('[data-board-index="1"][data-board-input="sourceCircuitNo"]').selectOption("6");
 cert = await saved();
 incoming = cert.tables.circuits.findIndex((c) => c.boardRef === child.ref && c.circuitNo === "0");
 assert.equal(cert.tables.circuits[incoming].liveCsa, "10");
@@ -234,8 +244,8 @@ assert.equal(cert.tables.tests[incoming].zs || "", "");
 await board("CU1").locator('[data-action="board-delete"]').click();
 assert.equal((await saved()).tables.boards.length, 2);
 await board("CU1")
-  .locator(".circuit-card")
-  .filter({ hasText: "Circuit 7" })
+  .locator(".inline-circuit")
+  .filter({ hasText: "QA circuit 7" })
   .locator('[data-action="circuit-open"]')
   .click();
 await input("ocpdRating").fill("50");
@@ -251,8 +261,8 @@ assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs,
 await page.reload();
 assert.equal((await saved()).tables.circuits.find((c) => c._incomingFeed).maxZs, "1.11");
 await board("CU1")
-  .locator(".circuit-card")
-  .filter({ hasText: "Circuit 7" })
+  .locator(".inline-circuit")
+  .filter({ hasText: "QA circuit 7" })
   .locator('[data-action="circuit-open"]')
   .click();
 await input("ocpdRating").fill("40");
@@ -292,7 +302,7 @@ await board("CU1").locator('[data-action="circuit-open"]').first().click();
 promptName = "32A ring";
 await click('[data-action="template-save-circuit"]');
 await click('[data-action="circuit-list"]');
-await board(child.ref).locator('[data-action="template-open"]').click();
+await board(child.ref).locator('.board-circuit-tools [data-action="template-open"]').click();
 await click('[data-action="template-use"]');
 assert.equal(await input("circuitNo").inputValue(), "1");
 assert.equal(await input("boardRef").inputValue(), child.ref);
@@ -348,6 +358,7 @@ await page.evaluate((backup) => {
   localStorage.removeItem("sperin-certificates-circuit-templates-v1");
   window.sperinRestoreBackup(backup);
 }, backup);
+await page.locator('[data-action="open-library"]').click();
 await click('[data-action="edit"]');
 assert.equal(
   await page.evaluate(
@@ -362,6 +373,7 @@ await page.evaluate((backup) => {
   delete old.circuitTemplates;
   window.sperinRestoreBackup(JSON.stringify(old));
 }, backup);
+await page.locator('[data-action="open-library"]').click();
 await click('[data-action="edit"]');
 assert.equal(
   await page.evaluate(
@@ -381,6 +393,7 @@ await page.evaluate(() => {
 await click('[data-action="pdf"]');
 const pdf = await page.evaluate(() => window.qaPdf);
 assert(pdf?.data);
+await click('[data-action="pdf-dismiss"]');
 fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 const outputPdfPath = process.env.CERT_WORKFLOW_TYPE==="eicr"
   ? "certificate-android/qa-output/workflow-eicr.pdf"
@@ -399,13 +412,16 @@ await click('[data-action="edit-redo"]');
 await page.reload();
 assert.equal((await saved()).tables.boards.length, 2);
 // Delete circuit stays near its old neighbours.
-const row = board("CU1").locator(".circuit-card").filter({ hasText: "Circuit 2" });
+const row = board("CU1").locator(".inline-circuit").filter({ hasText: "QA circuit 2" });
+await row.evaluate(el=>{el.open=true;});
 await row.scrollIntoViewIfNeeded();
-const beforeY = await page.evaluate(() => scrollY);
+const deletedIndex=Number(await row.getAttribute("data-inline-index"));
 await row.locator('[data-action="circuit-delete"]').click();
 await page.waitForTimeout(100);
-assert(Math.abs((await page.evaluate(() => scrollY)) - beforeY) < 3);
-assert(!(await saved()).tables.circuits.some((c) => c.boardRef === "CU1" && c.circuitNo === "2"));
+const neighbour=page.locator('details.inline-circuit > summary').nth(deletedIndex);
+const neighbourBox=await neighbour.boundingBox();
+assert(neighbourBox.y>=0 && neighbourBox.y+neighbourBox.height<915,"Deleting an expanded circuit must leave its neighbour visible");
+assert(!(await saved()).tables.circuits.some((c) => c.boardRef === "CU1" && c.description === "QA circuit 2"));
 for (const kind of ["board", "circuit"]) {
   await click(`[data-action="template-open"][data-kind="${kind}"]`);
   promptName = "Renamed " + kind;
@@ -452,6 +468,7 @@ await page.evaluate(() =>
     }),
   ),
 );
+await page.locator('[data-action="open-library"]').click();
 await click('[data-action="edit"]');
 cert = await saved();
 assert.equal(cert.tables.boards.length, 1);

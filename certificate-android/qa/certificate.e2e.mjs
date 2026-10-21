@@ -446,7 +446,7 @@ const accordionQaScript=() => {
   // Legacy deep-field regression exercises the entire issued certificate at
   // once; compact-accordion behaviour is tested separately in scan.e2e.mjs.
   const openAll=()=>document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>{
-    if(!el.open)el.open=true;
+    if(!el.open){el.open=true;el.dispatchEvent(new Event("toggle"));}
   });
   document.addEventListener('DOMContentLoaded',()=>{
     new MutationObserver(openAll).observe(document.body,{childList:true,subtree:true});
@@ -462,8 +462,7 @@ assert((await page.locator(".home-hero,.home-kpis,.home-metrics").count()) === 0
 assert((await page.locator('#speed-nav [data-speed="home"]').count()) === 1, "Persistent Home navigation missing");
 await page.locator('[data-action="open-new"]').click();
 assert((await page.locator(".cert-launch").count()) === 9, "Nine certificate types must be on dedicated New Certificate screen");
-await page.locator('[data-action="open-library"]').count() ? page.locator('[data-action="open-library"]').click() : page.locator('[data-action="home"]').first().click();
-if(!(await page.locator(".saved-cert-row").count())) await page.locator('[data-action="open-library"]').click();
+await page.locator('#speed-nav [data-speed="certificates"]').click();
 await page.waitForSelector(".saved-cert-row");
 
 const saved = page.locator(".saved-cert-row").first();
@@ -651,14 +650,14 @@ assert(
   "Circuit move-down control missing",
 );
 
-const beforeOrder = await page.locator(".circuit-card .circuit-main").allTextContents();
+const beforeOrder = await page.locator(".inline-circuit > summary").allTextContents();
 assert(
   beforeOrder[0].includes("Lighting") && beforeOrder[1].includes("Sockets"),
   "Initial circuit order wrong",
 );
 await page.locator('[data-action="circuit-move-down"]').first().click();
 await page.waitForTimeout(60);
-const afterOrder = await page.locator(".circuit-card .circuit-main").allTextContents();
+const afterOrder = await page.locator(".inline-circuit > summary").allTextContents();
 assert(
   afterOrder[0].includes("Sockets") &&
     afterOrder[0].includes("Zs 0.22") &&
@@ -668,7 +667,7 @@ assert(
 );
 
 // Open reordered B32 circuit and verify max Zs, next/back save and return position.
-await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdRating"]');
 await page.waitForTimeout(40);
 const maxZs = await page.locator('[data-circuit-input="details"][data-col="maxZs"]').inputValue();
@@ -713,7 +712,7 @@ console.log("CIRCUIT_FLOW_PASS");
 // Circuit numbers should drive the normal schedule order without losing paired test results.
 // Set the Lighting circuit to 0 and confirm it moves ahead of circuit 2 automatically.
 await page
-  .locator(".circuit-card")
+  .locator(".inline-circuit")
   .filter({ hasText: "Lighting" })
   .locator('[data-action="circuit-open"]')
   .click();
@@ -724,7 +723,7 @@ await zeroNo.press("Tab");
 await page.waitForTimeout(100);
 await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector(".circuit-list");
-const autoSorted = await page.locator(".circuit-card .circuit-main").allTextContents();
+const autoSorted = await page.locator(".inline-circuit > summary").allTextContents();
 assert(
   autoSorted[0].includes("Circuit 0") &&
     autoSorted[0].includes("Lighting") &&
@@ -732,7 +731,7 @@ assert(
   "Circuit 0 did not auto-sort to the first position with its test results",
 );
 assert(
-  autoSorted[1].includes("Circuit 2") &&
+  autoSorted[1].includes("Circuit 1") &&
     autoSorted[1].includes("Sockets") &&
     autoSorted[1].includes("Zs 0.22"),
   "Automatic circuit sort separated circuit details from test results",
@@ -740,7 +739,7 @@ assert(
 console.log("CIRCUIT_AUTOSORT_PASS");
 
 // Rotation/reload must preserve the active certificate, circuit page and autosaved data.
-await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 const rotationField = page.locator('[data-circuit-input="tests"][data-col="r2only"]');
 await rotationField.fill("0.20");
@@ -813,6 +812,7 @@ assert(media && Number(media[1]) > Number(media[2]), "EIC certificate first page
 fs.mkdirSync("certificate-android/qa-output", { recursive: true });
 fs.copyFileSync(pdfPath, "certificate-android/qa-output/eic-regression.pdf");
 console.log("EIC_LANDSCAPE_PDF_PASS");
+await page.locator('[data-action="pdf-dismiss"]').click();
 
 // Complete & PDF must create the file before the saved certificate is marked complete.
 const completePdfPromise = page.waitForEvent("download");
@@ -827,6 +827,7 @@ assert(
   stored.certificates?.[0]?.status === "Complete",
   "Complete & PDF did not save Complete status",
 );
+await page.locator('[data-action="pdf-dismiss"]').click();
 await page.locator('[data-action="status"]').click();
 await page.waitForTimeout(40);
 console.log("COMPLETE_PDF_PASS");
@@ -860,7 +861,7 @@ assert(
 console.log("PRINT_PASS");
 
 // App Back logic: circuit -> circuit list -> home, without exiting.
-await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 assert(
   (await page.evaluate(() => window.sperinHandleBack())) === true,
   "Back handler did not handle circuit page",
@@ -870,7 +871,7 @@ assert(
   (await page.evaluate(() => window.sperinHandleBack())) === true,
   "Back handler did not handle certificate page",
 );
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 assert(
   (await page.evaluate(() => window.sperinHandleBack())) === false,
   "Back handler should only exit from home",
@@ -906,6 +907,7 @@ await page.locator('[data-action="save-settings"]').click();
 await page.waitForTimeout(50);
 
 // Start new EIC and verify tester defaults prefill.
+await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
 await page.waitForSelector('[data-field="testerMake"]');
 assert(
@@ -923,11 +925,12 @@ assert(
 
 // Brand is a home button.
 await page.locator(".brand-home").click();
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 console.log("PROFILE_HOME_PASS");
 
 // Build a whole-certificate blank site pack with exactly two boards and 3 total circuit slots.
-await page.locator('[data-action="site-builder"]').click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="site-builder"]').click();
 await page.waitForSelector(".site-builder-modal");
 await page.locator('[data-site-builder="name"]').fill("Test two-board EIC");
 await page.locator('[data-site-board="0"][data-site-board-key="ref"]').fill("DB1");
@@ -998,7 +1001,8 @@ assert(
 console.log("CONFIGURABLE_SITE_SHEET_PASS");
 
 // Read the completed sheet using printed headings. Field-first/value-second must map values to exact fields.
-await page.locator('[data-action="site-read"]').click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="site-read"]').click();
 await page.waitForSelector(".sheet-picker");
 await page.locator('[data-action="site-read-plan"][data-plan-id="' + plan.id + '"]').click();
 await page.waitForSelector(".sheet-read-modal");
@@ -1068,7 +1072,7 @@ await page.locator('[data-field="nominalVoltage"]').fill("230");
 await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 
 // Technical values remain as entered and a warning triangle explains a failure instead of changing it.
-await page.locator(".circuit-card").first().locator('[data-action="circuit-open"]').click();
+await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("2.00");
 await page.getByRole("button", { name: "Complete circuit" }).click();
@@ -1096,8 +1100,9 @@ console.log("TECHNICAL_WARNING_PASS");
 
 // Feed a synthetic on-device OCR result through the exact photo-review path.
 await page.locator(".brand-home").click();
-await page.waitForSelector(".home-page");
-await page.locator('[data-action="site-scan"]').click();
+await page.waitForSelector(".minimal-home");
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="site-scan"]').click();
 await page.waitForSelector(".sheet-picker");
 await page.locator('[data-action="site-scan-plan"][data-plan-id="' + plan.id + '"]').click();
 await page.waitForSelector(".sheet-scan-modal");
@@ -1216,7 +1221,7 @@ assert(
 console.log("RESTORE_DOUBLE_CONFIRM_PASS");
 
 await page.locator(".brand-home").click();
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 
 // Import a valid exact backup, then Undo recovery back to the complete current device state.
 const beforeImportRaw = await page.evaluate(
@@ -1256,7 +1261,7 @@ const importChooserPromise = page.waitForEvent("filechooser");
 await page.getByRole("button", { name: "Import now", exact: true }).click();
 const importChooser = await importChooserPromise;
 await importChooser.setFiles(importPath);
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 await page.waitForTimeout(100);
 let importedState = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
@@ -1270,7 +1275,7 @@ assert(
 await page.locator('[data-action="settings"]').first().click();
 await page.waitForSelector(".profile-modal");
 await page.locator('[data-action="undo-restore"]').click();
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 await page.waitForTimeout(80);
 let undoState = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
@@ -1313,11 +1318,12 @@ console.log("INVALID_IMPORT_GUARD_PASS");
 if ((await page.locator(".profile-modal").count()) > 0) {
   await page.locator(".profile-modal").locator('[data-action="close-modal"]').click();
 }
-await page.waitForSelector(".home-page");
+await page.waitForSelector(".minimal-home");
 
 // Every certificate type must open, stay usable at phone width and generate a real PDF.
 await page.setViewportSize({ width: 390, height: 844 });
 for (const type of certificateTypeOrder) {
+  await page.locator('#speed-nav [data-speed="new"]').click();
   await page.locator('.cert-launch[data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
   assert((await page.locator(".app-error").count()) === 0, type + " form hit render error");
@@ -1401,8 +1407,9 @@ for (const type of certificateTypeOrder) {
     fs.readFileSync(typePdfPath).subarray(0, 4).toString() === "%PDF",
     type + " PDF signature invalid",
   );
+  await page.locator('[data-action="pdf-dismiss"]').click();
   await page.locator(".brand-home").click();
-  await page.waitForSelector(".home-page");
+  await page.waitForSelector(".minimal-home");
 }
 await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ALL_CERTIFICATE_TYPES_PASS");

@@ -779,3 +779,7 @@ body{padding-bottom:115px!important}
  #speed-nav .speed-links button{min-height:54px!important;font-size:12px}
  #speed-nav .speed-links button span{font-size:11px}
 }
+
+/* Keep the entry screen focused; team status remains available inside certificates. */
+body:has(.minimal-home) .speed-status-row,body:has(.minimal-home) #sperin-live-indicator{display:none!important}
+.speed-links svg{width:22px;height:22px;display:block;margin:0 auto 3px;flex:none}

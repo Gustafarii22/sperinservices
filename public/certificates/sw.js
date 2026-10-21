@@ -1,5 +1,5 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
-const CACHE="sperin-certificates-v1-9-3-integrated";
+const CACHE="sperin-certificates-v1-9-4-home-boards";
 const SHELL=[
  "./","./index.html","./styles.css?v=1.8.6",
  "./vendor/jspdf.umd.min.js?v=1.8.6",

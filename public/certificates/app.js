@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.3-dev';
+  const VERSION = '1.9.4-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -40,7 +40,7 @@
     testResult: ['Pass', 'Fail', 'N/A'],
     ocpdBs: ['BS EN 60898-1','BS EN 60898-2','BS EN 61009-1','BS EN 61009-2-1','BS EN 61009-2-2',
       'BS EN 60947-2','BS EN 60947-3','BS 3871','BS 4293','BS EN 61008-1',
-      'BS 88-2','BS 88-3','BS EN 60269-1','BS EN 60269-2','BS EN 60269-3',
+      'BS 88-2','BS88-3','BS EN 60269-1','BS EN 60269-2','BS EN 60269-3',
       'BS 3036','BS 1361','BS 1362','Other (enter exact marking)'],
     rcdBs: ['BS EN 61008-1','BS EN 61008-2-1','BS EN 61008-2-2','BS EN 61009-1',
       'BS EN 61009-2-1','BS EN 61009-2-2','BS EN 62423','BS EN 60947-2','BS 4293','Other (enter exact marking)'],
@@ -781,7 +781,7 @@
   }
 
   function goCircuitBottom(boardRef){
-    requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const key=normaliseBoardKey(boardRef);
       const target=document.querySelector('[data-board-key="'+CSS.escape(key)+'"] [data-board-add-circuit]') ||
         document.querySelector('.consumer-unit-workflow .add-consumer-unit');
@@ -793,7 +793,7 @@
         const visibleBottom=window.innerHeight-reserved;
         if(rect.bottom>visibleBottom) window.scrollBy({top:rect.bottom-visibleBottom,left:0,behavior:'auto'});
       });
-    });
+    }));
   }
 
   function goBoardCard(boardId){
@@ -1739,7 +1739,7 @@
   }
   function homeView(){
     return '<main class="minimal-home" aria-label="Home"><h2>Certificates</h2>'+
-      '<div class="home-primary-actions"><button class="home-big-action primary" data-action="open-new">＋ <span>New Certificate</span><strong>›</strong></button>'+
+      '<div class="home-primary-actions"><button class="home-big-action primary" data-action="open-new">+ <span>New Certificate</span><strong>›</strong></button>'+
       '<button class="home-big-action" data-action="open-library">▤ <span>My Certificates</span><strong>›</strong></button></div></main>';
   }
   function newCertificateListView(){
@@ -1944,7 +1944,7 @@
         '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
     }).join('');
     return '<div class="board-circuit-list circuit-list">'+(cards||'<div class="empty">No circuits added.</div>')+'</div>'+
-      '<div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
+      '<div class="table-tools board-circuit-tools"><button class="btn primary" data-board-add-circuit data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
       '<button class="btn small" data-action="speed-quick">Quick-add</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="'+esc(board.ref)+'">Use template</button></div>';
   }
   function populateInlineCircuit(details){
@@ -1981,7 +1981,7 @@
                <div class="field"><label>Source circuit</label><select data-board-input="sourceCircuitNo" data-board-index="${bi}"><option value="">Select…</option>${sourceCircuitOptions.map(no=>`<option value="${esc(no)}" ${String(board.sourceCircuitNo??'')===String(no)?'selected':''}>Circuit ${esc(no)}</option>`).join('')}</select></div>`
             : '');
       const accordionKey='board:'+cert.id+':'+board.id;
-      return `<details class="card form-section consumer-unit-card cu-accordion" data-board-id="${esc(board.id)}" data-board-key="${esc(normaliseBoardKey(board.ref))}" data-accordion-key="${esc(accordionKey)}" ${accordionOpen(accordionKey,bi===0)?'open':''}>
+      return `<div class="consumer-unit-group" data-board-key="${esc(normaliseBoardKey(board.ref))}"><details class="card form-section consumer-unit-card cu-accordion" data-board-id="${esc(board.id)}" data-accordion-key="${esc(accordionKey)}" ${accordionOpen(accordionKey,bi===0)?'open':''}>
         <summary class="cu-summary"><span class="cu-index">${bi+1}</span><span class="cu-label"><strong>Consumer unit ${bi+1} · ${esc(board.ref||('DB'+(bi+1)))}</strong><small>${esc(board.manufacturer||'')}${boardCircuitIndices(cert,board.ref).length?' · '+boardCircuitIndices(cert,board.ref).length+' circuits':''}</small></span><span class="cert-chevron">⌄</span></summary><div class="cu-accordion-body">
         <div class="consumer-unit-head">
           <div><span class="eyebrow">CONSUMER UNIT ${bi+1}</span><h3>${esc(board.ref||('DB'+(bi+1)))}</h3></div>
@@ -2010,7 +2010,7 @@
       <details class="card form-section cu-circuits-accordion" data-accordion-key="board-circuits:${esc(cert.id)}:${esc(board.id)}">
         <summary class="cu-summary"><span class="cu-index">↳</span><span class="cu-label"><strong>${esc(board.ref||('DB'+(bi+1)))} circuits</strong><small>${boardCircuitIndices(cert,board.ref).length} circuits</small></span><span class="cert-chevron">⌄</span></summary>
         <div class="cu-accordion-body"><div class="toolbar">${boardScanButton(cert,board.ref)}</div>${renderBoardCircuits(cert,board,bi)}</div>
-      </details>`;
+      </details></div>`;
     }).join('');
     return `<details class="card form-section cert-accordion distribution-section" data-accordion-key="section:${esc(cert.id)}:J Distribution"><summary class="cert-accordion-head"><h3>J · Distribution, Consumer units and circuits</h3><span class="cert-chevron">⌄</span></summary><div class="distribution-body">
       ${boardCards}
@@ -3841,7 +3841,10 @@
       const i=Number(button.dataset.index),row=cert.tables.circuits[i];
       if(!row || row._incomingFeed) return;
       if((cert.tables.boards||[]).some(b=>normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(row.boardRef)&&String(b.sourceCircuitNo??'')===String(row.circuitNo??''))){alert('Change the dependent consumer unit supply before deleting this source circuit.');return;}
-      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);openBoardAccordion(row.boardRef);saveNow();render();keepCircuitAccordionVisible(cert,row.boardRef);restoreScroll(y);toast('Circuit deleted · circuits renumbered · recovery saved');}
+      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);openBoardAccordion(row.boardRef);saveNow();render();keepCircuitAccordionVisible(cert,row.boardRef);restoreScroll(y);requestAnimationFrame(()=>{
+        const rows=document.querySelectorAll('details.inline-circuit'),next=rows[Math.min(i,rows.length-1)];
+        if(next){const rect=next.querySelector('summary').getBoundingClientRect();if(rect.top<100||rect.bottom>innerHeight-140)next.scrollIntoView({block:'center',behavior:'auto'});}
+      });toast('Circuit deleted · circuits renumbered · recovery saved');}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
@@ -3922,6 +3925,7 @@
         else if(confirm('Create a new EICR draft to scan a consumer unit?')){newCertificate('eicr');openBoardScan('');}
       }
     },
+    siteBuilder:()=>openSiteSheetBuilder(),siteRead:()=>planPicker('read'),siteScan:()=>planPicker('scan'),
     settings:()=>openSettings(),
     workspace:()=>window.SperinCloudWorkspace?.open?.({list:()=>state.certificates,
       add:doc=>{const c=migrateCertificate(clone(doc));if(!c)throw Error('Invalid certificate');
