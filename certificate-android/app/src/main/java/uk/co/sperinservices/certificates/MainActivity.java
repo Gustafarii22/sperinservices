@@ -3,6 +3,7 @@ package uk.co.sperinservices.certificates;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -68,6 +69,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -496,6 +498,7 @@ public class MainActivity extends Activity {
                 for (BluetoothDevice device : adapter.getBondedDevices()) {
                     JSONObject entry = new JSONObject();
                     entry.put("name", device.getName() == null ? "Unnamed Bluetooth device" : device.getName());
+                    entry.put("address", device.getAddress());
                     paired.put(entry);
                 }
             }
@@ -510,6 +513,71 @@ public class MainActivity extends Activity {
                 "window.sperinBluetoothDevices?.(" + JSONObject.quote(data) + ")", null
             );
         });
+    }
+
+
+    private void sendSerialData(String address, String text, String error) {
+        final String js = "window.sperinBluetoothSerialResult?.(" + JSONObject.quote(address) +
+          "," + JSONObject.quote(text == null ? "" : text) + "," +
+          JSONObject.quote(error == null ? "" : error) + ")";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(js, null); });
+    }
+
+    private void readPairedSerialInstrument(String address) {
+        if (address == null || !address.matches("(?i)^[0-9a-f]{2}(:[0-9a-f]{2}){5}$")) {
+            sendSerialData("", "", "Select a valid paired instrument."); return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            sendSerialData(address, "", "Grant Nearby Devices permission from Paired Devices first."); return;
+        }
+        new Thread(() -> {
+            BluetoothSocket socket = null;
+            try {
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (adapter == null || !adapter.isEnabled()) {
+                    sendSerialData(address, "", "Bluetooth is switched off."); return;
+                }
+                BluetoothDevice target = null;
+                for (BluetoothDevice paired : adapter.getBondedDevices()) {
+                    if (address.equalsIgnoreCase(paired.getAddress())) { target = paired; break; }
+                }
+                if (target == null) { sendSerialData(address, "", "Tester must be paired in Android Bluetooth settings."); return; }
+                socket = target.createRfcommSocketToServiceRecord(
+                    UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+                final BluetoothSocket timeoutSocket = socket;
+                android.os.Handler handler = new android.os.Handler(getMainLooper());
+                Runnable timeout = () -> { try { timeoutSocket.close(); } catch (Exception ignored) {} };
+                handler.postDelayed(timeout, 14000);
+                socket.connect(); // Connection may fail unless the tester supports Classic RFCOMM SPP.
+                InputStream stream = socket.getInputStream();
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                long until = System.currentTimeMillis() + 7500L;
+                byte[] block = new byte[2048];
+                while (System.currentTimeMillis() < until && bytes.size() < 64000) {
+                    if (stream.available() > 0) {
+                        int n = stream.read(block, 0, Math.min(block.length, 64000-bytes.size()));
+                        if (n < 0) break;
+                        if (n > 0) { bytes.write(block, 0, n); until = System.currentTimeMillis()+1200L; }
+                    } else Thread.sleep(120L);
+                }
+                handler.removeCallbacks(timeout);
+                if (bytes.size() == 0) {
+                    sendSerialData(address, "", "Connected, but no result data was transmitted. Start export on tester or use its documented file export."); return;
+                }
+                String txt = new String(bytes.toByteArray(), StandardCharsets.UTF_8);
+                if (txt.indexOf('\uFFFD') >= 0 || txt.indexOf('\u0000') >= 0 || !txt.matches("(?s).*[,;\\t].*")) {
+                    sendSerialData(address, "", "Instrument returned an unknown/binary protocol. No readings were imported."); return;
+                }
+                sendSerialData(address, txt, "");
+            } catch (SecurityException denied) {
+                sendSerialData(address, "", "Bluetooth access was not granted.");
+            } catch (Exception error) {
+                sendSerialData(address, "", "Could not read SPP data. This tester may require proprietary Bluetooth software or a different transfer method.");
+            } finally {
+                if (socket != null) try { socket.close(); } catch (Exception ignored) {}
+            }
+        }, "sperin-instrument-spp").start();
     }
 
     private void openBackupImportPicker() {
@@ -1019,6 +1087,11 @@ public class MainActivity extends Activity {
                 return;
             }
             sendPairedBluetoothDevices();
+        }
+
+        @JavascriptInterface
+        public void readInstrumentSerial(String pairedAddress) {
+            readPairedSerialInstrument(pairedAddress);
         }
 
         @JavascriptInterface
