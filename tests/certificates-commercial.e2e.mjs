@@ -11,6 +11,7 @@ assert.equal(await page.locator(".cert-launch").count(),9,"Nine certificate type
 const types=["pat","ev","solar","commercialFire"];
 for(const type of types){
   await page.locator('[data-action="new"][data-type="'+type+'"]').click();
+  await page.locator("details").evaluateAll(items=>items.forEach(el=>el.open=true));
   const input=page.locator('[data-field="clientName"]').first();
   assert(await input.count()>0,type+" client field missing");
   await input.fill("Specialist QA "+type);
