@@ -7,7 +7,7 @@ const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{"C
 function pathAllowed(p:unknown):p is string[] {
   if(!Array.isArray(p)||p.length<2||p.length>4||p.some(x=>typeof x!=="string"||x.length>80||!x||x==="__proto__"||x==="constructor"||x==="prototype"))return false;
   if(p[0]==="fields")return p.length===2&&/^[a-zA-Z][a-zA-Z0-9]{0,65}$/.test(p[1])&&!/signature|declaration|approved|status|number/i.test(p[1]);
-  if(p[0]==="tables")return p.length===4&&/^[a-zA-Z][a-zA-Z0-9]{0,60}$/.test(p[1])&&/^(0|[1-9]\d{0,2})$/.test(p[2])&&Number(p[2])<300&&/^[a-zA-Z][a-zA-Z0-9]{0,65}$/.test(p[3])&&!/approved|signature/i.test(p[3]);
+  if(p[0]==="tables")return p.length===4&&/^[a-zA-Z][a-zA-Z0-9]{0,60}$/.test(p[1])&&/^(0|[1-9]\d{0,2})$/.test(p[2])&&Number(p[2])<300&&/^[a-zA-Z][a-zA-Z0-9]{0,65}$/.test(p[3])&&!/approved|signature|circuitNo|boardRef|sourceBoardRef|sourceCircuitNo|_incomingFeed/i.test(p[3]);
   return false;
 }
 function scalar(v:unknown){return v===null||typeof v==="string"&&v.length<=2500||typeof v==="boolean"||typeof v==="number"&&Number.isFinite(v);}
@@ -21,11 +21,12 @@ export async function certificateLiveApi(req:Request,sql:SQL,user:Member):Promis
     if(!Number.isSafeInteger(after)||after<0)return error("Invalid event cursor");
     const doc=await sql.query("select id,revision,status from cert_documents where org_id=$1 and id=$2",[user.orgId,docId]);
     if(!doc.length)return error("Upload this certificate to your private team workspace before collaboration",404);
-    const [events,presence]=await Promise.all([
+    const [events,presence,cursor]=await Promise.all([
       sql.query("select id,field_path,previous_value,new_value,actor,edited_at,revision from cert_live_edits where org_id=$1 and document_id=$2 and id>$3 order by id limit 200",[user.orgId,docId,after]),
-      sql.query("select email,last_seen from cert_live_presence where org_id=$1 and document_id=$2 and last_seen>now()-interval '35 seconds' order by last_seen desc",[user.orgId,docId])
+      sql.query("select email,last_seen from cert_live_presence where org_id=$1 and document_id=$2 and last_seen>now()-interval '35 seconds' order by last_seen desc",[user.orgId,docId]),
+      sql.query("select coalesce(max(id),0) as cursor from cert_live_edits where org_id=$1 and document_id=$2",[user.orgId,docId])
     ]);
-    return response({events,presence,revision:doc[0].revision,status:doc[0].status,hasMore:events.length===200});
+    return response({events:url.searchParams.get("baseline")==="1"?[]:events,presence,cursor:Number(cursor[0]?.cursor||0),revision:doc[0].revision,status:doc[0].status,hasMore:events.length===200&&url.searchParams.get("baseline")!=="1"});
   }
   if(!["owner","supervisor","electrician"].includes(user.role))return error("Editing permission required",403);
   let input:Record<string,unknown>;
