@@ -37,6 +37,7 @@ function routeFor(page,email){
 }
 await Promise.all([routeFor(page1,"electrician1@example.test"),routeFor(page2,"electrician2@example.test")]);
 await page1.goto(url,{waitUntil:"domcontentloaded"});
+await page1.locator('[data-action="open-new"]').click();
 await page1.locator('[data-action="new"][data-type="eic"]').first().click();
 const state=await page1.evaluate(()=>{
  const keys=Object.keys(localStorage),key=keys.find(k=>k.includes("certificates-data-v1"));
