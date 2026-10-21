@@ -33,13 +33,14 @@ const certLinked=await page.evaluate(()=>{
  return cert.certificates?.some(c=>c.jobId);
 });
 assert(certLinked,"Certificate was not linked to job locally");
-const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+wVt8AAAAASUVORK5CYII=","base64");
+const png=Buffer.from((await page.evaluate(()=>{const c=document.createElement("canvas");c.width=8;c.height=8;c.getContext("2d").fillRect(0,0,8,8);return c.toDataURL("image/png");})).split(",")[1],"base64");
 await page.locator('[data-jc-file]').setInputFiles({name:"fuseboard-fixture.png",mimeType:"image/png",buffer:png});
 await page.locator('[data-jc-circuit]').fill("DB1 / 1");
 await page.locator('[data-jc-observation]').fill("OBS-1");
 await page.locator('[data-jc-label]').fill("Device marking evidence");
 await page.locator('[data-jc="photo-add"]').click();
-assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Evidence did not appear");
+await page.waitForFunction(()=>document.querySelector(".jc-dialog")?.textContent?.includes("Device marking evidence"),null,{timeout:8000}).catch(()=>{});
+assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Evidence did not appear: "+(await page.locator("[data-jc-status]").textContent()));
 const [download]=await Promise.all([
  page.waitForEvent("download",{timeout:16000}),
  page.locator('[data-jc="pack"]').click()
