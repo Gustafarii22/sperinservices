@@ -687,3 +687,30 @@ body{padding-bottom:115px!important}
 
 /* Keep profile, recovery, scanner and editor dialogs above persistent navigation. */
 @media screen{.modal-backdrop,.postcode-backdrop,.recovery-confirm-backdrop{z-index:260!important}.voice-panel,.rapid-backdrop,.site-builder-backdrop,.sheet-read-backdrop,.sheet-scan-backdrop{z-index:270!important}.pdf-sign-consent{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;font-size:13px}.pdf-sign-consent input{width:20px;height:20px}}
+
+@media screen{
+:root[data-theme="dark"] .sw-dialog,:root[data-theme="dark"] .jc-dialog,
+:root[data-theme="dark"] .sp-ai-dialog,:root[data-theme="dark"] .scan-modern,
+:root[data-theme="dark"] .scan-circuit,:root[data-theme="dark"] .scan-board,
+:root[data-theme="dark"] .scan-circuit-body,:root[data-theme="dark"] .scan-cloud-content,
+:root[data-theme="dark"] .speed-dialog{background:#13263a!important;color:#edf5ff!important;border-color:#425d77!important}
+:root[data-theme="dark"] .scan-circuit-title,:root[data-theme="dark"] .scan-top,
+:root[data-theme="dark"] .scan-savebar,:root[data-theme="dark"] .scan-device,
+:root[data-theme="dark"] .sp-ai-alert,:root[data-theme="dark"] .jc-banner,
+:root[data-theme="dark"] .sw-note,:root[data-theme="dark"] .scan-circuit-title{background:#203a55!important;color:#edf5ff!important}
+:root[data-theme="dark"] .scan-circuit-name strong,:root[data-theme="dark"] .scan-input,
+:root[data-theme="dark"] .sw-dialog h2,:root[data-theme="dark"] .jc-dialog h2,
+:root[data-theme="dark"] .jc-dialog h3,:root[data-theme="dark"] .sp-ai-dialog h2{color:#edf5ff!important}
+:root[data-theme="dark"] .sw-dialog button,:root[data-theme="dark"] .jc-dialog button,
+:root[data-theme="dark"] .sp-ai-dialog button,:root[data-theme="dark"] .scan-modern .btn:not(.primary){background:#1f4265!important;color:#edf5ff!important;border:1px solid #4c6b89!important}
+:root[data-theme="dark"] .sw-dialog small,:root[data-theme="dark"] .jc-muted,
+:root[data-theme="dark"] .sp-ai-field small,:root[data-theme="dark"] .scan-circuit-name small{color:#c1d8ed!important}
+:root[data-theme="dark"] .scan-review-row,:root[data-theme="dark"] .board-scan-field,
+:root[data-theme="dark"] .sp-ai-field{background:#182e46!important;color:#edf5ff!important}
+@media(max-width:360px){
+ .speed-links button span{font-size:9px!important}
+ .speed-status-row button{font-size:10px!important}
+ .form-head .actions .btn,.home-hero-actions .btn{font-size:12px!important}
+ .circuit-actions{display:flex;flex-wrap:wrap}.circuit-actions .btn{flex:1 1 43%}
+}
+}
