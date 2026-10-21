@@ -71,7 +71,7 @@ jobs:
         run: |
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
           cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,instrument-import.js,job-centre.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js,qrcode.min.js} certificate-android/app/src/main/assets/certificates/vendor/
+          cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js,qrcode.min.js,QR-LICENSE.txt} certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build separately installable preview
         run: |
