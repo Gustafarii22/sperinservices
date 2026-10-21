@@ -1347,7 +1347,7 @@
       address: '', postcode: '', phone: '', email: '', registration: '',
       qualification: 'C&G 2391 / 18th Edition', defaultStandard: 'BS 7671:2018+A4:2026',
       testerMake: '', testerModel: '', testerSerial: '', testerCalibrationDue: '',
-      postcodeApiKey: ''
+      postcodeApiKey: '', reportAccent:'#1365cc', reportLogo:'', reportSignature:''
     };
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')) }; } catch { return defaults; }
   }
@@ -1393,6 +1393,7 @@
     document.querySelectorAll('.profile-modal [data-setting]').forEach(el=>{
       settings[el.dataset.setting]=el.value;
     });
+    if(!/^#[0-9a-fA-F]{6}$/.test(settings.reportAccent))settings.reportAccent='#1365cc';
     saveSettings();
   }
   function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[ch])); }
@@ -1621,7 +1622,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf \${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -1921,6 +1922,14 @@
         ${textField('testerMake','Tester make')}${textField('testerModel','Tester model')}${textField('testerSerial','Serial number')}${textField('testerCalibrationDue','Calibration due','', 'date')}
       </div></section>
       <section class="profile-section"><h3>UK postcode address lookup</h3><p class="profile-help">Optional. Add an Ideal Postcodes API key to enable postcode-first address selection. The key stays in this app’s local settings on your device.</p><div class="settings-grid">${textField('postcodeApiKey','Ideal Postcodes API key',true)}</div></section>
+      <section class="profile-section"><h3>Customer report branding</h3>
+      <p class="profile-help">Branding changes appearance only; mandatory certificate information stays unchanged.</p>
+      <div class="settings-grid">
+      <div class="field"><label>Report accent</label><input data-setting="reportAccent" type="color" value="\${esc(settings.reportAccent||'#1365cc')}" /></div>
+      <div class="field"><label>Company logo (PNG/JPEG, under 120 KB)</label><input data-report-image="reportLogo" type="file" accept="image/png,image/jpeg" /></div>
+      <div class="field"><label>Your signature image (PNG/JPEG, under 120 KB)</label><input data-report-image="reportSignature" type="file" accept="image/png,image/jpeg" /></div></div>
+      <button class="btn small" type="button" data-action="clear-brand-images">Clear logo and signature</button>
+      </section>
       <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">The app keeps an automatic recovery copy. Imports and destructive deletes save an undo snapshot first.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import file</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
@@ -3299,6 +3308,25 @@
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input],[data-board-input]')) markVoiceDone(e.target);
   });
 
+  document.addEventListener('change',event=>{
+    const el=event.target;
+    if(el.matches('[data-sign-pdf]')){
+      const c=getCurrent();if(!c)return;
+      if(el.checked){
+        if(!settings.reportSignature){el.checked=false;alert('Upload your signature in Profile → Customer report branding first.');return;}
+        if(!confirm('Confirm this is your own signature, you approve its use on this certificate and you have independently verified the information?')){el.checked=false;return;}
+        c.signatureApprovedAt=new Date().toISOString();c.signatureApprovedBy=settings.engineerName||'Authorised electrician';
+      }else{delete c.signatureApprovedAt;delete c.signatureApprovedBy;}
+      saveNow();
+    }
+    if(el.matches('[data-report-image]')&&el.files?.[0]){
+      const file=el.files[0];
+      if(!['image/png','image/jpeg'].includes(file.type)||file.size>120000){alert('Use PNG/JPEG under 120 KB');el.value='';return;}
+      const reader=new FileReader();
+      reader.onload=()=>{if(typeof reader.result==='string'&&reader.result.length<165000){settings[el.dataset.reportImage]=reader.result;saveSettings();toast('Brand image saved');}else alert('Image too large');};
+      reader.onerror=()=>alert('Cannot read image');reader.readAsDataURL(file);
+    }
+  });
   document.addEventListener('change', e => {
     const cert=getCurrent();
     if(e.target.matches('[data-board-input]') && cert){changeBoardInput(cert,e.target);return;}
@@ -3568,6 +3596,7 @@
     else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
+    else if(action==='clear-brand-images'){if(confirm('Remove saved report images from this device?')){settings.reportLogo='';settings.reportSignature='';saveSettings();closeModal();openSettings();}}
     else if (action === 'settings') openSettings();
     else if (action === 'save-settings') { saveSettingsFromModal(); closeModal(); toast('Profile saved'); }
     else if (action === 'close-modal') { if (e.target === button || button.tagName === 'BUTTON') closeModal(); }
