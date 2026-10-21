@@ -466,7 +466,7 @@ assert(
   "Home heading unclear",
 );
 assert((await page.locator(".home-visual").count()) === 1, "Home visual treatment missing");
-assert((await page.locator(".cert-launch").count()) === 5, "Certificate launch list incomplete");
+assert((await page.locator(".cert-launch").count()) === 9, "Certificate launch list incomplete");
 assert(
   (await page.locator(".workflow-card").count()) === 3,
   "Site field workflow must show blank sheets, voice readback and photo scan",
