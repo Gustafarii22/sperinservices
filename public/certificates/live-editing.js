@@ -3,6 +3,9 @@ different fields in parallel is possible; collisions are reviewable, never lost.
 (()=>{"use strict";
 let adapter=null,activeId="",visible=false,modal=null,session=null,lastEvent=0,timer=null,heartbeatAt=0;
 const queue=new Map(),editors=new Map();let online=false,conflicts=0,polling=false,changes=0;
+const pendingKey=id=>"sperin-live-pending-"+id;
+function savePending(){if(!activeId)return;try{localStorage.setItem(pendingKey(activeId),JSON.stringify([...queue.entries()]));}catch{}}
+function loadPending(){queue.clear();try{for(const [k,v] of JSON.parse(localStorage.getItem(pendingKey(activeId))||"[]"))if(v&&Array.isArray(v.path)&&v.path.length<5)queue.set(k,v);}catch{}}
 const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;':"&quot;","'":"&#39;"}[ch]));
 const pathKey=p=>JSON.stringify(p);
 const getAt=(obj,path)=>{let v=obj;for(const key of path){if(v==null)return null;v=v[key];}return v===undefined?null:v;};
@@ -58,11 +61,13 @@ async function flush(){
   try{
    const data=await api("","POST",{kind:"patch",path:p.path,previous:p.previous,value:p.value});
    if(data.eventId)lastEvent=Math.max(lastEvent,Number(data.eventId));
+   savePending();
    online=true;
    window.SperinSpeedSuite?.status?.("synced");
   }catch(e){
    conflicts++;
    queue.set(key,p);
+   savePending();
    online=false;window.SperinSpeedSuite?.status?.("conflict");
    message("Unmerged change: "+e.message+" Local work has NOT been overwritten.");
    break;
@@ -106,7 +111,7 @@ function startTimer(){
 async function start(){
  const cert=adapter?.current?.();
  if(!cert)return message("Open a certificate first.");
- activeId=cert.id;lastEvent=0;conflicts=0;changes=0;queue.clear();
+ activeId=cert.id;lastEvent=0;conflicts=0;changes=0;loadPending();
  try{
   const res=await fetch("/api/certificates/session",{credentials:"include",cache:"no-store"});
   if(!res.ok)throw Error("Sign in using Cloud Team first.");
@@ -138,6 +143,7 @@ document.addEventListener("input",e=>{
  const key=pathKey(p);
  const existing=queue.get(key);
  queue.set(key,{path:p,previous:existing?existing.previous:previous,value:v});
+ savePending();
  window.SperinSpeedSuite?.status?.("pending");
  renderToolbar();
 },true);
