@@ -916,7 +916,7 @@ await page.locator('[data-action="save-settings"]').click();
 await page.waitForTimeout(50);
 
 // Start new EIC and verify tester defaults prefill.
-await page.locator('button[data-action="new"][data-type="eic"]').click();
+await page.locator('.cert-launch[data-type="eic"]').click();
 await page.waitForSelector('[data-field="testerMake"]');
 assert(
   (await page.locator('[data-field="testerMake"]').inputValue()) === "Megger",
@@ -1328,7 +1328,7 @@ await page.waitForSelector(".home-page");
 // Every certificate type must open, stay usable at phone width and generate a real PDF.
 await page.setViewportSize({ width: 390, height: 844 });
 for (const type of certificateTypeOrder) {
-  await page.locator('button[data-action="new"][data-type="' + type + '"]').click();
+  await page.locator('.cert-launch[data-type="' + type + '"]').click();
   await page.waitForSelector(".form-head");
   assert((await page.locator(".app-error").count()) === 0, type + " form hit render error");
   assert(
