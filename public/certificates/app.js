@@ -3623,6 +3623,28 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
 
+  window.SperinLiveEditing?.install?.({
+    current:()=>getCurrent(),
+    get:id=>state.certificates.find(x=>x.id===id),
+    applyRemote:(id,path,value)=>{
+      const c=state.certificates.find(x=>x.id===id);if(!c)return;
+      let node=c;for(let i=0;i<path.length-1;i++){if(node==null)return;node=node[path[i]];}
+      if(!node)return;node[path[path.length-1]]=value;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+      scheduleNativeAutoBackup();
+      if(view.currentId===id){
+        const key=path[path.length-1];
+        const selector=path[0]==='fields'?'[data-field="'+key+'"]':
+          path[1]==='boards'?'[data-board-input="'+key+'"][data-board-index="'+path[2]+'"]':
+          path[1]==='circuits'?'[data-circuit-input="details"][data-index="'+path[2]+'"][data-col="'+key+'"]':
+          path[1]==='tests'?'[data-circuit-input="tests"][data-index="'+path[2]+'"][data-col="'+key+'"]':
+          '[data-table-input="'+path[1]+'"][data-row="'+path[2]+'"][data-col="'+key+'"]';
+        const control=document.querySelector(selector);
+        if(control&&control!==document.activeElement)control.value=String(value??'');
+      }
+    }
+  });
+
   window.SperinCloudWorkspace?.connect?.({
     list:()=>state.certificates,
     add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');state.certificates.unshift(valid);persist();render();},
