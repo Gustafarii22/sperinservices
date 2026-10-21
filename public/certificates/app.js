@@ -2175,6 +2175,10 @@
 
   async function completeAndCreatePdf() {
     const cert=getCurrent(); if(!cert)return;
+    if(['pat','ev','solar','commercialFire'].includes(cert.type)){
+      alert('Specialist records are DRAFT ONLY in this development preview. Final professional issue is blocked until the applicable technical/IET standards audit and real-world testing have passed. You can still export a clearly marked draft PDF.');
+      return;
+    }
     syncSingleSignatory(cert);
     saveNow();
     const ok=await downloadPDF();
