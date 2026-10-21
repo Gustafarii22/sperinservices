@@ -10,7 +10,7 @@ await page.waitForSelector(".cert-launch");
 assert.equal(await page.locator(".cert-launch").count(),9,"Nine certificate types available");
 const types=["pat","ev","solar","commercialFire"];
 for(const type of types){
-  await page.locator('[data-action="new"][data-type="'+type+'"]').click();
+  await page.locator('.cert-launch[data-type="'+type+'"]').click();
   await page.locator("details").evaluateAll(items=>items.forEach(el=>el.open=true));
   const input=page.locator('[data-field="clientName"]').first();
   assert(await input.count()>0,type+" client field missing");
@@ -29,7 +29,7 @@ for(const type of types){
   console.log("SPECIALIST_CERT_PDF_PASS",type,buf.length);
   await page.locator('[data-action="home"]').first().click();
 }
-await page.locator('[data-action="new"][data-type="eicr"]').click();
+await page.locator('.cert-launch[data-type="eicr"]').click();
 assert(await page.locator('[data-action="ai-eicr"]').count()>0,"AI EICR review missing");
 assert(await page.locator('[data-action="instrument-import"]').count()>0,"EICR tester file import missing");
 await page.locator('[data-action="home"]').first().click();
