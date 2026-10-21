@@ -9,7 +9,7 @@ const errors=[];
 page.on("pageerror",e=>errors.push(e.message));
 page.on("dialog",d=>d.accept());
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/");
-await page.locator('[data-action="new"][data-type="eic"]').click();
+await page.locator('.cert-launch[data-type="eic"]').click();
 await page.locator('[data-field="clientName"]').fill("Scanner regression customer");
 // Compact IET form sections: opening B closes A. Actual form labels remain unchanged.
 assert.ok(await page.locator('.cert-accordion').first().evaluate(el=>el.open));
