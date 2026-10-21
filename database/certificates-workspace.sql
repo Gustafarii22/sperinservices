@@ -135,3 +135,16 @@ create table if not exists cert_reminder_sent (
 );
 -- All app access is via the verified server session and tenant-scoped SQL.
 -- No server database credential is ever sent to Android or the web interface.
+
+-- Optional Stripe SaaS billing. Existing cloud records remain exportable if unpaid.
+alter table cert_orgs add column if not exists trial_ends_at timestamptz not null default now()+interval '14 days';
+alter table cert_orgs add column if not exists stripe_customer_id text;
+alter table cert_orgs add column if not exists stripe_subscription_id text;
+alter table cert_orgs add column if not exists subscription_status text not null default 'trial';
+alter table cert_orgs add column if not exists subscription_period_end timestamptz;
+create unique index if not exists cert_orgs_stripe_customer on cert_orgs(stripe_customer_id) where stripe_customer_id is not null;
+create table if not exists cert_stripe_events (
+  id text primary key,
+  kind text not null,
+  received_at timestamptz not null default now()
+);
