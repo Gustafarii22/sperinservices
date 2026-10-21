@@ -150,7 +150,7 @@ function zip(files){
 const items=[],central=[];let offset=0,bytes=0;
 for(const [name,data] of files){const n=encode(name);if(data.length>12e6)throw Error("Single attachment too large");
 const c=crc(data),z=data.length;let header=Uint8Array.from([...w32(0x04034b50),...w16(20),...w16(0),...w16(0),0,0,0,0,...w32(c),...w32(z),...w32(z),...w16(n.length),0,0,...n]);items.push(header,data);
-central.push(Uint8Array.from([...w32(0x02014b50),...w16(20),...w16(20),0,0,0,0,0,0,0,0,...w32(c),...w32(z),...w32(z),...w16(n.length),0,0,0,0,0,0,0,0,0,0,...w32(offset),...n]));offset+=header.length+z;bytes+=z;
+central.push(Uint8Array.from([...w32(0x02014b50),...w16(20),...w16(20),0,0,0,0,0,0,0,0,...w32(c),...w32(z),...w32(z),...w16(n.length),...w16(0),...w16(0),...w16(0),...w16(0),...w32(0),...w32(offset),...n]));offset+=header.length+z;bytes+=z;
 if(bytes>45e6)throw Error("Pack exceeds 45 MB; reduce photographs.");
 }
 const count=central.length,len=central.reduce((s,v)=>s+v.length,0);
