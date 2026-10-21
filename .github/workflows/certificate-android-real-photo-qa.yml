@@ -41,21 +41,7 @@ jobs:
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: |
-            set -eu
-            gradle -p certificate-android :app:assemblePreview :app:assemblePreviewAndroidTest --no-daemon --stacktrace
-            APP_APK=$(find certificate-android/app/build/outputs/apk/preview -maxdepth 1 -name '*.apk' | head -1)
-            TEST_APK=$(find certificate-android/app/build/outputs/apk/androidTest -type f -name '*.apk' | head -1)
-            test -s "$APP_APK"
-            test -s "$TEST_APK"
-            adb install -r "$APP_APK"
-            adb install -r "$TEST_APK"
-            INSTRUMENT=$(adb shell pm list instrumentation | grep -F 'uk.co.sperinservices.certificates.stable.preview.navy.test/' | head -1 | sed -E 's/^instrumentation:([^ ]+) .*/\1/')
-            test -n "$INSTRUMENT"
-            mkdir -p certificate-android/qa-output/native-photo
-            adb shell am instrument -w -r "$INSTRUMENT" | tee certificate-android/qa-output/native-photo/results.txt
-            grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt
-            ! grep -E '^FAILURES|INSTRUMENTATION_FAILED|INSTRUMENTATION_CODE: 0' certificate-android/qa-output/native-photo/results.txt
+          script: bash certificate-android/qa/run-native-ocr-qa.sh
       - name: Upload instrumentation test evidence
         if: always()
         uses: actions/upload-artifact@v4
