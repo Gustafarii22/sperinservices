@@ -245,6 +245,8 @@ document.addEventListener('click',function(e){
  if(s.busy)return;
  if(el.dataset.open!==undefined){s.active=s.active===el.dataset.open?'':el.dataset.open;render();return;}
  if(el.dataset.side){
+   if(s.mainSide===el.dataset.side)return;
+   if(s.result.circuits.some(d=>d.verified)&&!confirm('Changing the main-switch side will clear the reviewed device list. Continue?'))return;
    s.mainSide=el.dataset.side;
    if(s.ocrPhotos?.length){
      const next=core.localOcrCandidates(s.ocrPhotos,{mainSide:s.mainSide});
