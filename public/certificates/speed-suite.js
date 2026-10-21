@@ -16,7 +16,7 @@ function nav(){
  let n=document.getElementById("speed-nav");
  if(!n){n=document.createElement("nav");n.id="speed-nav";n.setAttribute("aria-label","Primary app navigation");document.body.appendChild(n);}
  n.innerHTML='<div class="speed-status-row"><button data-speed="workspace" data-sync>◌ Local only</button><button data-speed="activity" data-activity>👷 Activity</button><button data-speed="theme" data-theme>☾</button></div>'+
- '<div class="speed-links"><button data-speed="home">⌂<span>Home</span></button><button data-speed="jobs">▤<span>Jobs</span></button><button data-speed="certificates">☑<span>Certificates</span></button><button data-speed="scan" class="speed-important">▣<span>Scan</span></button><button data-speed="more">•••<span>More</span></button></div>';
+ '<div class="speed-links"><button data-speed="home">⌂<span>Home</span></button><button data-speed="new">＋<span>New</span></button><button data-speed="certificates">▤<span>My Certificates</span></button><button data-speed="jobs">▣<span>Jobs</span></button><button data-speed="more">•••<span>More</span></button></div>';
  n.onclick=e=>{const b=e.target.closest("[data-speed]");if(b)action(b.dataset.speed);};update();
 }
 function show(title,html){
@@ -130,6 +130,6 @@ function more(){
  ["quick","⚡ Quick circuits"],["bulk","⇄ Find & replace"],["convert","▤ Copy / convert"],["bluetooth","ᛒ Bluetooth instruments"],["branding","◈ PDF branding"],["team","👷 Team activity"],["workspace","☁ Cloud"],["theme","☀/☾ Theme"]].map(x=>'<button data-tool="'+x[0]+'">'+x[1]+'</button>').join("")+'</div>');
  m.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{const key=b.dataset.tool;close();if(key==="quick")quick();if(key==="bulk")bulk();if(key==="convert")convert();if(key==="bluetooth")bluetooth();if(key==="branding")api.settings();if(key==="workspace")api.workspace();if(key==="team")team();if(key==="theme")setTheme(theme==="dark"?"light":"dark");});
 }
-function action(x){if(x==="home"||x==="certificates")api.home();if(x==="jobs")api.jobs();if(x==="scan")api.scan();if(x==="more")more();if(x==="theme")setTheme(theme==="dark"?"light":"dark");if(x==="workspace")api.workspace();if(x==="activity")team();}
+function action(x){if(x==="home")api.home();if(x==="new")api.newCertificate();if(x==="certificates")api.library();if(x==="jobs")api.jobs();if(x==="more")more();if(x==="theme")setTheme(theme==="dark"?"light":"dark");if(x==="workspace")api.workspace();if(x==="activity")team();}
 window.SperinSpeedSuite={install:a=>{api=a;nav();refresh();if(poll)clearInterval(poll);poll=setInterval(refresh,30000);window.addEventListener("offline",()=>status("offline"));window.addEventListener("online",refresh);},nav,status,refresh,quick,bulk,convert,bluetooth,more,setTheme};
 })();
