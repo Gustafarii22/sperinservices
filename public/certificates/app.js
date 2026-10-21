@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.1-dev';
+  const VERSION = '1.9.2-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1597,13 +1597,10 @@
     const recentName=recent ? (recent.fields?.clientName||recent.fields?.occupier||recent.fields?.premisesName||'Recent certificate') : '';
     return `<main class="home-page">
       <section class="home-hero">
-        <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jobs">📁 Jobs &amp; evidence</button><button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+        <div class="home-hero-copy"><div class="eyebrow">YOUR WORKSPACE</div><h2>Ready for the next job.</h2><p>Continue a certificate or start a new one in seconds.</p>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jobs">📁 Jobs &amp; evidence</button><button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn primary hero-cta" data-action="new" data-type="eicr">＋ New EICR</button><button class="btn hero-cta" data-action="new" data-type="eic">＋ New EIC</button><button class="btn hero-cta" data-action="speed-quick">⚡ Quick circuits</button></div>
         </div>
-        <div class="home-visual" aria-hidden="true">
-          <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
-          <div class="visual-badge visual-badge-mic">${uiIcon('mic')} Voice Fill</div><div class="visual-badge visual-badge-pdf">${uiIcon('pdf')} PDF</div>
-        </div>
+
       </section>
       <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
       <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
@@ -1625,7 +1622,7 @@
       return renderTable(part,cert);
     }).join('');
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1782,7 +1779,7 @@
       </div>`;
     }).join('');
     return `<div class="board-circuit-list circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
-      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Use template</button></div>`;
+      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="speed-quick">⚡ Quick-add</button><button class="btn small" data-action="speed-bulk">⇄ Find/replace</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Templates</button></div>`;
   }
 
   function renderBoardWorkflow(cert){
@@ -1884,7 +1881,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="speed-convert">Copy to new type</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
@@ -3378,7 +3375,11 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='job-evidence') window.SperinJobCentre?.showRef?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'',button.dataset.ref);
+    if(action==='speed-quick') window.SperinSpeedSuite?.quick?.();
+    else if(action==='speed-bulk') window.SperinSpeedSuite?.bulk?.();
+    else if(action==='speed-convert') window.SperinSpeedSuite?.convert?.();
+    else if(action==='speed-bluetooth') window.SperinSpeedSuite?.bluetooth?.();
+    else if(action==='job-evidence') window.SperinJobCentre?.showRef?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'',button.dataset.ref);
     else if(action==='jobs') window.SperinJobCentre?.open?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'');
     else if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
       get:()=>getCurrent(),
@@ -3600,5 +3601,65 @@
   });
   window.SperinJobCentre?.install?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}));
   if(location.hash.includes('asset='))window.addEventListener('load',()=>window.SperinJobCentre?.incomingAsset?.());
+
+  window.SperinSpeedSuite?.install?.({
+    current:()=>getCurrent(),
+    home:()=>{saveNow();view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};render();goTop();},
+    jobs:()=>document.querySelector('[data-action="jobs"]')?.click(),
+    scan:()=>{
+      const c=getCurrent();
+      if(c&&['eic','eicr','minor'].includes(c.type))openBoardScan('');
+      else{
+        const a=state.certificates.find(x=>['eic','eicr','minor'].includes(x.type));
+        if(a){openCertificate(a.id);openBoardScan('');}
+        else if(confirm('Create a new EICR draft to scan a consumer unit?')){newCertificate('eicr');openBoardScan('');}
+      }
+    },
+    settings:()=>openSettings(),
+    workspace:()=>document.querySelector('[data-action="workspace"]')?.click(),
+    tester:()=>{const cert=getCurrent();if(!cert)return toast('Open a certificate first');document.querySelector('[data-action="instrument-import"]')?.click();},
+    mutate:(label,change)=>{
+      const cert=getCurrent();if(!cert)throw Error('Open a certificate');
+      pushEditHistory(label);const before=clone(cert);
+      try{change(cert);saveNow();const y=scrollY;render();requestAnimationFrame(()=>scrollTo(0,y));}
+      catch(err){Object.keys(cert).forEach(k=>delete cert[k]);Object.assign(cert,before);saveNow();render();throw err;}
+    },
+    quick:(board,description,curve,rating)=>{
+      const cert=getCurrent();if(!cert||!['eic','eicr'].includes(cert.type))throw Error('Open EIC or EICR');
+      if(!cert.tables.boards.some(b=>b.ref===board))throw Error('Board not found');
+      if((cert.tables.circuits||[]).length>=150)throw Error('Limit reached; split the schedule');
+      syncCircuitRows(cert);pushEditHistory('Quick-add circuit');
+      const no=nextCircuitNumber(cert,board);
+      const c={id:uid(),boardRef:board,circuitNo:no,description,ocpdType:curve,ocpdRating:rating};
+      cert.tables.circuits.push(c);cert.tables.tests.push({boardRef:board,circuitNo:no});
+      sortCircuitsByNumber(cert,c);saveNow();render();
+    },
+    convert:(type,copyCircuits)=>{
+      const old=getCurrent();if(!old||!SCHEMAS[type]||!['eic','eicr','minor'].includes(type)||type===old.type)throw Error('Unsupported conversion');
+      if(!['eic','eicr','minor'].includes(old.type))throw Error('Unsupported source');
+      savePreRestoreSnapshot();
+      const next=makeCertificate(type);
+      const keep=['clientName','clientAddress','clientPostcode','installationAddress','installationPostcode','premisesAddress',
+        'premisesPostcode','occupier','nominalVoltage','frequency','earthingArrangement','ze','ipf','supplyCharacteristics'];
+      for(const k of keep)if(Object.hasOwn(next.fields,k)&&old.fields?.[k]!==undefined)next.fields[k]=clone(old.fields[k]);
+      if(copyCircuits&&type!=='minor'&&Array.isArray(old.tables?.circuits)){
+        next.tables.boards=clone(old.tables.boards||[]).map(b=>{const copy={...b};for(const k of ['zdb','ipf','rcdTime','spdOperational','polarity','phaseSequence'])delete copy[k];return copy;});
+        next.tables.circuits=old.tables.circuits.filter(r=>!r._incomingFeed).map(r=>({
+          id:uid(),boardRef:r.boardRef,circuitNo:r.circuitNo,description:r.description||'',points:r.points||'',
+          cableType:r.cableType||'',cableCsa:r.cableCsa||'',cpcCsa:r.cpcCsa||'',ocpdBs:r.ocpdBs||'',
+          ocpdType:r.ocpdType||'',ocpdRating:r.ocpdRating||''
+        }));
+        next.tables.tests=next.tables.circuits.map(r=>({boardRef:r.boardRef,circuitNo:r.circuitNo}));
+        ensureBoardWorkflowData(next);syncCircuitRows(next);
+      }
+      if(copyCircuits&&type==='minor'&&old.tables?.circuits?.[0])next.fields.description=String(old.tables.circuits[0].description||'');
+      next.status='Draft';next.sourceCertificateId=old.id;next.convertedUnverified=true;
+      // Critical: no original signatures, previous inspection findings or previous test values can attest new work.
+      next.fields.inspectorSignature='';next.fields.constructorSignature='';next.fields.designer1Signature='';
+      next.fields.singleSignatoryName='';next.fields.singleSignatoryQualification='';
+      state.certificates.unshift(next);view={page:'form',currentId:next.id,circuitIndex:null,circuitStep:'details'};
+      resetEditHistory(next.id);saveNow();render();goTop();toast('New DRAFT — independently verify all copied details');
+    }
+  });
   render();
 })();
