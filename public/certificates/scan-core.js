@@ -14,7 +14,17 @@ function fields(rows,keys,count){
 }
 function normalise(raw,count){
  if(!raw||typeof raw!=='object'||!Array.isArray(raw.board)||!Array.isArray(raw.circuits))throw Error('Analysis returned an invalid result. No certificate information was changed.');
- return {board:fields(raw.board,boardKeys,count),circuits:raw.circuits.slice(0,80).map((c,i)=>({id:'device-'+i,position:text(c.position),association:c.association==='high'?'high':'check',reason:text(c.reason),fields:fields(c.fields,circuitKeys,count),target:'',number:''})),warnings:(Array.isArray(raw.warnings)?raw.warnings:[]).map(w=>text(w)).filter(Boolean).slice(0,20)};
+ return {board:fields(raw.board,boardKeys,count),circuits:raw.circuits.slice(0,80).map((c,i)=>{
+   const proposed=fields(c.fields,circuitKeys,count);
+   const kind=proposed.find(x=>x.key==='deviceKind')?.value||'';
+   const assumed={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},
+     RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}}[kind]||{};
+   for(const [key,value] of Object.entries(assumed))if(!proposed.some(x=>x.key===key&&x.value)){
+     proposed.push({key,value,confidence:'check',reason:'Suggested by apparent device class. Not read from the product label; electrician must verify.',evidence:[],accepted:false});
+   }
+   return {id:'device-'+i,position:text(c.position),association:c.association==='high'?'high':'check',
+      reason:text(c.reason),fields:proposed,target:'',number:''};
+ }),warnings:(Array.isArray(raw.warnings)?raw.warnings:[]).map(w=>text(w)).filter(Boolean).slice(0,20)};
 }
 function blank(){return {board:Object.keys(boardKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Not identified — enter only information you can verify.',accepted:false})),circuits:[],warnings:[]};}
 function draftDevice(){return {id:'manual-'+Date.now(),position:'Manual device',association:'check',reason:'Choose its circuit explicitly.',target:'',number:'',fields:Object.keys(circuitKeys).map(key=>({key,value:'',confidence:'missing',evidence:[],reason:'Manual entry',accepted:false}))};}
