@@ -27,6 +27,13 @@ let body=page.locator("details.cu-circuits-accordion").first();
 if(!(await body.evaluate(e=>e.open)))await body.locator("summary").first().click();
 async function row(description){
  const x=page.locator(".inline-circuit").filter({hasText:description}).first();
+ if(!await x.count()){
+   const diagnostic=await page.evaluate(()=>{
+     const c=JSON.parse(localStorage.getItem("sperin-certificates-data-v1"))?.certificates?.find(v=>v.type==="eic");
+     return {url:location.href,view:localStorage.getItem("sperin-certificates-view-v1"),stored:c?.tables?.circuits?.map(v=>({no:v.circuitNo,desc:v.description,ref:v.boardRef})),htmlCircuits:[...document.querySelectorAll(".inline-circuit")].map(v=>v.textContent?.slice(0,160)),boards:[...document.querySelectorAll(".cu-circuits-accordion")].map(v=>({open:v.open,txt:v.textContent?.slice(0,130)}))};
+   });
+   throw Error("Missing circuit "+description+" after reload: "+JSON.stringify(diagnostic));
+ }
  await x.waitFor();
  if(!(await x.evaluate(e=>e.open)))await x.locator("summary").first().click();
  return x;
