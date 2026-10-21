@@ -175,6 +175,7 @@ notice("Handover ZIP created with "+linked.length+" certificate PDFs and "+(item
 }
 async function customerShare(j,certId){
 const cert=certificates().find(x=>x.id===certId);if(!cert)return;
+if(cert.status!=="Complete")throw Error("Only a reviewed, completed certificate can be shared with customers. Drafts cannot be sent.");
 const email=(prompt("Customer email for seven-day secure PDF link:",j.email||"")||"").trim();
 if(!email||!confirm("Confirm customer is authorised and certificate is reviewed before sharing with "+email+"?"))return;
 await cloudJob(j);
