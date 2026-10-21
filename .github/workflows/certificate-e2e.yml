@@ -8,7 +8,7 @@ on:
       - "certificate-android/qa/**"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
