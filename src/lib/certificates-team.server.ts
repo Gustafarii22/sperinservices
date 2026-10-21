@@ -5,6 +5,7 @@ import { certificateScan } from "./certificate-scan.server";
 import { certificateAssistance } from "./certificate-ai.server";
 import { certificateJobsApi, publicCertificateHandover, runCertificateReminders } from "./certificates-jobs.server";
 import { certificateStripeWebhook, certificateBillingApi } from "./certificates-billing.server";
+import { certificateLiveApi } from "./certificates-live.server";
 
 // Dedicated certificates database and tenant-aware access. Fail closed without configuration.
 const cookieName="sperin_cert_session";
@@ -75,7 +76,7 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   try{c=settings();}catch{return result({error:"Unsafe workspace configuration"},503);}
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
-  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
+  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook" && !path.startsWith("/api/certificates/live/")){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
   const sql=neon(c.database);
   try{
     const billingWebhook=await certificateStripeWebhook(req,sql);
@@ -160,6 +161,8 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
       if(!response.ok)await sql.query("update cert_ai_usage set used=greatest(0,used-1) where org_id=$1 and period=$2",[s.orgId,period]);
       return response;
     }
+    const liveResponse=await certificateLiveApi(req,sql,s);
+    if(liveResponse)return liveResponse;
     const jobsResponse=await certificateJobsApi(req,sql,s);
     if(jobsResponse)return jobsResponse;
     if(path==="/api/certificates/session"&&req.method==="GET")
