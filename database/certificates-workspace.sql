@@ -62,11 +62,76 @@ create table if not exists cert_audit (
 create index if not exists cert_audit_by_document on cert_audit(org_id,document_id,id);
 create table if not exists cert_ai_usage (
   org_id uuid not null references cert_orgs(id) on delete cascade,
-  period text not null check (period ~ '^[0-9]{4}-[0-9]{2} No credentials are shipped
--- to Android or JavaScript. Every tenant query MUST include org_id.
-),
+  period text not null check (period ~ '^[0-9]{4}-[0-9]{2}$'),
   used integer not null default 0 check (used >= 0),
   primary key(org_id,period)
 );
--- App uses ONLY the server-side database credential. No credentials are shipped
--- to Android or JavaScript. Every tenant query MUST include org_id.
+-- One private site/job links multiple certificates, equipment, photos and reminders.
+create table if not exists cert_jobs (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  asset_id uuid not null unique default gen_random_uuid(),
+  details jsonb not null default '{}'::jsonb,
+  revision integer not null default 1,
+  updated_by text not null,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+create index if not exists cert_jobs_by_org on cert_jobs (org_id,updated_at desc);
+create table if not exists cert_evidence (
+  id uuid primary key,
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  job_id uuid not null references cert_jobs(id) on delete cascade,
+  document_id uuid,
+  file_type text not null check (file_type in ('image/jpeg','image/png','image/webp')),
+  label text not null default '',
+  circuit_ref text,
+  observation_ref text,
+  uploaded_by text not null,
+  body bytea not null check(octet_length(body)<=2200000),
+  created_at timestamptz not null default now()
+);
+create index if not exists cert_evidence_by_job on cert_evidence (org_id,job_id);
+-- Password-equivalent handover tokens are stored ONLY as SHA-256 hashes.
+create table if not exists cert_handover_links (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  job_id uuid not null references cert_jobs(id) on delete cascade,
+  token_hash text not null unique,
+  customer_email text not null,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  created_by text not null,
+  created_at timestamptz not null default now()
+);
+create table if not exists cert_handover_files (
+  id uuid primary key default gen_random_uuid(),
+  link_id uuid not null references cert_handover_links(id) on delete cascade,
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  label text not null,
+  filename text not null,
+  mime_type text not null check(mime_type='application/pdf'),
+  body bytea not null check(octet_length(body)<=6000000)
+);
+create index if not exists cert_handover_files_lookup on cert_handover_files(link_id);
+create table if not exists cert_reminders (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  job_id uuid not null references cert_jobs(id) on delete cascade,
+  kind text not null check (kind in ('eicr','emergency','fire','pat','ev','solar','custom')),
+  description text not null,
+  due_date date not null,
+  engineer_email text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists cert_reminders_due on cert_reminders(due_date) where active;
+create table if not exists cert_reminder_sent (
+  reminder_id uuid not null references cert_reminders(id) on delete cascade,
+  notice_days int not null,
+  due_date date not null,
+  sent_at timestamptz not null default now(),
+  primary key(reminder_id,notice_days,due_date)
+);
+-- All app access is via the verified server session and tenant-scoped SQL.
+-- No server database credential is ever sent to Android or the web interface.
