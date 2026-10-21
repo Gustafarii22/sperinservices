@@ -770,7 +770,7 @@
         // Wide specialist records (e.g. PAT with 14 per-item columns) are
         // printed vertically per asset so every measured value remains legible.
         if(part.columns.length>8){
-          if(!rows.length)continue;
+          if(!rows.length)return;
           rows.forEach((row,i)=>{
             if(y>215){doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);}
             doc.autoTable({
@@ -785,7 +785,7 @@
             });
             y=doc.lastAutoTable.finalY+4;
           });
-          continue;
+          return;
         }
         doc.autoTable({
           startY:y,
