@@ -1,5 +1,5 @@
-import { neon } from "@neondatabase/serverless";
-type SQL=ReturnType<typeof neon>;
+import { certSql } from "./certificates-db.server";
+type SQL=ReturnType<typeof certSql>;
 type Member={email:string,orgId:string,role:string,name:string};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const error=(x:string,status=400)=>Response.json({error:x},{status,headers:{"Cache-Control":"no-store"}});
