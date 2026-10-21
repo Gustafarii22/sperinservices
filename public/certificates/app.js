@@ -1914,11 +1914,16 @@
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
         '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
-        '<div class="inline-circuit-actions"><button class="btn small" data-action="circuit-move-up" data-index="'+i+'" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ Move</button>'+
-        '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ Move</button>'+
-        '<button class="btn small" data-action="circuit-open" data-index="'+i+'">Full screen</button>'+
+        '<div class="inline-circuit-actions">'+
+        '<div class="inline-circuit-actions-primary">'+
+        '<button class="btn small" data-action="circuit-move-up" data-index="'+i+'" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ Up</button>'+
+        '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ Down</button>'+
         '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
-        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
+        '<button class="btn small" data-action="template-save-circuit" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Create Template</button></div>'+
+        '<div class="inline-circuit-actions-secondary">'+
+        '<button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="'+esc(board.ref)+'">Use Template</button>'+
+        '<button class="btn small" data-action="circuit-open" data-index="'+i+'">Full screen</button>'+
+        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></div></details>';
     }).join('');
     return '<div class="board-circuit-list circuit-list">'+(cards||'<div class="empty">No circuits added.</div>')+'</div>'+
       '<div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
@@ -3666,7 +3671,7 @@
     else if(action==='board-add' && cert){addBoard(cert);}
     else if(action==='board-delete' && cert){deleteBoard(cert,Number(button.dataset.boardIndex));}
     else if(action==='template-save-board' && cert){saveDesignTemplate('board',cert,Number(button.dataset.boardIndex));}
-    else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,view.circuitIndex);}
+    else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,button.dataset.index!==undefined?Number(button.dataset.index):view.circuitIndex);}
     else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef);}
     else if(action==='template-use' && cert){useDesignTemplate(button.dataset.id);}
     else if(action==='template-rename'){manageDesignTemplate(button.dataset.id,false);}
