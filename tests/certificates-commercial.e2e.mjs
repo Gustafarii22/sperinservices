@@ -6,10 +6,12 @@ const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disab
 const page=await browser.newPage({acceptDownloads:true,viewport:{width:420,height:950}});
 const base=process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/";
 await page.goto(base,{waitUntil:"domcontentloaded"});
+await page.locator('[data-action="open-new"]').click();
 await page.waitForSelector(".cert-launch");
 assert.equal(await page.locator(".cert-launch").count(),9,"Nine certificate types available");
 const types=["pat","ev","solar","commercialFire"];
 for(const type of types){
+  if(!(await page.locator(".cert-launch").count())) await page.locator('[data-action="open-new"]').click();
   await page.locator('.cert-launch[data-type="'+type+'"]').click();
   await page.locator("details").evaluateAll(items=>items.forEach(el=>el.open=true));
   const input=page.locator('[data-field="clientName"]').first();
@@ -38,15 +40,18 @@ for(const type of types){
   console.log("SPECIALIST_CERT_PDF_PASS",type,buf.length);
   await page.locator('[data-action="home"]').first().click();
 }
+await page.locator('[data-action="open-new"]').click();
 await page.locator('.cert-launch[data-type="eicr"]').click();
 assert(await page.locator('[data-action="ai-eicr"]').count()>0,"AI EICR review missing");
 assert(await page.locator('[data-action="instrument-import"]').count()>0,"EICR tester file import missing");
 await page.locator('[data-action="home"]').first().click();
+await page.locator('[data-action="open-new"]').click();
 await page.locator('[data-action="import-ai"]').first().click();
 assert(await page.locator('[data-ai-consent]').count()>0,"PDF import consent missing");
 assert.equal(await page.locator('[data-ai-select]').count(),0,"Never create preapproved legacy imported values");
 await page.locator('[data-ai-action="close"]').click();
-await page.locator('[data-action="workspace"]').first().click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="workspace"]').click();
 assert(await page.locator('[data-sw-email]').count()>0,"Team sign-in missing");
 assert(await page.locator('[data-sw-consent]').count()===0,"Cloud uploads must be impossible before sign-in");
 await page.locator('[data-sw="close"]').click();
