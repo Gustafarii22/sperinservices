@@ -42,7 +42,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             gradle -p certificate-android :app:assemblePreview :app:assemblePreviewAndroidTest --no-daemon --stacktrace
             APP_APK=$(find certificate-android/app/build/outputs/apk/preview -maxdepth 1 -name '*.apk' | head -1)
             TEST_APK=$(find certificate-android/app/build/outputs/apk/androidTest -type f -name '*.apk' | head -1)
