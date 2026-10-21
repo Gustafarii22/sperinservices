@@ -25,7 +25,7 @@ assert((await page.locator(".jc-dialog").textContent()).includes("Explicit inspe
 await page.locator('[data-jc="close"]').click();
 await page.locator('[data-action="new"][data-type="eic"]').click();
 await page.locator('[data-action="jobs"]').first().click();
-await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').click();
+await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 await page.locator('[data-jc-cert]').selectOption({index:1});
 await page.locator('[data-jc="link"]').click();
 const certLinked=await page.evaluate(()=>{
@@ -52,7 +52,7 @@ const dataBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem("sperin
 assert.equal(dataBefore.length,1);
 await page.reload();
 await page.locator('[data-action="jobs"]').first().click();
-await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').click();
+await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Offline job persistence failed");
 await page.locator('[data-jc="sync"]').click();
 assert((await page.locator("[data-jc-status]").textContent()).includes("Enable cloud consent"),"Cloud upload must remain disabled by default");
