@@ -1325,7 +1325,9 @@
   let preserveRequestedAccordions=false;
   const accordionOpen=(key,initial=false)=>accordionState.has(key)?accordionState.get(key):initial;
   function rememberAccordions(){document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>accordionState.set(el.dataset.accordionKey,el.open));}
-  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('board:'+cert.id+':'+board.id,true);preserveRequestedAccordions=true;}}
+  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('section:'+cert.id+':J Distribution',true);
+    accordionState.set('board-circuits:'+cert.id+':'+board.id,true);
+    preserveRequestedAccordions=true;}}
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
@@ -1881,7 +1883,7 @@
       const details=[row.description,row.ocpdType&&row.ocpdRating?row.ocpdType+row.ocpdRating+' A':'',
         test.zs?'Zs '+test.zs+' Ω':''].filter(Boolean).join(' · ');
       const key='inline-circuit:'+cert.id+':'+(row.id||i);
-      return '<details class="inline-circuit cert-accordion" data-accordion-key="'+esc(key)+'" data-inline-index="'+i+'">'+
+      return '<details class="inline-circuit cert-accordion" data-accordion-key="'+esc(key)+'" data-inline-index="'+i+'" '+(accordionOpen(key,false)?'open':'')+'>'+
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
         '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
@@ -2018,7 +2020,8 @@
       const selected=String(row.outcome||'');
       return `<div class="inspection-row"><div class="inspection-copy"><strong>${esc(row.item||String(ri+1))}</strong><span>${esc(row.description||'')}</span></div><div class="inspection-choices" role="group" aria-label="Result for item ${esc(row.item||String(ri+1))}">${OPTIONS.passNA.map(v=>`<button type="button" class="${selected===v?'selected':''} ${v==='✕'?'fail':''}" data-action="inspection-outcome" data-row="${ri}" data-value="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>`;
     }).join('');
-    return `<section class="card form-section inspection-section"><h3>${esc(part.title)}</h3><div class="inspection-bulk"><span>Apply to all:</span><button class="btn small" data-action="inspection-bulk" data-value="✓">✓ All</button><button class="btn small danger" data-action="inspection-bulk" data-value="✕">✕ All</button><button class="btn small" data-action="inspection-bulk" data-value="N/A">N/A All</button><button class="btn small ghost" data-action="inspection-bulk" data-value="">Clear</button></div><div class="inspection-list">${body}</div></section>`;
+    const key='section:'+cert.id+':'+part.title;
+    return `<details class="card form-section inspection-section cert-accordion" data-accordion-key="${esc(key)}" ${accordionOpen(key,false)?'open':''}><summary class="cert-accordion-head"><h3>${esc(part.title)}</h3><span class="cert-chevron">⌄</span></summary><div class="cert-accordion-body"><div class="inspection-bulk"><span>Apply to all:</span><button class="btn small" data-action="inspection-bulk" data-value="✓">✓ All</button><button class="btn small danger" data-action="inspection-bulk" data-value="✕">✕ All</button><button class="btn small" data-action="inspection-bulk" data-value="N/A">N/A All</button><button class="btn small ghost" data-action="inspection-bulk" data-value="">Clear</button></div><div class="inspection-list">${body}</div></div></details>`;
   }
 
   function renderTable(part, cert) {
