@@ -684,3 +684,6 @@ body{padding-bottom:115px!important}
 :root[data-theme="dark"] .meta,:root[data-theme="dark"] .home-hero p,:root[data-theme="dark"] .cert-launch small,:root[data-theme="dark"] .saved-cert-copy span{color:#c7daee!important}
 :root[data-theme="dark"] .btn:not(.primary){background:#173047!important;color:#eef6ff!important;border-color:#4f6a88!important}
 }
+
+/* Keep profile, recovery, scanner and editor dialogs above persistent navigation. */
+@media screen{.modal-backdrop,.postcode-backdrop,.recovery-confirm-backdrop{z-index:260!important}.voice-panel,.rapid-backdrop,.site-builder-backdrop,.sheet-read-backdrop,.sheet-scan-backdrop{z-index:270!important}.pdf-sign-consent{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;font-size:13px}.pdf-sign-consent input{width:20px;height:20px}}
