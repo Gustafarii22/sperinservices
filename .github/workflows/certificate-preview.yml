@@ -132,14 +132,14 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish direct preview download
-        if: github.ref == 'refs/heads/release/sperin-certificates-v187-scanner-reviewed'
+        if: github.ref == 'refs/heads/feature/certificates-multiuser-specialist-forms-20261021'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=certificates-v1.8.8-final
+          TAG=certificates-v1.9.0-dev-preview
           APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
-            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.8.8 — Reviewed Scanner + Corrected PDFs" --notes "Separate v1.8.8 preview app. It does not replace your original Sperin Certificates or v1.8.6 preview, and does not transfer their saved certificates. Scanned devices, labels and blanks require one individual verification tick per schedule position before saving; actual recognition of the owner's FuseBox photos is not fully validated."
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.0 — Development Preview" --notes "Development preview ONLY. Separate Android package; does not replace original certificates or migrate data. Adds independent PAT, EV, PV and BS 5839-1 commercial fire record templates, opt-in team sync interface, PDF AI review and CSV import. Cloud features require dedicated database, env configuration and live security testing. New specialist forms need technical standards auditing before issue. No verified Megger Bluetooth protocol. See GitHub PR #40 for restrictions."
           fi
