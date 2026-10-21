@@ -70,6 +70,12 @@ jobs:
           node --check public/certificates/app.js
           node --check public/certificates/iet-forms.js
 
+      - name: Compile server-side account, Stripe billing and live team handlers
+        run: |
+          npx --no-install esbuild src/lib/certificates-team.server.ts --bundle --platform=node --format=esm --packages=external --outfile=/tmp/sperin-cloud-bundle.mjs --log-level=warning
+          npx --no-install esbuild src/lib/certificates-billing.server.ts --bundle --platform=node --format=esm --packages=external --outfile=/tmp/sperin-billing-bundle.mjs --log-level=warning
+          npx --no-install esbuild src/lib/certificates-live.server.ts --bundle --platform=node --format=esm --packages=external --outfile=/tmp/sperin-live-bundle.mjs --log-level=warning
+
       - name: Specialist PAT, EV, PV and fire certificate PDF and consent QA
         run: |
           node tests/certificates-commercial.e2e.mjs
