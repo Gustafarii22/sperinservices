@@ -9,7 +9,7 @@ on:
       - "tests/certificates-job-centre.e2e.mjs"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -59,6 +59,7 @@ jobs:
           node --check public/certificates/ai-assistance.js
           node --check public/certificates/instrument-import.js
           node --check public/certificates/job-centre.js
+          node --check public/certificates/speed-suite.js
           node --check public/certificates/app.js
           node --check public/certificates/iet-forms.js
 
