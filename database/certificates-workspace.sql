@@ -148,3 +148,25 @@ create table if not exists cert_stripe_events (
   kind text not null,
   received_at timestamptz not null default now()
 );
+
+-- Field-level collaborative edits: no last-writer-wins, explicit audit evidence.
+create table if not exists cert_live_presence(
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  document_id uuid not null,
+  email text not null,
+  last_seen timestamptz not null default now(),
+  primary key(org_id,document_id,email)
+);
+create index if not exists cert_live_presence_recent on cert_live_presence(org_id,document_id,last_seen desc);
+create table if not exists cert_live_edits(
+  id bigint generated always as identity primary key,
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  document_id uuid not null,
+  revision int not null,
+  field_path text[] not null,
+  previous_value jsonb,
+  new_value jsonb,
+  actor text not null,
+  edited_at timestamptz not null default now()
+);
+create index if not exists cert_live_edits_by_doc on cert_live_edits(org_id,document_id,id);
