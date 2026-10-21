@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
+import { certSql } from "./certificates-db.server";
 
-type SQL=ReturnType<typeof neon>;
+type SQL=ReturnType<typeof certSql>;
 type Member={email:string,orgId:string,role:string,name:string};
 const answer=(v:unknown,status=200)=>Response.json(v,{status,headers:{"Cache-Control":"no-store"}});
 const secret=()=>process.env.SPERIN_CERT_STRIPE_SECRET_KEY||"";
