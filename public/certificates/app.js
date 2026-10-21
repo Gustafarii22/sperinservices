@@ -1624,7 +1624,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -3373,7 +3373,11 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='import-ai' || action==='ai-eicr') window.SperinAiAssistance?.open?.(action==='import-ai'?'pdf':'eicr',{
+    if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
+      get:()=>getCurrent(),
+      apply:rows=>{const current=getCurrent();if(!current)return;pushEditHistory('Import individually verified instrument results');const dest=current.type==='pat'?current.tables.appliances:current.tables.tests;for(const r of rows){if(dest[r.index])dest[r.index][r.field]=r.value;}persist();render();toast(rows.length+' approved instrument values imported');}
+    });
+    else if(action==='import-ai' || action==='ai-eicr') window.SperinAiAssistance?.open?.(action==='import-ai'?'pdf':'eicr',{
       get:()=>getCurrent(),
       schema:type=>SCHEMAS[type],
       create:(type,fields,tables)=>{const cert=makeCertificate(type);Object.assign(cert.fields,fields);for(const key of Object.keys(tables||{})){if(Array.isArray(tables[key])&&tables[key].length)cert.tables[key]=tables[key].filter(isRecord);}cert.status='Draft';if(fields.certificateNo)cert.number=fields.certificateNo;state.certificates.unshift(cert);view={page:'form',currentId:cert.id,circuitIndex:null,circuitStep:'details'};persist();render();toast('Historic certificate draft created — verify all imported evidence');},
