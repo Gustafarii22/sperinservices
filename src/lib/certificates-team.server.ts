@@ -1,10 +1,11 @@
-import { neon } from "@neondatabase/serverless";
+import { certSql } from "./certificates-db.server";
 import { createHmac, createHash, randomBytes, randomInt, timingSafeEqual, randomUUID } from "node:crypto";
 import { sendSperinEmail } from "./sperin-review-email.server";
 import { certificateScan } from "./certificate-scan.server";
 import { certificateAssistance } from "./certificate-ai.server";
 import { certificateJobsApi, publicCertificateHandover, runCertificateReminders } from "./certificates-jobs.server";
 import { certificateStripeWebhook, certificateBillingApi } from "./certificates-billing.server";
+import { certificateLiveApi } from "./certificates-live.server";
 
 // Dedicated certificates database and tenant-aware access. Fail closed without configuration.
 const cookieName="sperin_cert_session";
@@ -19,7 +20,7 @@ const expiry=(minutes:number)=>new Date(Date.now()+minutes*60_000).toISOString()
 function settings(){
   const database=process.env.SPERIN_CERTIFICATES_DATABASE_URL||"";
   const secret=process.env.SPERIN_CERTIFICATES_AUTH_SECRET||"";
-  if(!/^postgres(?:ql)?:\/\/.+/.test(database)||secret.length<40)return null;
+  if(!(/^(?:postgres|postgresql):\/\/.+/.test(database)||database==="https://awbpdnyiqmtxlnoeudgf.supabase.co/functions/v1/certificates-db")||secret.length<40)return null;
   if(database===process.env.SPERIN_DATABASE_URL)throw Error("Never mix certificate and reviews databases");
   return {database,secret};
 }
@@ -50,7 +51,7 @@ const sessionCookie=(value:string,seconds:number)=>
 const canWrite=(r:string)=>["owner","supervisor","electrician"].includes(r);
 const canApprove=(r:string)=>["owner","supervisor"].includes(r);
 type TeamSession={email:string,orgId:string,role:string,name:string,subscriptionStatus?:string,trialEnd?:string};
-async function authenticate(sql:ReturnType<typeof neon>,req:Request):Promise<TeamSession|null>{
+async function authenticate(sql:ReturnType<typeof certSql>,req:Request):Promise<TeamSession|null>{
   const token=sessionToken(req);
   if(!/^[0-9a-f]{64}$/.test(token))return null;
   const rows=await sql.query(
@@ -75,8 +76,8 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   try{c=settings();}catch{return result({error:"Unsafe workspace configuration"},503);}
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
-  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
-  const sql=neon(c.database);
+  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook" && !path.startsWith("/api/certificates/live/")){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
+  const sql=certSql(c.database);
   try{
     const billingWebhook=await certificateStripeWebhook(req,sql);
     if(billingWebhook)return billingWebhook;
@@ -160,6 +161,8 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
       if(!response.ok)await sql.query("update cert_ai_usage set used=greatest(0,used-1) where org_id=$1 and period=$2",[s.orgId,period]);
       return response;
     }
+    const liveResponse=await certificateLiveApi(req,sql,s);
+    if(liveResponse)return liveResponse;
     const jobsResponse=await certificateJobsApi(req,sql,s);
     if(jobsResponse)return jobsResponse;
     if(path==="/api/certificates/session"&&req.method==="GET")

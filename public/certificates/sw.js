@@ -1,5 +1,5 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
-const CACHE="sperin-certificates-v1-9-2-speed";
+const CACHE="sperin-certificates-v1-9-3-integrated";
 const SHELL=[
  "./","./index.html","./styles.css?v=1.8.6",
  "./vendor/jspdf.umd.min.js?v=1.8.6",
@@ -8,7 +8,8 @@ const SHELL=[
  "./board-scan.js?v=1.8.6-scanfix1",
  "./team-workspace.js?v=1.9.0","./ai-assistance.js?v=1.9.0",
  "./instrument-import.js?v=1.9.0","./vendor/qrcode.min.js?v=1.9.1",
- "./job-centre.js?v=1.9.1","./speed-suite.js?v=1.9.2","./app.js?v=1.9.2",
+ "./job-centre.js?v=1.9.1","./speed-suite.js?v=1.9.2",
+ "./live-editing.js?v=1.9.3","./app.js?v=1.9.3",
  "./manifest.webmanifest","./icon.svg"
 ];
 self.addEventListener("install",e=>e.waitUntil(

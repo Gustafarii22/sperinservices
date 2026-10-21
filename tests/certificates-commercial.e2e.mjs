@@ -16,6 +16,15 @@ for(const type of types){
   assert(await input.count()>0,type+" client field missing");
   await input.fill("Specialist QA "+type);
   await input.dispatchEvent("input");
+  const proofFields={
+    pat:"organisationName",ev:"rcdDcDetails",
+    solar:"arrayLayout",commercialFire:"causeEffect"
+  };
+  const proof=page.locator('[data-field="'+proofFields[type]+'"]').first();
+  assert(await proof.count()>0,type+" specialist audit field absent from form");
+  await proof.fill("SPECIALIST QA FIELD "+type.toUpperCase());
+  await proof.dispatchEvent("input");
+
   const [download]=await Promise.all([
     page.waitForEvent("download",{timeout:16000}),
     page.locator('[data-action="pdf"]').first().click()

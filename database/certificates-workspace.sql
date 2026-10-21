@@ -148,3 +148,42 @@ create table if not exists cert_stripe_events (
   kind text not null,
   received_at timestamptz not null default now()
 );
+
+-- Field-level collaborative edits: no last-writer-wins, explicit audit evidence.
+create table if not exists cert_live_presence(
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  document_id uuid not null,
+  email text not null,
+  last_seen timestamptz not null default now(),
+  primary key(org_id,document_id,email)
+);
+create index if not exists cert_live_presence_recent on cert_live_presence(org_id,document_id,last_seen desc);
+create table if not exists cert_live_edits(
+  id bigint generated always as identity primary key,
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  document_id uuid not null,
+  revision int not null,
+  field_path text[] not null,
+  previous_value jsonb,
+  new_value jsonb,
+  actor text not null,
+  edited_at timestamptz not null default now()
+);
+create index if not exists cert_live_edits_by_doc on cert_live_edits(org_id,document_id,id);
+
+-- This Supabase project is used only through the privileged certificates API.
+-- Anonymous and signed-in Supabase REST users must NEVER be able to read any
+-- certificate, health/safety observation, customer details, or authentication code.
+do $rls$
+declare t record;
+begin
+  for t in select tablename from pg_tables
+      where schemaname='public' and tablename like 'cert_%'
+  loop
+    execute format('alter table public.%I enable row level security',t.tablename);
+    execute format('revoke all privileges on table public.%I from anon, authenticated',t.tablename);
+  end loop;
+end
+$rls$;
+-- Auth is owned by the HTTPS server's session cookie + tenant-scoped SQL;
+-- never expose the privileged server database password to the mobile client.

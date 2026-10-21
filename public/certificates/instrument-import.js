@@ -53,11 +53,17 @@ function open(a){
  document.body.appendChild(overlay);
 }
 async function parseFile(e){
- const file=e.target.files?.[0],cert=adapter.get();review=[];
- if(!file||!cert)return;
+ const file=e.target.files?.[0];review=[];
+ if(!file)return;
  if(file.size>900000)return show("File over 900 kB. Split the export by job.");
+ await reviewText(await file.text());
+}
+async function reviewText(text){
+ const cert=adapter?.get?.();review=[];
+ if(!cert)return show("Open a certificate first.");
+ if(typeof text!=="string"||text.length>900000)return show("Serial/CSV data exceeds the safe import limit.");
  try{
-  const text=await file.text(),rows=csvRows(text.replace(/^\uFEFF/,""));
+  const rows=csvRows(text.replace(/^\uFEFF/,""));
   if(rows.length<2)throw Error("CSV has no test data");
   const headers=rows[0].map(x=>aliases[normalise(x)]||"");
   if(!headers.some(x=>x==="asset"||x==="circuitNo"))throw Error("No Asset ID or Circuit number column found.");
@@ -105,5 +111,5 @@ function apply(){
  adapter.apply(approved);
  close();
 }
-window.SperinInstrumentImport={open,csvRows};
+window.SperinInstrumentImport={open,csvRows,reviewText};
 })();

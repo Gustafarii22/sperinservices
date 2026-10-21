@@ -80,12 +80,33 @@ function convert(){
  m.querySelector("[data-create]").onclick=()=>{if(confirm("Create a separate DRAFT? All applicable inspections, measurements and declarations must be completed independently.")){try{api.convert(m.querySelector("[data-type]").value,m.querySelector("[data-circuits]").checked);close();}catch(e){alert(e.message);}}};
 }
 function bluetooth(){
- const m=show("Bluetooth test instruments",'<p>Pair a Bluetooth tester in phone settings, then review its measurements using a supported CSV export. Direct Megger MFT-X1 readings remain unsupported until its proprietary protocol is verified.</p>'+
- '<div class="speed-actions"><button data-paired>Paired devices</button><button data-settings>Bluetooth settings</button><button data-csv>Import tester CSV</button></div><p data-device-list>Not connected. No measurements transferred.</p>');
+ const m=show("Bluetooth test instruments",'<p>Pair the instrument in Android settings, then choose it below. <strong>Classic serial (SPP) reading is experimental and requires the tester to transmit a readable CSV.</strong> Megger MFT-X1 proprietary measurement transfer is not verified. No test reading is imported without your approval.</p>'+
+ '<div class="speed-actions"><button data-paired>Show paired devices</button><button data-settings>Bluetooth settings</button><button data-csv>Import tester CSV</button></div><div data-device-list role="status">No device connected.</div>');
+ const el=m.querySelector("[data-device-list]");
  m.querySelector("[data-paired]").onclick=()=>{
-   const el=m.querySelector("[data-device-list]");
-   if(window.Android?.listPairedInstruments){window.sperinBluetoothDevices=data=>{try{const v=JSON.parse(data);el.textContent=v.length?v.map(x=>x.name).join(", "):"No paired devices found.";}catch{el.textContent="Cannot read device list.";}};window.Android.listPairedInstruments();}
-   else el.textContent="Paired-device access unavailable in browser; use Android settings.";
+   if(window.Android?.listPairedInstruments){
+     window.sperinBluetoothDevices=data=>{
+       try{
+         const devices=JSON.parse(data);
+         el.innerHTML=devices.length?devices.map(x=>'<div class="speed-diff"><button data-spp="'+esc(x.address||"")+'">Read '+esc(x.name||"Paired tester")+' (SPP)</button></div>').join(""):"No paired Bluetooth instruments found.";
+         el.querySelectorAll("[data-spp]").forEach(button=>button.onclick=()=>{
+           const addr=button.dataset.spp;
+           if(!window.Android?.readInstrumentSerial)return el.textContent="Direct serial read requires the installed Android app.";
+           el.textContent="Connecting to paired tester. Start the tester’s documented data export. Waiting up to 14 seconds…";
+           window.sperinBluetoothSerialResult=(device,data,error)=>{
+             if(device!==addr)return;
+             if(error||!data){el.textContent=error||"No data received.";return;}
+             el.textContent="Text data received from paired instrument. Readings are NOT accepted yet.";
+             const review=document.createElement("button");review.textContent="Review received CSV measurements";
+             review.onclick=()=>{close();api.tester();window.SperinInstrumentImport?.reviewText?.(data);};
+             el.appendChild(review);
+           };
+           window.Android.readInstrumentSerial(addr);
+         });
+       }catch{el.textContent="Cannot read paired instruments.";}
+     };
+     window.Android.listPairedInstruments();
+   }else el.textContent="Paired-device access requires the installed Android app.";
  };
  m.querySelector("[data-settings]").onclick=()=>window.Android?.openInstrumentBluetoothSettings?.()||alert("Open Android Settings → Connections → Bluetooth.");
  m.querySelector("[data-csv]").onclick=()=>{close();api.tester();};

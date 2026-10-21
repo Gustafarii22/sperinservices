@@ -1,0 +1,48 @@
+name: Certificates Native Source Compile (No APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/certificates-v193-specialist-collab-integrations
+    paths:
+      - "certificate-android/app/src/main/java/**"
+      - "certificate-android/app/src/main/AndroidManifest.xml"
+      - "public/certificates/instrument-import.js"
+      - "public/certificates/speed-suite.js"
+      - ".github/workflows/certificate-java-compile.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: certificates-native-source
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Install Android compilation SDK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Validate importer and Bluetooth interface JS
+        run: |
+          node --check public/certificates/instrument-import.js
+          node --check public/certificates/speed-suite.js
+          node --check public/certificates/live-editing.js
+      - name: Compile Android Java sources only (no APK build)
+        run: gradle -p certificate-android :app:compilePreviewJavaWithJavac --no-daemon --stacktrace
