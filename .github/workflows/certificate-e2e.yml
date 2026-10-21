@@ -87,6 +87,7 @@ jobs:
           for t in pat ev solar commercialFire; do
             pdftotext -layout "/tmp/sperin-specialist-${t}.pdf" "/tmp/sperin-specialist-${t}.txt"
             grep -F "Specialist QA ${t}" "/tmp/sperin-specialist-${t}.txt"
+            grep -F "SPECIALIST QA FIELD ${t^^}" "/tmp/sperin-specialist-${t}.txt"
           done
 
       - name: Compact UX, safe circuit entry, conversion and PDF export
