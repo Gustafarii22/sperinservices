@@ -75,32 +75,32 @@ jobs:
         run: |
           gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.8.7-REVIEWED.apk
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
 
       - name: Inspect APK and preserve original installation
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.7-REVIEWED.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
           python3 certificate-android/qa/inspect-apk.py "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable.preview.audited.v187'" certificate-android/dist/package.txt
-          grep "versionCode='191'" certificate-android/dist/package.txt
-          grep "versionName='1.8.7'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview.audited.v188'" certificate-android/dist/package.txt
+          grep "versionCode='192'" certificate-android/dist/package.txt
+          grep "versionName='1.8.8'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.7-REVIEWED.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
           printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.8.7-REVIEWED
+          name: Sperin-Certificates-v1.8.8-FINAL
           path: |
-            certificate-android/dist/Sperin-Certificates-v1.8.7-REVIEWED.apk
+            certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
             certificate-android/dist/BUILD-INFO.txt
           retention-days: 30
           if-no-files-found: error
@@ -125,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.8.7-REVIEWED-Android-QA
+          name: Sperin-Certificates-v1.8.8-FINAL-Android-QA
           path: certificate-android/qa-output/preview-android/
           retention-days: 30
           if-no-files-found: warn
@@ -135,10 +135,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=certificates-v1.8.7-reviewed
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.7-REVIEWED.apk
+          TAG=certificates-v1.8.8-final
+          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
-            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.8.7 — Reviewed Scanner" --notes "Separate v1.8.7 preview app. It does not replace your original Sperin Certificates or v1.8.6 preview, and does not transfer their saved certificates. Scanned devices, labels and blanks require one individual verification tick per schedule position before saving; actual recognition of the owner's FuseBox photos is not fully validated."
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.8.8 — Reviewed Scanner + Corrected PDFs" --notes "Separate v1.8.8 preview app. It does not replace your original Sperin Certificates or v1.8.6 preview, and does not transfer their saved certificates. Scanned devices, labels and blanks require one individual verification tick per schedule position before saving; actual recognition of the owner's FuseBox photos is not fully validated."
           fi
