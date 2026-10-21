@@ -15,7 +15,8 @@ const fill=async(key,value)=>{
  await el.evaluate(input=>{
    for(let d=input.closest('details[data-accordion-key]');d;d=d.parentElement?.closest('details[data-accordion-key]'))d.open=true;
  });
- await el.fill(value);
+ if(await el.evaluate(x=>x.tagName.toLowerCase()==='select'))await el.selectOption({label:value}).catch(()=>el.selectOption(value));
+ else await el.fill(value);
  await el.dispatchEvent("change");
 };
 await fill("clientName","Minor Works Client QA");
