@@ -1,6 +1,8 @@
 import { neon } from "@neondatabase/serverless";
 import { createHmac, createHash, randomBytes, randomInt, timingSafeEqual, randomUUID } from "node:crypto";
 import { sendSperinEmail } from "./sperin-review-email.server";
+import { certificateScan } from "./certificate-scan.server";
+import { certificateAssistance } from "./certificate-ai.server";
 
 // Dedicated certificates database and tenant-aware access. Fail closed without configuration.
 const cookieName="sperin_cert_session";
@@ -19,12 +21,12 @@ function settings(){
   if(database===process.env.SPERIN_DATABASE_URL)throw Error("Never mix certificate and reviews databases");
   return {database,secret};
 }
-async function readBody(req:Request){
+async function readBody(req:Request,maxBytes=455000){
   if(!req.headers.get("content-type")?.startsWith("application/json"))throw Error("JSON only");
   const reader=req.body?.getReader();if(!reader)throw Error("Missing request");
   const chunks:Uint8Array[]=[];let size=0;
   try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
-    if(size>455000){await reader.cancel();throw Error("Oversized");}chunks.push(value);
+    if(size>maxBytes){await reader.cancel();throw Error("Oversized");}chunks.push(value);
   }}finally{reader.releaseLock();}
   const buffer=new Uint8Array(size);let i=0;
   for(const c of chunks){buffer.set(c,i);i+=c.length;}
@@ -71,7 +73,7 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   try{c=settings();}catch{return result({error:"Unsafe workspace configuration"},503);}
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
-  if(req.method==="POST"){try{payload=await readBody(req);}catch{return result({error:"Invalid or oversized request"},400);}}
+  if(req.method==="POST"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
   const sql=neon(c.database);
   try{
     if(path==="/api/certificates/request-code"&&req.method==="POST"){
@@ -120,6 +122,29 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
     }
     const s=await authenticate(sql,req);
     if(!s)return result({error:"Please sign in to your certificate team."},401);
+    if(["/api/certificates/scan","/api/certificates/ai-import","/api/certificates/ai-eicr"].includes(path)&&req.method==="POST"){
+      if(payload.consent!==true)return result({error:"Explicit upload consent required"},400);
+      const mode=path.endsWith("/scan")?"scan":path.endsWith("/ai-import")?"pdf":"eicr";
+      if(mode==="scan"&&(!Array.isArray(payload.images)||payload.images.length<1||payload.images.length>6))
+        return result({error:"Choose 1–6 consumer unit photos"},400);
+      if(mode==="pdf"&&(typeof payload.file!=="string"||payload.file.length>4200000))
+        return result({error:"Valid PDF input required"},400);
+      if(mode==="eicr"&&(!payload.report||typeof payload.report!=="object"))
+        return result({error:"EICR report required"},400);
+      // First ten AI analyses per organisation/month are reserved by the server
+      // atomically, preventing multiple devices bypassing the allowance.
+      const period=new Date().toISOString().slice(0,7);
+      const quota=await sql.query(
+        "insert into cert_ai_usage(org_id,period,used) values($1,$2,1) on conflict(org_id,period) do update set used=cert_ai_usage.used+1 where cert_ai_usage.used<10 returning used",
+        [s.orgId,period]);
+      if(!quota.length)return result({error:"This workspace has used its ten included monthly AI analyses."},429);
+      let response:Response;
+      if(mode==="scan")response=await certificateScan(new Request(req.url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}));
+      else response=await certificateAssistance(mode,payload);
+      // Failed requests must not consume a customer's ten included analyses.
+      if(!response.ok)await sql.query("update cert_ai_usage set used=greatest(0,used-1) where org_id=$1 and period=$2",[s.orgId,period]);
+      return response;
+    }
     if(path==="/api/certificates/session"&&req.method==="GET")
       return result({email:s.email,organisation:s.name,role:s.role});
     if(path==="/api/certificates/logout"&&req.method==="POST"){
