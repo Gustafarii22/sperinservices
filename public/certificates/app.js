@@ -1659,7 +1659,7 @@
       const old=clone(cert);
       try{Object.assign(cert,next);if(cert.type!=='minor'){sortCircuitsByNumber(cert);syncPrimaryBoardLegacyFields(cert);}saveNow();}
       catch(err){Object.keys(cert).forEach(k=>delete cert[k]);Object.assign(cert,old);throw err;}
-      render();toast('Confirmed photo information saved');
+      render();toast('Added to certificate ✓');
     }},ref);
   }
 
@@ -1943,6 +1943,7 @@
           ${boardControl(bi,'distributionOcpdType','Distribution circuit OCPD type',board.distributionOcpdType,OPTIONS.ocpdType)}
           ${boardControl(bi,'distributionOcpdRating','Distribution circuit OCPD rating / setting (A)',board.distributionOcpdRating)}
           ${boardControl(bi,'spd','SPD type(s)',board.spd,OPTIONS.spdType)}
+          ${boardControl(bi,'spdBs','SPD standard / BS EN (as marked)',board.spdBs||'')}
           ${boardControl(bi,'rcdBs','RCD BS (EN)',board.rcdBs)}
           ${boardControl(bi,'rcdType','RCD type',board.rcdType,OPTIONS.rcdType)}
           ${boardControl(bi,'rcdRating','RCD rating (A)',board.rcdRating,OPTIONS.ocpdRating)}
