@@ -3586,5 +3586,10 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
 
+  window.SperinCloudWorkspace?.connect?.({
+    list:()=>state.certificates,
+    add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');state.certificates.unshift(valid);persist();render();},
+    replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');const index=state.certificates.findIndex(x=>x.id===valid.id);if(index<0)throw Error('Missing local record');state.certificates[index]=valid;persist();render();}
+  });
   render();
 })();
