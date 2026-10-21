@@ -42,6 +42,10 @@ async function row(description){
    });
    throw Error("Missing circuit "+description+" after reload: "+JSON.stringify(diagnostic));
  }
+ if(!(await x.isVisible())){
+   const ancestor=await x.evaluate(el=>{const j=el.closest("details.distribution-section");const b=el.closest("details.cu-circuits-accordion");return {jOpen:j?.open,bOpen:b?.open,selfOpen:el.open,html:el.outerHTML.slice(0,320)};});
+   throw Error("Circuit unexpectedly hidden after reorder: "+JSON.stringify(ancestor));
+ }
  await x.waitFor();
  if(!(await x.evaluate(e=>e.open)))await x.locator("summary").first().click();
  return x;
