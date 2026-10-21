@@ -22,7 +22,7 @@
     liveConductors: ['1-phase, 2-wire', '2-phase, 3-wire', '3-phase, 3-wire', '3-phase, 4-wire', 'DC 2-wire', 'DC 3-wire', 'Other'],
     acdc: ['AC', 'DC'],
     rcdType: ['AC', 'A', 'F', 'B', 'Other', 'N/A'],
-    ocpdType: ['B', 'C', 'D', 'gG', 'gL', 'BS 88 fuse', 'MCCB', 'ACB', 'Other'],
+    ocpdType: ['B','C','D','K','Z','1','2','3','4','gG','gL','aM','gM','gR','aR','BS 88 fuse','MCCB','ACB','Other'],
     wiringType: ['Twin & earth (flat)', 'A - Thermoplastic insulated/sheathed', 'B - Thermoplastic in metallic conduit', 'C - Thermoplastic in non-metallic conduit', 'D - Thermoplastic in metallic trunking', 'E - Thermoplastic in non-metallic trunking', 'F - Thermoplastic SWA', 'G - Thermosetting SWA', 'H - Mineral insulated', 'O - Other'],
     refMethod: ['A1', 'A2', 'B', 'C', 'D1', 'D2', 'E', 'F', 'G', '100', '101', '102', '103', 'Other'],
     premises: ['Residential', 'Commercial', 'Industrial', 'Educational', 'Healthcare', 'Hospitality', 'Retail', 'HMO', 'Other'],
@@ -38,7 +38,13 @@
     alarmType: ['Optical smoke', 'Ionisation smoke', 'Heat', 'Multi-sensor', 'CO', 'Sounder', 'Strobe / visual alarm', 'Vibrating pad', 'Control / relay', 'Other'],
     interlink: ['Hard-wired', 'Radio-linked', 'Hybrid', 'Standalone', 'Other'],
     testResult: ['Pass', 'Fail', 'N/A'],
-    ocpdBs: ['BS EN 60898-1', 'BS EN 61009-1', 'BS 88-2', 'BS88-3', 'BS 3036', 'BS 1361', 'Other'],
+    ocpdBs: ['BS EN 60898-1','BS EN 60898-2','BS EN 61009-1','BS EN 61009-2-1','BS EN 61009-2-2',
+      'BS EN 60947-2','BS EN 60947-3','BS 3871','BS 4293','BS EN 61008-1',
+      'BS 88-2','BS 88-3','BS EN 60269-1','BS EN 60269-2','BS EN 60269-3',
+      'BS 3036','BS 1361','BS 1362','Other (enter exact marking)'],
+    rcdBs: ['BS EN 61008-1','BS EN 61008-2-1','BS EN 61008-2-2','BS EN 61009-1',
+      'BS EN 61009-2-1','BS EN 61009-2-2','BS EN 62423','BS EN 60947-2','BS 4293','Other (enter exact marking)'],
+    deviceKind: ['MCB','RCBO','RCD','RCCB','MCCB','ACB','Fuse','Main switch','SPD','AFDD','Spare','Other'],
     ocpdRating: ['2', '4', '6', '10', '16', '20', '25', '32', '40', '50', '63', '80', '100', '125'],
     testerFunction: ['Multifunction', 'Low resistance ohmmeter', 'Insulation resistance', 'Earth fault loop impedance (Zs)', 'RCD', 'Earth electrode resistance', 'Voltage indicator', 'Other'],
     nominalVoltage: ['230', '230/400', '400/230', '400', 'Other'],
@@ -107,12 +113,13 @@
     { key: 'points', label: 'Points' },
     { key: 'liveCsa', label: 'Live mm²' },
     { key: 'cpcCsa', label: 'CPC mm²' },
+    { key: 'deviceKind', label: 'Device type', type:'select', options: OPTIONS.deviceKind },
     { key: 'ocpdBs', label: 'OCPD BS (EN)', type: 'select', options: OPTIONS.ocpdBs },
     { key: 'ocpdType', label: 'OCPD type', type: 'select', options: OPTIONS.ocpdType },
     { key: 'ocpdRating', label: 'Rating A', type: 'select', options: OPTIONS.ocpdRating },
     { key: 'breakingCapacity', label: 'Breaking kA', type: 'select', options: OPTIONS.breakingCapacity },
     { key: 'maxZs', label: 'Max Zs Ω' },
-    { key: 'rcdBs', label: 'RCD BS (EN)', type: 'select', options: ['BS EN 61008-1','BS EN 61009-1','Other'] },
+    { key: 'rcdBs', label: 'RCD BS (EN)', type: 'select', options: OPTIONS.rcdBs },
     { key: 'rcdType', label: 'RCD type', type: 'select', options: OPTIONS.rcdType },
     { key: 'rcdIdn', label: 'IΔn mA', type: 'select', options: OPTIONS.rcdIdn },
     { key: 'rcdRating', label: 'RCD A', type: 'select', options: OPTIONS.ocpdRating }
@@ -151,6 +158,7 @@
       { key:'cpcCsa', label:'CPC csa (mm²)', options:OPTIONS.conductorCsa }
     ]},
     { title: 'Overcurrent protective device', fields: [
+      { key:'deviceKind', label:'Device type', options:OPTIONS.deviceKind },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -158,7 +166,7 @@
       { key:'maxZs', label:'Maximum permitted Zs (Ω)', suffix:'zs' }
     ]},
     { title: 'RCD', fields: [
-      { key:'rcdBs', label:'BS (EN)', options:['BS EN 61008-1','BS EN 61009-1','Other'] },
+      { key:'rcdBs', label:'BS (EN)', options:OPTIONS.rcdBs },
       { key:'rcdType', label:'Type', options:OPTIONS.rcdType },
       { key:'rcdIdn', label:'IΔn (mA)', options:OPTIONS.rcdIdn },
       { key:'rcdRating', label:'Rating (A)', options:OPTIONS.ocpdRating }
@@ -3427,6 +3435,19 @@
           recalculateCircuitZs(cert,i,true);
           const maxInput=document.querySelector('[data-circuit-input="details"][data-index="'+i+'"][data-col="maxZs"]');
           if(maxInput) maxInput.value=target.maxZs||'';
+        }
+        if(col==='deviceKind' && previousValue!==target[col]){
+          const suggestions={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},
+            RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}};
+          for(const [key,value] of Object.entries(suggestions[target.deviceKind]||{})){
+            if(!target[key]){
+              target[key]=value;
+              cert.autoMeta ||= {};
+              cert.autoMeta['circuit:'+i+':'+key]={source:'device-type-suggestion',note:'Verify actual device marking'};
+              const input=document.querySelector('[data-circuit-input="details"][data-index="'+i+'"][data-col="'+key+'"]');
+              if(input)input.value=value;
+            }
+          }
         }
         if(col==='circuitNo') cert.tables.tests[i].circuitNo=e.target.value;
         if(col==='boardRef') cert.tables.tests[i].boardRef=e.target.value;
