@@ -48,6 +48,8 @@ cloud=state.cloud;
 await page2.goto(url,{waitUntil:"domcontentloaded"});
 await page2.evaluate(entries=>{localStorage.clear();for(const [k,v] of entries)localStorage.setItem(k,v);},state.entries);
 await page2.reload();
+// A restored app deliberately reopens on Home, so select its saved draft first.
+if(!(await page2.locator('[data-field="clientName"]').count()))await page2.locator(".saved-cert-row").first().click();
 for(const p of [page1,page2]){
  await p.waitForFunction(()=>!!window.SperinLiveEditing?.open);
  await p.evaluate(()=>window.SperinLiveEditing.open());
