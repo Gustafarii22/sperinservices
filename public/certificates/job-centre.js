@@ -163,7 +163,14 @@ for(const cert of linked){const d=window.SperinIetForms.build({cert,schema:adapt
 for(const x of (j.evidence||[]).slice(0,40)){const image=await photoGet(x.id);if(!image)continue;const bytes=Uint8Array.from(atob(image.split(",")[1]),c=>c.charCodeAt(0));items.push(["evidence/"+filename(x.circuitRef||"photo")+"-"+filename(x.id)+".jpg",bytes]);}
 const overview=["SPERIN CERTIFICATES | JOB HANDOVER",j.siteName,j.address,j.postcode,"Customer: "+j.customer,"Asset: "+j.assetId,"Notes: "+j.notes,"CERTIFICATES",...linked.map(c=>c.number+" "+c.type+" "+c.status),"COMPLIANCE DATES",...(j.reminders||[]).map(x=>x.kind+" "+x.dueDate+" "+x.description),"EVIDENCE INDEX",...(j.evidence||[]).map(x=>[x.circuitRef,x.observationRef,x.label,x.author,x.createdAt].join(" | "))];
 items.unshift(["INDEX.txt",encode(overview.join("\r\n"))]);
-const blob=zip(items),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=filename(j.siteName)+"-handover.zip";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+const blob=zip(items),name=filename(j.siteName)+"-handover.zip";
+if(window.Android?.saveArchiveBase64){
+ if(blob.size>18000000)throw Error("Android handover ZIP exceeds 18 MB; reduce site photos first.");
+ const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error("Could not read pack"));reader.readAsDataURL(blob);});
+ if(!window.Android.saveArchiveBase64(String(data),name))throw Error("Android failed to save handover ZIP.");
+}else{
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
 notice("Handover ZIP created with "+linked.length+" certificate PDFs and "+(items.length-linked.length-1)+" photographs.");
 }
 async function customerShare(j,certId){
