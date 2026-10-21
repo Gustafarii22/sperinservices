@@ -582,6 +582,7 @@
     openBoardAccordion(row.boardRef);
     saveNow();
     render();
+    keepCircuitAccordionVisible(cert,row.boardRef,row.id);
     restoreScroll(y);
   }
 
@@ -1358,6 +1359,22 @@
   function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('section:'+cert.id+':J Distribution',true);
     accordionState.set('board-circuits:'+cert.id+':'+board.id,true);
     preserveRequestedAccordions=true;}}
+  function keepCircuitAccordionVisible(cert,boardRef,circuitId=''){
+    const board=(cert?.tables?.boards||[]).find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));
+    if(!board)return;
+    const sectionKey='section:'+cert.id+':J Distribution',boardKey='board-circuits:'+cert.id+':'+board.id;
+    accordionState.set(sectionKey,true);accordionState.set(boardKey,true);
+    const section=document.querySelector('details.distribution-section');
+    if(section)section.open=true;
+    const list=document.querySelector('details.cu-circuits-accordion[data-accordion-key="'+CSS.escape(boardKey)+'"]');
+    if(list)list.open=true;
+    if(circuitId){
+      const key='inline-circuit:'+cert.id+':'+circuitId;
+      accordionState.set(key,true);
+      const card=document.querySelector('details.inline-circuit[data-accordion-key="'+CSS.escape(key)+'"]');
+      if(card)card.open=true;
+    }
+  }
   let autosaveTimer = null;
   let nativeBackupTimer = null;
   let pendingRecoveryAction = null;
@@ -3824,7 +3841,7 @@
       const i=Number(button.dataset.index),row=cert.tables.circuits[i];
       if(!row || row._incomingFeed) return;
       if((cert.tables.boards||[]).some(b=>normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(row.boardRef)&&String(b.sourceCircuitNo??'')===String(row.circuitNo??''))){alert('Change the dependent consumer unit supply before deleting this source circuit.');return;}
-      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);openBoardAccordion(row.boardRef);saveNow();render();restoreScroll(y);toast('Circuit deleted · circuits renumbered · recovery saved');}
+      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);openBoardAccordion(row.boardRef);saveNow();render();keepCircuitAccordionVisible(cert,row.boardRef);restoreScroll(y);toast('Circuit deleted · circuits renumbered · recovery saved');}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
