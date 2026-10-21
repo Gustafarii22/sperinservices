@@ -5,7 +5,7 @@ import sys
 import zipfile
 apk=pathlib.Path(sys.argv[1])
 with zipfile.ZipFile(apk) as z:
-    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','app.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
+    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','ai-assistance.js','app.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
         data=z.read('assets/certificates/'+name)
         assert data==pathlib.Path('public/certificates',name).read_bytes(), 'Stale bundled '+name
     app=z.read('assets/certificates/app.js').decode()
