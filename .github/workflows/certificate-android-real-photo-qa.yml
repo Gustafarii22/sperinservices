@@ -6,6 +6,7 @@ on:
     paths:
       - "public/certificates/scan-core.js"
       - "public/certificates/board-scan.js"
+      - "certificate-android/qa/run-native-ocr-qa.sh"
       - "certificate-android/app/src/androidTest/**"
       - ".github/workflows/certificate-android-real-photo-qa.yml"
   pull_request:
