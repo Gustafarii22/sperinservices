@@ -1363,7 +1363,7 @@
   }
 
   function autoBackupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates });
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
   function flushNativeAutoBackup() {
@@ -1933,7 +1933,7 @@
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
   function backupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates }, null, 2);
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
   }
 
   function savePreRestoreSnapshot() {
@@ -1963,7 +1963,7 @@
         templates[kind]=data[key].map(t=>cleanTemplate(kind,t));
       }
     }
-    return {certificates,settings:importedSettings,templates};
+    return {certificates,settings:importedSettings,templates,jobs:Array.isArray(data.jobs)?data.jobs:[]};
   }
 
   function applyBackupJson(json,preserveCurrent=true) {
@@ -1973,6 +1973,7 @@
     resetEditHistory();
     state={certificates:prepared.certificates};
     settings=prepared.settings;
+    if(prepared.jobs?.length)window.SperinJobCentre?.importMetadata?.(prepared.jobs);
     view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
     closeModal();
     persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
