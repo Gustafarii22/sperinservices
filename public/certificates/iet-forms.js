@@ -143,10 +143,12 @@
   }
   function signatory(cert,role){
     const f=cert.fields||{};
+    // The 'constructor' field must be an OWN user string, never Object.prototype.constructor.
+    const constructorName=Object.hasOwn(f,'constructor')&&typeof f.constructor==='string'?f.constructor:'';
     const single=String(f.signatoryMode||'').startsWith('One person');
     if(single){
       return {
-        name:f.singleSignatoryName||f.inspector||f.designer1||f.constructor||'',
+        name:f.singleSignatoryName||f.inspector||f.designer1||constructorName||'',
         company:f.singleSignatoryCompany||f.inspectorCompany||f.designerCompany||f.constructorCompany||'',
         address:f.singleSignatoryAddress||f.inspectorAddress||f.designerAddress||f.constructorAddress||'',
         postcode:f.singleSignatoryPostcode||f.inspectorPostcode||f.designerPostcode||f.constructorPostcode||'',
@@ -157,7 +159,7 @@
     }
     if(role==='designer')return {name:f.designer1||'',company:f.designerCompany||'',address:f.designerAddress||'',postcode:f.designerPostcode||'',phone:f.designerPhone||'',signature:f.designer1Signature||'',date:f.designer1Date||''};
     if(role==='designer2')return {name:f.designer2||'',company:f.designer2Company||'',address:f.designer2Address||'',postcode:f.designer2Postcode||'',phone:f.designer2Phone||'',signature:f.designer2Signature||'',date:f.designer2Date||''};
-    if(role==='constructor')return {name:f.constructor||'',company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
+    if(role==='constructor')return {name:constructorName,company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
   function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
