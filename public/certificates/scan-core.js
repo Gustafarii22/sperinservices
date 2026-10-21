@@ -94,9 +94,11 @@ function localOcrCandidates(photos,options={}){
    for(let i=0;i<grouped.length;i++){
      const g=grouped[i],ev=evidence(p,g.examples[0]);
      const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
-     const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.38));
+     const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.16));
      const joined=near.map(l=>l.text).join(' ');
-     // Read all markings from the same physical device column, not just B32.
+     // Read markings from the same device column AND rail. A second DIN rail can
+      // have a different manufacturer's device at the identical X coordinate;
+      // never borrow its BS, model or RCD characteristics across the row gap.
      const model=joined.match(/\b(RTA[0-9A-Z-]{5,20}|MT[0-9A-Z-]{4,18})\b/i)?.[1]||'';
      const standards=/61009(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 61009-1':/60898(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 60898-1':'';
      const rcd=/\b(?:10|30|100|300)\s?mA\b|\b0[.,]03\s?A\b|61009|\bRTA[0-9]/i.test(joined);
