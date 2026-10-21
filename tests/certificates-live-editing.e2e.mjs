@@ -45,11 +45,15 @@ const state=await page1.evaluate(()=>{
  return {entries:Object.entries(localStorage),cloud:structuredClone(app.certificates.find(x=>x.type==="eic"))};
 });
 cloud=state.cloud;
+// Install the first engineer's saved certificate BEFORE the second app starts.
+// This avoids an empty initial app overwriting imported localStorage during page reload.
+await page2.addInitScript(entries=>{for(const [k,v] of entries)localStorage.setItem(k,v);},state.entries);
 await page2.goto(url,{waitUntil:"domcontentloaded"});
-await page2.evaluate(entries=>{localStorage.clear();for(const [k,v] of entries)localStorage.setItem(k,v);},state.entries);
-await page2.reload();
-// A restored app deliberately reopens on Home, so select its saved draft first.
-if(!(await page2.locator('[data-field="clientName"]').count()))await page2.locator(".saved-cert-row").first().click();
+if(!(await page2.locator('[data-field="clientName"]').count())){
+  const rows=await page2.locator(".saved-cert-row").count();
+  if(!rows)throw Error("Restored second client has no certificate: "+JSON.stringify(await page2.evaluate(()=>({keys:Object.keys(localStorage),items:document.querySelector("#app")?.textContent?.slice(0,250)}))));
+  await page2.locator(".saved-cert-row").first().click();
+}
 for(const p of [page1,page2]){
  await p.waitForFunction(()=>!!window.SperinLiveEditing?.open);
  await p.evaluate(()=>window.SperinLiveEditing.open());
