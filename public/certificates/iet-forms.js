@@ -489,7 +489,7 @@
     labelValue(doc,'Agreed limitations including reasons',display(f.agreedLimitations,worksheet),x+2,top+18,w-4,{labelW:46,maxLines:2});
     labelValue(doc,'Agreed with',display(f.agreedWith,worksheet),x+2,top+29,90,{labelW:22});
     labelValue(doc,'Operational limitations including reasons',display(f.operationalLimitations,worksheet),x+2,top+38,w-4,{labelW:50,maxLines:2});
-    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+49,w-4,{labelW:57});y+=55;
+    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+44,w-4,{labelW:57});y+=55;
 
     top=box(doc,x,y,w,30,'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION');
     labelValue(doc,'Overall assessment',display(f.overallAssessment,worksheet),x+2,top+7,80,{labelW:31});
@@ -497,9 +497,9 @@
 
     top=box(doc,x,y,w,23,'SECTION F: RECOMMENDATION FOR NEXT INSPECTION');
     labelValue(doc,'Further inspection recommended before',worksheet?'':fmtDate(f.nextInspectionDate),x+2,top+7,w-4,{labelW:48});
-    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+16,w-4,{labelW:43,maxLines:2});y+=24;
+    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+13,w-4,{labelW:43,maxLines:2});y+=24;
 
-    top=box(doc,x,y,w,51,'SECTION G: DECLARATION');
+    top=box(doc,x,y,w,57,'SECTION G: DECLARATION');
     write(doc,'I/We declare that the information in this report, including observations and attached schedules, provides an accurate assessment of the condition of the electrical installation, taking into account the stated extent and limitations.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
     // All six issued EICR declaration fields for both persons, without
     // inventing extra certificate metadata or omitting their authorisation.
