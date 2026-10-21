@@ -112,6 +112,8 @@ async function start(){
   if(!res.ok)throw Error("Sign in using Cloud Team first.");
   session=await res.json();
   await api("","POST",{kind:"heartbeat"});
+  const baseline=await api("?baseline=1");
+  lastEvent=Number(baseline.cursor||0);
   online=true;visible=true;startTimer();await poll();draw();renderToolbar();
  }catch(e){activeId="";online=false;message(e.message+" Upload the certificate using Cloud Team → Back up / sync now before opening live editing.");renderToolbar();}
 }
@@ -123,11 +125,11 @@ function open(a){
 }
 function end(){
  if(timer)clearInterval(timer);timer=null;
- if(queue.size)flush();
+ if(queue.size){window.SperinSpeedSuite?.status?.("pending");message("Unsynced work remains on this device. Reopen live editing and resolve it before leaving.");}
  activeId="";visible=false;online=false;editors.clear();modal?.remove();modal=null;renderToolbar();
 }
 document.addEventListener("input",e=>{
- if(!activeId||!online)return;
+ if(!activeId)return;
  const doc=getCertificate(),p=inputPath(e.target,doc);
  if(!valid(p)||doc?.id!==activeId)return;
  const v=e.target.type==="checkbox"?e.target.checked:e.target.value;
