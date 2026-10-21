@@ -50,6 +50,15 @@ assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device mod
 assert.equal(await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').count(),1);
 await page.locator('.scan-circuit.expanded').getByLabel('Device manufacturer').fill('FuseBox');
 await page.locator('.scan-circuit.expanded').getByLabel('Device model').fill('RTA063240B');
+// No scanned device may be imported until its single verification checkbox is ticked.
+assert.equal(await page.locator('[data-device-verified]').count(),1);
+await page.locator('[data-scan-command="apply"]').click();
+assert.ok((await page.locator('.scan-status').innerText()).includes('tick its confirmation box'));
+await page.locator('.scan-circuit.expanded [data-device-verified]').check();
+for(const i of [0,1]){
+ await page.locator('[data-open="c'+i+'"]').click();
+ await page.locator('.scan-circuit.expanded [data-device-verified]').check();
+}
 await page.locator('[data-scan-command="apply"]').click();
 await page.waitForSelector('.consumer-unit-card');
 await page.locator('.board-scan-modal').waitFor({state:'detached'});
@@ -92,12 +101,14 @@ assert.equal(verified.fields.instrumentContinuity,'CONT-100');
 const [pdf]=await Promise.all([page.waitForEvent('download'),page.locator('[data-action="pdf"]').first().click()]);
 await pdf.saveAs(dir+"/scan-confirmed.pdf");
 assert.ok(fs.statSync(dir+"/scan-confirmed.pdf").size>10000);
-// Add spare ways through the same one-tap Save, without hidden approval checkboxes.
+// Add spare ways, each with an explicit per-position confirmation.
 await page.locator('.consumer-unit-card').first().locator('[data-action="board-scan"]').click();
 await page.locator('[data-scan-command="spare"]').click();
 await page.locator('.scan-circuit.expanded [data-number]').fill("13");
+await page.locator('.scan-circuit.expanded [data-device-verified]').check();
 await page.locator('[data-scan-command="spare"]').click();
 await page.locator('.scan-circuit.expanded [data-number]').fill("14");
+await page.locator('.scan-circuit.expanded [data-device-verified]').check();
 await page.locator('[data-scan-command="apply"]').click();
 const after=await readCert();
 for(const n of ["13","14"]){
@@ -145,4 +156,4 @@ assert.equal(await page.locator('[data-device-confirm]').count(),0);
 await page.locator('[data-scan-command="close"]').click();
 assert.deepEqual(errors,[]);
 await page.close();await browser.close();
-console.log("SIMPLIFIED_SCAN_PASS: selected CU; accordions; no checkboxes; cloud mock; 429 local OCR fallback; one-tap save; reopen; printed PDFs; spares");
+console.log("REVIEWED_SCAN_PASS: selected CU; one checkbox per device; blocks unverified import; cloud mock; local OCR fallback; reopen; printed PDFs; spares");
