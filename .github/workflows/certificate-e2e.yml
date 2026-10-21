@@ -7,6 +7,7 @@ on:
       - "public/certificates/**"
       - "certificate-android/qa/**"
       - "tests/certificates-job-centre.e2e.mjs"
+      - "tests/certificates-fast-entry.e2e.mjs"
       - ".github/workflows/certificate-e2e.yml"
   push:
     branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit]
@@ -14,6 +15,7 @@ on:
       - "public/certificates/**"
       - "certificate-android/qa/**"
       - "tests/certificates-job-centre.e2e.mjs"
+      - "tests/certificates-fast-entry.e2e.mjs"
       - ".github/workflows/certificate-e2e.yml"
 
 jobs:
@@ -70,6 +72,11 @@ jobs:
             pdftotext -layout "/tmp/sperin-specialist-${t}.pdf" "/tmp/sperin-specialist-${t}.txt"
             grep -F "Specialist QA ${t}" "/tmp/sperin-specialist-${t}.txt"
           done
+
+      - name: Compact UX, safe circuit entry, conversion and PDF export
+        run: |
+          node tests/certificates-fast-entry.e2e.mjs
+          pdftotext /tmp/sperin-speed-branded-eic.pdf - | grep -F "Sperin Services"
 
       - name: Jobs, evidence, QR and ZIP handover tests
         run: |
