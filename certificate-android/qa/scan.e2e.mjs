@@ -5,9 +5,9 @@ const dir="certificate-android/qa-output";
 fs.mkdirSync(dir,{recursive:true});
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:412,height:915},acceptDownloads:true});
-const errors=[];
+const errors=[],decisions=[];
 page.on("pageerror",e=>errors.push(e.message));
-page.on("dialog",d=>d.accept());
+page.on("dialog",d=>{decisions.push(d.message());d.accept();});
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/");
 await page.locator('[data-action="open-new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
@@ -71,8 +71,6 @@ await page.locator('.scan-circuit.expanded').getByLabel('Device model').fill('RT
 // v1.9.4 uses a single installer confirmation for the COMPLETE board,
  // not the old checkbox-per-device workflow.
 assert.equal(await page.locator('[data-device-verified]').count(),0);
-const decisions=[];
-page.on('dialog',d=>{decisions.push(d.message());d.accept();});
 await page.locator('[data-scan-command="apply"]').click();
 assert.ok(decisions.some(message=>message.includes('ALL device markings')),
  'The installer must confirm every device and physical position before import.');
