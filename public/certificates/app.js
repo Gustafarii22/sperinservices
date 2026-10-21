@@ -1313,6 +1313,7 @@
     f('interfacesEvidence','Cause-and-effect and interfaces to other systems'),
     f('commissionReport','Commissioning test schedule and defects references'),
     f('zoneChart','Zones / as-fitted drawings and location references'),
+    f('causeEffect','Cause-and-effect operating matrix, alarm outputs and system interfaces reference'),
     f('userTraining','System demonstration, user training and operator instructions'),
     f('logbookDelivery','Logbook, maintenance documentation and service arrangements')
   ]));
