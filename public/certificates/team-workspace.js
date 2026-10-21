@@ -42,7 +42,7 @@
       (signed?'<div class="sw-section"><h3>Backup and synchronisation</h3>'+
         '<label class="sw-consent"><input type="checkbox" data-sw-consent '+(enabled?'checked':'')+'> I authorise uploading my customer and certificate records to my private team workspace.</label>'+
         '<p>Once enabled, new edits upload automatically while online. If two people change the same certificate, the server rejects overwrites and you resolve the difference manually.</p>'+
-        '<div class="sw-actions"><button class="primary" data-sw="push" '+(!enabled||!editable()?'disabled':'')+'>Back up / sync now</button><button data-sw="pull">Download cloud changes</button></div></div>'+
+        '<div class="sw-actions"><button data-sw="live">👷 Start live team editing</button><button class="primary" data-sw="push" '+(!enabled||!editable()?'disabled':'')+'>Back up / sync now</button><button data-sw="pull">Download cloud changes</button></div></div>'+
         '<div class="sw-section"><h3>Team members</h3>'+
         '<div class="sw-actions"><button data-sw="members">Show team</button>'+
         (["owner","supervisor"].includes(session.role)?'<input data-sw-invite-email type="email" placeholder="Engineer email"><select data-sw-role><option>electrician</option><option>supervisor</option><option>viewer</option></select><button data-sw="invite">Add team member</button>':'')+'</div><div data-sw-members></div></div>'+
@@ -62,6 +62,7 @@
     try{
       const docs=adapter.list().slice();
       for(const cert of docs){
+        if(window.SperinLiveEditing?.isActive?.(cert.id))continue; // Live mode only submits atomic cell updates
         const local=fingerprint(cert),meta=m[cert.id];
         if(meta?.last===local)continue;
         if(meta?.status&&meta.status!=="draft"){conflicts++;continue;}
@@ -164,6 +165,12 @@
           window.location.assign(data.url);
         }
       }catch(e){status("Billing unavailable: "+e.message);}
+      return;
+    }
+    if(cmd==="live"){
+      if(!session){status("Sign in to your cloud workspace first.");return;}
+      if(!enabled){status("Enable private team cloud consent first.");return;}
+      window.SperinLiveEditing?.open?.();
       return;
     }
     if(cmd==="push"){await pushAll();return;}
