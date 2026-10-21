@@ -76,6 +76,11 @@ jobs:
           fi
           grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
           grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
+          # Unfilled Constructor must stay empty — never stringify inherited Object.prototype.constructor.
+          if grep -F 'function Object()' certificate-android/qa-output/scan-confirmed.txt certificate-android/qa-output/scan-with-spares.txt; then
+            echo 'Inherited constructor function leaked into an issued EIC PDF'
+            exit 1
+          fi
 
       - name: Prove Minor Works IET A4 circuit details and issued certificate
         run: |
