@@ -456,26 +456,15 @@ const accordionQaScript=() => {
 await page.addInitScript(accordionQaScript);
 
 await page.goto(base, { waitUntil: "domcontentloaded" });
+await page.waitForSelector(".minimal-home");
+assert((await page.locator(".home-big-action").count()) === 2, "Home must show only New Certificate and My Certificates");
+assert((await page.locator(".home-hero,.home-kpis,.home-metrics").count()) === 0, "Old home visual clutter remains");
+assert((await page.locator('#speed-nav [data-speed="home"]').count()) === 1, "Persistent Home navigation missing");
+await page.locator('[data-action="open-new"]').click();
+assert((await page.locator(".cert-launch").count()) === 9, "Nine certificate types must be on dedicated New Certificate screen");
+await page.locator('[data-action="open-library"]').count() ? page.locator('[data-action="open-library"]').click() : page.locator('[data-action="home"]').first().click();
+if(!(await page.locator(".saved-cert-row").count())) await page.locator('[data-action="open-library"]').click();
 await page.waitForSelector(".saved-cert-row");
-
-assert((await page.locator(".home-hero").count()) === 1, "Premium home hero missing");
-assert(
-  (await page.locator(".home-hero h2").textContent()).includes(
-    "Ready for the next job.",
-  ),
-  "Home heading unclear",
-);
-assert((await page.locator(".home-hero h2").isVisible()) && (await page.locator('[data-action="speed-quick"]').count()) === 1, "Compact, actionable home dashboard missing");
-assert((await page.locator('#speed-nav [data-speed="home"]').count()) === 1, "Persistent navigation missing");
-assert((await page.locator(".cert-launch").count()) === 9, "Certificate launch list incomplete");
-assert(
-  (await page.locator(".workflow-card").count()) === 3,
-  "Site field workflow must show blank sheets, voice readback and photo scan",
-);
-assert(
-  (await page.locator(".site-workflow").textContent()).includes("Paper, voice or camera"),
-  "Site field workflow explanation missing",
-);
 
 const saved = page.locator(".saved-cert-row").first();
 const savedText = await saved.textContent();
