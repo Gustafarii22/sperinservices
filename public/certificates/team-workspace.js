@@ -11,7 +11,7 @@
   const store=(m)=>{if(session)localStorage.setItem(PREFIX+session.email,JSON.stringify(m));};
   const cloudConsent=()=>localStorage.getItem(PREFIX+"enabled")==="yes";
   const setConsent=(v)=>{enabled=!!v;localStorage.setItem(PREFIX+"enabled",v?"yes":"no");};
-  const fingerprint=(c)=>JSON.stringify(c);
+  const fingerprint=(c)=>{const copy={...c};delete copy.updatedAt;return JSON.stringify(copy);};
   async function api(path,method="GET",payload){
     const r=await fetch("/api/certificates/"+path,{method,credentials:"include",headers:payload?{"Content-Type":"application/json"}:{},body:payload?JSON.stringify(payload):undefined});
     const d=await r.json().catch(()=>({}));
