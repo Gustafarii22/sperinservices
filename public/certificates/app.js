@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.0-dev';
+  const VERSION = '1.9.1-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1363,7 +1363,7 @@
   }
 
   function autoBackupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates });
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
   function flushNativeAutoBackup() {
@@ -1598,7 +1598,7 @@
     return `<main class="home-page">
       <section class="home-hero">
         <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jobs">📁 Jobs &amp; evidence</button><button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
           <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
@@ -1624,7 +1624,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -1884,7 +1884,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
@@ -1900,7 +1900,7 @@
     if(part.key==='eicInspection') return renderInspectionChecklist(part,cert);
     const rows = cert.tables[part.key] || [];
     const head = part.columns.map(c => `<th>${esc(c.label)}</th>`).join('') + `<th></th>`;
-    const body = rows.map((row, ri) => `<tr>${part.columns.map(c => `<td>${renderTableControl(part.key, ri, c, row[c.key] ?? '')}</td>`).join('')}<td><button class="btn small danger" data-action="row-delete" data-table="${part.key}" data-row="${ri}">×</button></td></tr>`).join('');
+    const body = rows.map((row, ri) => `<tr>${part.columns.map(c => `<td>${renderTableControl(part.key, ri, c, row[c.key] ?? '')}</td>`).join('')}<td>${part.key==='observations'?`<button class="btn small" data-action="job-evidence" data-ref="${esc(row.item||String(ri+1))}">Evidence</button>`:''}<button class="btn small danger" data-action="row-delete" data-table="${part.key}" data-row="${ri}">×</button></td></tr>`).join('');
     return `<section class="card form-section"><h3>${esc(part.title)}</h3><div class="table-wrap"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><div class="table-tools"><button class="btn small" data-action="row-add" data-table="${part.key}">+ Add row</button></div></section>`;
   }
 
@@ -1933,7 +1933,7 @@
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
   function backupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates }, null, 2);
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
   }
 
   function savePreRestoreSnapshot() {
@@ -1963,7 +1963,7 @@
         templates[kind]=data[key].map(t=>cleanTemplate(kind,t));
       }
     }
-    return {certificates,settings:importedSettings,templates};
+    return {certificates,settings:importedSettings,templates,jobs:Array.isArray(data.jobs)?data.jobs:[]};
   }
 
   function applyBackupJson(json,preserveCurrent=true) {
@@ -1973,6 +1973,7 @@
     resetEditHistory();
     state={certificates:prepared.certificates};
     settings=prepared.settings;
+    if(prepared.jobs?.length)window.SperinJobCentre?.importMetadata?.(prepared.jobs);
     view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
     closeModal();
     persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
@@ -2174,6 +2175,10 @@
 
   async function completeAndCreatePdf() {
     const cert=getCurrent(); if(!cert)return;
+    if(['pat','ev','solar','commercialFire'].includes(cert.type)){
+      alert('Specialist records are DRAFT ONLY in this development preview. Final professional issue is blocked until the applicable technical/IET standards audit and real-world testing have passed. You can still export a clearly marked draft PDF.');
+      return;
+    }
     syncSingleSignatory(cert);
     saveNow();
     const ok=await downloadPDF();
@@ -3373,7 +3378,9 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
+    if(action==='job-evidence') window.SperinJobCentre?.showRef?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'',button.dataset.ref);
+    else if(action==='jobs') window.SperinJobCentre?.open?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'');
+    else if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
       get:()=>getCurrent(),
       apply:rows=>{const current=getCurrent();if(!current)return;pushEditHistory('Import individually verified instrument results');const dest=current.type==='pat'?current.tables.appliances:current.tables.tests;for(const r of rows){if(dest[r.index])dest[r.index][r.field]=r.value;}persist();render();toast(rows.length+' approved instrument values imported');}
     });
@@ -3591,5 +3598,7 @@
     add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');state.certificates.unshift(valid);persist();render();},
     replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');const index=state.certificates.findIndex(x=>x.id===valid.id);if(index<0)throw Error('Missing local record');state.certificates[index]=valid;persist();render();}
   });
+  window.SperinJobCentre?.install?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}));
+  if(location.hash.includes('asset='))window.addEventListener('load',()=>window.SperinJobCentre?.incomingAsset?.());
   render();
 })();

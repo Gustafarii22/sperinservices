@@ -8,6 +8,7 @@ on:
       - release/sperin-certificates-v186-audited
       - release/sperin-certificates-v187-scanner-reviewed
       - feature/certificates-multiuser-specialist-forms-20261021
+      - feature/certificates-v191-job-evidence-handover
     paths:
       - "public/certificates/**"
       - "certificate-android/**"
@@ -69,39 +70,39 @@ jobs:
       - name: Bundle reviewed white-theme and scanner
         run: |
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
-          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,instrument-import.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js} certificate-android/app/src/main/assets/certificates/vendor/
+          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,instrument-import.js,job-centre.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js,qrcode.min.js,QR-LICENSE.txt} certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build separately installable preview
         run: |
           gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.1-JOBS-DEV.apk
 
       - name: Inspect APK and preserve original installation
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.1-JOBS-DEV.apk
           python3 certificate-android/qa/inspect-apk.py "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v190'" certificate-android/dist/package.txt
-          grep "versionCode='193'" certificate-android/dist/package.txt
-          grep "versionName='1.9.0-dev'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview.job.v191'" certificate-android/dist/package.txt
+          grep "versionCode='194'" certificate-android/dist/package.txt
+          grep "versionName='1.9.1-dev'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.1-JOBS-DEV.apk
           printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.0-DEV
+          name: Sperin-Certificates-v1.9.1-JOBS-DEV
           path: |
-            certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
+            certificate-android/dist/Sperin-Certificates-v1.9.1-JOBS-DEV.apk
             certificate-android/dist/BUILD-INFO.txt
           retention-days: 30
           if-no-files-found: error
@@ -126,20 +127,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.0-DEV-Android-QA
+          name: Sperin-Certificates-v1.9.1-JOBS-DEV-Android-QA
           path: certificate-android/qa-output/preview-android/
           retention-days: 30
           if-no-files-found: warn
 
       - name: Publish direct preview download
-        if: github.ref == 'refs/heads/feature/certificates-multiuser-specialist-forms-20261021'
+        if: github.ref == 'refs/heads/feature/certificates-v191-job-evidence-handover'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=certificates-v1.9.0-dev-preview
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
+          TAG=certificates-v1.9.1-jobs-dev
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.1-JOBS-DEV.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
-            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.0 — Development Preview" --notes "Development preview ONLY. Separate Android package; does not replace original certificates or migrate data. Adds independent PAT, EV, PV and BS 5839-1 commercial fire record templates, opt-in team sync interface, PDF AI review and CSV import. Cloud features require dedicated database, env configuration and live security testing. New specialist forms need technical standards auditing before issue. No verified Megger Bluetooth protocol. See GitHub PR #40 for restrictions."
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.1 — Jobs & Evidence Development Preview" --notes "Separate development APK. Adds locally linked jobs, QR labels, photographic evidence, compliance date diary and combined ZIP certificate/evidence handover. Cloud team, email reminders and customer portal require a dedicated certificates database, security testing and configured email/cron credentials. No existing app data is automatically transferred. Not approved for public sale or specialist IET issuing."
           fi

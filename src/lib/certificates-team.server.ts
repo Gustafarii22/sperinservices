@@ -3,6 +3,8 @@ import { createHmac, createHash, randomBytes, randomInt, timingSafeEqual, random
 import { sendSperinEmail } from "./sperin-review-email.server";
 import { certificateScan } from "./certificate-scan.server";
 import { certificateAssistance } from "./certificate-ai.server";
+import { certificateJobsApi, publicCertificateHandover, runCertificateReminders } from "./certificates-jobs.server";
+import { certificateStripeWebhook, certificateBillingApi } from "./certificates-billing.server";
 
 // Dedicated certificates database and tenant-aware access. Fail closed without configuration.
 const cookieName="sperin_cert_session";
@@ -47,14 +49,14 @@ const sessionCookie=(value:string,seconds:number)=>
   cookieName+"="+value+"; HttpOnly; Secure; SameSite=Strict; Path=/api/certificates; Max-Age="+seconds;
 const canWrite=(r:string)=>["owner","supervisor","electrician"].includes(r);
 const canApprove=(r:string)=>["owner","supervisor"].includes(r);
-type TeamSession={email:string,orgId:string,role:string,name:string};
+type TeamSession={email:string,orgId:string,role:string,name:string,subscriptionStatus?:string,trialEnd?:string};
 async function authenticate(sql:ReturnType<typeof neon>,req:Request):Promise<TeamSession|null>{
   const token=sessionToken(req);
   if(!/^[0-9a-f]{64}$/.test(token))return null;
   const rows=await sql.query(
-    "select s.email,s.org_id,m.role,o.name from cert_sessions s join cert_members m on m.email=s.email and m.org_id=s.org_id join cert_orgs o on o.id=s.org_id where s.session_hash=$1 and s.expires_at>now() limit 1",[sha(token)]);
+    "select s.email,s.org_id,m.role,o.name,o.subscription_status,o.trial_ends_at from cert_sessions s join cert_members m on m.email=s.email and m.org_id=s.org_id join cert_orgs o on o.id=s.org_id where s.session_hash=$1 and s.expires_at>now() limit 1",[sha(token)]);
   if(!rows.length)return null;
-  return {email:rows[0].email,orgId:rows[0].org_id,role:rows[0].role,name:rows[0].name};
+  return {email:rows[0].email,orgId:rows[0].org_id,role:rows[0].role,name:rows[0].name,subscriptionStatus:rows[0].subscription_status,trialEnd:rows[0].trial_ends_at};
 }
 function certificateValid(input:unknown):input is Record<string,unknown>{
   if(!input||typeof input!=="object"||Array.isArray(input))return false;
@@ -73,9 +75,15 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   try{c=settings();}catch{return result({error:"Unsafe workspace configuration"},503);}
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
-  if(req.method==="POST"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
+  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
   const sql=neon(c.database);
   try{
+    const billingWebhook=await certificateStripeWebhook(req,sql);
+    if(billingWebhook)return billingWebhook;
+    const publicResponse=await publicCertificateHandover(req,sql);
+    if(publicResponse)return publicResponse;
+    const reminderResponse=await runCertificateReminders(req,sql);
+    if(reminderResponse)return reminderResponse;
     if(path==="/api/certificates/request-code"&&req.method==="POST"){
       const email=text(payload.email).toLowerCase();
       if(!validEmail(email))return result({error:"Valid email required"},400);
@@ -122,6 +130,13 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
     }
     const s=await authenticate(sql,req);
     if(!s)return result({error:"Please sign in to your certificate team."},401);
+    const paid=["active","trialing"].includes(s.subscriptionStatus||"");
+    const freeTrial=!!s.trialEnd&&new Date(s.trialEnd).getTime()>Date.now();
+    if(req.method==="POST"&&!paid&&!freeTrial&&
+       !path.startsWith("/api/certificates/billing/")&&path!=="/api/certificates/logout")
+      return result({error:"Your trial has ended. Saved cloud records remain readable/exportable; subscribe to continue cloud changes and AI."},402);
+    const billingResponse=await certificateBillingApi(req,sql,s);
+    if(billingResponse)return billingResponse;
     if(["/api/certificates/scan","/api/certificates/ai-import","/api/certificates/ai-eicr"].includes(path)&&req.method==="POST"){
       if(payload.consent!==true)return result({error:"Explicit upload consent required"},400);
       const mode=path.endsWith("/scan")?"scan":path.endsWith("/ai-import")?"pdf":"eicr";
@@ -145,6 +160,8 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
       if(!response.ok)await sql.query("update cert_ai_usage set used=greatest(0,used-1) where org_id=$1 and period=$2",[s.orgId,period]);
       return response;
     }
+    const jobsResponse=await certificateJobsApi(req,sql,s);
+    if(jobsResponse)return jobsResponse;
     if(path==="/api/certificates/session"&&req.method==="GET")
       return result({email:s.email,organisation:s.name,role:s.role});
     if(path==="/api/certificates/logout"&&req.method==="POST"){

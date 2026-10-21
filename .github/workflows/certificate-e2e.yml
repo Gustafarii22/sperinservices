@@ -6,12 +6,14 @@ on:
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
+      - "tests/certificates-job-centre.e2e.mjs"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
+      - "tests/certificates-job-centre.e2e.mjs"
       - ".github/workflows/certificate-e2e.yml"
 
 jobs:
@@ -56,6 +58,7 @@ jobs:
           node --check public/certificates/team-workspace.js
           node --check public/certificates/ai-assistance.js
           node --check public/certificates/instrument-import.js
+          node --check public/certificates/job-centre.js
           node --check public/certificates/app.js
           node --check public/certificates/iet-forms.js
 
@@ -66,6 +69,11 @@ jobs:
             pdftotext -layout "/tmp/sperin-specialist-${t}.pdf" "/tmp/sperin-specialist-${t}.txt"
             grep -F "Specialist QA ${t}" "/tmp/sperin-specialist-${t}.txt"
           done
+
+      - name: Jobs, evidence, QR and ZIP handover tests
+        run: |
+          node tests/certificates-job-centre.e2e.mjs
+          unzip -t /tmp/sperin-job-handover-QA.zip
 
       - name: Photo scan safety and API tests
         run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs

@@ -813,6 +813,16 @@
     else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
     else if(cert.type==='minor')renderMinor(doc,cert,schema,opts);
     else renderGeneric(doc,cert,schema,opts);
+    if(['pat','ev','solar','commercialFire'].includes(cert.type)){
+      for(let page=1;page<=doc.getNumberOfPages();page++){
+        doc.setPage(page);
+        const width=doc.internal.pageSize.getWidth();
+        const height=doc.internal.pageSize.getHeight();
+        doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(175,38,43);
+        doc.text('DRAFT SPECIALIST RECORD - TECHNICAL REVIEW REQUIRED',width/2,height-12,{align:'center'});
+        doc.setTextColor(20,28,38);
+      }
+    }
     drawPageFooterAll(doc);
     return doc;
   }
