@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.8.8';
+  const VERSION = '1.9.0-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1359,6 +1359,7 @@
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     persistView();
+    window.SperinCloudWorkspace?.schedule?.();
   }
 
   function autoBackupPayload() {
@@ -1597,7 +1598,7 @@
     return `<main class="home-page">
       <section class="home-hero">
         <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
           <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
@@ -3372,7 +3373,12 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='edit-undo') undoEdit();
+    if(action==='workspace') window.SperinCloudWorkspace?.open?.({
+      list:()=>state.certificates,
+      add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Unrecognised certificate');state.certificates.unshift(valid);persist();render();},
+      replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Unrecognised certificate');const i=state.certificates.findIndex(x=>x.id===valid.id);if(i<0)throw Error('Missing certificate');state.certificates[i]=valid;persist();render();}
+    });
+    else if(action==='edit-undo') undoEdit();
     else if(action==='edit-redo') redoEdit();
     else if(action==='combo-toggle'){
       const combo=button.closest('.combo-field'),menu=combo.querySelector('.combo-menu'),open=menu.hidden;
