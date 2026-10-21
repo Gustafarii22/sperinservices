@@ -1914,8 +1914,8 @@
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
         '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
-        '<div class="inline-circuit-fullscreen"><button class="btn small" data-action="circuit-open" data-index="'+i+'">↗ Full screen</button></div>'+
         '<div class="inline-circuit-actions" role="group" aria-label="Circuit '+esc(number)+' actions">'+
+        '<button class="btn small primary inline-circuit-edit" data-action="circuit-open" data-index="'+i+'" aria-label="Edit circuit '+esc(number)+' in the full editor" title="Open complete circuit editor">✎ Edit</button>'+
         '<button class="btn small" data-action="circuit-move-up" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' up" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ <span class="inline-action-word">Up</span></button>'+
         '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' down" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ <span class="inline-action-word">Down</span></button>'+
         '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
