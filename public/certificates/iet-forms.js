@@ -767,6 +767,26 @@
       } else if(part.type==='table'){
         const rows=safeRows(cert.tables?.[part.key]);
         if(y>225){doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);}
+        // Wide specialist records (e.g. PAT with 14 per-item columns) are
+        // printed vertically per asset so every measured value remains legible.
+        if(part.columns.length>8){
+          if(!rows.length)return;
+          rows.forEach((row,i)=>{
+            if(y>215){doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);}
+            doc.autoTable({
+              startY:y,head:[[part.title.toUpperCase()+' · ITEM '+(i+1),'']],
+              body:part.columns.map(c=>[pdfText(c.label),worksheet?'':pdfText(row?.[c.key]??'')]),
+              margin:{left:x,right:10,top:26,bottom:12},
+              theme:'grid',rowPageBreak:'avoid',
+              styles:{fontSize:7,cellPadding:1.3,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK},
+              headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
+              columnStyles:{0:{cellWidth:78,fontStyle:'bold'},1:{cellWidth:112}},
+              didDrawPage:()=>pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard)
+            });
+            y=doc.lastAutoTable.finalY+4;
+          });
+          return;
+        }
         doc.autoTable({
           startY:y,
           head:[[...part.columns.map(c=>c.label)]],

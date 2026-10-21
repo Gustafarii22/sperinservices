@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.8.8';
+  const VERSION = '1.9.0-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1041,6 +1041,177 @@
     }
   };
 
+
+  // Specialist records: original independent layouts. These supplement the
+  // inspection, testing and statutory certificates required for each installation.
+  Object.assign(SCHEMAS, {
+    pat:{
+      code:'PAT',name:'Portable Appliance Inspection & Testing Record',icon:'🔌',
+      standard:'IET Code of Practice for In-service Inspection and Testing of Electrical Equipment, 5th Edition',
+      description:'Risk-based equipment register, visual inspection, measurements, repairs and faulty-item records.',
+      sections:[
+        section('Client and risk assessment',[
+          f('certificateNo','Record reference'),f('issueDate','Inspection date','date'),
+          f('clientName','Duty-holder / client'),f('installationAddress','Premises','textarea',{span:'full'}),
+          f('installationPostcode','Postcode'),f('riskBasis','Equipment risk assessment and test intervals','textarea',{span:'full'}),
+          f('limitations','Scope and limitations / inaccessible equipment','textarea',{span:'full'})
+        ]),
+        section('Test instruments',[
+          f('instrumentMake','Manufacturer'),f('instrumentModel','Model'),f('instrumentSerial','Serial / asset reference'),
+          f('calibrationDate','Last calibration / verification','date'),f('functionCheck','Instrument function check / details'),
+          f('testingMethod','Tests selected and reasons','textarea',{span:'full'})
+        ]),
+        table('appliances','Equipment register and inspection / test schedule',[
+          {key:'asset',label:'Asset ID'},{key:'location',label:'Location'},{key:'description',label:'Equipment / manufacturer / model'},
+          {key:'class',label:'Class',type:'select',options:['','I','II','III','Other']},
+          {key:'visual',label:'Visual result',type:'select',options:['','Pass','Fail','N/A']},
+          {key:'earth',label:'Protective conductor resistance (Ω)'},{key:'insulation',label:'Insulation resistance (MΩ)'},
+          {key:'leakage',label:'Leakage / touch current (mA)'},{key:'polarity',label:'Polarity / wiring',type:'select',options:['','Pass','Fail','N/A']},
+          {key:'functional',label:'Functional test',type:'select',options:['','Pass','Fail','N/A']},
+          {key:'outcome',label:'Final result',type:'select',options:['','Pass','Fail','Not tested','Requires review']},
+          {key:'nextDate',label:'Next assessment date'},{key:'remarks',label:'Defects / action / limitations'}
+        ],[{asset:'PAT-001'}]),
+        table('repairs','Repair register',[
+          {key:'asset',label:'Asset ID'},{key:'defect',label:'Fault / repair work'},
+          {key:'date',label:'Date'},{key:'retest',label:'Post-repair test'},{key:'by',label:'Responsible person'}
+        ],[]),
+        table('faulty','Failed equipment and isolation / disposition',[
+          {key:'asset',label:'Asset ID'},{key:'defect',label:'Defect'},{key:'isolation',label:'Removed from service / labelled'},
+          {key:'owner',label:'Person informed'},{key:'action',label:'Repair / disposal / replacement'}
+        ],[]),
+        section('Declaration',[
+          f('testedBy','Tester name'),f('qualification','Competence / role'),f('company','For / on behalf of'),
+          f('signature','Signature / typed name'),f('declarationDate','Declaration date','date')
+        ])
+      ]
+    },
+    ev:{
+      code:'EV',name:'EV Charge Point Installation & Commissioning Record',icon:'🚗',
+      standard:'BS 7671:2018+A4:2026, Section 722 · IET EV Charging Equipment Installation Code of Practice',
+      description:'EVSE commissioning, safety checks and DNO handover; supplement the applicable electrical certificate.',
+      sections:[
+        section('Customer and equipment',[
+          f('certificateNo','Record reference'),f('issueDate','Date','date'),
+          f('clientName','Client / operator'),f('installationAddress','Site address','textarea',{span:'full'}),
+          f('installationPostcode','Postcode'),f('chargerLocation','Charger location'),
+          f('manufacturer','EVSE manufacturer'),f('model','Model'),f('serial','Serial / unique ID'),
+          f('firmware','Firmware / configuration'),f('ratedOutput','Rated output (kW)'),f('ratedCurrent','Rated current (A)'),
+          select('phases','Phases',['','Single-phase','Three-phase'])
+        ]),
+        section('Supply, circuit and protection',[
+          f('supplyReference','Origin / distribution board'),f('circuitReference','Dedicated circuit reference'),
+          f('ocpd','Overcurrent device standard / type / rating'),f('rcd','RCD type, rating, IΔn and DC detection arrangement'),
+          f('earthing','Earthing arrangement'),f('openPen','Open-PEN arrangement / applicable risk assessment'),
+          f('cable','Cable size, type, route and installation method'),f('loadManagement','Load management / CT / setting'),
+          f('maxDemand','Existing demand and supply capacity assessment'),
+          f('isolation','Local isolation and switching arrangements')
+        ]),
+        section('DNO and commissioning',[
+          f('dno','DNO'),f('mpan','MPAN or supply reference'),
+          select('dnoStatus','DNO notification / application',['','Notification required','Prior approval required','Approved','Not applicable','To check']),
+          f('dnoReference','DNO approval / notification reference'),f('dnoDate','DNO response / notification date','date'),
+          f('r1r2','Measured R1+R2 (Ω)'),f('zs','Measured Zs (Ω)'),f('ir','Insulation resistance (MΩ)'),
+          select('polarity','Polarity confirmed',OPTIONS.yesNoNA),
+          f('rcdTime','RCD measured operating time (ms)'),
+          select('penTest','Open-PEN protection / earthing function tested',OPTIONS.yesNoNA),
+          select('chargeTest','Charging operation',OPTIONS.testResult),
+          select('loadTest','Load management function',OPTIONS.testResult),
+          select('labels','Labels / user warnings',OPTIONS.yesNoNA),
+          f('testInstrument','Instrument / serial number'),f('limitations','Defects, departures and limitations','textarea',{span:'full'})
+        ]),
+        section('Handover and declaration',[
+          f('linkedEic','Related EIC / MEIWC number'),
+          select('instructions','User instructions and manufacturer documentation handed over',OPTIONS.yesNoNA),
+          f('installerName','Installer / tester'),f('installerCompany','Company'),
+          f('signature','Signature / typed name'),f('declarationDate','Declaration date','date')
+        ])
+      ]
+    },
+    solar:{
+      code:'PV',name:'Solar PV Inspection & Commissioning Record',icon:'☀️',
+      standard:'BS EN 62446-1:2016+A1:2018 · BS 7671:2018+A4:2026 Section 712',
+      description:'PV string measurements, safety inspection and handover; supplement the applicable EIC / DNO submission.',
+      sections:[
+        section('System and site',[
+          f('certificateNo','Record reference'),f('issueDate','Date','date'),
+          f('clientName','Client'),f('installationAddress','Site address','textarea',{span:'full'}),
+          f('installationPostcode','Postcode'),f('designReference','Design / drawing / single-line diagram reference'),
+          f('arrayPower','Rated DC system output (kWp)'),f('moduleMake','PV module make and model'),
+          f('moduleCount','PV module count'),f('inverterMake','Inverter make and model'),
+          f('inverterSerial','Inverter serial'),f('batteryDetails','Battery / hybrid inverter details if applicable')
+        ]),
+        section('Inspection / DNO / electrical safety',[
+          f('acSupply','AC circuit / board'),f('acProtection','AC OCPD, isolation and protection'),
+          f('dcProtection','DC isolation, protection and SPDs'),f('earthing','Protective earthing / bonding'),
+          f('dcCable','DC cable specifications / routing'),f('acCable','AC cable specifications / routing'),
+          f('structural','Mounting / structure / roof inspection notes','textarea',{span:'full'}),
+          f('dno','DNO / G98 / G99 status and reference'),
+          f('inverterSettings','Grid protection / inverter settings'),
+          f('labels','Array / isolation / equipment identification labels'),
+          f('limitations','Limitations, deviations and hazards','textarea',{span:'full'})
+        ]),
+        table('strings','DC string inspection and measurements',[
+          {key:'ref',label:'String reference'},{key:'modules',label:'Modules'},{key:'polarity',label:'Polarity',type:'select',options:['','Pass','Fail','N/A']},
+          {key:'voc',label:'Voc (V)'},{key:'isc',label:'Isc (A)'},{key:'ir',label:'Insulation resistance (MΩ)'},
+          {key:'inspected',label:'Visual',type:'select',options:['','Pass','Fail','N/A']},
+          {key:'remarks',label:'Conditions / test conditions / notes'}
+        ],[{ref:'PV1'}]),
+        section('AC commissioning, checks and handover',[
+          f('acZs','AC Zs (Ω)'),f('acInsulation','AC insulation resistance (MΩ)'),
+          f('acRcd','RCD type / test'),f('inverterStart','Inverter start-up / generation checks'),
+          f('shutdown','Shutdown / isolation / disconnection checks'),f('monitoring','Generation monitoring / metering verification'),
+          f('testInstrument','Test instrument(s), serial and calibration'),
+          f('handover','Handover drawings, manuals, warranties and test documents','textarea',{span:'full'}),
+          f('linkedEic','Related electrical certificate reference'),f('testedBy','Inspector / competent person'),
+          f('company','Company'),f('signature','Signature / typed name'),f('declarationDate','Declaration date','date')
+        ])
+      ]
+    },
+    commercialFire:{
+      code:'FDAS-1',name:'Non-Domestic Fire Alarm System Record',icon:'🚨',
+      standard:'BS 5839-1:2025',
+      description:'Design, installation, commissioning, modification and periodic servicing records for non-domestic systems.',
+      sections:[
+        section('Premises and report details',[
+          select('certificateType','Record type',['','Design','Installation','Commissioning','Periodic inspection / service','Modification / extension']),
+          f('certificateNo','Record reference'),f('issueDate','Date','date'),
+          f('clientName','Responsible person / client'),f('premisesAddress','Premises address','textarea',{span:'full'}),
+          f('premisesPostcode','Postcode'),f('systemRef','System / drawing reference'),
+          f('panel','Control and indicating equipment / panel identification'),f('panelLocation','Panel location')
+        ]),
+        section('Design and installation particulars',[
+          f('category','System category / purpose'),f('coverage','Extent and protected areas','textarea',{span:'full'}),
+          f('designRisk','Fire strategy / risk assessment basis'),f('devices','Detection, alarms, interfaces and call points / design'),
+          f('power','Mains / standby power supply arrangements'),f('cabling','Cable system and fire performance'),
+          f('monitoring','Monitoring / signalling arrangements'),f('variations','Variations / departures, agreement and authority','textarea',{span:'full'}),
+          f('installationScope','Installation / modification scope','textarea',{span:'full'})
+        ]),
+        table('zones','Zone / device / interface inspection schedule',[
+          {key:'zone',label:'Zone / ref'},{key:'area',label:'Area / location'},{key:'device',label:'Device / interface'},
+          {key:'test',label:'Functional result',type:'select',options:['','Pass','Fail','Not tested','N/A']},
+          {key:'remarks',label:'Fault / variation / action'}
+        ],[{zone:'1'}]),
+        section('Commissioning / servicing / faults',[
+          select('mainsFailure','Mains failure & standby supply test',OPTIONS.yesNoNA),
+          select('detectors','Detection operation verified',OPTIONS.yesNoNA),
+          select('callPoints','Manual call points verified',OPTIONS.yesNoNA),
+          select('sounders','Sounders / audibility / visual signals checked',OPTIONS.yesNoNA),
+          select('interfaces','Fire safety interfaces verified',OPTIONS.yesNoNA),
+          select('signals','Remote signalling tested / N/A',OPTIONS.yesNoNA),
+          f('logBook','Log book entries / service history'),f('faults','Outstanding faults / recommendations','textarea',{span:'full'}),
+          f('testLimitations','Unverified items and limitations','textarea',{span:'full'}),
+          f('nextService','Next service / review date','date')
+        ]),
+        section('Responsibility / declaration / handover',[
+          f('designer','Designer name and organisation'),f('installer','Installation company'),
+          f('commissioner','Commissioning / service engineer'),f('qualification','Role / competency'),
+          f('documentation','As-fitted documentation, log book, user instructions / handover'),
+          f('signature','Declaration signature / typed name'),f('declarationDate','Date','date')
+        ])
+      ]
+    }
+  });
+
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
@@ -1188,6 +1359,7 @@
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     persistView();
+    window.SperinCloudWorkspace?.schedule?.();
   }
 
   function autoBackupPayload() {
@@ -1426,7 +1598,7 @@
     return `<main class="home-page">
       <section class="home-hero">
         <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
           <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
@@ -1452,7 +1624,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -3201,7 +3373,22 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='edit-undo') undoEdit();
+    if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
+      get:()=>getCurrent(),
+      apply:rows=>{const current=getCurrent();if(!current)return;pushEditHistory('Import individually verified instrument results');const dest=current.type==='pat'?current.tables.appliances:current.tables.tests;for(const r of rows){if(dest[r.index])dest[r.index][r.field]=r.value;}persist();render();toast(rows.length+' approved instrument values imported');}
+    });
+    else if(action==='import-ai' || action==='ai-eicr') window.SperinAiAssistance?.open?.(action==='import-ai'?'pdf':'eicr',{
+      get:()=>getCurrent(),
+      schema:type=>SCHEMAS[type],
+      create:(type,fields,tables)=>{const cert=makeCertificate(type);Object.assign(cert.fields,fields);for(const key of Object.keys(tables||{})){if(Array.isArray(tables[key])&&tables[key].length)cert.tables[key]=tables[key].filter(isRecord);}cert.status='Draft';if(fields.certificateNo)cert.number=fields.certificateNo;state.certificates.unshift(cert);view={page:'form',currentId:cert.id,circuitIndex:null,circuitStep:'details'};persist();render();toast('Historic certificate draft created — verify all imported evidence');},
+      addEicrRows:rows=>{const cert=getCurrent();if(!cert||cert.type!=='eicr')return;pushEditHistory('Add unverified AI observations');cert.tables.observations.push(...rows);persist();render();toast('Review new observations and enter verified codes');}
+    });
+    else if(action==='workspace') window.SperinCloudWorkspace?.open?.({
+      list:()=>state.certificates,
+      add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Unrecognised certificate');state.certificates.unshift(valid);persist();render();},
+      replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Unrecognised certificate');const i=state.certificates.findIndex(x=>x.id===valid.id);if(i<0)throw Error('Missing certificate');state.certificates[i]=valid;persist();render();}
+    });
+    else if(action==='edit-undo') undoEdit();
     else if(action==='edit-redo') redoEdit();
     else if(action==='combo-toggle'){
       const combo=button.closest('.combo-field'),menu=combo.querySelector('.combo-menu'),open=menu.hidden;
@@ -3399,5 +3586,10 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
 
+  window.SperinCloudWorkspace?.connect?.({
+    list:()=>state.certificates,
+    add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');state.certificates.unshift(valid);persist();render();},
+    replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');const index=state.certificates.findIndex(x=>x.id===valid.id);if(index<0)throw Error('Missing local record');state.certificates[index]=valid;persist();render();}
+  });
   render();
 })();

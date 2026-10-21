@@ -8,7 +8,7 @@ on:
       - "certificate-android/qa/**"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -50,6 +50,22 @@ jobs:
           done
           cat /tmp/certificate-http.log
           exit 1
+
+      - name: Verify new independent cloud and import script syntax
+        run: |
+          node --check public/certificates/team-workspace.js
+          node --check public/certificates/ai-assistance.js
+          node --check public/certificates/instrument-import.js
+          node --check public/certificates/app.js
+          node --check public/certificates/iet-forms.js
+
+      - name: Specialist PAT, EV, PV and fire certificate PDF and consent QA
+        run: |
+          node tests/certificates-commercial.e2e.mjs
+          for t in pat ev solar commercialFire; do
+            pdftotext -layout "/tmp/sperin-specialist-${t}.pdf" "/tmp/sperin-specialist-${t}.txt"
+            grep -F "Specialist QA ${t}" "/tmp/sperin-specialist-${t}.txt"
+          done
 
       - name: Photo scan safety and API tests
         run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs

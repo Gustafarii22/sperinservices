@@ -1,5 +1,6 @@
 import { bookingApi } from "./lib/booking-api.server";
 import { reviewApi } from "./lib/review-api.server";
+import { certificatesTeamApi } from "./lib/certificates-team.server";
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
@@ -71,6 +72,8 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const teamResponse = await certificatesTeamApi(request);
+      if (teamResponse) return teamResponse;
       const bookingResponse = await bookingApi(request);
       if (bookingResponse) return bookingResponse;
       const reviewResponse = await reviewApi(request);
