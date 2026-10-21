@@ -3,7 +3,7 @@ import fs from "node:fs";
 const app=fs.readFileSync("public/certificates/app.js","utf8");
 const forms=fs.readFileSync("public/certificates/iet-forms.js","utf8");
 const pat=app.slice(app.indexOf("    pat:{"),app.indexOf("    ev:{"));
-const supplements=app.slice(app.indexOf("// PAT is reconciled"),app.indexOf("  let settings = loadSettings();"));
+const supplements=app.slice(app.indexOf("  SCHEMAS.pat.sections[0].fields.push"),app.indexOf("  let settings = loadSettings();"));
 if(!pat||!supplements)throw Error("PAT schema/audit extensions not found");
 // Source: publicly accessible IET fifth-edition CoP blank model forms V1-V6.
 // This audits data capture, not legal certification, layout or private standard text.
