@@ -16,16 +16,27 @@ function scanField(r,i,group){
  const labels={manufacturer:'Manufacturer',description:'Circuit description',ocpdBs:'BS (EN)',ocpdRating:'Rating A',ocpdType:'Type',
    breakingCapacity:'Breaking kA',rcdBs:'BS (EN)',rcdType:'Type',rcdIdn:'RCD mA',rcdRating:'Rating A'};
  const options={
-   deviceKind:['MCB','RCBO','MCCB','Fuse','Spare','Other'],
-   ocpdBs:['BS EN 61009-1','BS EN 60898-1','BS 88-3','BS EN 60947-2','BS 3036','BS EN 60269-1'],
-   ocpdType:['B','C','D','gG','gL'],ocpdRating:['2','3','4','6','10','16','20','25','32','40','50','63','80','100'],
-   breakingCapacity:['3','4.5','6','10','16','25','33','50'],rcdBs:['BS EN 61009-1','BS EN 61008-1','BS EN 62423'],
+   deviceKind:['MCB','RCBO','RCD','RCCB','MCCB','ACB','Fuse','SPD','Main switch','AFDD','Spare','Other'],
+   ocpdBs:['BS EN 60898-1','BS EN 60898-2','BS EN 61009-1','BS EN 61009-2-1','BS EN 61009-2-2',
+     'BS EN 60947-2','BS 3871','BS 88-2','BS 88-3','BS 3036','BS 1361','BS 1362','BS EN 60269-1',
+     'BS EN 60269-2','BS EN 60269-3','Other (enter exact marking)'],
+   ocpdType:['B','C','D','K','Z','1','2','3','4','gG','gL','aM','gM','gR','aR'],
+   ocpdRating:['1','2','3','4','5','6','10','13','16','20','25','32','40','45','50','63','80','100','125','160','200','250'],
+   breakingCapacity:['3','4.5','6','10','16','25','33','36','50'],rcdBs:['BS EN 61008-1','BS EN 61008-2-1',
+     'BS EN 61008-2-2','BS EN 61009-1','BS EN 61009-2-1','BS EN 61009-2-2',
+     'BS EN 62423','BS EN 60947-2','BS 4293','Other (enter exact marking)'],
    rcdType:['AC','A','F','B','N/A'],rcdIdn:['10','30','100','300','500'],rcdRating:['6','10','16','20','25','32','40','50','63','80','100']
  };
  const attr='data-value="'+group+':'+i+'"';
  const opt=options[key];
- const select=opt?'<select '+attr+'><option value="">Select</option>'+[...new Set([...opt,r.value].filter(Boolean))].map(v=>'<option value="'+esc(v)+'" '+(v===r.value?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>'
-   :'<input '+attr+' value="'+esc(r.value)+'" autocomplete="off" placeholder="'+(key==='description'?'e.g. Sockets':'')+'">';
+ // Standards and ratings are SEARCHABLE + MANUALLY EDITABLE; no valid product
+ // marking is excluded by a finite preset list.
+ const editable=opt && key!=='deviceKind';
+ const listId='scan-options-'+group+'-'+i;
+ const select=editable?'<input '+attr+' list="'+listId+'" value="'+esc(r.value)+'" autocomplete="off" placeholder="Type or select exact marking">'+
+   '<datalist id="'+listId+'">'+[...new Set(opt)].map(v=>'<option value="'+esc(v)+'"></option>').join('')+'</datalist>':
+   opt?'<select '+attr+'><option value="">Select</option>'+[...new Set([...opt,r.value].filter(Boolean))].map(v=>'<option value="'+esc(v)+'" '+(v===r.value?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':
+   '<input '+attr+' value="'+esc(r.value)+'" autocomplete="off" placeholder="'+(key==='description'?'e.g. Sockets':'')+'">';
  return '<label class="scan-input"><span>'+esc(labels[key]||core.circuitKeys[key]||key)+'</span>'+select+'</label>';
 }
 function render(){
@@ -233,7 +244,23 @@ document.addEventListener('change',function(e){
  if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
  if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}
 
- if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;const d=s.result.circuits[Number(group)];if(d)d.verified=false;}}
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){
+   f.value=el.value;
+   if(f.key==='deviceKind'){
+     const d=s.result.circuits[Number(group)];
+     const defaults={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},
+       RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}};
+     for(const [key,value] of Object.entries(defaults[el.value]||{})){
+       let dfield=d.fields.find(z=>z.key===key);
+       if(!dfield){dfield={key,value:'',confidence:'missing',reason:'',evidence:[],accepted:false};d.fields.push(dfield);}
+       if(!dfield.value){
+         dfield.value=value;dfield.confidence='check';
+         dfield.reason='Suggested from selected device type, NOT verified by printed product standard.';
+       }
+     }
+     render();
+   }
+ }}
 });
 document.addEventListener('input',function(e){
  if(!session||!session.modal.contains(e.target))return;
