@@ -1875,32 +1875,35 @@
   function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);
     const indices=boardCircuitIndices(cert,board.ref);
-    const cards=indices.map((i,position)=>{
-      const row=cert.tables.circuits[i]||{};
-      const test=cert.tables.tests[i]||{};
-      const number=row.circuitNo!==undefined&&row.circuitNo!==null&&String(row.circuitNo).trim()!=='' ? String(row.circuitNo) : String(position+1);
-      const details=[
-        row._incomingFeed ? 'Incoming supply' : row.description,
-        row.ocpdType&&row.ocpdRating ? `${row.ocpdType}${row.ocpdRating} A` : row.ocpdRating ? `${row.ocpdRating} A` : '',
-        test.zs!==undefined&&test.zs!==null&&String(test.zs).trim()!=='' ? `Zs ${test.zs} Ω` : ''
-      ].filter(Boolean).join(' · ');
-      const incoming=row._incomingFeed===true;
-      return `<div class="circuit-card ${incoming?'incoming-circuit':''}" data-circuit-id="${esc(row.id||'')}">
-        <button class="circuit-main" data-action="circuit-open" data-index="${i}">
-          <strong>${row.deviceKind==='Main switch'?'Main switch':'Circuit '+esc(number)}${incoming?' · Linked incoming':''}</strong>
-          <span>${esc(details||'Tap to enter circuit details')}</span>
-        </button>
-        <div class="circuit-actions">
-          <button class="btn small move-btn" data-action="circuit-move-up" data-index="${i}" ${position===0||incoming?'disabled':''}>↑ Up</button>
-          <button class="btn small move-btn" data-action="circuit-move-down" data-index="${i}" ${position===indices.length-1||incoming?'disabled':''}>↓ Down</button>
-          ${incoming
-            ? '<span class="linked-circuit-note">Design linked to supply circuit</span>'
-            : `<button class="btn small" data-action="circuit-duplicate" data-index="${i}">Duplicate</button><button class="btn small danger" data-action="circuit-delete" data-index="${i}">Delete</button>`}
-        </div>
-      </div>`;
+    const cards=indices.map((i,pos)=>{
+      const row=cert.tables.circuits[i]||{},test=cert.tables.tests[i]||{};
+      const number=String(row.circuitNo??pos+1);
+      const details=[row.description,row.ocpdType&&row.ocpdRating?row.ocpdType+row.ocpdRating+' A':'',
+        test.zs?'Zs '+test.zs+' Ω':''].filter(Boolean).join(' · ');
+      const key='inline-circuit:'+cert.id+':'+(row.id||i);
+      return '<details class="inline-circuit cert-accordion" data-accordion-key="'+esc(key)+'" data-inline-index="'+i+'">'+
+        '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
+        '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
+        '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
+        '<div class="inline-circuit-actions"><button class="btn small" data-action="circuit-open" data-index="'+i+'">Full screen</button>'+
+        '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
+        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
     }).join('');
-    return `<div class="board-circuit-list circuit-list">${cards||'<div class="empty">No circuits added to this consumer unit.</div>'}</div>
-      <div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="${esc(board.ref)}" data-board-add-circuit>Add circuit</button><button class="btn small" data-action="speed-quick">⚡ Quick-add</button><button class="btn small" data-action="speed-bulk">⇄ Find/replace</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="${esc(board.ref)}">Templates</button></div>`;
+    return '<div class="board-circuit-list circuit-list">'+(cards||'<div class="empty">No circuits added.</div>')+'</div>'+
+      '<div class="table-tools board-circuit-tools"><button class="btn primary" data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
+      '<button class="btn small" data-action="speed-quick">Quick-add</button><button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="'+esc(board.ref)+'">Use template</button></div>';
+  }
+  function populateInlineCircuit(details){
+    if(!details.open)return;
+    const cert=getCurrent(),idx=Number(details.dataset.inlineIndex),body=details.querySelector('[data-inline-body]');
+    if(!cert||!body||body.dataset.loaded==='true'||!Number.isInteger(idx)||!cert.tables.circuits?.[idx])return;
+    const renderGroups=(groups,scope,src)=>groups.map(g=>
+      '<div class="inline-circuit-group"><h4>'+esc(g.title)+'</h4><div class="fields">'+
+      g.fields.map(f=>editorInput(cert,scope,idx,f,src?.[f.key]??'')).join('')+'</div></div>').join('');
+    body.innerHTML=renderGroups(CIRCUIT_DETAIL_GROUPS,'details',cert.tables.circuits[idx])+
+      renderGroups(CIRCUIT_TEST_GROUPS,'tests',cert.tables.tests[idx]||{})+
+      '<p class="meta">Changes save automatically. Verify every reading before issue.</p>';
+    body.dataset.loaded='true';
   }
 
   function renderBoardWorkflow(cert){
@@ -3514,6 +3517,10 @@
     if(e.target.matches('[data-library-status]')){libraryStatus=e.target.value;render();}
     if(e.target.matches('[data-library-sort]')){librarySort=e.target.value;render();}
   });
+  document.addEventListener('toggle',e=>{
+    const node=e.target;
+    if(node instanceof HTMLElement&&node.matches('details.inline-circuit')&&node.open)populateInlineCircuit(node);
+  },true);
   document.addEventListener('keydown', e => {
     const card=e.target.closest?.('.saved-cert-row[data-action="edit"]');
     if(!card || e.target.closest('button,input,select,textarea')) return;
