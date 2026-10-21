@@ -7,7 +7,7 @@ const e=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt
 const filename=x=>String(x||"job").replace(/[^a-z0-9_.-]/gi,"_").slice(0,70);
 const date=x=>{if(!x)return"";const d=new Date(x+"T12:00:00");return Number.isNaN(d.getTime())?String(x):d.toLocaleDateString("en-GB");};
 const delta=x=>Math.round((new Date(x+"T12:00:00")-new Date(new Date().toISOString().slice(0,10)+"T12:00:00"))/86400000);
-let adapter=null,root=null,currentId="",editing=false,draft=null,msg="",camera=null,cloudEnabled=false;
+let adapter=null,root=null,currentId="",editing=false,draft=null,msg="",camera=null,cloudEnabled=false,selectedEvidenceRef="";
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(x)?x.filter(v=>v&&UUID.test(v.id)&&UUID.test(v.assetId)):[];}catch{return [];}}
 let jobs=load();
 function store(){localStorage.setItem(KEY,JSON.stringify(jobs));}
@@ -34,10 +34,10 @@ return '<div class="jc-row"><h3>'+e(j.siteName||"Untitled job")+'</h3><button da
 '<section><h3>Linked certificates</h3>'+linked.map(c=>'<div class="jc-card"><strong>'+e(c.number||c.type)+'</strong> · '+e(c.type.toUpperCase())+' · '+e(c.status||"Draft")+
 '<div class="jc-row"><button data-jc="certificate" data-cert="'+e(c.id)+'">Open</button><button data-jc="share" data-cert="'+e(c.id)+'">Secure customer handover</button><button data-jc="unlink" data-cert="'+e(c.id)+'">Unlink</button></div></div>').join("")+
 '<div class="jc-row"><select data-jc-cert><option value="">Select certificate…</option>'+available.map(c=>'<option value="'+e(c.id)+'">'+e(c.number||c.type)+'</option>').join("")+'</select><button data-jc="link">Link certificate</button></div></section>'+
-'<section><h3>Evidence-linked photographs</h3><p class="jc-muted">Tag photographs by exact circuit, EICR observation or equipment reference and record the electrician. No photo substitutes for an actual measurement.</p>'+
+'<section><h3>Evidence-linked photographs</h3>'+(selectedEvidenceRef?'<p class="jc-banner">Filtered to reference: '+e(selectedEvidenceRef)+'</p><button data-jc="clearref">Show all evidence</button>':'')+'<p class="jc-muted">Tag photographs by exact circuit, EICR observation or equipment reference and record the electrician. No photo substitutes for an actual measurement.</p>'+
 '<div class="jc-grid"><label>Camera / gallery<input type="file" accept="image/*" capture="environment" data-jc-file></label><label>Circuit or equipment reference<input data-jc-circuit></label><label>Observation reference<input data-jc-observation></label><label>Description<input data-jc-label></label></div>'+
 '<div class="jc-row"><button class="primary" data-jc="photo-add">Save evidence</button><button data-jc="photos-upload">Upload evidence to team</button><button data-jc="photos-fetch">Fetch team evidence</button></div>'+
-(j.evidence||[]).map(x=>'<div class="jc-card"><button data-jc="photo-view" data-evidence="'+e(x.id)+'">View photo</button> '+e(x.label)+' · Circuit '+e(x.circuitRef||"-")+' · Observation '+e(x.observationRef||"-")+'<small> · '+e(x.author||"")+' '+e((x.createdAt||"").slice(0,10))+'</small></div>').join("")+'</section>'+
+(j.evidence||[]).filter(x=>!selectedEvidenceRef||String(x.circuitRef||"").includes(selectedEvidenceRef)||String(x.observationRef||"").includes(selectedEvidenceRef)).map(x=>'<div class="jc-card"><button data-jc="photo-view" data-evidence="'+e(x.id)+'">View photo</button> '+e(x.label)+' · Circuit '+e(x.circuitRef||"-")+' · Observation '+e(x.observationRef||"-")+'<small> · '+e(x.author||"")+' '+e((x.createdAt||"").slice(0,10))+'</small></div>').join("")+'</section>'+
 '<section><h3>Compliance diary</h3><p class="jc-muted">Only a recorded due date is used, never an assumed statutory cycle.</p>'+
 (j.reminders||[]).map(x=>'<div class="jc-card">'+e(x.kind)+' · '+e(date(x.dueDate))+' · '+e(x.description)+'</div>').join("")+
 '<div class="jc-grid"><label>Category<select data-jc-kind>'+["eicr","emergency","fire","pat","ev","solar","custom"].map(t=>'<option>'+t+'</option>').join("")+'</select></label><label>Due date<input type="date" data-jc-date></label><label>Engineer email<input type="email" data-jc-email value="'+e(j.engineerEmail||"")+'"></label><label>Work required<input data-jc-describe></label></div>'+
@@ -180,6 +180,7 @@ div.innerHTML=(data.links||[]).map(x=>'<div class="jc-card">'+e(x.customer_email
 (!x.revoked_at?'<button data-jc="revoke" data-id="'+e(x.id)+'">Revoke</button>':'')+'</div>').join("")||"No shared links.";}
 async function act(cmd,b){
 const j=job();
+if(cmd==="clearref"){selectedEvidenceRef="";render();return;}
 if(cmd==="close"){close();return;}
 if(cmd==="all"){currentId="";editing=false;render();return;}
 if(cmd==="new"){editing=true;draft={id:guid(),assetId:guid(),certIds:[],evidence:[],reminders:[],siteName:"",customer:"",email:"",address:"",postcode:"",notes:""};render();return;}
@@ -219,8 +220,9 @@ if(cmd==="share"&&j){await customerShare(j,b.dataset.cert);return;}
 if(cmd==="links"&&j){await handovers(j);return;}
 if(cmd==="revoke"&&j){if(!confirm("Revoke this link?"))return;await api("jobs/"+j.id+"/handover/"+b.dataset.id+"/revoke","POST",{});await handovers(j);notice("Customer link revoked.");}
 }
+function showRef(a,id,ref){selectedEvidenceRef=String(ref||"").slice(0,80);open(a,id);notice(selectedEvidenceRef?"Evidence for "+selectedEvidenceRef+". Test results remain in the linked certificate; confirm every measured value.":"Open linked job evidence.");}
 function reminders(){return jobs.reduce((n,j)=>n+(j.reminders||[]).filter(x=>x.dueDate&&delta(x.dueDate)<=30).length,0);}
 function incomingAsset(){const id=location.hash.match(/asset=([0-9a-f-]{36})/i)?.[1];if(id&&adapter){open(adapter);scanAsset(id);}}
 function importMetadata(records){if(!Array.isArray(records)||records.length>600)throw Error('Invalid job metadata');let added=0;for(const x of records){if(!x||!UUID.test(x.id)||!UUID.test(x.assetId)||JSON.stringify(x).length>180000)continue;if(jobs.some(j=>j.id===x.id))continue;jobs.push({...x,evidence:Array.isArray(x.evidence)?x.evidence:[],reminders:Array.isArray(x.reminders)?x.reminders:[]});added++;}store();return added;}
-window.SperinJobCentre={open,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),importMetadata,incomingAsset};
+window.SperinJobCentre={open,showRef,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),importMetadata,incomingAsset};
 })();
