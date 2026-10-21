@@ -51,7 +51,12 @@ await page2.reload();
 for(const p of [page1,page2]){
  await p.waitForFunction(()=>!!window.SperinLiveEditing?.open);
  await p.evaluate(()=>window.SperinLiveEditing.open());
- await p.waitForFunction(()=>document.querySelector('[data-live-status]')?.textContent?.includes("Connected"),null,{timeout:10000});
+ try{
+   await p.waitForFunction(()=>document.querySelector('[data-live-status]')?.textContent?.includes("Connected"),null,{timeout:10000});
+ }catch(err){
+   const debug=await p.evaluate(()=>({status:document.querySelector('[data-live-status]')?.textContent,hasField:!!document.querySelector('[data-field="clientName"]'),url:location.href,active:document.querySelector('#sperin-live-indicator')?.textContent,script:typeof window.SperinLiveEditing}));
+   throw Error("Live joining failure: "+JSON.stringify(debug)+" "+String(err));
+ }
 }
 const client1=page1.locator('[data-field="clientName"]').first();
 await client1.fill("QA electrician one");
