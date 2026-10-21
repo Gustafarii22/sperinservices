@@ -566,7 +566,7 @@ public class MainActivity extends Activity {
                     sendSerialData(address, "", "Connected, but no result data was transmitted. Start export on tester or use its documented file export."); return;
                 }
                 String txt = new String(bytes.toByteArray(), StandardCharsets.UTF_8);
-                if (txt.indexOf('\uFFFD') >= 0 || txt.indexOf('\u0000') >= 0 || !txt.matches("(?s).*[,;\\t].*")) {
+                if (txt.indexOf((char)0xFFFD) >= 0 || txt.indexOf((char)0) >= 0 || !txt.matches("(?s).*[,;\\t].*")) {
                     sendSerialData(address, "", "Instrument returned an unknown/binary protocol. No readings were imported."); return;
                 }
                 sendSerialData(address, txt, "");
