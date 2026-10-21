@@ -6,7 +6,7 @@ const queue=new Map(),editors=new Map();let online=false,conflicts=0,polling=fal
 const pendingKey=id=>"sperin-live-pending-"+id;
 function savePending(){if(!activeId)return;try{localStorage.setItem(pendingKey(activeId),JSON.stringify([...queue.entries()]));}catch{}}
 function loadPending(){queue.clear();try{for(const [k,v] of JSON.parse(localStorage.getItem(pendingKey(activeId))||"[]"))if(v&&Array.isArray(v.path)&&v.path.length<5)queue.set(k,v);}catch{}}
-const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;':"&quot;","'":"&#39;"}[ch]));
+const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const pathKey=p=>JSON.stringify(p);
 const getAt=(obj,path)=>{let v=obj;for(const key of path){if(v==null)return null;v=v[key];}return v===undefined?null:v;};
 const setAt=(obj,path,v)=>{let a=obj;for(let i=0;i<path.length-1;i++){if(!a?.[path[i]])return false;a=a[path[i]];}if(!a)return false;a[path.at(-1)]=v;return true;};
