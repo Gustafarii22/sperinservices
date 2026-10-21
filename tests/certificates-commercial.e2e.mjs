@@ -38,6 +38,8 @@ for(const type of types){
   assert(buf.subarray(0,5).toString()==="%PDF-",type+" invalid PDF header");
   assert(buf.length>2000,type+" empty PDF");
   console.log("SPECIALIST_CERT_PDF_PASS",type,buf.length);
+  assert(await page.locator(".pdf-download-backdrop").count()===1,"PDF download confirmation dialog missing");
+  await page.locator('[data-action="pdf-dismiss"]').click();
   await page.locator('[data-action="home"]').first().click();
 }
 await page.locator('[data-action="open-new"]').click();
