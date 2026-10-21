@@ -819,7 +819,7 @@
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
     const logo=typeof settings.reportLogo==='string'?settings.reportLogo:'';
     const m=/^data:image\/(png|jpeg);base64,/.exec(logo);
-    if(m&&logo.length<=165000)doc.__sperinLogo={data:logo,format:m[1]==='png'?'PNG':'JPEG'};
+    if(m&&logo.length<=790000)doc.__sperinLogo={data:logo,format:m[1]==='png'?'PNG':'JPEG'};
     const opts={worksheet,settings};
     if(cert.type==='eic')renderEic(doc,cert,schema,opts);
     else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
@@ -838,7 +838,7 @@
     if(!worksheet && cert.signatureApprovedAt && settings.reportSignature){
       const file=String(settings.reportSignature||'');
       const signed=/^data:image\/(png|jpeg);base64,/.exec(file);
-      if(signed&&file.length<165000){
+      if(signed&&file.length<790000){
         // Add a separate and explicitly authorised sign-off: never overlay mandatory form test values.
         doc.addPage('a4','portrait');
         pageFrame(doc,'AUTHORISED SIGNATURE ATTACHMENT',String(cert.number||''),schema.standard);
