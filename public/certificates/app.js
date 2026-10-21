@@ -638,7 +638,7 @@
     schema.sections.forEach(part=>{
       if(part.type==='section'){
         part.fields.forEach(field=>{
-          if(!(field.key in cert.fields)) cert.fields[field.key]=defaultFor(field);
+          if(!Object.hasOwn(cert.fields,field.key)) cert.fields[field.key]=defaultFor(field);
         });
       } else if(part.type==='table'){
         let rows=Array.isArray(cert.tables[part.key]) ? cert.tables[part.key] : [];
@@ -701,12 +701,12 @@
     if(cert.type==='eic'){
       const f=cert.fields;
       if(!f.signatoryMode){
-        const names=[f.designer1,f.constructor,f.inspector].filter(Boolean);
+        const names=[f.designer1,typeof f.constructor==='string'?f.constructor:'',f.inspector].filter(Boolean);
         const same=names.length<=1 || names.every(n=>n===names[0]);
         f.signatoryMode=same ? 'One person — design, construction & inspection' : 'Separate people';
       }
       if(f.signatoryMode==='One person — design, construction & inspection'){
-        f.singleSignatoryName=f.singleSignatoryName||f.designer1||f.constructor||f.inspector||settings.engineerName||'';
+        f.singleSignatoryName=f.singleSignatoryName||f.designer1||(typeof f.constructor==='string'?f.constructor:'')||f.inspector||settings.engineerName||'';
         f.singleSignatoryCompany=f.singleSignatoryCompany||f.designerCompany||f.constructorCompany||f.inspectorCompany||settings.companyName||'';
         f.singleSignatoryAddress=f.singleSignatoryAddress||f.designerAddress||f.constructorAddress||f.inspectorAddress||settings.address||'';
         f.singleSignatoryPostcode=f.singleSignatoryPostcode||f.designerPostcode||f.constructorPostcode||f.inspectorPostcode||settings.postcode||'';
