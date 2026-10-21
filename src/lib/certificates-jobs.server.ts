@@ -20,7 +20,7 @@ function parseDataUrl(encoded:unknown,kind:"pdf"|"image"){
   const s=String(encoded??"");
   const limit=kind==="pdf"?8_000_000:3_000_000;
   if(s.length>limit||s.length<25)throw Error("File too large or empty");
-  const m=/^data:(application\/pdf|image\/jpeg|image\/png|image\/webp);base64,([A-Za-z0-9+/=]+)$/.exec(s);
+  const m=/^data:(application\/pdf|image\/jpeg|image\/png|image\/webp)(?:;filename=[^;,]{1,90})?;base64,([A-Za-z0-9+/=]+)$/.exec(s);
   if(!m)throw Error("Unsupported file encoding");
   if(kind==="pdf"&&m[1]!=="application/pdf"||kind==="image"&&!m[1].startsWith("image/"))
     throw Error("Unsupported file type");
