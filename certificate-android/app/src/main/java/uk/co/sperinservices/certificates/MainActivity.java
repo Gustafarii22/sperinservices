@@ -96,6 +96,7 @@ public class MainActivity extends Activity {
     private boolean ttsReady = false;
     private String pendingVoiceToken = "";
     private String pendingVoicePrompt = "";
+    private volatile Uri mostRecentPdfUri;
     private Uri pendingNotificationUri;
     private String pendingNotificationName;
     private String pendingNotificationMime;
@@ -1100,11 +1101,29 @@ public class MainActivity extends Activity {
                 int comma = dataUri.indexOf(',');
                 String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
                 Uri uri = saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
+                if (uri != null) mostRecentPdfUri = uri;
                 return uri != null;
             } catch (Exception ex) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public boolean openLatestPdf() {
+            final Uri uri = mostRecentPdfUri;
+            if (uri == null) return false;
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/pdf");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(intent, "Open certificate PDF"));
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "No PDF viewer available", Toast.LENGTH_LONG).show();
+                }
+            });
+            return true;
         }
 
         @JavascriptInterface
