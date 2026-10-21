@@ -23,6 +23,7 @@ await page.locator('[data-jc-describe]').fill("Explicit inspection due - TEST ON
 await page.locator('[data-jc="reminder-add"]').click();
 assert((await page.locator(".jc-dialog").textContent()).includes("Explicit inspection due - TEST ONLY"));
 await page.locator('[data-jc="close"]').click();
+await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
 await page.locator('[data-action="jobs"]').first().click();
 await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
