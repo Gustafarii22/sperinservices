@@ -6,7 +6,7 @@ page.on("dialog",async d=>{if(d.type()==="prompt")await d.accept("QA circuit tem
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/",{waitUntil:"domcontentloaded"});
 await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
-await page.evaluate(()=>{
+const seededCertificate=await page.evaluate(()=>{
  const k="sperin-certificates-data-v1",raw=localStorage.getItem(k);
  if(!raw)throw Error("No saved certificate state");
  const state=JSON.parse(raw),c=state.certificates.find(x=>x.type==="eic");
@@ -14,8 +14,16 @@ await page.evaluate(()=>{
  c.tables.boards[0].ref="DB1";
  c.tables.circuits=Array.from({length:4},(_,i)=>({id:crypto.randomUUID(),boardRef:"DB1",circuitNo:String(i+1),description:"QA Circuit "+(i+1),deviceKind:"MCB",ocpdBs:"BS EN 60898-1",ocpdType:"B",ocpdRating:"16"}));
  c.tables.tests=Array.from({length:4},(_,i)=>({boardRef:"DB1",circuitNo:String(i+1),zs:String(i+1)+".01",r1r2:String(i+1)+".02"}));
- localStorage.setItem(k,JSON.stringify(state));
+ return JSON.stringify(state);
 });
+await page.addInitScript(serialized=>{
+  // Set fixture before app scripts initialise. Setting localStorage while the
+  // live app is open races its autosave and can overwrite an injected fixture.
+  if(!localStorage.getItem("sperin-qa-circuit-fixture")){
+    localStorage.setItem("sperin-certificates-data-v1",serialized);
+    localStorage.setItem("sperin-qa-circuit-fixture","1");
+  }
+},seededCertificate);
 await page.reload();
 if(!(await page.locator(".distribution-section").count())){
  await page.locator('#speed-nav [data-speed="certificates"]').click();
