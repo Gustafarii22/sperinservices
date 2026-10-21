@@ -724,3 +724,49 @@ body{padding-bottom:115px!important}
 #speed-nav .speed-links button{min-height:50px!important}
 }
 @media screen and (max-width:560px){.top-actions [data-action=backup],.top-actions [data-action=restore]{min-height:44px!important}}
+
+/* v1.9.4 focused home, filtered archive and section-J circuit hierarchy */
+.minimal-home{width:min(720px,100%);margin:0 auto;padding:clamp(16px,4vw,35px) 0 18px;min-height:52vh}
+.minimal-home h2{font-size:clamp(26px,4vw,34px);letter-spacing:-.045em;margin:12px 0 30px;color:var(--text)}
+.home-primary-actions{display:grid;gap:12px}
+.home-big-action{display:flex;align-items:center;gap:18px;width:100%;border:1px solid var(--line);border-radius:18px;
+ background:var(--panel);color:var(--text);min-height:96px;padding:21px 23px;text-align:left;font:600 21px system-ui;box-shadow:0 4px 14px #0a1c3310;cursor:pointer}
+.home-big-action span{flex:1}.home-big-action strong{font-size:28px;font-weight:400}
+.home-big-action.primary{background:#176cce;color:#fff;border-color:#176cce}
+.home-big-action:focus-visible,.inline-circuit-summary:focus-visible{outline:3px solid #68aeff;outline-offset:2px}
+.simple-list-page{display:grid;gap:17px;margin:14px 0 110px}
+.simple-list-page>header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.simple-list-page>header h2{font-size:clamp(23px,3.2vw,31px);margin:0;flex:1}
+.library-controls{display:grid;grid-template-columns:minmax(200px,2fr) repeat(2,minmax(120px,1fr));gap:10px;align-items:end}
+.library-controls label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:650}
+.library-controls input,.library-controls select{min-width:0;width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:500 15px system-ui}
+.distribution-section,.distribution-body{display:grid;gap:12px}
+.distribution-section{display:block}
+.distribution-section>.cert-accordion-head{margin-bottom:0}
+.distribution-body{padding:12px 10px 16px}
+.cu-circuits-accordion{margin:0 0 20px 0;overflow:hidden}
+.cu-accordion{margin-bottom:8px}
+.inline-circuit{margin:8px 0;border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+.inline-circuit-summary{min-height:59px;list-style:none;display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,2fr) auto;gap:9px;align-items:center;padding:13px 15px;cursor:pointer;color:var(--text)}
+.inline-circuit-summary::-webkit-details-marker{display:none}
+.inline-circuit-summary small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inline-circuit[open]>.inline-circuit-summary{border-bottom:1px solid var(--line)}
+.inline-circuit-fields{padding:12px 15px}
+.inline-circuit-group{margin:6px 0 18px}.inline-circuit-group h4{font-size:14px;border-bottom:1px solid var(--line);padding-bottom:7px}
+.inline-circuit-actions{padding:10px 13px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.pdf-downloaded-modal{width:min(410px,calc(100vw - 26px));margin:auto}.pdf-downloaded-modal h2{font-size:23px}
+.pdf-downloaded-modal .toolbar{display:flex;gap:9px;flex-wrap:wrap}
+@media(max-width:620px){
+ .minimal-home{padding:25px 4px}.minimal-home h2{margin:4px 0 25px}
+ .home-big-action{min-height:84px;font-size:19px}
+ .library-controls{grid-template-columns:1fr 1fr}.library-search{grid-column:1/-1}
+ .simple-list-page .saved-cert-row{grid-template-columns:auto minmax(0,1fr)!important}
+ .simple-list-page .saved-cert-actions{grid-column:1/-1}
+ .simple-list-page .saved-cert-date{grid-column:2}
+ .inline-circuit-summary{grid-template-columns:1fr auto}
+ .inline-circuit-summary small{grid-column:1;grid-row:2;white-space:normal}
+ .inline-circuit-summary>.cert-chevron{grid-column:2;grid-row:1}
+ .distribution-body{padding:10px 5px}
+ #speed-nav .speed-links button{min-height:54px!important;font-size:12px}
+ #speed-nav .speed-links button span{font-size:11px}
+}
