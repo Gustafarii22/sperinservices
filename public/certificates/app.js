@@ -1213,6 +1213,14 @@
   });
 
 
+  // The published PAT V1–V6 forms distinguish the organisation responsible for
+  // the equipment from the premises, and separately identify the inspector.
+  SCHEMAS.pat.sections[0].fields.push(
+    f('organisationName','Organisation name (equipment register)'),
+    f('organisationAddress','Organisation address','textarea',{span:'full'}),
+    f('responsiblePerson','Responsible person / duty-holder'),
+    f('inspectorOrganisation','Inspection/testing organisation (if different)')
+  );
   // PAT is reconciled with the IET's freely published model Forms V1–V6.
   // This remains our original table layout, and must not be advertised as an
   // official IET product or identical to an IET copyrighted form.
