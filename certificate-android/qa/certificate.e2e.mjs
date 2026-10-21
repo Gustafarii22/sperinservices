@@ -461,7 +461,7 @@ await page.waitForSelector(".saved-cert-row");
 assert((await page.locator(".home-hero").count()) === 1, "Premium home hero missing");
 assert(
   (await page.locator(".home-hero h2").textContent()).includes(
-    "Electrical certificates, built for site",
+    "Ready for the next job.",
   ),
   "Home heading unclear",
 );
