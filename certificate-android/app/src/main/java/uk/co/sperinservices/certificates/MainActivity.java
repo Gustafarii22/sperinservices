@@ -975,6 +975,24 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public boolean saveArchiveBase64(String dataUri, String fileName) {
+            try {
+                final String prefix = "data:application/zip;base64,";
+                if (dataUri == null || !dataUri.startsWith(prefix)) return false;
+                String encoded = dataUri.substring(prefix.length());
+                if (encoded.length() > 24000000) return false;
+                byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+                if (bytes.length < 22 || bytes.length > 18000000 ||
+                    bytes[0] != 0x50 || bytes[1] != 0x4b || bytes[2] != 0x03 || bytes[3] != 0x04) return false;
+                Uri uri = saveBytes(bytes, fileName, "application/zip", true);
+                return uri != null;
+            } catch (Exception ex) {
+                android.util.Log.w("SperinCertificates", "ZIP handover save failed", ex);
+                return false;
+            }
+        }
+
+        @JavascriptInterface
         public void saveTextFile(String content, String fileName, String mime) {
             saveBytes(content.getBytes(StandardCharsets.UTF_8), fileName, mime == null ? "text/plain" : mime, false);
         }
