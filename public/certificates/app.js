@@ -1212,6 +1212,103 @@
     }
   });
 
+
+  // PAT is reconciled with the IET's freely published model Forms V1–V6.
+  // This remains our original table layout, and must not be advertised as an
+  // official IET product or identical to an IET copyrighted form.
+  function addColumns(form,key,additional){
+    const tab=form.sections.find(x=>x.type==='table'&&x.key===key);
+    if(!tab)throw Error('Specialist schedule absent: '+key);
+    for(const c of additional)if(!tab.columns.some(x=>x.key===c.key))tab.columns.push(c);
+  }
+  addColumns(SCHEMAS.pat,'appliances',[
+    {key:'equipmentType',label:'Equipment type / usage (portable, stationary, etc.)'},
+    {key:'make',label:'Manufacturer'},{key:'model',label:'Model'},{key:'serial',label:'Equipment serial number'},
+    {key:'voltage',label:'Voltage (V, AC/DC)'},{key:'rating',label:'Rating (W or A)'},{key:'fuseRating',label:'Plug or FCU fuse (A)'},
+    {key:'visualFrequency',label:'Formal visual inspection interval (risk-based)'},
+    {key:'combinedFrequency',label:'Combined inspection/test interval (risk-based)'},
+    {key:'socketCondition',label:'Socket-outlet condition',type:'select',options:['','Pass','Fail','N/A','Not checked']},
+    {key:'plugCondition',label:'Plug condition',type:'select',options:['','Pass','Fail','N/A','Not checked']},
+    {key:'flexCondition',label:'Flex and cord condition',type:'select',options:['','Pass','Fail','N/A','Not checked']},
+    {key:'bodyCondition',label:'Enclosure/body condition',type:'select',options:['','Pass','Fail','N/A','Not checked']},
+    {key:'otherCondition',label:'Other visual condition details'},
+    {key:'earthIncludingCable',label:'Total continuity including lead (Ω)'},
+    {key:'insulationVoltage',label:'Insulation test voltage used (V DC)'},
+    {key:'otherTests',label:'Other applicable measurements / units'},
+    {key:'suitableEnvironment',label:'Suitable for environment',type:'select',options:['','Yes','No','Limited assessment']},
+    {key:'suitableForUse',label:'Duty-holder assessment: suitable for continued use',type:'select',options:['','Yes','No','Awaiting decision']},
+    {key:'inspectorInitials',label:'Inspector initials'},
+    {key:'dutyHolderInitials',label:'Duty-holder initials'},
+    {key:'labelCheckDate',label:'Safety-check label date'},
+    {key:'labelInitials',label:'Safety-check label initials'}
+  ]);
+  addColumns(SCHEMAS.pat,'repairs',[
+    {key:'customer',label:'Customer'},{key:'serial',label:'Equipment serial'},
+    {key:'repairer',label:'Repairer'},{key:'suitable',label:'Return to use suitable',type:'select',options:['','Yes','No']},
+    {key:'signature',label:'Repairer sign-off'}
+  ]);
+  addColumns(SCHEMAS.pat,'faulty',[
+    {key:'date',label:'Date recorded'},{key:'location',label:'Equipment location'}
+  ]);
+  SCHEMAS.pat.sections.splice(SCHEMAS.pat.sections.length-1,0,table('instrumentChecks','IET PAT test instrument verification points',[
+    {key:'type',label:'Low resistance / high resistance / other'},
+    {key:'make',label:'Instrument make/model'},{key:'serial',label:'Instrument serial'},
+    {key:'calibrationDate',label:'Last calibration date'},
+    {key:'testDate',label:'Function verification date'},
+    {key:'point05',label:'0.5 Ω / MΩ check result'},{key:'deviation05',label:'0.5 Ω / MΩ deviation %'},
+    {key:'point1',label:'1.0 Ω / MΩ check result'},{key:'deviation1',label:'1.0 Ω / MΩ deviation %'},
+    {key:'point10',label:'10.0 Ω / MΩ check result'},{key:'deviation10',label:'10.0 Ω / MΩ deviation %'}
+  ],[]));
+  // An EV commissioning record supplements the electrical certificate; it cannot
+  // itself replace a BS 7671 EIC/MEIWC or site-specific EV charging assessment.
+  const evSections=SCHEMAS.ev.sections;
+  evSections.splice(evSections.length-1,0,section('EVSE safety and site risk checks',[
+    f('chargingMode','Charging mode / connector type'),
+    f('rcdDcDetails','6 mA DC protection: integral/remote equipment details'),
+    f('simultaneousContact','Simultaneous contact / adjacent earthing risk assessment'),
+    f('penProtectionStandard','Open-PEN device standard or alternative earthing protective measure'),
+    f('protectionTripTest','RCD/OPDD test method, conditions and recorded outcome'),
+    f('gridInteraction','V2G / V2H or islanding arrangement where applicable'),
+    f('accessibility','User access and physical protection checks'),
+    f('manufacturerTests','Other manufacturer commissioning and functional test results','textarea',{span:'full'})
+  ]));
+  // PV commissioning records must distinguish mandatory and installation-
+  // dependent test regimes; do not invent a Category 2 test for a Category 1 site.
+  const pvSections=SCHEMAS.solar.sections;
+  pvSections.splice(pvSections.length-1,0,section('PV design, inspection and test regime',[
+    f('systemDesigner','System designer and responsible person'),
+    f('arrayLayout','Array layout and string configuration drawing reference'),
+    f('cableAndFuseSpecification','Specified DC cable, connector, string fuse and maximum ratings'),
+    f('earthingContinuity','Protective continuity and bonding test result'),
+    f('dcIsolatorTest','DC isolator and switching test result'),
+    f('testConditions','Irradiance / module temperature / measurement conditions'),
+    select('pvTestCategory','PV verification regime',['','Category 1','Category 2 / enhanced','Other (describe)']),
+    f('ivCurveEvidence','I-V characteristic test / evidence reference, if applicable'),
+    f('infraredEvidence','Thermal image inspection / evidence reference, if applicable'),
+    f('designDeviation','Variations from system design / rectifications'),
+    f('emergencyShutdown','Emergency shutdown and isolation instructions'),
+    f('faultResponse','Fault reporting and fault-response instructions'),
+    f('maintenance','Cleaning, service and inspection recommendations'),
+    f('warranty','Module/inverter/workmanship/weatherproofing warranty information')
+  ]));
+  const fireSections=SCHEMAS.commercialFire.sections;
+  fireSections.splice(fireSections.length-1,0,section('Non-domestic fire safety acceptance and handover',[
+    f('designOrganisation','Fire system designer organisation'),
+    f('designDeclaration','Design responsibility and signed declaration'),
+    f('installationDeclaration','Installation responsibility and signed declaration'),
+    f('commissionDeclaration','Commissioning responsibility and signed declaration'),
+    f('acceptanceBy','System accepted on behalf of user / responsible person'),
+    f('acceptanceDate','Acceptance date','date'),
+    f('categoryDeviations','Variations from category/coverage and relevant approvals'),
+    f('batteryStandby','Standby battery capacity / autonomy assessment'),
+    f('soundLevelEvidence','Audibility / sound measurement and test evidence'),
+    f('interfacesEvidence','Cause-and-effect and interfaces to other systems'),
+    f('commissionReport','Commissioning test schedule and defects references'),
+    f('zoneChart','Zones / as-fitted drawings and location references'),
+    f('userTraining','System demonstration, user training and operator instructions'),
+    f('logbookDelivery','Logbook, maintenance documentation and service arrangements')
+  ]));
+
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
