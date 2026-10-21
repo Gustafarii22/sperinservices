@@ -124,14 +124,12 @@ function localOcrCandidates(photos,options={}){
      dev.fields=[
        make('ocpdType',g.curve),make('ocpdRating',g.amps),
        ...(deviceKind?[make('deviceKind',deviceKind,'Check the device type.')]:[]),
-       ...((standards||['RCBO','MCB'].includes(deviceKind))?[make('ocpdBs',standards||(deviceKind==='RCBO'?'BS EN 61009-1':'BS EN 60898-1'),
-         standards?'Read from visible marking.':'Suggested by detected device class; verify against device.')]:[]),
+       ...(standards?[make('ocpdBs',standards,'Read from visible marking; confirm on this exact device.')]:[]),
        ...(model?[make('deviceModel',model)]:[]),
        ...(capacity?[make('breakingCapacity',capacity)]:[]),
        ...(rcd&&idn?[make('rcdIdn',idn)]:[]),
        ...(rcd&&rcdType?[make('rcdType',rcdType)]:[]),
-       ...(rcd?[make('rcdBs',shared?(standards||'BS EN 61008-1'):(standards.startsWith('BS EN 61009')?standards:'BS EN 61009-1'),
-         standards?'Check that the standard belongs to this device.':'Suggested from device category, not a verified product marking.')]:[]),
+       ...(rcd&&/^(BS EN 6100[89]|BS 4293)/.test(standards)?[make('rcdBs',standards,'Read from device label. Confirm mark and position.')]:[]),
        ...(rcd?[make('rcdRating',g.amps,'Check the RCBO rating against its label.')]:[]),
        ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Check the device brand.')]:[])
      ];
