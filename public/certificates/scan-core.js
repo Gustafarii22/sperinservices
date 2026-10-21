@@ -100,23 +100,28 @@ function localOcrCandidates(photos,options={}){
       // have a different manufacturer's device at the identical X coordinate;
       // never borrow its BS, model or RCD characteristics across the row gap.
      const model=joined.match(/\b(RTA[0-9A-Z-]{5,20}|MT[0-9A-Z-]{4,18})\b/i)?.[1]||'';
-     const standards=/61009(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 61009-1':/60898(?:\s*[-–]\s*1)?/i.test(joined)?'BS EN 60898-1':'';
-     const rcd=/\b(?:10|30|100|300)\s?mA\b|\b0[.,]03\s?A\b|61009|\bRTA[0-9]/i.test(joined);
+     const marked=joined.match(/(?:BS\s*(?:EN\s*)?)?\b(61009(?:\s*[-–]\s*(?:1|2[-–][12]))?|60898(?:\s*[-–]\s*[12])?|61008(?:\s*[-–]\s*1)?|3871|4293|60947\s*[-–]\s*2)\b/i);
+     const exact=marked?.[1]?.replace(/\s+/g,'').replace(/[–]/g,'-')||'';
+     const standards=exact?(/^(?:3871|4293)$/.test(exact)?'BS '+exact:'BS EN '+exact.replace(/^60898$/,'60898-1').replace(/^61009$/,'61009-1').replace(/^61008$/,'61008-1')):'';
+     const rcd=/\b(?:10|30|100|300)\s?mA\b|\b0[.,]03\s?A\b|61009|61008|4293|\bRTA[0-9]/i.test(joined);
      const mcb=/60898|\bMCB\b/i.test(joined);
      const idn=joined.match(/\b(10|30|100|300)\s?mA\b/i)?.[1]||(/\b0[.,]03\s?A\b/i.test(joined)?'30':'');
      const rcdType=joined.match(/\bTYPE\s*(AC|A|F|B)\b/i)?.[1]?.toUpperCase()||'';
      const capacity=/\b6000\b|\b6\s?kA\b/i.test(joined)?'6':/\b10000\b|\b10\s?kA\b/i.test(joined)?'10':'';
-     const deviceKind=rcd?'RCBO':mcb?'MCB':'';
+     const shared=/61008|4293|\bRCCB\b|\bRCD\b/i.test(joined)&&!/(?:\b[BCD]\s?(?:6|10|16|20|25|32|40|50|63)\b|61009)/i.test(joined);
+     const deviceKind=shared?'RCD':rcd?'RCBO':mcb||g.curve?'MCB':'';
      const dev=coreDraftForOcr(p,i,g.x===null?'position unknown':(travel==='right'?'right-to-left':'left-to-right')+' · x '+Math.round(g.x));
      dev.fields=[
        make('ocpdType',g.curve),make('ocpdRating',g.amps),
        ...(deviceKind?[make('deviceKind',deviceKind,'Check the device type.')]:[]),
-       ...(standards?[make('ocpdBs',standards)]:[]),
+       ...((standards||['RCBO','MCB'].includes(deviceKind))?[make('ocpdBs',standards||(deviceKind==='RCBO'?'BS EN 61009-1':'BS EN 60898-1'),
+         standards?'Read from visible marking.':'Suggested by detected device class; verify against device.')]:[]),
        ...(model?[make('deviceModel',model)]:[]),
        ...(capacity?[make('breakingCapacity',capacity)]:[]),
        ...(rcd&&idn?[make('rcdIdn',idn)]:[]),
        ...(rcd&&rcdType?[make('rcdType',rcdType)]:[]),
-       ...(rcd&&standards==='BS EN 61009-1'?[make('rcdBs',standards)]:[]),
+       ...(rcd?[make('rcdBs',shared?(standards||'BS EN 61008-1'):(standards.startsWith('BS EN 61009')?standards:'BS EN 61009-1'),
+         standards?'Check that the standard belongs to this device.':'Suggested from device category, not a verified product marking.')]:[]),
        ...(rcd?[make('rcdRating',g.amps,'Check the RCBO rating against its label.')]:[]),
        ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Check the device brand.')]:[])
      ];
@@ -171,12 +176,15 @@ function numberFromMain(result,cert,boardRef){
    kindField.confidence='check';
    return d;
  };
- const original=result.circuits.filter(d=>!['Main switch','SPD'].includes(deviceValue(d,'deviceKind')));
+ const original=result.circuits.filter(d=>deviceValue(d,'deviceKind')!=='Main switch');
  const main=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch')||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
  const spdValue=boardValue('spd');
  const spdExisting=result.circuits.find(d=>deviceValue(d,'deviceKind')==='SPD');
  const spdPresent=!!spdExisting || (!!spdValue && !/^(?:no|none|n\/a|not fitted|not present|absent)$/i.test(spdValue));
- const arranged=[main,...(spdPresent?[spdExisting||entry('SPD','SPD',spdValue)]:[]),...original];
+ // Keep photograph order for all identified RCDs, MCBs, RCBOs, blanks and SPDs.
+ // If an SPD is known only from CU details, show it separately on the board rather
+ // than inventing a physical way number.
+ const arranged=[main,...original];
  const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
  const occupied=new Set();
  arranged.forEach((d,i)=>{
