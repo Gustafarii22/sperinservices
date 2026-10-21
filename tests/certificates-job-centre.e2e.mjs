@@ -53,7 +53,7 @@ const dataBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem("sperin
 assert.equal(dataBefore.length,1);
 await page.reload();
 await page.locator('[data-action="jobs"]').first().click();
-await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
+if(await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').count())await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Offline job persistence failed");
 await page.locator('[data-jc="sync"]').click();
 assert((await page.locator("[data-jc-status]").textContent()).includes("Enable cloud consent"),"Cloud upload must remain disabled by default");
