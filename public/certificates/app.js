@@ -1705,7 +1705,7 @@
   }
   function newCertificateListView(){
     return '<main class="simple-list-page"><header><button class="btn back" data-action="home">← Home</button><h2>New Certificate</h2></header>'+
-      '<div class="cert-launch-list">'+Object.entries(SCHEMAS).map(([type,s])=>
+      '<div class="new-certificate-tools"><button class="btn" data-action="import-ai">Import existing PDF</button></div><div class="cert-launch-list">'+Object.entries(SCHEMAS).map(([type,s])=>
       '<button class="cert-launch" data-action="new" data-type="'+esc(type)+'"><span class="cert-launch-icon">'+esc(s.code)+'</span><span><strong>'+esc(s.name)+'</strong><small>'+esc(s.standard||'')+'</small></span><span class="cert-launch-arrow">›</span></button>').join('')+'</div></main>';
   }
   function certificateLibraryView(){
@@ -3865,7 +3865,10 @@
   window.SperinSpeedSuite?.install?.({
     current:()=>getCurrent(),
     home:()=>screen('home'),newCertificate:()=>screen('new'),library:()=>screen('library'),
-    jobs:()=>document.querySelector('[data-action="jobs"]')?.click(),
+    jobs:()=>window.SperinJobCentre?.open?.({certificates:()=>state.certificates,current:()=>getCurrent(),
+      schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',
+      attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},
+      navigate:id=>openCertificate(id)},getCurrent()?.jobId||''),
     scan:()=>{
       const c=getCurrent();
       if(c&&['eic','eicr','minor'].includes(c.type))openBoardScan('');
@@ -3876,7 +3879,12 @@
       }
     },
     settings:()=>openSettings(),
-    workspace:()=>document.querySelector('[data-action="workspace"]')?.click(),
+    workspace:()=>window.SperinCloudWorkspace?.open?.({list:()=>state.certificates,
+      add:doc=>{const c=migrateCertificate(clone(doc));if(!c)throw Error('Invalid certificate');
+        state.certificates.unshift(c);persist();render();},
+      replace:doc=>{const c=migrateCertificate(clone(doc));if(!c)throw Error('Invalid certificate');
+        const i=state.certificates.findIndex(x=>x.id===c.id);
+        if(i<0)throw Error('Certificate not found');state.certificates[i]=c;persist();render();}}),
     tester:()=>{const cert=getCurrent();if(!cert)return toast('Open a certificate first');document.querySelector('[data-action="instrument-import"]')?.click();},
     mutate:(label,change)=>{
       const cert=getCurrent();if(!cert)throw Error('Open a certificate');
