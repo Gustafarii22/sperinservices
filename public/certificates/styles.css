@@ -757,7 +757,12 @@ body{padding-bottom:115px!important}
 .inline-circuit-actions .btn{display:inline-flex;justify-content:center;align-items:center;gap:3px;min-height:44px;flex:0 0 auto;white-space:nowrap;padding:9px 10px;scroll-snap-align:start}
 .inline-circuit-actions .inline-circuit-edit{background:var(--accent,#1769c2);color:#fff;border-color:transparent;font-weight:700}
 .inline-circuit-actions .danger{margin-left:auto}
-@media(max-width:620px){.inline-circuit-actions{margin-inline:-2px}.inline-circuit-actions .btn{font-size:12px;padding:8px 9px}.inline-circuit-actions .inline-circuit-edit{position:sticky;left:0;z-index:1;box-shadow:2px 0 8px var(--shadow,rgba(0,0,0,.08))}}
+@media(max-width:620px){
+ .inline-circuit-actions{margin-inline:-2px;scroll-margin-bottom:145px;scroll-padding-inline:12px}
+ .inline-circuit-actions .btn{font-size:12px;padding:8px 9px}
+ .inline-circuit-actions .inline-circuit-edit{position:static;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+ .inline-circuit{scroll-margin-bottom:145px}
+}
 .pdf-downloaded-modal{width:min(410px,calc(100vw - 26px));margin:auto}.pdf-downloaded-modal h2{font-size:23px}
 .pdf-downloaded-modal .toolbar{display:flex;gap:9px;flex-wrap:wrap}
 @media(max-width:620px){
