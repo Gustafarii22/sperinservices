@@ -10,6 +10,7 @@ on:
       - "tests/certificates-fast-entry.e2e.mjs"
       - "tests/certificates-live-editing.e2e.mjs"
       - "tests/certificates-v194-ux.e2e.mjs"
+      - "tests/certificates-v194-circuit-actions.e2e.mjs"
       - "tests/certificates-iet-pat-model-v1-v6.audit.mjs"
       - "src/lib/certificates-live.server.ts"
       - ".github/workflows/certificate-e2e.yml"
@@ -22,6 +23,7 @@ on:
       - "tests/certificates-fast-entry.e2e.mjs"
       - "tests/certificates-live-editing.e2e.mjs"
       - "tests/certificates-v194-ux.e2e.mjs"
+      - "tests/certificates-v194-circuit-actions.e2e.mjs"
       - "tests/certificates-iet-pat-model-v1-v6.audit.mjs"
       - "src/lib/certificates-live.server.ts"
       - ".github/workflows/certificate-e2e.yml"
@@ -103,6 +105,9 @@ jobs:
         run: |
           node tests/certificates-job-centre.e2e.mjs
           unzip -t /tmp/sperin-job-handover-QA.zip
+
+      - name: Circuit Edit, templates, seven-button layout, reorder and renumber regression
+        run: node tests/certificates-v194-circuit-actions.e2e.mjs
 
       - name: Home, J circuits, scanner standards, logo and PDF QA in multiple orders
         run: node tests/certificates-v194-ux.e2e.mjs
