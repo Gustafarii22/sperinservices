@@ -60,5 +60,13 @@ create table if not exists cert_audit (
   data_hash text not null
 );
 create index if not exists cert_audit_by_document on cert_audit(org_id,document_id,id);
+create table if not exists cert_ai_usage (
+  org_id uuid not null references cert_orgs(id) on delete cascade,
+  period text not null check (period ~ '^[0-9]{4}-[0-9]{2} No credentials are shipped
+-- to Android or JavaScript. Every tenant query MUST include org_id.
+),
+  used integer not null default 0 check (used >= 0),
+  primary key(org_id,period)
+);
 -- App uses ONLY the server-side database credential. No credentials are shipped
 -- to Android or JavaScript. Every tenant query MUST include org_id.
