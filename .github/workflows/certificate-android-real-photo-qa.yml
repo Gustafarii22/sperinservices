@@ -1,5 +1,13 @@
 name: Real Android consumer unit OCR integration QA
 on:
+  push:
+    branches:
+      - release/sperin-certificates-v187-scanner-reviewed
+    paths:
+      - "public/certificates/scan-core.js"
+      - "public/certificates/board-scan.js"
+      - "certificate-android/app/src/androidTest/**"
+      - ".github/workflows/certificate-android-real-photo-qa.yml"
   pull_request:
     paths:
       - "certificate-android/app/src/androidTest/**"
