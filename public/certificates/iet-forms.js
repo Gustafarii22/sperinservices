@@ -156,6 +156,7 @@
       };
     }
     if(role==='designer')return {name:f.designer1||'',company:f.designerCompany||'',address:f.designerAddress||'',postcode:f.designerPostcode||'',phone:f.designerPhone||'',signature:f.designer1Signature||'',date:f.designer1Date||''};
+    if(role==='designer2')return {name:f.designer2||'',company:f.designer2Company||'',address:f.designer2Address||'',postcode:f.designer2Postcode||'',phone:f.designer2Phone||'',signature:f.designer2Signature||'',date:f.designer2Date||''};
     if(role==='constructor')return {name:f.constructor||'',company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
@@ -278,6 +279,7 @@
       [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet)||(!worksheet?'N/A':''),colSpan:2}],
       [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
       sigCells(d),
+      ...(f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
       [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationConstruction,colSpan:3}],
       [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
@@ -294,7 +296,7 @@
       [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
-    const parties=[['Designer (No 1)',d],['Constructor',c],['Inspector',i]];
+    const parties=[['Designer (No 1)',d],...(f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
     sectionTable('SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',
       parties.map(([role,p])=>[
         {content:role,styles:{fontStyle:'bold'}},
@@ -328,7 +330,9 @@
       ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
       ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
       ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
-      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')]
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
+      ['Main switch OCPD rating/setting (A)',f.mainSwitchDeviceSetting,'Main RCD measured operating time (ms)',f.mainRcdTime],
+      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'','']
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     addLandscapePage();
@@ -462,15 +466,15 @@
   function renderEicr(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
     doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
-    let top=box(doc,x,y,w,18,'SECTION A: DETAILS OF THE PERSON ORDERING THE REPORT');
+    let top=box(doc,x,y,w,21,'SECTION A: DETAILS OF THE PERSON ORDERING THE REPORT');
     labelValue(doc,'Name',display(f.clientName,worksheet),x+2,top+6,w-4,{labelW:15});
-    labelValue(doc,'Address',display(f.clientAddress,worksheet),x+2,top+12,w-4,{labelW:18,maxLines:1});y+=19;
+    labelValue(doc,'Address',display(f.clientAddress,worksheet),x+2,top+12,w-4,{labelW:18,maxLines:1});y+=22;
 
-    top=box(doc,x,y,w,20,'SECTION B: REASON FOR PRODUCING THIS REPORT');
+    top=box(doc,x,y,w,22,'SECTION B: REASON FOR PRODUCING THIS REPORT');
     labelValue(doc,'Reason',display(f.reason,worksheet),x+2,top+6,w-4,{labelW:18,maxLines:2});
-    labelValue(doc,'Date(s) inspection and testing carried out',display(f.inspectionDates,worksheet),x+2,top+13,w-4,{labelW:52});y+=21;
+    labelValue(doc,'Date(s) inspection and testing carried out',display(f.inspectionDates,worksheet),x+2,top+13,w-4,{labelW:52});y+=23;
 
-    top=box(doc,x,y,w,42,'SECTION C: DETAILS OF THE INSTALLATION WHICH IS THE SUBJECT OF THIS REPORT');
+    top=box(doc,x,y,w,39,'SECTION C: DETAILS OF THE INSTALLATION WHICH IS THE SUBJECT OF THIS REPORT');
     labelValue(doc,'Occupier',display(f.occupier,worksheet),x+2,top+6,62,{labelW:18});
     labelValue(doc,'Installation address',display(f.installationAddress,worksheet),x+66,top+6,122,{labelW:34,maxLines:2});
     labelValue(doc,'Description of premises',display(f.premisesType,worksheet)+' '+display(f.premisesOther,worksheet),x+2,top+15,w-4,{labelW:34});
@@ -478,31 +482,43 @@
     labelValue(doc,'Evidence of additions/alterations',display(f.additionsEvidence,worksheet),x+69,top+23,63,{labelW:39});
     labelValue(doc,'Estimated age if yes',display(f.additionsAge,worksheet),x+134,top+23,54,{labelW:31});
     labelValue(doc,'Installation records available',display(f.recordsAvailable,worksheet),x+2,top+31,72,{labelW:38});
-    labelValue(doc,'Date of last inspection',worksheet?'':fmtDate(f.lastInspection),x+76,top+31,56,{labelW:29});y+=43;
+    labelValue(doc,'Date of last inspection',worksheet?'':fmtDate(f.lastInspection),x+76,top+31,56,{labelW:29});y+=40;
 
-    top=box(doc,x,y,w,56,'SECTION D: EXTENT AND LIMITATIONS OF INSPECTION AND TESTING');
+    top=box(doc,x,y,w,54,'SECTION D: EXTENT AND LIMITATIONS OF INSPECTION AND TESTING');
     labelValue(doc,'Parts of installation inspected and tested',display(f.extentInspected,worksheet),x+2,top+7,w-4,{labelW:52,maxLines:2});
     labelValue(doc,'Agreed limitations including reasons',display(f.agreedLimitations,worksheet),x+2,top+18,w-4,{labelW:46,maxLines:2});
     labelValue(doc,'Agreed with',display(f.agreedWith,worksheet),x+2,top+29,90,{labelW:22});
     labelValue(doc,'Operational limitations including reasons',display(f.operationalLimitations,worksheet),x+2,top+38,w-4,{labelW:50,maxLines:2});
-    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+49,w-4,{labelW:57});y+=57;
+    labelValue(doc,'Inspection carried out to BS 7671 amended to',display(f.standardAmendedTo,worksheet),x+2,top+44,w-4,{labelW:57});y+=55;
 
-    top=box(doc,x,y,w,40,'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION');
+    top=box(doc,x,y,w,30,'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION');
     labelValue(doc,'Overall assessment',display(f.overallAssessment,worksheet),x+2,top+7,80,{labelW:31});
-    labelValue(doc,'General condition of the installation in terms of electrical safety',display(f.generalCondition,worksheet),x+2,top+16,w-4,{labelW:68,maxLines:4});y+=41;
+    labelValue(doc,'General condition of the installation in terms of electrical safety',display(f.generalCondition,worksheet),x+2,top+16,w-4,{labelW:68,maxLines:4});y+=31;
 
-    top=box(doc,x,y,w,28,'SECTION F: RECOMMENDATION FOR NEXT INSPECTION');
+    top=box(doc,x,y,w,23,'SECTION F: RECOMMENDATION FOR NEXT INSPECTION');
     labelValue(doc,'Further inspection recommended before',worksheet?'':fmtDate(f.nextInspectionDate),x+2,top+7,w-4,{labelW:48});
-    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+16,w-4,{labelW:43,maxLines:2});y+=29;
+    labelValue(doc,'Reason for recommended interval',display(f.nextInspectionReason,worksheet),x+2,top+13,w-4,{labelW:43,maxLines:2});y+=24;
 
-    top=box(doc,x,y,w,47,'SECTION G: DECLARATION');
+    top=box(doc,x,y,w,57,'SECTION G: DECLARATION');
     write(doc,'I/We declare that the information in this report, including observations and attached schedules, provides an accurate assessment of the condition of the electrical installation, taking into account the stated extent and limitations.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
-    write(doc,'Inspected and tested by:',x+2,top+22,80,{size:6.3,bold:true});
-    labelValue(doc,'Name',display(f.inspectedBy,worksheet),x+2,top+29,80,{labelW:15});
-    labelValue(doc,'Signature',display(f.inspectorSignature,worksheet),x+2,top+36,80,{labelW:20});
-    write(doc,'Report authorised for issue by:',x+98,top+22,90,{size:6.3,bold:true});
-    labelValue(doc,'Name',display(f.authorisedBy,worksheet),x+98,top+29,90,{labelW:15});
-    labelValue(doc,'Signature',display(f.authoriserSignature,worksheet),x+98,top+36,90,{labelW:20});
+    // All six issued EICR declaration fields for both persons, without
+    // inventing extra certificate metadata or omitting their authorisation.
+    const signers=[
+      {name:f.inspectedBy,signature:f.inspectorSignature,company:f.inspectorCompany,position:f.inspectorPosition,address:f.inspectorAddress,date:f.inspectorDate},
+      {name:f.authorisedBy,signature:f.authoriserSignature,company:f.authoriserCompany,position:f.authoriserPosition,address:f.authoriserAddress,date:f.authoriserDate}
+    ];
+    for(let idx=0;idx<2;idx++){
+      const x0=x+2+idx*97,p=signers[idx];
+      write(doc,idx===0?'Inspected and tested by:':'Report authorised for issue by:',x0,top+21,91,{size:6,bold:true});
+      [
+        ['Name (Capitals)',p.name],
+        ['Signature',p.signature],
+        ['For/on behalf of',p.company],
+        ['Position',p.position],
+        ['Address',p.address],
+        ['Date',worksheet?'':fmtDate(p.date)]
+      ].forEach(([label,value],i)=>labelValue(doc,label,display(value,worksheet),x0,top+24+i*4,91,{labelW:30,maxLines:1,valueSize:5.7}));
+    }
 
     doc.addPage('a4','portrait');doc.setPage(2);y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
     top=box(doc,x,y,w,18,'SECTION H: SCHEDULES AND CONTINUATION SHEET(S) ATTACHED');
@@ -551,6 +567,9 @@
     labelValue(doc,'RCD type',display(f.mainRcdType,worksheet),x+99,top+63,32,{labelW:17});
     labelValue(doc,'IΔn mA',display(f.mainRcdIdn,worksheet),x+133,top+63,27,{labelW:14});
     labelValue(doc,'Delay ms',display(f.mainRcdDelay,worksheet),x+162,top+63,26,{labelW:15});
+    labelValue(doc,'OCPD rating/setting (A)',display(f.mainSwitchDeviceSetting,worksheet),x+2,top+70,54,{labelW:34});
+    labelValue(doc,'RCD measured time (ms)',display(f.mainRcdTime,worksheet),x+58,top+70,59,{labelW:38});
+    labelValue(doc,'RCD breaking capacity (kA)',display(f.mainRcdBreaking,worksheet),x+119,top+70,69,{labelW:45});
     y+=77;
 
     top=box(doc,x,y,w,80,'SECTION K: OBSERVATIONS');
@@ -615,18 +634,24 @@
         const y=27;
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
         // Flexible board cells preserve long SPD/device/location text without overlap.
+        // The printable header records BS 7671 Appendix 6 circuit-schedule
+        // information only. CU make, model and module counts are internal photo
+        // recognition aids, not extra certificate fields.
+        const distributionBs=board.distributionOcpdBs||'';
+        const distributionType=board.distributionOcpdType||'';
+        const distributionRating=board.distributionOcpdRating||'';
+        const spdCertified=/^(?:T1|T2|T3|T1\s*\+\s*T2|T2\s*\+\s*T3|N\/A)$/i.test(String(board.spd||'').trim())?String(board.spd).trim():'';
         doc.autoTable({startY:y+3,head:[],body:[
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
-          ['Manufacturer: '+display(board.manufacturer,worksheet),'Model: '+display(board.model,worksheet),'Ways: '+display(board.ways,worksheet)+' / Populated: '+display(board.populated,worksheet)+' / Spare: '+display(board.spareWays,worksheet)],
-          ['Main switch / device: '+display(board.mainSwitch,worksheet),'RCD / RCBO: '+display(board.rcd,worksheet),'SPD: '+display(board.spd,worksheet)],
-          ['Zdb Ohms: '+display(board.zdb,worksheet)+'   Ipf kA: '+display(board.ipf,worksheet),'Polarity: '+display(board.polarity,worksheet)+'   Phase sequence: '+display(board.phaseSequence,worksheet),'SPD operational: '+display(board.spdOperational,worksheet)]
+          ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
+          ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
         ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
-          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Wiring / containment','wiringType'],['4','Reference method','refMethod'],
-          ['5','Number of points served','points'],['6','Live mm²','liveCsa'],['7','CPC mm²','cpcCsa'],['8','BS (EN)','ocpdBs'],
-          ['9','Type','ocpdType'],['10','Rating A','ocpdRating'],['11','Breaking kA','breakingCapacity'],['12','Max permitted Zs Ω','maxZs'],
-          ['13','RCD BS (EN)','rcdBs'],['14','Type','rcdType'],['15','RCD mA','rcdIdn'],['16','Rating A','rcdRating']
+          ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
+          ['5','Number of points served','points'],['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],['8','BS (EN)','ocpdBs'],
+          ['9','Type','ocpdType'],['10','Rating (A)','ocpdRating'],['11','Breaking capacity (kA)','breakingCapacity'],['12','Maximum permitted Zs (Ω)','maxZs'],
+          ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
         for(let r=0;r<12;r++){
@@ -634,9 +659,7 @@
           rows.push(cols.map(c=>{
             let z=item[c[2]];
             if(c[2]==='wiringType'){
-              const wiring=wiringCode(z);
-              const containment=String(item.installMethod||'').trim();
-              z=[wiring,containment].filter(Boolean).join(' / ');
+              z=wiringCode(z); // Installation notes stay with internal job data, not appended to the IET wiring-type field.
             }
             return worksheet?'':pdfText(z??'');
           }));
@@ -667,9 +690,9 @@
         labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
         labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
         const tcols=[
-          ['17','Circuit','circuitNo'],['18','r1 line Ω','r1'],['19','rn neutral Ω','rn'],['20','r2 CPC Ω','r2'],['21','R1+R2 Ω','r1r2'],['22','R2 Ω','r2only'],
-          ['23','IR test V','irVoltage'],['24','Live-Live MΩ','irLL'],['25','Live-Earth MΩ','irLE'],['26','Polarity','polarity'],['27','Max measured Zs Ω','zs'],
-          ['28','RCD time ms','rcdTime'],['29','RCD test button','rcdButton'],['30','AFDD test button','afddButton'],['31','Remarks','remarks']
+          ['17','Circuit number','circuitNo'],['18','r1 (line) Ω','r1'],['19','rn (neutral) Ω','rn'],['20','r2 (CPC) Ω','r2'],['21','(R1 + R2) Ω','r1r2'],['22','R2 (Ω)','r2only'],
+          ['23','Test voltage (V)','irVoltage'],['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],['27','Maximum measured Zs (Ω)','zs'],
+          ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
         for(let r=0;r<12;r++){
@@ -689,15 +712,23 @@
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}}
         });
-        const ty=Math.min(doc.internal.pageSize.getHeight()-17,doc.lastAutoTable.finalY+4);
+        const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
-        write(doc,'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet)+'   Continuity: __________   Insulation resistance: __________   Earth fault loop impedance: __________   RCD: __________   Earth electrode resistance: __________',x,ty+4,w,{size:4.8});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+9,w,{size:5.2});
+        const instrumentDetails=[
+          'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
+          'Continuity: '+display(ff.instrumentContinuity,worksheet),
+          'Insulation resistance: '+display(ff.instrumentInsulation,worksheet),
+          'Earth fault loop impedance: '+display(ff.instrumentLoop,worksheet),
+          'RCD: '+display(ff.instrumentRcd,worksheet),
+          'Earth electrode resistance: '+display(ff.instrumentEarth,worksheet)
+        ];
+        write(doc,instrumentDetails.join('   '),x,ty+4,w,{size:4.7,maxLines:2});
+        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+11,w,{size:5.2});
       });
     });
   }

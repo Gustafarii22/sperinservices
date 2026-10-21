@@ -52,7 +52,7 @@ function localOcrCandidates(photos,options={}){
      const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];
      boardValues.mainSwitch=amps?'100 A main switch':'Main switch (rating to confirm)';
    }
-   if(spd)boardValues.spd='SPD (type and markings to confirm)';
+   if(spd){const nearby=rows.filter(l=>valid(l)&&Math.abs(middle(l)-middle(spd))<=Math.max(50,width*.07)).map(l=>l.text).join(' ');const type=nearby.match(/(?:\bT\s*([123])\b|\bTYPE\s*([123])\b)/i);boardValues.spd=type?'T'+(type[1]||type[2]):'SPD present — confirm type';}
    const raw=rows.filter(l=>rating.test(l.text));
    // The image can supply multiple markings for the same device, but proximity
    // only merges matching ratings within one narrow DIN-rail device column.
@@ -114,8 +114,8 @@ function localOcrCandidates(photos,options={}){
        ...(capacity?[make('breakingCapacity',capacity)]:[]),
        ...(rcd&&idn?[make('rcdIdn',idn)]:[]),
        ...(rcd&&rcdType?[make('rcdType',rcdType)]:[]),
-       ...(rcd?[make('rcdBs',standards==='BS EN 61009-1'?standards:'BS EN 61009-1'),
-                  make('rcdRating',g.amps,'Rated current of the visible RCBO, check the marking.')]:[]),
+       ...(rcd&&standards==='BS EN 61009-1'?[make('rcdBs',standards)]:[]),
+       ...(rcd?[make('rcdRating',g.amps,'Check the RCBO rating against its label.')]:[]),
        ...(boardValues.manufacturer?[make('deviceManufacturer',boardValues.manufacturer,'Check the device brand.')]:[])
      ];
      devices.push(dev);

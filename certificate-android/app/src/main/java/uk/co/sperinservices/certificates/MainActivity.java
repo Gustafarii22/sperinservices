@@ -730,7 +730,120 @@ public class MainActivity extends Activity {
         }
     }
 
+    // Consumer units have tiny protective-device markings. Read the full
+    // photograph and three overlapping, enlarged strips; map each result back
+    // to original photo coordinates before merging device labels.
+    private void appendBoardText(
+            com.google.mlkit.vision.text.Text result, JSONArray lines,
+            StringBuilder words, java.util.HashSet<String> seen,
+            int cropX, int cropY, int scale) throws org.json.JSONException {
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                Rect b = line.getBoundingBox();
+                if (b == null) continue;
+                String value = line.getText();
+                int left = cropX + Math.round(b.left / (float) scale);
+                int top = cropY + Math.round(b.top / (float) scale);
+                int right = cropX + Math.round(b.right / (float) scale);
+                int bottom = cropY + Math.round(b.bottom / (float) scale);
+                int midx = (left + right) / 2, midy = (top + bottom) / 2;
+                String key = value.toLowerCase(java.util.Locale.UK).trim() + ":" +
+                        (midx / 22) + ":" + (midy / 28);
+                if (!seen.add(key)) continue;
+                JSONObject row = new JSONObject();
+                row.put("text", value);
+                row.put("left", left);
+                row.put("top", top);
+                row.put("right", right);
+                row.put("bottom", bottom);
+                lines.put(row);
+                words.append(value).append("\n");
+            }
+        }
+    }
+
+    private void readBoardStrip(
+            String token, Bitmap full, TextRecognizer recognizer,
+            JSONObject payload, JSONArray lines, StringBuilder words,
+            java.util.HashSet<String> seen, int pass) {
+        if (pass >= 3) {
+            try {
+                payload.put("lines", lines);
+                payload.put("fullText", words.toString());
+                sendSheetScanResult(token, payload, "");
+            } catch (Exception ex) {
+                sendSheetScanResult(token, null, "Could not finish photo reading");
+            } finally {
+                recognizer.close();
+                if (!full.isRecycled()) full.recycle();
+            }
+            return;
+        }
+        int width=full.getWidth(), height=full.getHeight();
+        int startX = pass==0 ? 0 : pass==1 ? Math.round(width * .30f) : Math.round(width * .60f);
+        int endX = pass==0 ? Math.round(width * .45f) : pass==1 ? Math.round(width * .75f) : width;
+        int startY=Math.round(height * .27f), endY=Math.round(height * .70f);
+        Bitmap crop=null, enlarged=null;
+        try {
+            crop=Bitmap.createBitmap(full,startX,startY,
+                    Math.max(1,endX-startX),Math.max(1,endY-startY));
+            enlarged=Bitmap.createScaledBitmap(crop,crop.getWidth()*2,crop.getHeight()*2,true);
+            if (enlarged != crop) crop.recycle();
+            final Bitmap processed=enlarged;
+            final int offsetX=startX,offsetY=startY;
+            recognizer.process(InputImage.fromBitmap(processed,0))
+                    .addOnSuccessListener(result -> {
+                        try { appendBoardText(result,lines,words,seen,offsetX,offsetY,2); }
+                        catch(Exception ignored) { /* Preserve full photo OCR if crop failed. */ }
+                        if (!processed.isRecycled()) processed.recycle();
+                        readBoardStrip(token,full,recognizer,payload,lines,words,seen,pass+1);
+                    }).addOnFailureListener(ex -> {
+                        if (!processed.isRecycled()) processed.recycle();
+                        readBoardStrip(token,full,recognizer,payload,lines,words,seen,pass+1);
+                    });
+        } catch (Exception ex) {
+            if (enlarged!=null && !enlarged.isRecycled()) enlarged.recycle();
+            if (crop!=null && !crop.isRecycled()) crop.recycle();
+            readBoardStrip(token,full,recognizer,payload,lines,words,seen,pass+1);
+        }
+    }
+
+    private void scanConsumerBoardBitmap(String token, Bitmap bitmap) {
+        final TextRecognizer recognizer=TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        try {
+            recognizer.process(InputImage.fromBitmap(bitmap,0))
+                    .addOnSuccessListener(result -> {
+                        try {
+                            JSONObject payload=new JSONObject();
+                            payload.put("width",bitmap.getWidth());
+                            payload.put("height",bitmap.getHeight());
+                            JSONArray lines=new JSONArray();
+                            StringBuilder fullText=new StringBuilder();
+                            java.util.HashSet<String> seen=new java.util.HashSet<>();
+                            appendBoardText(result,lines,fullText,seen,0,0,1);
+                            readBoardStrip(token,bitmap,recognizer,payload,lines,fullText,seen,0);
+                        } catch(Exception ex) {
+                            recognizer.close();
+                            if (!bitmap.isRecycled()) bitmap.recycle();
+                            sendSheetScanResult(token,null,"Could not read device markings");
+                        }
+                    }).addOnFailureListener(ex -> {
+                        recognizer.close();
+                        if (!bitmap.isRecycled()) bitmap.recycle();
+                        sendSheetScanResult(token,null,"Could not read photograph");
+                    });
+        } catch (Exception ex) {
+            recognizer.close();
+            if (!bitmap.isRecycled()) bitmap.recycle();
+            sendSheetScanResult(token,null,"Could not read photograph");
+        }
+    }
+
     private void scanSheetBitmap(String token, Bitmap bitmap) {
+        if(token != null && token.startsWith("board-ocr-")) {
+            scanConsumerBoardBitmap(token,bitmap);
+            return;
+        }
         try {
             InputImage image = InputImage.fromBitmap(bitmap, 0);
             TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);

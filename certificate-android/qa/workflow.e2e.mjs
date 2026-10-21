@@ -28,6 +28,18 @@ const fixture = {
   fields: {
     nominalVoltage: "230",
     clientName: "QA only",
+    inspectedBy: "EICR Inspector QA",
+    inspectorSignature: "Inspector signed",
+    inspectorPosition: "Electrical Inspector",
+    inspectorCompany: "Inspection Company QA",
+    inspectorAddress: "1 Inspection Street",
+    inspectorDate: "2026-10-20",
+    authorisedBy: "EICR Authoriser QA",
+    authoriserSignature: "Authoriser signed",
+    authoriserPosition: "Authorised Person",
+    authoriserCompany: "Authorisation Company QA",
+    authoriserAddress: "2 Authorisation Street",
+    authoriserDate: "2026-10-21",
     dbLocation: "Legacy location",
     dbSpd: "Legacy SPD",
     dbIpf: "9.99",
@@ -370,10 +382,10 @@ await click('[data-action="pdf"]');
 const pdf = await page.evaluate(() => window.qaPdf);
 assert(pdf?.data);
 fs.mkdirSync("certificate-android/qa-output", { recursive: true });
-fs.writeFileSync(
-  "certificate-android/qa-output/workflow.pdf",
-  Buffer.from(pdf.data.split(",")[1], "base64"),
-);
+const outputPdfPath = process.env.CERT_WORKFLOW_TYPE==="eicr"
+  ? "certificate-android/qa-output/workflow-eicr.pdf"
+  : "certificate-android/qa-output/workflow.pdf";
+fs.writeFileSync(outputPdfPath, Buffer.from(pdf.data.split(",")[1], "base64"));
 // Board delete cancellation, real removal, undo/redo and no resurrection on reload.
 cancel = true;
 await board(templated.ref).locator('[data-action="board-delete"]').click();

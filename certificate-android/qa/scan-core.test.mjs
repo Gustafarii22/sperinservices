@@ -235,7 +235,7 @@ test("actual ML Kit geometry is retained, duplicates grouped, and dual-bank rati
  assert.equal(candidates.direction,"right");
  assert.deepEqual(candidates.devices.map(d=>d.fields.find(f=>f.key==="ocpdRating").value),["40","32","16","6","6"]);
  assert.ok(candidates.devices.every(d=>d.fields.every(f=>f.accepted===false)));
- assert.equal(candidates.board.find(f=>f.key==="spd")?.value,"SPD (type and markings to confirm)");
+ assert.equal(candidates.board.find(f=>f.key==="spd")?.value,"SPD present — confirm type");
  assert.equal(candidates.devices.filter(d=>d.fields.find(f=>f.key==="ocpdRating").value==="32").length,1);
  const c=cert();c.tables.circuits=[];c.tables.tests=[];
  core.numberFromMain({board:candidates.board,circuits:candidates.devices,warnings:candidates.warnings},c,"DB1");
@@ -279,4 +279,12 @@ test("a FuseBox RCBO label fills the entire protected-device record without meas
  const input=cert();input.tables.circuits=[];input.tables.tests=[];
  core.numberFromMain({board:result.board,circuits:result.devices,warnings:result.warnings},input,"DB1");
  assert.equal(result.devices.length,8,"numbering does not insert duplicates into original result array");
+});
+
+test("Unmarked RCD standard is not guessed from a 30mA label",()=>{
+ const line=(text,x,y)=>({text,left:x-20,right:x+20,top:y-10,bottom:y+10});
+ const out=core.localOcrCandidates([{width:1200,height:800,lines:[line("B32",900,400),line("30mA",900,448)]}],{mainSide:"right"});
+ const f=out.devices[0].fields;
+ assert.equal(f.find(v=>v.key==="rcdIdn")?.value,"30");
+ assert.equal(f.find(v=>v.key==="rcdBs"),undefined);
 });

@@ -52,7 +52,7 @@ jobs:
           exit 1
 
       - name: Photo scan safety and API tests
-        run: node --test certificate-android/qa/scan-core.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs
+        run: node --test certificate-android/qa/scan-core.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs
 
       - name: Photo review workflow (mock analysis, not recognition accuracy)
         run: node certificate-android/qa/scan.e2e.mjs
@@ -65,14 +65,53 @@ jobs:
           grep -F "Confirmed lights" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *0 +MAIN SWITCH" certificate-android/qa-output/scan-confirmed.txt
           grep -E "^ *1 +SPD" certificate-android/qa-output/scan-confirmed.txt
-          grep -F "Wylex" certificate-android/qa-output/scan-confirmed.txt
+          # The issuing schedule contains IET A4 data, not manufacturer/model/way-count extras.
+          grep -F "Distribution circuit OCPD" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "BS EN 60947-2" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "BS EN 61008-1" certificate-android/qa-output/scan-confirmed.txt
+          grep -F "CONT-100" certificate-android/qa-output/scan-confirmed.txt
+          if grep -E 'Manufacturer:|Model:|Ways:|Populated:|Spare:' certificate-android/qa-output/scan-confirmed.txt; then
+            echo "Non-IET board metadata leaked onto issued schedule"
+            exit 1
+          fi
           grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
           grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
+
+      - name: Prove Minor Works IET A4 circuit details and issued certificate
+        run: |
+          node certificate-android/qa/minor-iet-a4.e2e.mjs
+          PDF="certificate-android/qa-output/minor-iet-a4.pdf"
+          pdftotext -layout "$PDF" certificate-android/qa-output/minor-iet-a4.txt
+          for value in "SECTION A:" "SECTION B:" "SECTION C:" "SECTION D:" "SECTION E:" \
+            "Minor Works Client QA" "Minor Works Electrician QA" \
+            "BS EN 61009-1" "BS EN 62606" "ELECTRICIAN QA SIGNED"; do
+            grep -F "$value" certificate-android/qa-output/minor-iet-a4.txt
+          done
+          if grep -E "Device manufacturer|Device model|Device kind" certificate-android/qa-output/minor-iet-a4.txt; then exit 1; fi
+          pdftoppm -f 1 -l 1 -png -scale-to 1350 "$PDF" certificate-android/qa-output/minor-a4
 
       - name: Board workflow regressions
         run: |
           node certificate-android/qa/workflow.e2e.mjs
           CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
+
+      - name: Verify every EICR signatory field is printed
+        run: |
+          set -euo pipefail
+          PDF="certificate-android/qa-output/workflow-eicr.pdf"
+          test -s "$PDF"
+          pdftotext -layout "$PDF" certificate-android/qa-output/workflow-eicr.txt
+          for value in "EICR Inspector QA" "EICR Authoriser QA" \
+            "Inspector signed" "Authoriser signed" \
+            "Inspection Company QA" "Authorisation Company QA" \
+            "Electrical Inspector" "Authorised Person" \
+            "1 Inspection Street" "2 Authorisation Street"; do
+            grep -F "$value" certificate-android/qa-output/workflow-eicr.txt
+          done
+          pdfinfo "$PDF" | grep -E '^Pages:'
+          python3 certificate-android/qa/verify-eicr-footer.py "$PDF"
+          mkdir -p certificate-android/qa-output/eicr-renders
+          pdftoppm -f 1 -l 2 -png -r 130 "$PDF" certificate-android/qa-output/eicr-renders/eicr
 
       - name: Audit pass 1 — forward order
         env:
@@ -102,8 +141,13 @@ jobs:
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
           grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
           grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
-          grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt
-          grep -F "Concealed in" certificate-android/qa-output/eic-regression.txt
+          # The issued Schedule of Circuit Details records the prescribed wiring code.
+          # Containment descriptions remain internal, not appended to IET field 3.
+          grep -E 'Circuit description|Type of wiring' certificate-android/qa-output/eic-regression.txt
+          if grep -F "A / Surface" certificate-android/qa-output/eic-regression.txt; then
+            echo "Non-IET containment detail leaked into Type of wiring"
+            exit 1
+          fi
           grep -F "Lighting test row" certificate-android/qa-output/eic-regression.txt
           grep -F "Sockets test row" certificate-android/qa-output/eic-regression.txt
           grep -E "^ *0 +Lighting" certificate-android/qa-output/eic-regression.txt
