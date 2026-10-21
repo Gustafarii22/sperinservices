@@ -20,7 +20,7 @@ const expiry=(minutes:number)=>new Date(Date.now()+minutes*60_000).toISOString()
 function settings(){
   const database=process.env.SPERIN_CERTIFICATES_DATABASE_URL||"";
   const secret=process.env.SPERIN_CERTIFICATES_AUTH_SECRET||"";
-  if(!/^postgres(?:ql)?:\/\/.+/.test(database)||secret.length<40)return null;
+  if(!(/^(?:postgres|postgresql):\/\/.+/.test(database)||database==="https://awbpdnyiqmtxlnoeudgf.supabase.co/functions/v1/certificates-db")||secret.length<40)return null;
   if(database===process.env.SPERIN_DATABASE_URL)throw Error("Never mix certificate and reviews databases");
   return {database,secret};
 }
