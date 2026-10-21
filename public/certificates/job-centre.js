@@ -54,7 +54,7 @@ root.innerHTML='<div class="jc-dialog" role="dialog" aria-modal="true" aria-labe
 }
 function update(j){const i=jobs.findIndex(x=>x.id===j.id);if(i<0)jobs.unshift(j);else jobs[i]=j;store();render();}
 function close(){camera?.getTracks().forEach(t=>t.stop());camera=null;root?.remove();root=null;currentId="";editing=false;}
-function open(a,id){adapter=a;styling();if(root)close();root=document.createElement("div");root.className="jc-mask";root.addEventListener("click",async ev=>{
+function open(a,id){adapter=a;styling();if(root)close();selectedEvidenceRef="";root=document.createElement("div");root.className="jc-mask";root.addEventListener("click",async ev=>{
 if(ev.target===root){close();return;}const b=ev.target.closest("[data-jc]");if(b){try{await act(b.dataset.jc,b);}catch(err){notice(err.message);}}});
 document.body.appendChild(root);currentId=jobs.some(j=>j.id===id)?id:"";render();}
 function photoDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open("sperin-job-evidence-v1",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("photos"))r.result.createObjectStore("photos");};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -220,7 +220,7 @@ if(cmd==="share"&&j){await customerShare(j,b.dataset.cert);return;}
 if(cmd==="links"&&j){await handovers(j);return;}
 if(cmd==="revoke"&&j){if(!confirm("Revoke this link?"))return;await api("jobs/"+j.id+"/handover/"+b.dataset.id+"/revoke","POST",{});await handovers(j);notice("Customer link revoked.");}
 }
-function showRef(a,id,ref){selectedEvidenceRef=String(ref||"").slice(0,80);open(a,id);notice(selectedEvidenceRef?"Evidence for "+selectedEvidenceRef+". Test results remain in the linked certificate; confirm every measured value.":"Open linked job evidence.");}
+function showRef(a,id,ref){open(a,id);selectedEvidenceRef=String(ref||"").slice(0,80);render();notice(selectedEvidenceRef?"Evidence for "+selectedEvidenceRef+". Check original circuit test results and any site photos.":"Open linked job evidence.");}
 function reminders(){return jobs.reduce((n,j)=>n+(j.reminders||[]).filter(x=>x.dueDate&&delta(x.dueDate)<=30).length,0);}
 function incomingAsset(){const id=location.hash.match(/asset=([0-9a-f-]{36})/i)?.[1];if(id&&adapter){open(adapter);scanAsset(id);}}
 function importMetadata(records){if(!Array.isArray(records)||records.length>600)throw Error('Invalid job metadata');let added=0;for(const x of records){if(!x||!UUID.test(x.id)||!UUID.test(x.assetId)||JSON.stringify(x).length>180000)continue;if(jobs.some(j=>j.id===x.id))continue;jobs.push({...x,evidence:Array.isArray(x.evidence)?x.evidence:[],reminders:Array.isArray(x.reminders)?x.reminders:[]});added++;}store();return added;}
