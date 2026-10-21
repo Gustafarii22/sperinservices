@@ -50,7 +50,7 @@ function render(){
    const realIndices=d.fields;
    const fi=k=>realIndices.findIndex(f=>f.key===k);
    const renderKeys=ks=>ks.map(k=>scanField(realIndices[fi(k)],fi(k),String(i))).join('');
-   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<label class="scan-review-confirm"><input type="checkbox" data-device-verified="'+i+'" '+(d.verified?'checked':'')+'> I have checked this device or blank and its schedule position</label><div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
+   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
  }).join('');
  const expanded=s.active==='board'||String(s.active||'').startsWith('c');
  const custom=window.Android?.scanSheetImageBase64;
@@ -60,10 +60,10 @@ function render(){
  '<div class="scan-photo-strip">'+photoCards+'</div>'+
  '<div class="scan-side-switch"><span>Main switch</span><button data-side="right" class="btn small '+(s.mainSide==='right'?'selected':'')+'">Right</button><button data-side="left" class="btn small '+(s.mainSide==='left'?'selected':'')+'">Left</button></div>'+
  '<div class="scan-action-bar"><button class="btn primary scan-read" data-scan-command="ocr" '+(!custom||s.images.length===0||s.busy?'disabled':'')+'>'+(s.busy?'Reading…':'Read photos')+'</button><button class="btn" data-scan-command="add">＋ Add circuit</button><button class="btn" data-scan-command="spare">＋ Add blank</button><button class="btn" data-scan-command="add-spd">＋ Add SPD</button></div>'+
- '<p class="scan-status" role="status" aria-live="polite">'+esc(s.message||'Check the details, then save.')+'</p><p class="scan-review-hint">Open each numbered device, verify its markings and position, then tick its single confirmation box before saving. Unverified readings are not imported.</p>'+
+ '<p class="scan-status" role="status" aria-live="polite">'+esc(s.message||'Check the details, then save.')+'</p><p class="scan-review-hint">Review the device markings and positions. You will confirm the full board once before adding it to the certificate.</p>'+
  '<section class="scan-board '+(expanded?'expanded':'')+'"><button class="scan-circuit-title" data-open="board" aria-expanded="'+expanded+'"><span class="scan-number">1</span><span class="scan-circuit-name"><strong>Consumer unit</strong><small>'+esc(brand?.value||actual.manufacturer||s.boardRef)+'</small></span><span class="scan-chevron">'+(expanded?'−':'+')+'</span></button>'+(expanded?'<div class="scan-circuit-body"><label class="scan-input"><span>Manufacturer</span><input data-brand value="'+esc(brand?.value||actual.manufacturer||'')+'"></label></div>':'')+(expanded?'<div class="scan-section-heading"><h3>Circuits</h3><span>'+s.result.circuits.length+' listed</span></div><div class="scan-circuits">'+(items||'<div class="scan-empty">Add photos to read your consumer unit, or add a circuit.</div>')+'</div>':'')+'</section>'+
  '<div class="scan-cloud"><button class="btn small ghost" data-scan-command="cloud-toggle">'+(showCloud?'−':'＋')+' Cloud scan (optional)</button>'+(showCloud?'<div class="scan-cloud-content"><p>Cloud scanning needs a separate AI service with available credit.</p><label class="scan-consent"><input type="checkbox" data-board-consent '+(s.consent?'checked':'')+'> Allow cloud use of these photos</label><button class="btn" data-scan-command="analyse" '+(!s.consent||!s.images.length?'disabled':'')+'>Use cloud scan</button>'+(s.needsLogin?'<div class="scan-login"><p>Sign in to use your business cloud scanner.</p><button class="btn small" data-scan-command="request-code">Email me a sign-in code</button><input data-login-code inputmode="numeric" placeholder="Code from email"><button class="btn" data-scan-command="verify-code">Sign in</button></div>':'')+'</div>':'')+'</div>'+
- '<div class="scan-savebar"><button class="btn primary" data-scan-command="apply" '+(s.busy?'disabled':'')+'>✓ Save to certificate</button></div></div>';
+ '<div class="scan-savebar"><button class="btn primary" data-scan-command="apply" '+(s.busy?'disabled':'')+'>✓ Add to Certificate</button></div></div>';
 }
 async function preparePhoto(source,rotate=0){const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Unreadable image. Choose a JPEG, PNG or WebP photo.'));img.src=source;});const scale=Math.min(1,2400/Math.max(img.width,img.height));const w=Math.round(img.width*scale),h=Math.round(img.height*scale),canvas=document.createElement('canvas');canvas.width=rotate?h:w;canvas.height=rotate?w:h;const ctx=canvas.getContext('2d');if(rotate){ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);}ctx.drawImage(img,0,0,w,h);const data=canvas.toDataURL('image/jpeg',.88);if(data.length>2400000)throw Error('Photo is too detailed to upload safely. Try a closer crop.');return data;}
 async function addPhoto(source){const s=session;if(!s||s.images.length>=6)return error('Up to six photos per scan.');try{const data=await preparePhoto(source);if(session!==s)return;s.images.push(data);s.consent=false;render();}catch(e){error(e.message);}}
@@ -119,19 +119,23 @@ function apply(){
      }
      const filled=fields.some(f=>f.accepted);
      if(!filled)continue;
-     if(!d.verified)throw Error('Open device '+n+' and tick its confirmation box after checking the markings and position.');
+     
      proposal.circuits.push({...d,fields,number:n,target:same.length?same[0].id:cert.type==='minor'?'minor':'new'});
    }
    if(!proposal.circuits.length&&!proposal.board.some(f=>f.accepted))throw Error('Add or read a circuit before saving.');
+   if(!confirm('Have you checked ALL device markings, protective-device ratings and standards, spare ways, and their actual positions against the consumer unit?\n\nPress OK for YES, or Cancel for NO and return to the review.')) {
+     s.message='Review the devices and positions before adding them.';
+     render();return;
+   }
    const before=JSON.stringify(cert),result=core.propose(cert,boardRef,proposal);
-   if(!result.changes.length){s.message='Everything is already saved.';render();return;}
+   if(!result.changes.length){s.modal.remove();session=null;s.adapter.commit(result.certificate);return;}
    const replaced=result.changes.filter(c=>c.before&&c.before!==c.after&&
      (/^Circuit \d+/.test(c.label))).length;
    if(replaced&&!confirm('Some existing circuit details will change. Save these changes?'))return;
    if(JSON.stringify(s.adapter.getCert())!==before)throw Error('The certificate changed. Please try saving again.');
    s.adapter.commit(result.certificate);
    s.modal.remove();session=null;
-   window.scrollTo({top:0,behavior:'smooth'});
+   // The host updates its certificate view and shows the saved confirmation.
  }catch(ex){error('Could not save. '+ex.message);}
 }
 async function login(verify){const s=session;try{const code=s.modal.querySelector('[data-login-code]')?.value||'';const r=await fetch('/api/owner/'+(verify?'verify-code':'request-code'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'info@sperinservices.co.uk',...(verify?{code}:{})})});const data=await r.json();if(!r.ok)throw Error(data.error||'Sign-in unavailable');if(session!==s)return;s.needsLogin=!verify;s.message=verify?'Signed in. Press Analyse to send your photos.':'Sign-in code sent to your owner email.';render();}catch(e){error(e.message);}}
@@ -223,7 +227,7 @@ document.addEventListener('change',function(e){
  const el=e.target,s=session;
  if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
  if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}
- if(el.dataset.deviceVerified!==undefined){const d=s.result.circuits[Number(el.dataset.deviceVerified)];if(d)d.verified=el.checked;}
+
  if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;const d=s.result.circuits[Number(group)];if(d)d.verified=false;}}
 });
 document.addEventListener('input',function(e){
