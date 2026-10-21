@@ -61,7 +61,12 @@ function render(){
  '<div class="scan-side-switch"><span>Main switch</span><button data-side="right" class="btn small '+(s.mainSide==='right'?'selected':'')+'">Right</button><button data-side="left" class="btn small '+(s.mainSide==='left'?'selected':'')+'">Left</button></div>'+
  '<div class="scan-action-bar"><button class="btn primary scan-read" data-scan-command="ocr" '+(!custom||s.images.length===0||s.busy?'disabled':'')+'>'+(s.busy?'Reading…':'Read photos')+'</button><button class="btn" data-scan-command="add">＋ Add circuit</button><button class="btn" data-scan-command="spare">＋ Add blank</button><button class="btn" data-scan-command="add-spd">＋ Add SPD</button></div>'+
  '<p class="scan-status" role="status" aria-live="polite">'+esc(s.message||'Check the details, then save.')+'</p><p class="scan-review-hint">Review the device markings and positions. You will confirm the full board once before adding it to the certificate.</p>'+
- '<section class="scan-board '+(expanded?'expanded':'')+'"><button class="scan-circuit-title" data-open="board" aria-expanded="'+expanded+'"><span class="scan-number">1</span><span class="scan-circuit-name"><strong>Consumer unit</strong><small>'+esc(brand?.value||actual.manufacturer||s.boardRef)+'</small></span><span class="scan-chevron">'+(expanded?'−':'+')+'</span></button>'+(expanded?'<div class="scan-circuit-body"><label class="scan-input"><span>Manufacturer</span><input data-brand value="'+esc(brand?.value||actual.manufacturer||'')+'"></label></div>':'')+(expanded?'<div class="scan-section-heading"><h3>Circuits</h3><span>'+s.result.circuits.length+' listed</span></div><div class="scan-circuits">'+(items||'<div class="scan-empty">Add photos to read your consumer unit, or add a circuit.</div>')+'</div>':'')+'</section>'+
+ '<section class="scan-board '+(expanded?'expanded':'')+'"><button class="scan-circuit-title" data-open="board" aria-expanded="'+expanded+'"><span class="scan-number">1</span><span class="scan-circuit-name"><strong>Consumer unit</strong><small>'+esc(brand?.value||actual.manufacturer||s.boardRef)+'</small></span><span class="scan-chevron">'+(expanded?'−':'+')+'</span></button>'+(expanded?'<div class="scan-circuit-body"><div class="scan-field-grid">'+
+  ['manufacturer','model','mainSwitch','spd','spdBs'].map(key=>{
+    const field=s.result.board.find(x=>x.key===key);
+    const names={manufacturer:'Manufacturer',model:'Consumer unit model',mainSwitch:'Main switch',spd:'SPD type and markings',spdBs:'SPD standard (e.g. BS EN 61643-11)'};
+    return '<label class="scan-input"><span>'+names[key]+'</span><input data-board-key="'+key+'" value="'+esc(field?.value||actual[key]||'')+'" placeholder="Confirm from label"></label>';
+  }).join('')+'</div></div>':'')+(expanded?'<div class="scan-section-heading"><h3>Circuits</h3><span>'+s.result.circuits.length+' listed</span></div><div class="scan-circuits">'+(items||'<div class="scan-empty">Add photos to read your consumer unit, or add a circuit.</div>')+'</div>':'')+'</section>'+
  '<div class="scan-cloud"><button class="btn small ghost" data-scan-command="cloud-toggle">'+(showCloud?'−':'＋')+' Cloud scan (optional)</button>'+(showCloud?'<div class="scan-cloud-content"><p>Cloud scanning needs a separate AI service with available credit.</p><label class="scan-consent"><input type="checkbox" data-board-consent '+(s.consent?'checked':'')+'> Allow cloud use of these photos</label><button class="btn" data-scan-command="analyse" '+(!s.consent||!s.images.length?'disabled':'')+'>Use cloud scan</button>'+(s.needsLogin?'<div class="scan-login"><p>Sign in to use your business cloud scanner.</p><button class="btn small" data-scan-command="request-code">Email me a sign-in code</button><input data-login-code inputmode="numeric" placeholder="Code from email"><button class="btn" data-scan-command="verify-code">Sign in</button></div>':'')+'</div>':'')+'</div>'+
  '<div class="scan-savebar"><button class="btn primary" data-scan-command="apply" '+(s.busy?'disabled':'')+'>✓ Add to Certificate</button></div></div>';
 }
@@ -101,7 +106,7 @@ function apply(){
    const cert=s.adapter.getCert(),boardRef=s.boardRef;
    const board=cert.tables?.boards?.find(b=>b.ref===boardRef);
    if(!board&&cert.type!=='minor')throw Error('Please select a consumer unit.');
-   const proposal={board:s.result.board.map(f=>({...f,accepted:['manufacturer','model','mainSwitch','spd'].includes(f.key)&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
+   const proposal={board:s.result.board.map(f=>({...f,accepted:['manufacturer','model','mainSwitch','spd','spdBs'].includes(f.key)&&!!String(f.value||'').trim()})),circuits:[],warnings:[]};
    const usedNumbers=new Set();
    for(let i=0;i<s.result.circuits.length;i++){
      const d=s.result.circuits[i],n=String(d.number??i).trim();
@@ -235,6 +240,13 @@ document.addEventListener('input',function(e){
  const el=e.target,s=session;
  if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;const d=s.result.circuits[Number(group)];if(d)d.verified=false;}}
  if(el.dataset.number!==undefined){const d=s.result.circuits[Number(el.dataset.number)];if(d){d.number=el.value;d.verified=false;}}
+ if(el.hasAttribute('data-board-key')){
+   const key=el.dataset.boardKey;
+   if(!Object.hasOwn(core.boardKeys,key))return;
+   let f=s.result.board.find(x=>x.key===key);
+   if(!f){f={key,value:'',accepted:false,evidence:[]};s.result.board.push(f);}
+   f.value=el.value;
+ }
  if(el.hasAttribute('data-brand')){
    let f=s.result.board.find(f=>f.key==='manufacturer');
    if(!f){f={key:'manufacturer',value:'',accepted:false,evidence:[]};s.result.board.push(f);}
