@@ -125,11 +125,11 @@ export async function certificateJobsApi(req:Request,sql:SQL,user:Member):Promis
       if(!canWrite(user.role))return json({error:"Read-only member"},403);
       const id=str(input.id,50)||randomUUID();
       if(!UUID.test(id)||!safeDetails(input.details))return json({error:"Invalid job details"},400);
-      const revision=Number(input.expectedRevision??0),body=JSON.stringify(input.details);
-      if(!Number.isInteger(revision)||revision<0)return json({error:"Revision required"},400);
+      const revision=Number(input.expectedRevision??0),body=JSON.stringify(input.details),assetId=str(input.assetId,50);
+      if(!Number.isInteger(revision)||revision<0||!UUID.test(assetId))return json({error:"Revision and asset ID required"},400);
       if(revision===0){
-        const rows=await sql.query("insert into cert_jobs(id,org_id,details,updated_by) values($1,$2,$3::jsonb,$4) on conflict(id) do nothing returning id,asset_id,revision",
-          [id,user.orgId,body,user.email]);
+        const rows=await sql.query("insert into cert_jobs(id,org_id,asset_id,details,updated_by) values($1,$2,$3,$4::jsonb,$5) on conflict(id) do nothing returning id,asset_id,revision",
+          [id,user.orgId,assetId,body,user.email]);
         if(!rows.length)return json({error:"Job already exists. Reload before editing."},409);
         return json(rows[0]);
       }
