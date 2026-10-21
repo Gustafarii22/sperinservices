@@ -4,7 +4,7 @@ import {chromium} from "playwright";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const page=await browser.newPage({acceptDownloads:true,viewport:{width:460,height:850}});
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/",{waitUntil:"domcontentloaded"});
-await page.locator('[data-action="jobs"]').first().click();
+await page.locator('#speed-nav [data-speed="jobs"]').click();
 await page.locator('[data-jc="new"]').click();
 await page.locator('[data-jc-field="siteName"]').fill("JOB QA TEST - DO NOT ISSUE");
 await page.locator('[data-jc-field="customer"]').fill("Local test customer");
@@ -25,7 +25,7 @@ assert((await page.locator(".jc-dialog").textContent()).includes("Explicit inspe
 await page.locator('[data-jc="close"]').click();
 await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
-await page.locator('[data-action="jobs"]').first().click();
+await page.locator('#speed-nav [data-speed="jobs"]').click();
 await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 await page.locator('[data-jc-cert]').selectOption({index:1});
 await page.locator('[data-jc="link"]').click();
@@ -53,7 +53,7 @@ assert(bytes.includes(Buffer.from("evidence/")),"Missing evidence image in ZIP")
 const dataBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem("sperin-certificate-jobs-v1")));
 assert.equal(dataBefore.length,1);
 await page.reload();
-await page.locator('[data-action="jobs"]').first().click();
+await page.locator('#speed-nav [data-speed="jobs"]').click();
 if(await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').count())await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Offline job persistence failed");
 await page.locator('[data-jc="sync"]').click();
