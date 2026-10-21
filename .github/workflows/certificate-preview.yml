@@ -76,32 +76,32 @@ jobs:
         run: |
           gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
 
       - name: Inspect APK and preserve original installation
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
           python3 certificate-android/qa/inspect-apk.py "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable.preview.audited.v188'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v190'" certificate-android/dist/package.txt
           grep "versionCode='193'" certificate-android/dist/package.txt
           grep "versionName='1.9.0-dev'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
           printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.8.8-FINAL
+          name: Sperin-Certificates-v1.9.0-DEV
           path: |
-            certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
+            certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
             certificate-android/dist/BUILD-INFO.txt
           retention-days: 30
           if-no-files-found: error
@@ -126,7 +126,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.8.8-FINAL-Android-QA
+          name: Sperin-Certificates-v1.9.0-DEV-Android-QA
           path: certificate-android/qa-output/preview-android/
           retention-days: 30
           if-no-files-found: warn
@@ -137,7 +137,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG=certificates-v1.8.8-final
-          APK=certificate-android/dist/Sperin-Certificates-v1.8.8-FINAL.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.0-DEV.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
