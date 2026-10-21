@@ -528,18 +528,36 @@
   }
 
   function renumberCircuits(cert) {
+    // Call only after an explicit delete or move: never rewrite an engineer's
+    // deliberately entered circuit numbers on an ordinary save/import.
     syncCircuitRows(cert);
-    const counts={};
-    cert.tables.circuits.forEach((row,i)=>{
-      const board=String(row.boardRef||'DB1').trim();
-      const boardKey=normaliseBoardKey(board);
-      counts[boardKey]=(counts[boardKey]||0)+1;
-      const no=String(counts[boardKey]);
-      row.boardRef=board;
+    const previous=cert.tables.circuits.map(row=>({
+      boardKey:normaliseBoardKey(row.boardRef),
+      oldNo:String(row.circuitNo??'').trim(),
+      row
+    }));
+    const counts={},remap=new Map();
+    for(let i=0;i<previous.length;i++){
+      const {boardKey,oldNo,row}=previous[i];
+      const no=String((counts[boardKey]||0)+1);
+      counts[boardKey]=Number(no);
       row.circuitNo=no;
-      cert.tables.tests[i].boardRef=board;
+      cert.tables.tests[i].boardRef=row.boardRef;
       cert.tables.tests[i].circuitNo=no;
-    });
+      if(oldNo){
+        const key=boardKey+':'+oldNo;
+        if(!remap.has(key))remap.set(key,no);
+        else remap.set(key,null); // Ambiguous older schedule: never guess which feed.
+      }
+    }
+    // Dependent consumer units follow their physical source circuit, not its old
+    // numeric position. A deletion of a live source circuit is refused beforehand.
+    for(const board of cert.tables.boards||[]){
+      if(!board.sourceBoardRef||!String(board.sourceCircuitNo??'').trim())continue;
+      const key=normaliseBoardKey(board.sourceBoardRef)+':'+String(board.sourceCircuitNo).trim();
+      const replacement=remap.get(key);
+      if(replacement)board.sourceCircuitNo=replacement;
+    }
   }
 
   function moveCircuit(cert,index,direction) {
@@ -558,6 +576,7 @@
     const y=window.scrollY;
     [cert.tables.circuits[from],cert.tables.circuits[to]]=[cert.tables.circuits[to],cert.tables.circuits[from]];
     [cert.tables.tests[from],cert.tables.tests[to]]=[cert.tables.tests[to],cert.tables.tests[from]];
+    renumberCircuits(cert);
     saveNow();
     render();
     restoreScroll(y);
@@ -1895,7 +1914,9 @@
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
         '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
-        '<div class="inline-circuit-actions"><button class="btn small" data-action="circuit-open" data-index="'+i+'">Full screen</button>'+
+        '<div class="inline-circuit-actions"><button class="btn small" data-action="circuit-move-up" data-index="'+i+'" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ Move</button>'+
+        '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ Move</button>'+
+        '<button class="btn small" data-action="circuit-open" data-index="'+i+'">Full screen</button>'+
         '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
         '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
     }).join('');
@@ -3797,7 +3818,7 @@
       const i=Number(button.dataset.index),row=cert.tables.circuits[i];
       if(!row || row._incomingFeed) return;
       if((cert.tables.boards||[]).some(b=>normaliseBoardKey(b.sourceBoardRef)===normaliseBoardKey(row.boardRef)&&String(b.sourceCircuitNo??'')===String(row.circuitNo??''))){alert('Change the dependent consumer unit supply before deleting this source circuit.');return;}
-      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);saveNow();render();restoreScroll(y);toast('Circuit deleted · recovery saved');}
+      if(confirm('Delete this circuit and its test results?')){const y=window.scrollY;savePreRestoreSnapshot();pushEditHistory('Delete circuit');syncCircuitRows(cert);cert.tables.circuits.splice(i,1);cert.tables.tests.splice(i,1);renumberCircuits(cert);saveNow();render();restoreScroll(y);toast('Circuit deleted · circuits renumbered · recovery saved');}
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
