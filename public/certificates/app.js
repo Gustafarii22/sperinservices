@@ -1631,7 +1631,7 @@
     const root = document.getElementById('app');
     persistView();
     try {
-      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : formView()}</div>`;
+      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}</div>`;
       requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } });
     } catch(err) {
       console.error('Certificate render failed',err);
@@ -1682,38 +1682,52 @@
     return `<div class="topbar"><div class="toprow"><button class="brand brand-home" data-action="home" aria-label="Sperin Certificates home"><div class="brand-mark"><span class="bolt"></span></div><div><h1>Sperin Certificates</h1><p>Survey · certify · save · issue</p></div></button><div class="spacer"></div><div class="top-actions"><button class="btn small ghost top-action" data-action="backup">Backup</button><button class="btn small ghost top-action restore-action" data-action="restore">Restore</button><button class="btn small ghost top-action" data-action="settings">Profile</button></div></div></div>`;
   }
 
-  function homeView() {
-    const completed = state.certificates.filter(c => c.status === 'Complete').length;
-    const drafts = state.certificates.filter(c => c.status !== 'Complete').length;
-    const cards = Object.entries(SCHEMAS).map(([key, s]) => `<button class="cert-launch" data-action="new" data-type="${key}"><span class="cert-launch-icon">${esc(s.code)}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.description)}</small></span><span class="cert-launch-arrow">›</span></button>`).join('');
-    const rows = state.certificates.length ? state.certificates.map(c => {
-      const sch = SCHEMAS[c.type] || {icon:'📄',name:'Certificate'};
-      const fields=isRecord(c.fields)?c.fields:{};
-      const customer=fields.clientName || fields.customerName || fields.personOrdering || fields.occupier || fields.responsiblePerson || fields.premisesName || 'Customer name not entered';
-      const address=fields.installationAddress || fields.premisesAddress || fields.clientAddress || fields.siteAddress || fields.address || 'Address not entered';
-      const postcode=fields.installationPostcode || fields.premisesPostcode || fields.clientPostcode || '';
-      const date=fields.issueDate || fields.completionDate || fields.inspectorDate || fields.declarationDate || String(c.updatedAt||'').slice(0,10);
-      return `<div class="saved-cert-row" data-action="edit" data-id="${esc(c.id)}" role="button" tabindex="0" aria-label="Open ${esc(customer)} certificate">
-        <div class="saved-cert-accent">${esc(sch.code||'CERT')}</div>
-        <div class="saved-cert-copy"><strong>${esc(customer)}</strong><span>${esc(String(address).replace(/\n/g, ', '))}${postcode?' · '+esc(postcode):''}</span><small>${esc(sch.name)} · ${esc(c.number || '')}</small></div>
-        <div class="saved-cert-date"><strong>${esc(fmtDate(date))}</strong><span class="pill"><span class="status-dot"></span>${esc(c.status)}</span></div>
-        <div class="saved-cert-actions"><button class="btn" data-action="duplicate" data-id="${esc(c.id)}">Duplicate</button><button class="btn danger" data-action="delete" data-id="${esc(c.id)}">Delete</button></div>
-      </div>`;
-    }).join('') : `<div class="home-empty"><span>＋</span><strong>No certificates yet</strong><p>Choose a certificate type above to start your first record.</p></div>`;
-    const recent=state.certificates[0];
-    const recentName=recent ? (recent.fields?.clientName||recent.fields?.occupier||recent.fields?.premisesName||'Recent certificate') : '';
-    return `<main class="home-page">
-      <section class="home-hero">
-        <div class="home-hero-copy"><div class="eyebrow">YOUR WORKSPACE</div><h2>Ready for the next job.</h2><p>Continue a certificate or start a new one in seconds.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jobs">📁 Jobs &amp; evidence</button><button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn primary hero-cta" data-action="new" data-type="eicr">＋ New EICR</button><button class="btn hero-cta" data-action="new" data-type="eic">＋ New EIC</button><button class="btn hero-cta" data-action="speed-quick">⚡ Quick circuits</button></div>
-        </div>
-
-      </section>
-      <section class="home-stats"><div><strong>${state.certificates.length}</strong><span>Stored on this device</span></div><div><strong>${drafts}</strong><span>Drafts</span></div><div><strong>${completed}</strong><span>Completed</span></div><div><span class="shield-icon">${uiIcon('shield')}</span><span>Autosaved locally</span></div></section>
-      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">START NEW</span><h2>Choose a certificate</h2></div><p>Pick the record you need. Your engineer and tester defaults are filled automatically.</p></div><div class="cert-launch-list">${cards}</div></section>
-      <section class="home-section"><div class="home-section-head"><div><span class="eyebrow">SAVED WORK</span><h2>Your certificates</h2></div><p>Tap anywhere on a row to open it.</p></div><div class="saved-cert-list">${rows}</div></section>
-      ${siteWorkflowHome()}
-    </main>`;
+  let librarySearch='',libraryStatus='all',librarySort='recent';
+  function screen(page){
+    if(view.page==='form')saveNow();
+    view={page,currentId:null,circuitIndex:null,circuitStep:'details'};
+    render();goTop();
+  }
+  function homeView(){
+    return '<main class="minimal-home" aria-label="Home"><h2>Certificates</h2>'+
+      '<div class="home-primary-actions"><button class="home-big-action primary" data-action="open-new">＋ <span>New Certificate</span><strong>›</strong></button>'+
+      '<button class="home-big-action" data-action="open-library">▤ <span>My Certificates</span><strong>›</strong></button></div></main>';
+  }
+  function newCertificateListView(){
+    return '<main class="simple-list-page"><header><button class="btn back" data-action="home">← Home</button><h2>New Certificate</h2></header>'+
+      '<div class="cert-launch-list">'+Object.entries(SCHEMAS).map(([type,s])=>
+      '<button class="cert-launch" data-action="new" data-type="'+esc(type)+'"><span class="cert-launch-icon">'+esc(s.code)+'</span><span><strong>'+esc(s.name)+'</strong><small>'+esc(s.standard||'')+'</small></span><span class="cert-launch-arrow">›</span></button>').join('')+'</div></main>';
+  }
+  function certificateLibraryView(){
+    const sortable=state.certificates.filter(c=>{
+      if(libraryStatus==='draft'&&c.status==='Complete')return false;
+      if(libraryStatus==='completed'&&c.status!=='Complete')return false;
+      const f=c.fields||{},q=librarySearch.trim().toLowerCase();
+      return !q||[c.number,c.type,SCHEMAS[c.type]?.name,f.clientName,f.customerName,f.personOrdering,f.occupier,
+        f.installationAddress,f.premisesAddress,f.clientAddress,f.siteAddress,f.installationPostcode,f.premisesPostcode]
+        .some(x=>String(x||'').toLowerCase().includes(q));
+    });
+    const name=c=>String(c.fields?.clientName||c.fields?.customerName||c.fields?.occupier||c.fields?.premisesName||'');
+    sortable.sort((a,b)=>librarySort==='name'?name(a).localeCompare(name(b)):
+      librarySort==='type'?String(SCHEMAS[a.type]?.name||'').localeCompare(String(SCHEMAS[b.type]?.name||'')):
+      librarySort==='old'?new Date(a.updatedAt||0)-new Date(b.updatedAt||0):
+      new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+    const rows=sortable.map(c=>{
+      const sch=SCHEMAS[c.type]||{name:'Certificate',code:'CERT'},f=c.fields||{};
+      const customer=name(c)||'Unnamed customer',
+      address=f.installationAddress||f.premisesAddress||f.clientAddress||f.siteAddress||'',
+      when=f.issueDate||f.completionDate||String(c.updatedAt||'').slice(0,10);
+      return '<div class="saved-cert-row" data-action="edit" data-id="'+esc(c.id)+'" role="button" tabindex="0">'+
+        '<span class="saved-cert-accent">'+esc(sch.code)+'</span>'+
+        '<div class="saved-cert-copy"><strong>'+esc(customer)+'</strong><span>'+esc(String(address).replace(/\n/g,', '))+'</span><small>'+esc(sch.name)+' · '+esc(c.number||'')+'</small></div>'+
+        '<div class="saved-cert-date"><strong>'+esc(fmtDate(when))+'</strong><span class="pill">'+(c.status==='Complete'?'Completed':'In progress')+'</span></div>'+
+        '<div class="saved-cert-actions"><button class="btn small" data-action="duplicate" data-id="'+esc(c.id)+'">Duplicate</button><button class="btn small danger" data-action="delete" data-id="'+esc(c.id)+'">Delete</button></div></div>';
+    }).join('');
+    return '<main class="simple-list-page" aria-label="My Certificates"><header><button class="btn back" data-action="home">← Home</button><h2>My Certificates</h2><button class="btn primary" data-action="open-new">＋ New</button></header>'+
+      '<div class="library-controls"><label class="library-search"><span>Search</span><input type="search" data-library-search autocomplete="off" placeholder="Customer, address, number…" value="'+esc(librarySearch)+'"></label>'+
+      '<label>Status<select data-library-status><option value="all"'+(libraryStatus==='all'?' selected':'')+'>All</option><option value="draft"'+(libraryStatus==='draft'?' selected':'')+'>In progress</option><option value="completed"'+(libraryStatus==='completed'?' selected':'')+'>Completed</option></select></label>'+
+      '<label>Sort by<select data-library-sort><option value="recent"'+(librarySort==='recent'?' selected':'')+'>Newest</option><option value="old"'+(librarySort==='old'?' selected':'')+'>Oldest</option><option value="name"'+(librarySort==='name'?' selected':'')+'>Customer name</option><option value="type"'+(librarySort==='type'?' selected':'')+'>Certificate type</option></select></label></div>'+
+      '<div class="saved-cert-list" data-library-results>'+ (rows||'<div class="home-empty">No matching certificates</div>')+'</div></main>';
   }
 
   function formView() {
@@ -3487,6 +3501,19 @@
     renderAssistantPage();
   });
 
+  document.addEventListener('input',e=>{
+    if(e.target.matches('[data-library-search]')){
+      librarySearch=e.target.value;
+      const cursor=e.target.selectionStart;
+      render();
+      const box=document.querySelector('[data-library-search]');box?.focus();
+      try{box?.setSelectionRange(cursor,cursor);}catch{}
+    }
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.matches('[data-library-status]')){libraryStatus=e.target.value;render();}
+    if(e.target.matches('[data-library-sort]')){librarySort=e.target.value;render();}
+  });
   document.addEventListener('keydown', e => {
     const card=e.target.closest?.('.saved-cert-row[data-action="edit"]');
     if(!card || e.target.closest('button,input,select,textarea')) return;
@@ -3509,7 +3536,9 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='speed-quick') window.SperinSpeedSuite?.quick?.();
+    if(action==='open-new'){screen('new');}
+    else if(action==='open-library'){screen('library');}
+    else if(action==='speed-quick') window.SperinSpeedSuite?.quick?.();
     else if(action==='speed-bulk') window.SperinSpeedSuite?.bulk?.();
     else if(action==='speed-convert') window.SperinSpeedSuite?.convert?.();
     else if(action==='speed-bluetooth') window.SperinSpeedSuite?.bluetooth?.();
@@ -3761,7 +3790,7 @@
 
   window.SperinSpeedSuite?.install?.({
     current:()=>getCurrent(),
-    home:()=>{saveNow();view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};render();goTop();},
+    home:()=>screen('home'),newCertificate:()=>screen('new'),library:()=>screen('library'),
     jobs:()=>document.querySelector('[data-action="jobs"]')?.click(),
     scan:()=>{
       const c=getCurrent();
