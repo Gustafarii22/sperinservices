@@ -5,13 +5,13 @@ import sys
 import zipfile
 apk=pathlib.Path(sys.argv[1])
 with zipfile.ZipFile(apk) as z:
-    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','ai-assistance.js','instrument-import.js','job-centre.js','speed-suite.js','vendor/qrcode.min.js','vendor/QR-LICENSE.txt','app.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
+    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','ai-assistance.js','instrument-import.js','job-centre.js','speed-suite.js','live-editing.js','vendor/qrcode.min.js','vendor/QR-LICENSE.txt','app.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
         data=z.read('assets/certificates/'+name)
         assert data==pathlib.Path('public/certificates',name).read_bytes(), 'Stale bundled '+name
     app=z.read('assets/certificates/app.js').decode()
     index=z.read('assets/certificates/index.html').decode()
     assert '<title>Sperin Certificates</title>' in index
-    assert "const VERSION = '1.9.2-dev'" in app
+    assert "const VERSION = '1.9.3-dev'" in app
     assert "const STORAGE_KEY = 'sperin-certificates-data-v1'" in app
     assert 'sperin-certificates-board-templates-v1' in app
     assert 'sperin-certificates-circuit-templates-v1' in app
