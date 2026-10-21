@@ -5,6 +5,8 @@ plugins {
 android {
     namespace 'uk.co.sperinservices.certificates'
     compileSdk 35
+    // Android instruments the custom preview build type, not debug or release.
+    testBuildType 'preview'
 
     signingConfigs {
         stable {
