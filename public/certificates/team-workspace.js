@@ -45,6 +45,8 @@
         '<div class="sw-section"><h3>Team members</h3>'+
         '<div class="sw-actions"><button data-sw="members">Show team</button>'+
         (["owner","supervisor"].includes(session.role)?'<input data-sw-invite-email type="email" placeholder="Engineer email"><select data-sw-role><option>electrician</option><option>supervisor</option><option>viewer</option></select><button data-sw="invite">Add team member</button>':'')+'</div><div data-sw-members></div></div>'+
+        '<div class="sw-section"><h3>Subscription and billing</h3><p>Subscription access is provided through Stripe; no payment details are entered or stored in this app.</p><div class="sw-actions"><button data-sw="billing-status">Check status</button>'+
+        (session.role==='owner'?'<button data-sw="billing-checkout">Start / renew subscription</button><button data-sw="billing-portal">Manage billing</button>':'')+'</div><p data-sw-billing></p></div>'+
         '<div class="sw-section"><h3>Review and approval</h3>'+
         '<p>Electricians submit a cloud-synced draft. A different authorised supervisor reviews and approves it. Approval does not validate unverified measurements.</p>'+
         '<div class="sw-actions"><button data-sw="refresh">Refresh status</button></div><div data-sw-docs></div></div>':'')+
@@ -148,6 +150,20 @@
     if(cmd==="logout"){
       try{await api("logout","POST",{});}catch{}
       session=null;setConsent(false);render();return;
+    }
+    if(["billing-status","billing-checkout","billing-portal"].includes(cmd)){
+      try{
+        if(cmd==="billing-status"){
+          const data=await api("billing/status");
+          root.querySelector("[data-sw-billing]").textContent="Status: "+data.status+" · Trial ends: "+new Date(data.trialEnd).toLocaleDateString("en-GB")+(data.paymentsConfigured?"":" · Checkout is not configured yet.");
+        }else{
+          if(!confirm(cmd==="billing-checkout"?"Open Stripe to review the subscription price and terms before paying?":"Open your secure Stripe billing management page?"))return;
+          const data=await api(cmd==="billing-checkout"?"billing/checkout":"billing/portal","POST",{});
+          if(typeof data.url!=="string"||!data.url.startsWith("https://"))throw Error("Secure billing link unavailable");
+          window.location.assign(data.url);
+        }
+      }catch(e){status("Billing unavailable: "+e.message);}
+      return;
     }
     if(cmd==="push"){await pushAll();return;}
     if(cmd==="pull"||cmd==="refresh"){await pullAll();return;}
