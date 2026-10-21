@@ -1951,13 +1951,16 @@
           ${boardControl(bi,'phaseSequence','Phase sequence',board.phaseSequence,OPTIONS.yesNoNA)}
           ${boardControl(bi,'spdOperational','SPD operational',board.spdOperational,OPTIONS.yesNoNA)}
         </div>
-        <div class="consumer-unit-circuits"><div class="board-section-title"><strong>Board schedule · ${esc(board.ref)}</strong><span>${boardCircuitIndices(cert,board.ref).length} listed</span></div><div class="toolbar">${boardScanButton(cert,board.ref)}<span class="meta">Add one or several photo banks for this board only</span></div>${renderBoardCircuits(cert,board,bi)}</div>
-      </div></details>`;
+      </div></details>
+      <details class="card form-section cu-circuits-accordion" data-accordion-key="board-circuits:${esc(cert.id)}:${esc(board.id)}">
+        <summary class="cu-summary"><span class="cu-index">↳</span><span class="cu-label"><strong>${esc(board.ref||('DB'+(bi+1)))} circuits</strong><small>${boardCircuitIndices(cert,board.ref).length} circuits</small></span><span class="cert-chevron">⌄</span></summary>
+        <div class="cu-accordion-body"><div class="toolbar">${boardScanButton(cert,board.ref)}</div>${renderBoardCircuits(cert,board,bi)}</div>
+      </details>`;
     }).join('');
-    return `<section class="consumer-unit-workflow"><div class="workflow-heading"><div><span class="eyebrow">DISTRIBUTION</span><h2>Consumer units & circuits</h2><p>Complete each consumer unit, then its circuits.</p></div></div>
+    return `<details class="card form-section cert-accordion distribution-section" data-accordion-key="section:${esc(cert.id)}:J Distribution"><summary class="cert-accordion-head"><h3>J · Distribution, Consumer units and circuits</h3><span class="cert-chevron">⌄</span></summary><div class="distribution-body">
       ${boardCards}
       <div class="add-consumer-unit"><button class="btn primary" data-action="board-add">Add another consumer unit</button><button class="btn small" data-action="template-open" data-kind="board">Use template</button></div>
-    </section>`;
+    </div></details>`;
   }
 
   function renderCircuitList(cert){
