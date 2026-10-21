@@ -2053,8 +2053,8 @@
       <p class="profile-help">Branding changes appearance only; mandatory certificate information stays unchanged.</p>
       <div class="settings-grid">
       <div class="field"><label>Report accent</label><input data-setting="reportAccent" type="color" value="${esc(settings.reportAccent||'#1365cc')}" /></div>
-      <div class="field"><label>Company logo (PNG/JPEG, under 120 KB)</label><input data-report-image="reportLogo" type="file" accept="image/png,image/jpeg" /></div>
-      <div class="field"><label>Your signature image (PNG/JPEG, under 120 KB)</label><input data-report-image="reportSignature" type="file" accept="image/png,image/jpeg" /></div></div>
+      <div class="field"><label>Company logo (PNG, JPEG, WebP or BMP · up to 8 MB, automatically resized)</label><input data-report-image="reportLogo" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" /></div>
+      <div class="field"><label>Your signature image (PNG, JPEG, WebP or BMP · up to 8 MB)</label><input data-report-image="reportSignature" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" /></div></div>
       <button class="btn small" type="button" data-action="clear-brand-images">Clear logo and signature</button>
       </section>
       <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">The app keeps an automatic recovery copy. Imports and destructive deletes save an undo snapshot first.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import file</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
@@ -3447,11 +3447,32 @@
       saveNow();
     }
     if(el.matches('[data-report-image]')&&el.files?.[0]){
-      const file=el.files[0];
-      if(!['image/png','image/jpeg'].includes(file.type)||file.size>120000){alert('Use PNG/JPEG under 120 KB');el.value='';return;}
-      const reader=new FileReader();
-      reader.onload=()=>{if(typeof reader.result==='string'&&reader.result.length<165000){settings[el.dataset.reportImage]=reader.result;saveSettings();toast('Brand image saved');}else alert('Image too large');};
-      reader.onerror=()=>alert('Cannot read image');reader.readAsDataURL(file);
+      const file=el.files[0],kind=el.dataset.reportImage;
+      if(!['image/png','image/jpeg','image/webp','image/bmp'].includes(file.type)||file.size>8*1024*1024){
+        alert('Choose PNG, JPEG, WebP or BMP up to 8 MB.');el.value='';return;
+      }
+      const url=URL.createObjectURL(file),img=new Image();
+      img.onload=()=>{
+        try{
+          if(img.width<1||img.height<1||img.width*img.height>50000000)throw Error('Unsupported image dimensions');
+          let scale=Math.min(1,900/Math.max(img.width,img.height)),data='';
+          for(let i=0;i<7;i++){
+            const canvas=document.createElement('canvas');
+            canvas.width=Math.max(1,Math.floor(img.width*scale));canvas.height=Math.max(1,Math.floor(img.height*scale));
+            const ctx=canvas.getContext('2d');
+            ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.drawImage(img,0,0,canvas.width,canvas.height);
+            data=canvas.toDataURL('image/jpeg',0.82);
+            if(data.length<=790000)break;
+            scale*=0.75;
+          }
+          if(data.length>790000)throw Error('Cannot reduce image enough');
+          settings[kind]=data;saveSettings();toast((kind==='reportLogo'?'Logo':'Signature')+' saved');
+        }catch(err){alert('Image cannot be used: '+err.message);}
+        finally{URL.revokeObjectURL(url);el.value='';}
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);el.value='';alert('Could not open image. Convert to JPEG or PNG first.');};
+      img.src=url;
     }
   });
   document.addEventListener('change', e => {
