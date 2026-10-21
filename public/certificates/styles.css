@@ -714,3 +714,6 @@ body{padding-bottom:115px!important}
  .circuit-actions{display:flex;flex-wrap:wrap}.circuit-actions .btn{flex:1 1 43%}
 }
 }
+
+/* Keep existing safety-critical recovery actions visible on phones. */
+@media screen and (max-width:560px){.top-actions [data-action=backup],.top-actions [data-action=restore]{display:inline-flex!important;font-size:11px!important;padding:6px 7px!important;min-height:38px}.toprow{flex-wrap:wrap}.top-actions{display:flex;flex-wrap:wrap;gap:4px}}
