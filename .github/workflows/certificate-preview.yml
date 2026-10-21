@@ -7,6 +7,7 @@ on:
       - fix/scan-device-review-spare-ways
       - release/sperin-certificates-v186-audited
       - release/sperin-certificates-v187-scanner-reviewed
+      - feature/certificates-multiuser-specialist-forms-20261021
     paths:
       - "public/certificates/**"
       - "certificate-android/**"
@@ -68,7 +69,7 @@ jobs:
       - name: Bundle reviewed white-theme and scanner
         run: |
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
-          cp public/certificates/{index.html,styles.css,app.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
           cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js} certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build separately installable preview
@@ -86,8 +87,8 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
           grep "name='uk.co.sperinservices.certificates.stable.preview.audited.v188'" certificate-android/dist/package.txt
-          grep "versionCode='192'" certificate-android/dist/package.txt
-          grep "versionName='1.8.8'" certificate-android/dist/package.txt
+          grep "versionCode='193'" certificate-android/dist/package.txt
+          grep "versionName='1.9.0-dev'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
