@@ -176,5 +176,7 @@
     clearTimeout(pendingTimer);
     pendingTimer=setTimeout(()=>{pushAll();},3000);
   }
-  window.SperinCloudWorkspace={open,schedule};
+  function connect(a){adapter=a;enabled=cloudConsent();if(enabled)getSession().then(ok=>{if(ok)schedule();});}
+  window.addEventListener('online',()=>{if(enabled&&adapter)getSession().then(ok=>{if(ok)schedule();});});
+  window.SperinCloudWorkspace={open,schedule,connect};
 })();
