@@ -77,6 +77,19 @@ jobs:
           grep -E "^ *13 +SPARE" certificate-android/qa-output/scan-with-spares.txt
           grep -E "^ *14 +SPARE" certificate-android/qa-output/scan-with-spares.txt
 
+      - name: Prove Minor Works IET A4 circuit details and issued certificate
+        run: |
+          node certificate-android/qa/minor-iet-a4.e2e.mjs
+          PDF="certificate-android/qa-output/minor-iet-a4.pdf"
+          pdftotext -layout "$PDF" certificate-android/qa-output/minor-iet-a4.txt
+          for value in "SECTION A:" "SECTION B:" "SECTION C:" "SECTION D:" "SECTION E:" \
+            "Minor Works Client QA" "Minor Works Electrician QA" \
+            "BS EN 61009-1" "BS EN 62606" "ELECTRICIAN QA SIGNED"; do
+            grep -F "$value" certificate-android/qa-output/minor-iet-a4.txt
+          done
+          if grep -E "Device manufacturer|Device model|Device kind" certificate-android/qa-output/minor-iet-a4.txt; then exit 1; fi
+          pdftoppm -f 1 -l 1 -png -scale-to 1350 "$PDF" certificate-android/qa-output/minor-a4
+
       - name: Board workflow regressions
         run: |
           node certificate-android/qa/workflow.e2e.mjs
