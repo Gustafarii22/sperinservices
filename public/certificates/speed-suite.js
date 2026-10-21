@@ -8,7 +8,7 @@ const current=()=>api?.current?.();
 function status(x){sync=x;update();}
 function update(){
  const n=document.getElementById("speed-nav");if(!n)return;
- const text=sync==="synced"?"☁ Cloud connected":sync==="uploading"?"↻ Syncing":sync==="conflict"?"⚠ Conflict — local saved":!navigator.onLine?"◌ Offline":"◌ Local only";
+ const text=sync==="synced"?"☑ Last upload confirmed":sync==="reachable"?"☁ Cloud reachable · verify sync":sync==="uploading"?"↻ Uploading…":sync==="pending"?"◷ Local edits awaiting sync":sync==="conflict"?"⚠ Conflict — local saved":sync==="error"?"⚠ Cloud unavailable":!navigator.onLine?"◌ Offline":"◌ Local only";
  n.querySelector("[data-sync]").textContent=text;n.querySelector("[data-theme]").textContent=theme==="dark"?"☀":"☾";
  n.querySelector("[data-activity]").textContent="👷 "+(activity.length?new Set(activity.map(x=>x.by)).size+" editors":"Activity");
 }
@@ -94,9 +94,9 @@ async function refresh(){
  if(!navigator.onLine){status("offline");return;}
  if(localStorage.getItem("sperin-cloud-workspace-enabled")!=="yes"){status("local");return;}
  try{const r=await fetch("/api/certificates/docs?offset=0",{credentials:"same-origin",cache:"no-store"});
- if(!r.ok){status(r.status===401?"local":"conflict");return;}
+ if(!r.ok){status(r.status===401?"local":"error");return;}
  const d=await r.json();activity=(d.documents||[]).slice(0,8).map(x=>({by:x.updated_by||x.created_by||"Unknown",at:x.updated_at||"",state:x.status}));
- status("synced");}catch{status("offline");}
+ if(!["synced","conflict","pending","uploading"].includes(sync))status("reachable");}catch{status("error");}
 }
 function team(){
  const m=show("Team activity",'<p>Shows recently saved cloud document updates on refresh (not live simultaneous editing). Local records are never overwritten when revisions conflict.</p>'+
