@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.0-dev';
+  const VERSION = '1.9.1-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1598,7 +1598,7 @@
     return `<main class="home-page">
       <section class="home-hero">
         <div class="home-hero-copy"><div class="eyebrow">SPERIN CERTIFICATES</div><h2>Electrical certificates, built for site.</h2><p>Fill, test, save and issue clean PDFs from one app.</p>
-          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
+          <div class="home-hero-actions">${recent?`<button class="btn primary hero-cta" data-action="edit" data-id="${esc(recent.id)}">Continue ${esc(recentName)} ${uiIcon('chevron')}</button>`:''}<button class="btn hero-cta" data-action="jobs">📁 Jobs &amp; evidence</button><button class="btn hero-cta" data-action="workspace">☁ Cloud team</button><button class="btn hero-cta" data-action="import-ai">📄 Import old PDF</button><button class="btn hero-cta" data-action="settings">${uiIcon('user')} Engineer profile</button></div>
         </div>
         <div class="home-visual" aria-hidden="true">
           <div class="visual-sheet"><div class="visual-line wide"></div><div class="visual-line"></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>✓</span><div></div></div><div class="visual-row"><span>⚡</span><div></div></div></div>
@@ -1624,7 +1624,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -3373,7 +3373,8 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
+    if(action==='jobs') window.SperinJobCentre?.open?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}),cert?.jobId||'');
+    else if(action==='instrument-import' && cert) window.SperinInstrumentImport?.open?.({
       get:()=>getCurrent(),
       apply:rows=>{const current=getCurrent();if(!current)return;pushEditHistory('Import individually verified instrument results');const dest=current.type==='pat'?current.tables.appliances:current.tables.tests;for(const r of rows){if(dest[r.index])dest[r.index][r.field]=r.value;}persist();render();toast(rows.length+' approved instrument values imported');}
     });
@@ -3591,5 +3592,7 @@
     add:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');state.certificates.unshift(valid);persist();render();},
     replace:doc=>{const valid=migrateCertificate(clone(doc));if(!valid)throw Error('Invalid cloud record');const index=state.certificates.findIndex(x=>x.id===valid.id);if(index<0)throw Error('Missing local record');state.certificates[index]=valid;persist();render();}
   });
+  window.SperinJobCentre?.install?.(({certificates:()=>state.certificates,current:()=>getCurrent(),schema:type=>SCHEMAS[type],settings:()=>settings,engineer:()=>settings.engineerName||'Unspecified engineer',attach:(id,jobId)=>{const c=state.certificates.find(x=>x.id===id);if(c){c.jobId=jobId;persist();render();}},navigate:id=>openCertificate(id)}));
+  if(location.hash.includes('asset='))window.addEventListener('load',()=>window.SperinJobCentre?.incomingAsset?.());
   render();
 })();
