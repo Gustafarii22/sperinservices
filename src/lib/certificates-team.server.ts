@@ -74,7 +74,7 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   try{c=settings();}catch{return result({error:"Unsafe workspace configuration"},503);}
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
-  if(req.method==="POST"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
+  if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run"){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
   const sql=neon(c.database);
   try{
     const publicResponse=await publicCertificateHandover(req,sql);
