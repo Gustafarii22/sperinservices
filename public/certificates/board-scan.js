@@ -271,8 +271,9 @@ document.addEventListener('click',function(e){
    s.result.circuits.push(d);
    try{
      if(s.adapter.getCert().type!=='minor'){
-       if(!hadDevices||cmd==='add-spd')core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
-       else d.number=String(Math.max(-1,...s.result.circuits.slice(0,-1).map(v=>Number(v.number)).filter(Number.isFinite))+1);
+       const stored=(s.adapter.getCert().tables?.circuits||[]).filter(v=>v.boardRef===s.boardRef&&!v._incomingFeed);
+       if(!hadDevices&&!stored.length)core.numberFromMain(s.result,s.adapter.getCert(),s.boardRef);
+       else d.number=String(Math.max(-1,...stored.map(v=>Number(v.circuitNo)).filter(Number.isFinite),...s.result.circuits.slice(0,-1).map(v=>Number(v.number)).filter(Number.isFinite))+1);
      }else d.target='minor';
    }catch(ex){s.message=ex.message;}
    s.active='c'+s.result.circuits.indexOf(d);render();return;
