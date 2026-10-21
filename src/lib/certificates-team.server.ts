@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { certSql } from "./certificates-db.server";
 import { createHmac, createHash, randomBytes, randomInt, timingSafeEqual, randomUUID } from "node:crypto";
 import { sendSperinEmail } from "./sperin-review-email.server";
 import { certificateScan } from "./certificate-scan.server";
@@ -51,7 +51,7 @@ const sessionCookie=(value:string,seconds:number)=>
 const canWrite=(r:string)=>["owner","supervisor","electrician"].includes(r);
 const canApprove=(r:string)=>["owner","supervisor"].includes(r);
 type TeamSession={email:string,orgId:string,role:string,name:string,subscriptionStatus?:string,trialEnd?:string};
-async function authenticate(sql:ReturnType<typeof neon>,req:Request):Promise<TeamSession|null>{
+async function authenticate(sql:ReturnType<typeof certSql>,req:Request):Promise<TeamSession|null>{
   const token=sessionToken(req);
   if(!/^[0-9a-f]{64}$/.test(token))return null;
   const rows=await sql.query(
@@ -77,7 +77,7 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
   if(!c)return result({error:"Cloud team workspace has not been configured. Local certificates remain available."},503);
   let payload:Record<string,unknown>={};
   if(req.method==="POST" && !path.startsWith("/api/certificates/jobs") && path!=="/api/certificates/reminders/run" && path!=="/api/certificates/billing/webhook" && !path.startsWith("/api/certificates/live/")){try{payload=await readBody(req,path.endsWith("/scan")?15000000:path.endsWith("/ai-import")?4500000:455000);}catch{return result({error:"Invalid or oversized request"},400);}}
-  const sql=neon(c.database);
+  const sql=certSql(c.database);
   try{
     const billingWebhook=await certificateStripeWebhook(req,sql);
     if(billingWebhook)return billingWebhook;
