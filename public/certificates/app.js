@@ -2283,6 +2283,15 @@
     return value!==undefined && value!==null && String(value).trim()!=='';
   }
 
+  let lastPdfPreviewUrl=null;
+  function showPdfSaved(filename){
+    document.querySelector('.pdf-download-backdrop')?.remove();
+    const m=document.createElement('div');m.className='modal-backdrop pdf-download-backdrop';
+    m.innerHTML='<div class="card modal pdf-downloaded-modal" role="dialog" aria-modal="true" aria-label="PDF downloaded">'+
+      '<h2>PDF downloaded ✓</h2><p>'+esc(filename)+' saved to Downloads.</p>'+
+      '<div class="toolbar"><button class="btn primary" data-action="pdf-open">Open file</button><button class="btn" data-action="pdf-dismiss">Close</button></div></div>';
+    document.body.appendChild(m);
+  }
   async function downloadPDF() {
     const cert=getCurrent(); if(!cert)return false;
     syncSingleSignatory(cert); persist();
@@ -2290,13 +2299,16 @@
       if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
       const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
       const pdfName=`${pdfSafeName(cert)}.pdf`;
+      toast('Download started…');
       if(window.Android && typeof window.Android.savePdfBase64==='function'){
         const saved=window.Android.savePdfBase64(doc.output('datauristring'),pdfName);
         if(saved===false) throw new Error('Android could not save the PDF');
-        toast('PDF saved');
+        showPdfSaved(pdfName);
       }else{
+        if(lastPdfPreviewUrl)URL.revokeObjectURL(lastPdfPreviewUrl);
+        lastPdfPreviewUrl=URL.createObjectURL(doc.output('blob'));
         doc.save(pdfName);
-        toast('PDF created');
+        showPdfSaved(pdfName);
       }
       return true;
     }catch(err){
@@ -3725,6 +3737,12 @@
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
     else if (action === 'home') { saveNow(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
+    else if(action==='pdf-open'){
+      if(window.Android?.openLatestPdf){if(window.Android.openLatestPdf()===false)alert('PDF unavailable. Re-download the file.');}
+      else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
+      document.querySelector('.pdf-download-backdrop')?.remove();
+    }
+    else if(action==='pdf-dismiss')document.querySelector('.pdf-download-backdrop')?.remove();
     else if (action === 'pdf') downloadPDF();
     else if (action === 'complete-pdf') completeAndCreatePdf();
     else if (action === 'print') printCertificate();
