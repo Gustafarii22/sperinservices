@@ -22,18 +22,18 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        versionCode 194
-        versionName '1.9.1-dev'
+        versionCode 195
+        versionName '1.9.2-dev'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
 
     buildTypes {
         preview {
             initWith release
-            applicationIdSuffix '.preview.job.v191'
+            applicationIdSuffix '.preview.speed.v192'
             signingConfig signingConfigs.debug
             debuggable false
-            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.9.1']
+            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.9.2']
         }
         debug {
             debuggable true

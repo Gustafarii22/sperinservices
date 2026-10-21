@@ -184,7 +184,7 @@ export async function certificatesTeamApi(req:Request):Promise<Response|null>{
     if(path==="/api/certificates/docs"&&req.method==="GET"){
       const query=new URL(req.url),offset=Math.max(0,Math.min(50000,Math.floor(Number(query.searchParams.get("offset")||0)||0)));
       const documents=await sql.query(
-        "select id,record,revision,status,updated_at,created_by,approved_by from cert_documents where org_id=$1 order by updated_at desc,id limit 100 offset $2",
+        "select id,record,revision,status,updated_at,created_by,updated_by,approved_by from cert_documents where org_id=$1 order by updated_at desc,id limit 100 offset $2",
         [s.orgId,offset]);
       return result({documents,hasMore:documents.length===100,nextOffset:offset+documents.length});
     }

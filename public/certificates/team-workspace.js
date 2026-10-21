@@ -6,6 +6,7 @@
   const PREFIX="sperin-cloud-workspace-";
   const h=(s)=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const status=(msg)=>{const el=root?.querySelector("[data-cloud-status]");if(el)el.textContent=msg;};
+  const syncIndicator=(flag)=>window.SperinSpeedSuite?.status?.(flag);
   const safeObject=(s)=>{try{const d=JSON.parse(s||"{}");return d&&typeof d==="object"?d:{};}catch{return {};}};
   const map=()=>safeObject(localStorage.getItem(PREFIX+(session?.email||"local")));
   const store=(m)=>{if(session)localStorage.setItem(PREFIX+session.email,JSON.stringify(m));};
@@ -52,11 +53,11 @@
         '<div class="sw-actions"><button data-sw="refresh">Refresh status</button></div><div data-sw-docs></div></div>':'')+
       '<div class="sw-section"><p data-cloud-status role="status">Local certificates on this device: '+records.length+'.</p></div></div>';
     root.querySelector("[data-sw-consent]")?.addEventListener("change",e=>{
-      setConsent(e.target.checked);render();status(enabled?"Cloud upload authorised. Choose sync now to start.":"Automatic cloud uploads disabled.");});
+      setConsent(e.target.checked);syncIndicator(enabled?"pending":"local");render();status(enabled?"Cloud upload authorised. Choose sync now to start.":"Automatic cloud uploads disabled.");});
   }
   async function pushAll(){
     if(busy||!enabled||!session||!editable())return;
-    busy=true;let uploaded=0,conflicts=0;
+    busy=true;syncIndicator("uploading");let uploaded=0,conflicts=0;
     const m=map();
     try{
       const docs=adapter.list().slice();
@@ -69,8 +70,8 @@
           m[cert.id]={revision:saved.revision,last:local,status:saved.status};store(m);uploaded++;
         }catch(err){conflicts++;console.warn("Cloud revision or upload rejected:",cert.id,err);}
       }
-      status(uploaded+" uploaded; "+conflicts+" require manual review. No local record was deleted.");
-    }catch(err){status("Cloud sync could not finish: "+err.message);}
+      syncIndicator(conflicts?"conflict":"synced");status(uploaded+" uploaded; "+conflicts+" require manual review. No local record was deleted.");
+    }catch(err){syncIndicator("error");status("Cloud sync could not finish: "+err.message);}
     finally{busy=false;}
   }
   async function allCloudDocs(){
@@ -83,7 +84,7 @@
     return items;
   }
   async function pullAll(){
-    if(busy||!session)return;busy=true;
+    if(busy||!session)return;busy=true;syncIndicator("uploading");
     try{
       const remote=await allCloudDocs(),m=map(),local=adapter.list();
       let added=0,updated=0,conflicts=0;
@@ -106,9 +107,9 @@
         }
       }
       store(m);
-      status(added+" new, "+updated+" safely updated; "+conflicts+" conflicts kept locally. Nothing deleted.");
+      syncIndicator(conflicts?"conflict":"synced");status(added+" new, "+updated+" safely updated; "+conflicts+" conflicts kept locally. Nothing deleted.");
       await showDocuments(remote);
-    }catch(e){status("Could not download team certificates: "+e.message);}
+    }catch(e){syncIndicator("error");status("Could not download team certificates: "+e.message);}
     finally{busy=false;}
   }
   async function showDocuments(remote){
@@ -190,6 +191,7 @@
   function schedule(){
     if(!session||!enabled||!editable()||busy)return;
     clearTimeout(pendingTimer);
+    syncIndicator("pending");
     pendingTimer=setTimeout(()=>{pushAll();},3000);
   }
   function connect(a){adapter=a;enabled=cloudConsent();if(enabled)getSession().then(ok=>{if(ok)schedule();});}

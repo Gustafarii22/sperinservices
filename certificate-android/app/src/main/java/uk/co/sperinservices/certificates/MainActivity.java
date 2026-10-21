@@ -1,6 +1,8 @@
 package uk.co.sperinservices.certificates;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -72,11 +74,12 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.8.6";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.9.2";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
+    private static final int BT_CONNECT_PERMISSION_REQUEST = 2003;
     private static final int SHEET_CAMERA_REQUEST = 3001;
     private static final int BOARD_CAMERA_REQUEST = 3002;
     private File boardPhotoFile;
@@ -353,6 +356,16 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == BT_CONNECT_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                sendPairedBluetoothDevices();
+            else runOnUiThread(() -> {
+                if (webView != null) webView.evaluateJavascript(
+                    "window.sperinBluetoothDevices?.('[]')", null
+                );
+            });
+            return;
+        }
         if (requestCode == AUDIO_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startSpeakAndListen(pendingVoiceToken, pendingVoicePrompt);
@@ -473,6 +486,30 @@ public class MainActivity extends Activity {
                     else MainActivity.super.onBackPressed();
                 }
         );
+    }
+
+    private void sendPairedBluetoothDevices() {
+        JSONArray paired = new JSONArray();
+        try {
+            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            if (adapter != null && adapter.isEnabled()) {
+                for (BluetoothDevice device : adapter.getBondedDevices()) {
+                    JSONObject entry = new JSONObject();
+                    entry.put("name", device.getName() == null ? "Unnamed Bluetooth device" : device.getName());
+                    paired.put(entry);
+                }
+            }
+        } catch (SecurityException e) {
+            android.util.Log.w("SperinCertificates", "Bluetooth permission missing", e);
+        } catch (Exception e) {
+            android.util.Log.w("SperinCertificates", "Unable to list paired Bluetooth devices", e);
+        }
+        final String data = paired.toString();
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(
+                "window.sperinBluetoothDevices?.(" + JSONObject.quote(data) + ")", null
+            );
+        });
     }
 
     private void openBackupImportPicker() {
@@ -959,6 +996,29 @@ public class MainActivity extends Activity {
                     sendBoardPhoto(token, "", "Camera unavailable. Choose an existing gallery photo.");
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void openInstrumentBluetoothSettings() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "Bluetooth settings are unavailable", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void listPairedInstruments() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread(() -> requestPermissions(
+                    new String[]{Manifest.permission.BLUETOOTH_CONNECT}, BT_CONNECT_PERMISSION_REQUEST
+                ));
+                return;
+            }
+            sendPairedBluetoothDevices();
         }
 
         @JavascriptInterface

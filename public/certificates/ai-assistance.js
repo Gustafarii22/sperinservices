@@ -31,7 +31,7 @@ if(ready&&isPdf){
   '<div class="sp-ai-actions"><button class="primary" data-ai-action="import">Create new draft from selected values</button></div>';
 }else if(ready){
   body='<p class="sp-ai-alert">Coding is advisory only. Independently verify the physical defect, BS 7671 requirements and final EICR classification before using any suggested wording.</p>'+
-  (proposal.suggestions||[]).map((x,i)=>'<label class="sp-ai-field"><input type="checkbox" data-ai-suggestion="'+i+'"><span><strong>'+esc(x.code)+'</strong> · '+esc(x.observation)+'<small>Schedule item '+esc(x.item)+' · Recorded evidence: '+esc(x.evidence)+' · Reason: '+esc(x.reason)+'</small></span></label>').join("")+
+  (proposal.suggestions||[]).map((x,i)=>'<label class="sp-ai-field"><input type="checkbox" data-ai-suggestion="'+i+'"><span><strong>'+esc(x.code)+'</strong> · '+esc(x.observation)+'<small>Schedule item '+esc(x.item)+' · Recorded evidence: '+esc(x.evidence)+' · Reason: '+esc(x.reason)+' · Regulation reference (verify): '+esc(x.regulationRef||'Not confidently identified')+'</small></span></label>').join("")+
   '<div class="sp-ai-actions"><button class="primary" data-ai-action="apply-eicr">Add selected as UNVERIFIED drafts</button></div>';
 }
 const warn=(proposal?.warnings||[]).slice(0,20).map(x=>'<p>⚠ '+esc(x)+'</p>').join("");

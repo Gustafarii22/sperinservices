@@ -8,7 +8,7 @@ const errors=[];
 page.on("pageerror",e=>errors.push(String(e)));
 page.on("dialog",dlg=>dlg.accept());
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/");
-await page.locator('[data-action="new"][data-type="minor"]').click();
+await page.locator('.cert-launch[data-type="minor"]').click();
 const fill=async(key,value)=>{
  const el=page.locator('[data-field="'+key+'"]');
  assert.equal(await el.count(),1,key+" missing");

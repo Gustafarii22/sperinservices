@@ -2,7 +2,8 @@
   'use strict';
 
   const NAVY=[7,17,31], BLUE=[24,105,211], PALE=[240,246,253], INK=[22,28,36], GREY=[78,88,101], LINE=[55,61,69];
-  const BRAND='Sperin Services';
+  let BRAND='Sperin Services';
+  const DEFAULT_BLUE=[24,105,211];
 
   function v(cert,key,worksheet=false,keep=false){
     if(worksheet && !keep) return '';
@@ -82,6 +83,10 @@
     doc.setFillColor(...BLUE);doc.rect(5,5,1.8,h-10,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
     doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
+    if(doc.__sperinLogo){
+      try{const logo=doc.__sperinLogo;doc.addImage(logo.data,logo.format,w/2-9,6,18,6,undefined,'FAST');}
+      catch(err){console.warn('Unable to embed customer report logo',err);}
+    }
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
     doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?'Certificate/Report No.: '+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
@@ -802,12 +807,19 @@
   }
 
   function build({cert,schema,settings={},worksheet=false}){
+    BRAND=String(settings.companyName||'Sperin Services').slice(0,58);
+    const colour=/^#[0-9a-f]{6}$/i.test(settings.reportAccent||'')?settings.reportAccent:'#1869d3';
+    const rgb=[parseInt(colour.slice(1,3),16),parseInt(colour.slice(3,5),16),parseInt(colour.slice(5,7),16)];
+    BLUE.splice(0,3,...rgb);
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:cert.type==='eic'?'landscape':'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     doc.__sperinWorksheet=!!worksheet;
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
+    const logo=typeof settings.reportLogo==='string'?settings.reportLogo:'';
+    const m=/^data:image\/(png|jpeg);base64,/.exec(logo);
+    if(m&&logo.length<=165000)doc.__sperinLogo={data:logo,format:m[1]==='png'?'PNG':'JPEG'};
     const opts={worksheet,settings};
     if(cert.type==='eic')renderEic(doc,cert,schema,opts);
     else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
@@ -821,6 +833,22 @@
         doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(175,38,43);
         doc.text('DRAFT SPECIALIST RECORD - TECHNICAL REVIEW REQUIRED',width/2,height-12,{align:'center'});
         doc.setTextColor(20,28,38);
+      }
+    }
+    if(!worksheet && cert.signatureApprovedAt && settings.reportSignature){
+      const file=String(settings.reportSignature||'');
+      const signed=/^data:image\/(png|jpeg);base64,/.exec(file);
+      if(signed&&file.length<165000){
+        // Add a separate and explicitly authorised sign-off: never overlay mandatory form test values.
+        doc.addPage('a4','portrait');
+        pageFrame(doc,'AUTHORISED SIGNATURE ATTACHMENT',String(cert.number||''),schema.standard);
+        const name=String(cert.signatureApprovedBy||'Authorised electrician').slice(0,80);
+        doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...INK);
+        doc.text('Recorded signature: '+name,16,37);
+        doc.addImage(file,signed[1]==='png'?'PNG':'JPEG',16,44,75,23,undefined,'FAST');
+        doc.setFont('helvetica','normal');doc.setFontSize(8);
+        doc.text('Applied to this certificate with explicit user approval on '+String(cert.signatureApprovedAt).slice(0,19),16,76);
+        doc.text('The signatory remains responsible for independent verification of inspections and test results.',16,83);
       }
     }
     drawPageFooterAll(doc);
