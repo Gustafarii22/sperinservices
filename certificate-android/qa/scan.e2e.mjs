@@ -74,8 +74,9 @@ assert.equal(await page.locator('[data-device-verified]').count(),0);
 await page.locator('[data-scan-command="apply"]').click();
 assert.ok(decisions.some(message=>message.includes('ALL device markings')),
  'The installer must confirm every device and physical position before import.');
-await page.waitForSelector('.consumer-unit-card');
 await page.locator('.board-scan-modal').waitFor({state:'detached'});
+await page.locator('.consumer-unit-card').first().waitFor({state:'attached'});
+await openSectionJ();
 const readCert=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')).certificates[0]);
 const cert=await readCert();
 assert.equal(cert.tables.boards[0].manufacturer,"Wylex");
