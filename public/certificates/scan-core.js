@@ -1,7 +1,7 @@
 /* Shared, dependency-free safety boundary for photo proposals. No measured fields allowed. */
 (function(root){
 'use strict';
-const boardKeys={manufacturer:'Manufacturer',model:'Model',ways:'Number of ways',populated:'Populated circuits',spareWays:'Spare ways',mainSwitch:'Main switch rating / type',rcd:'RCD details',spd:'SPD presence / type / markings',markings:'Other visible markings'};
+const boardKeys={manufacturer:'Manufacturer',model:'Model',ways:'Number of ways',populated:'Populated circuits',spareWays:'Spare ways',mainSwitch:'Main switch rating / type',rcd:'RCD details',spd:'SPD presence / type / markings',spdBs:'SPD product standard (read from label)',markings:'Other visible markings'};
 const circuitKeys={circuitNo:'Circuit number',description:'Circuit description',deviceManufacturer:'Device manufacturer',deviceModel:'Device model',deviceKind:'Device kind (MCB / RCBO / RCD / fuse)',ocpdBs:'OCPD BS / EN',ocpdType:'Curve / type',ocpdRating:'Rating (A)',breakingCapacity:'Breaking capacity (kA)',rcdBs:'RCD BS / EN',rcdType:'RCD type',rcdIdn:'RCD sensitivity (mA)',rcdRating:'RCD rating (A)'};
 const text=(v,max=300)=>typeof v==='string'?v.trim().slice(0,max):'';
 function fields(rows,keys,count){
@@ -52,7 +52,7 @@ function localOcrCandidates(photos,options={}){
      const amps=rows.filter(valid).filter(l=>/\b100\s?A\b/.test(l.text)).sort((a,b)=>Math.abs(middle(a)-middle(main))-Math.abs(middle(b)-middle(main)))[0];
      boardValues.mainSwitch=amps?'100 A main switch':'Main switch (rating to confirm)';
    }
-   if(spd){const nearby=rows.filter(l=>valid(l)&&Math.abs(middle(l)-middle(spd))<=Math.max(50,width*.07)).map(l=>l.text).join(' ');const type=nearby.match(/(?:\bT\s*([123])\b|\bTYPE\s*([123])\b)/i);boardValues.spd=type?'T'+(type[1]||type[2]):'SPD present — confirm type';}
+   if(spd){const nearby=rows.filter(l=>valid(l)&&Math.abs(middle(l)-middle(spd))<=Math.max(50,width*.07)).map(l=>l.text).join(' ');const type=nearby.match(/(?:\bT\s*([123])\b|\bTYPE\s*([123])\b)/i);boardValues.spd=type?'T'+(type[1]||type[2]):'SPD present — confirm type';const standard=nearby.match(/(?:BS\s*(?:EN\s*)?)?61643\s*[-–]\s*(11|31)/i);if(standard)boardValues.spdBs='BS EN 61643-'+standard[1];}
    const raw=rows.filter(l=>rating.test(l.text));
    // The image can supply multiple markings for the same device, but proximity
    // only merges matching ratings within one narrow DIN-rail device column.
