@@ -9,7 +9,9 @@ adb install -r "$APP_APK"
 adb install -r "$TEST_APK"
 adb shell pm list instrumentation
 mkdir -p certificate-android/qa-output/native-photo
-TEST_INSTRUMENTATION=$(adb shell pm list instrumentation | tr -d '\r' | grep -F '(target=uk.co.sperinservices.certificates.stable.preview.speed.v192)' | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p')
+APP_ID=$("${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt" dump badging "$APP_APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)
+test -n "$APP_ID"
+TEST_INSTRUMENTATION=$(adb shell pm list instrumentation | tr -d '\r' | grep -F "(target=$APP_ID)" | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p')
 test -n "$TEST_INSTRUMENTATION"
 adb shell am instrument -w -r "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/results.txt
 grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt
