@@ -1,7 +1,15 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const page=await browser.newPage({viewport:{width:390,height:844},acceptDownloads:true});
+await autoChooseQuickEntry(page);
 page.on("dialog",async d=>{if(d.type()==="prompt")await d.accept("QA circuit template");else await d.accept();});
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/",{waitUntil:"domcontentloaded"});
 await page.locator('#speed-nav [data-speed="new"]').click();
