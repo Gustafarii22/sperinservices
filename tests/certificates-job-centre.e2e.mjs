@@ -1,8 +1,16 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import {chromium} from "playwright";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const page=await browser.newPage({acceptDownloads:true,viewport:{width:460,height:850}});
+await autoChooseQuickEntry(page);
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/",{waitUntil:"domcontentloaded"});
 await page.locator('#speed-nav [data-speed="more"]').click();
 await page.locator('[data-tool="jobs"]').click();
