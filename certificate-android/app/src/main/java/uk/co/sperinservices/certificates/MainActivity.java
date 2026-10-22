@@ -13,6 +13,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -1093,6 +1094,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void readInstrumentSerial(String pairedAddress) {
             readPairedSerialInstrument(pairedAddress);
+        }
+
+        @JavascriptInterface
+        public void setCertificateOrientation(String orientation) {
+            final boolean landscape = "landscape".equals(orientation);
+            runOnUiThread(() -> {
+                try {
+                    setRequestedOrientation(landscape
+                        ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                } catch (Exception ex) {
+                    android.util.Log.w("SperinCertificates", "Could not change orientation", ex);
+                }
+            });
         }
 
         @JavascriptInterface
