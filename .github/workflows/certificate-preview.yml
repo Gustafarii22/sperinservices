@@ -72,7 +72,7 @@ jobs:
             curl -fsS http://127.0.0.1:4173/certificates/ >/dev/null && break
             sleep 1
           done
-          node tests/certificates-v196-review.e2e.mjs
+          node tests/certificates-v195-review.e2e.mjs
           node tests/certificates-v194-ux.e2e.mjs
           node tests/certificates-v196-view.e2e.mjs
           node tests/certificates-v194-circuit-actions.e2e.mjs
