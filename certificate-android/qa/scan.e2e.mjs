@@ -1,3 +1,10 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import {chromium} from "playwright";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -5,6 +12,7 @@ const dir="certificate-android/qa-output";
 fs.mkdirSync(dir,{recursive:true});
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:412,height:915},acceptDownloads:true});
+await autoChooseQuickEntry(page);
 const errors=[],decisions=[];
 page.on("pageerror",e=>errors.push(e.message));
 page.on("dialog",d=>{decisions.push(d.message());d.accept();});
