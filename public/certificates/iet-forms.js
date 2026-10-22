@@ -470,6 +470,98 @@
     labelValue(doc,'Date',worksheet?'':fmtDate(f.declarationDate),x+95,top+45,93,{labelW:12});
   }
 
+  // v1.9.6: EICR uses LANDSCAPE A4 on every page. Do not mix portrait
+  // declarations/inspection pages with landscape board and test schedules.
+  // All values come from the same certificate fields consumed by Quick Entry.
+  function renderEicrLandscape(doc,cert,schema,opts){
+    const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=doc.internal.pageSize.getWidth()-20;
+    const heading='ELECTRICAL INSTALLATION CONDITION REPORT';
+    const frame=()=>pageFrame(doc,heading,display(cert.number,worksheet,true),schema.standard);
+    doc.setPage(1);let y=frame();
+    const titles={
+      A:'SECTION A: DETAILS OF THE PERSON ORDERING THE REPORT',
+      B:'SECTION B: REASON FOR PRODUCING THIS REPORT',
+      C:'SECTION C: DETAILS OF THE INSTALLATION WHICH IS THE SUBJECT OF THIS REPORT',
+      D:'SECTION D: EXTENT AND LIMITATIONS OF INSPECTION AND TESTING',
+      E:'SECTION E: SUMMARY OF THE CONDITION OF THE INSTALLATION',
+      F:'SECTION F: RECOMMENDATION FOR NEXT INSPECTION',
+      G:'SECTION G: DECLARATION',
+      H:'SECTION H: SCHEDULES AND CONTINUATION SHEET(S) ATTACHED',
+      I:'SECTION I: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS',
+      J:'SECTION J: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE'
+    };
+    const getPart=(letter)=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
+    const fresh=()=>{doc.addPage('a4','landscape');y=frame();};
+    const writeSection=letter=>{
+      const part=getPart(letter);
+      if(!part)return;
+      if(y>170)fresh();
+      const rows=[];
+      if(letter==='G')rows.push([{content:'I/We declare that the details in this report, observations and schedules give an accurate assessment of the installation within the recorded limitations.',colSpan:4,styles:{fontStyle:'italic'}}]);
+      const arr=part.fields||[];
+      for(let i=0;i<arr.length;i+=2){
+        const a=arr[i],b=arr[i+1];
+        const fmt=field=>{
+          if(!field)return '';
+          const v=f[field.key];
+          if(field.type==='date')return worksheet?'':fmtDate(v);
+          if(field.type==='checkbox')return worksheet?'':v?'Yes':'No';
+          return display(v,worksheet);
+        };
+        rows.push([
+          {content:pdfText(a.label),styles:{fontStyle:'bold'}},
+          pdfText(fmt(a)),
+          {content:b?pdfText(b.label):'',styles:{fontStyle:'bold'}},
+          b?pdfText(fmt(b)):''
+        ]);
+      }
+      doc.autoTable({
+        startY:y,head:[[{content:titles[letter],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,textColor:INK,fontSize:7.2}}]],
+        body:rows,margin:{left:x,right:10,top:26,bottom:13},tableWidth:w,
+        theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        styles:{fontSize:5.2,cellPadding:.55,minCellHeight:4.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+        columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
+        didDrawPage:()=>frame()
+      });
+      y=doc.lastAutoTable.finalY+2.2;
+    };
+    // A–G on compact landscape pages, retaining every declaration field.
+    ['A','B','C','D','E','F','G'].forEach(writeSection);
+    fresh();
+    ['H','I','J'].forEach(writeSection);
+    fresh();
+    const obs=safeRows(cert.tables?.observations);
+    doc.autoTable({
+      startY:y,
+      head:[[{content:'SECTION K: OBSERVATIONS',colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
+            ['Item No.','Observation(s)','Classification code','Schedule reference']],
+      body:obs.length?obs.map(r=>[display(r.item,worksheet),display(r.observation,worksheet),display(r.code,worksheet),display(r.scheduleRef,worksheet)]):[['','','','']],
+      margin:{left:10,right:10,top:26,bottom:12},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:6,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+      headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+      columnStyles:{0:{cellWidth:20},1:{cellWidth:w-97},2:{cellWidth:40},3:{cellWidth:37}},
+      didDrawPage:()=>frame()
+    });
+    renderEicrInspectionLandscape(doc,cert,schema,opts);
+    renderCircuitSchedules(doc,cert,schema,opts);
+  }
+  function renderEicrInspectionLandscape(doc,cert,schema,opts){
+    const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
+    doc.addPage('a4','landscape');
+    doc.autoTable({
+      startY:30,
+      head:[[{content:'CONDITION REPORT SCHEDULE OF INSPECTION',colSpan:3,styles:{fontStyle:'bold',fontSize:8}}],
+            ['Item No.','Description','Outcome']],
+      body:rows.map(r=>[pdfText(r.item||''),pdfText(r.description||''),worksheet?'':pdfText(r.outcome||'')]),
+      margin:{left:x,right:10,top:29,bottom:15},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
+      columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
+      didDrawPage:()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard)
+    });
+  }
+
   function renderEicr(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
     doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
@@ -813,7 +905,7 @@
     BLUE.splice(0,3,...rgb);
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
-    const doc=new C({unit:'mm',format:'a4',orientation:cert.type==='eic'?'landscape':'portrait'});
+    const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     doc.__sperinWorksheet=!!worksheet;
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
@@ -822,7 +914,7 @@
     if(m&&logo.length<=790000)doc.__sperinLogo={data:logo,format:m[1]==='png'?'PNG':'JPEG'};
     const opts={worksheet,settings};
     if(cert.type==='eic')renderEic(doc,cert,schema,opts);
-    else if(cert.type==='eicr')renderEicr(doc,cert,schema,opts);
+    else if(cert.type==='eicr')renderEicrLandscape(doc,cert,schema,opts);
     else if(cert.type==='minor')renderMinor(doc,cert,schema,opts);
     else renderGeneric(doc,cert,schema,opts);
     if(['pat','ev','solar','commercialFire'].includes(cert.type)){
