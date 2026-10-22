@@ -1671,10 +1671,10 @@
     if(value===lastRequestedOrientation)return;
     lastRequestedOrientation=value;
     try{window.Android?.setCertificateOrientation?.(value);}catch(err){console.warn('Native orientation not available',err);}
-    if(!window.Android && screen.orientation?.lock && value==='landscape'){
-      screen.orientation.lock('landscape').catch(()=>{}); // Browser may require fullscreen or user rotation.
-    }else if(!window.Android && screen.orientation?.unlock && value==='unspecified'){
-      try{screen.orientation.unlock();}catch{}
+    if(!window.Android && window.screen?.orientation?.lock && value==='landscape'){
+      window.screen.orientation.lock('landscape').catch(()=>{}); // Browser may require fullscreen or user rotation.
+    }else if(!window.Android && window.screen?.orientation?.unlock && value==='unspecified'){
+      try{window.screen.orientation.unlock();}catch{}
     }
   }
   function chooseEntry(mode){
@@ -1882,7 +1882,7 @@
     migrateCertificate(cert);
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
-    if(editMode==='certificate')return certificateWorkspace(cert);
+    if(editMode==='certificate'){applyEntryOrientation(cert);return certificateWorkspace(cert);}
     const sections = schema.sections.map(part => {
       if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
       if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert);
@@ -3869,7 +3869,8 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='choose-entry'){chooseEntry(button.dataset.mode);}
+    if(action==='cv-keyboard'){const input=button.closest('.cv-field')?.querySelector('input');if(input){input.inputMode=input.inputMode==='decimal'?'text':'decimal';button.textContent=input.inputMode==='decimal'?'ABC':'123';input.focus();}}
+    else if(action==='choose-entry'){chooseEntry(button.dataset.mode);}
     else if(action==='switch-entry'){chooseEntry(editMode==='quick'?'certificate':'quick');}
     else if(action==='cv-pages'){window.SperinCertificateView?.togglePages();refreshCertificateView();}
     else if(action==='cv-select-page'){window.SperinCertificateView?.switchPage(button.dataset.cvPage);refreshCertificateView();}
