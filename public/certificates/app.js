@@ -181,6 +181,7 @@
       { key:'boardRef', label:'Distribution board / CU reference' },
       { key:'circuitNo', label:'Circuit number' },
       { key:'description', label:'Circuit description', span:'full' },
+      { key:'phaseAssociation', label:'Verified phase / line (L1, L2, L3 or TP&N)' },
       { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
       { key:'installMethod', label:'Installation / containment method', span:'full' },
       { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
@@ -190,6 +191,8 @@
     ]},
     { title: 'Overcurrent protective device', fields: [
       { key:'deviceKind', label:'Device type', options:OPTIONS.deviceKind },
+      { key:'poleCount', label:'Number of poles (visually confirmed)', options:OPTIONS.poles },
+      { key:'testButtonVisual', label:'Photo shows test button (not electrical test)', options:['Visible','Not visible','Unclear'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -243,7 +246,7 @@
 
   // Explicit allowlists: templates and linked feeds can never carry measured readings.
   function circuitDesign(row){
-    const keys=['deviceManufacturer','deviceModel','deviceKind','description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
+    const keys=['deviceManufacturer','deviceModel','deviceKind','poleCount','phaseAssociation','testButtonVisual','description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
     return Object.fromEntries(keys.filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));
   }
   function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd','manufacturer','model','ways','populated','spareWays','markings'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
