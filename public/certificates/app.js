@@ -824,13 +824,17 @@
       // consumer-unit-group. Always scroll to the selected board, not DB1.
       const target=document.querySelector('.consumer-unit-group[data-board-key="'+CSS.escape(key)+'"] .cu-circuits-accordion [data-board-add-circuit]') ||
         document.querySelector('.consumer-unit-workflow .add-consumer-unit');
-      if(!target) return;
-      target.scrollIntoView({behavior:'auto',block:'end'});
+      if(!target)return;
+      // Center the Add Circuit control inside the unobstructed viewport.
+      // Scroll-to-end can put it behind the sticky bottom PDF/save toolbar,
+      // particularly on an EICR with additional inspection sections.
+      const absoluteTop=target.getBoundingClientRect().top+window.scrollY;
+      const visibleTop=Math.max(72,Math.min(270,window.innerHeight*.38));
+      window.scrollTo({top:Math.max(0,absoluteTop-visibleTop),left:0,behavior:'auto'});
       requestAnimationFrame(()=>{
-        const reserved=110;
         const rect=target.getBoundingClientRect();
-        const visibleBottom=window.innerHeight-reserved;
-        if(rect.bottom>visibleBottom) window.scrollBy({top:rect.bottom-visibleBottom,left:0,behavior:'auto'});
+        const safeBottom=window.innerHeight-110;
+        if(rect.bottom>safeBottom)window.scrollBy({top:rect.bottom-safeBottom,left:0,behavior:'auto'});
       });
     }));
   }
