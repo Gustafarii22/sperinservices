@@ -199,7 +199,9 @@ await board("CU1").locator('[data-action="circuit-open"]').last().click();
 await click('[data-action="circuit-next"]');
 await click('[data-action="circuit-complete"]');
 const rect = await board("CU1").locator("[data-board-add-circuit]").boundingBox();
-assert(rect.y > 0 && rect.y + rect.height < 916);
+assert(rect.y > 0 && rect.y + rect.height < 916,
+  "Add Circuit must remain visible after Complete: "+JSON.stringify(rect)+" viewport "+
+  JSON.stringify(await page.evaluate(()=>({y:scrollY,max:document.documentElement.scrollHeight-innerHeight,height:innerHeight,sectionOpen:document.querySelector('.distribution-section')?.open,boardOpen:document.querySelector('.cu-circuits-accordion')?.open}))));
 for (let i = 0; i < 3; i++) {
   const row = board("CU1").locator(".inline-circuit").filter({ hasText: "QA circuit 15" });
   await row.evaluate(el=>{el.open=true;});
