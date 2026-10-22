@@ -5,7 +5,10 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.5-dev';
+  const VERSION = '1.9.6-dev';
+  const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196';
+  let editMode = 'quick';
+  let lastRequestedOrientation = '';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1385,6 +1388,7 @@
     f('logbookDelivery','Logbook, maintenance documentation and service arrangements')
   ]));
 
+  try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
@@ -1653,6 +1657,56 @@
     return cert;
   }
 
+
+  function askEntryMode(){
+    document.querySelector('.cv-opening')?.remove();
+    const m=document.createElement('div');m.className='cv-opening';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
+    m.innerHTML='<div class="cv-opening-inner"><h2>How would you like to complete your certificate?</h2><p>Both views edit the same saved certificate. Switch views at any time.</p>'+
+      '<div class="cv-opening-options"><button type="button" data-action="choose-entry" data-mode="quick"><span aria-hidden="true">☷</span><strong>Quick Entry</strong><small>Fast forms and step-by-step circuit details</small></button>'+
+      '<button type="button" data-action="choose-entry" data-mode="certificate"><span aria-hidden="true">▤</span><strong>Certificate View</strong><small>Edit directly on the paged certificate</small></button></div></div>';
+    document.body.appendChild(m);m.querySelector('button')?.focus();
+  }
+  function applyEntryOrientation(cert){
+    const value=editMode==='certificate' && window.SperinCertificateView?.isLandscape(cert?.type)?'landscape':'unspecified';
+    if(value===lastRequestedOrientation)return;
+    lastRequestedOrientation=value;
+    try{window.Android?.setCertificateOrientation?.(value);}catch(err){console.warn('Native orientation not available',err);}
+    if(!window.Android && screen.orientation?.lock && value==='landscape'){
+      screen.orientation.lock('landscape').catch(()=>{}); // Browser may require fullscreen or user rotation.
+    }else if(!window.Android && screen.orientation?.unlock && value==='unspecified'){
+      try{screen.orientation.unlock();}catch{}
+    }
+  }
+  function chooseEntry(mode){
+    if(!['quick','certificate'].includes(mode))return;
+    const cert=getCurrent();if(!cert)return;
+    saveNow();
+    editMode=mode;localStorage.setItem(EDIT_MODE_KEY,mode);
+    window.SperinCertificateView?.reset?.();
+    view.circuitIndex=null;view.circuitStep='details';
+    document.querySelector('.cv-opening')?.remove();
+    applyEntryOrientation(cert);render();goTop();
+  }
+  function certificateWorkspace(cert){
+    const sheet=window.SperinCertificateView;
+    if(!sheet)return '<div class="card app-error">Certificate View is unavailable. Switch to Quick Entry.</div>';
+    const schema=SCHEMAS[cert.type];
+    return '<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">'+esc(schema.standard)+'</div><h2>'+esc(schema.name)+'</h2><p>'+esc(cert.number)+' · '+esc(cert.status)+'</p></div></div>'+
+      sheet.render(cert,schema);
+  }
+  function refreshCertificateView(){
+    if(editMode!=='certificate')return;
+    const port=document.querySelector('.cv-viewport');const cert=getCurrent();if(!cert)return;
+    const left=port?.scrollLeft||0,top=port?.scrollTop||0,zoom=window.SperinCertificateView.state.zoom;
+    const container=document.querySelector('.cv-shell');if(!container)return;
+    container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type]);
+    window.SperinCertificateView.attachGestures();
+    if(port?.isConnected!==true && (left||top)){
+      const target=document.querySelector('.cv-viewport');target.scrollLeft=left;target.scrollTop=top;
+    }
+    window.SperinCertificateView.setZoom(zoom);
+  }
+
   function openCertificate(id) {
     const cert=state.certificates.find(c=>c.id===id);
     if(!cert){toast('Certificate not found');return;}
@@ -1664,6 +1718,7 @@
       persist();
       render();
       goTop();
+      askEntryMode();
     } catch(err) {
       console.error('Could not open saved certificate',err);
       view = { page: 'home', currentId:null, circuitIndex:null, circuitStep:'details' };
@@ -1679,6 +1734,7 @@
     resetEditHistory(cert.id);
     persist();
     render(); goTop();
+    askEntryMode();
     toast('New certificate created');
   }
 
@@ -1718,7 +1774,7 @@
     document.body.dataset.page=view.page;
     try {
       root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'?editorDock():''}</div>`;
-      requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } });
+      requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } if(editMode==='certificate'&&view.page==='form')window.SperinCertificateView?.attachGestures?.(); });
     } catch(err) {
       console.error('Certificate render failed',err);
       view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' };
@@ -1818,7 +1874,7 @@
   }
 
   function editorDock(){
-    return '<div class="editor-dock" role="toolbar" aria-label="Certificate actions">'+historyButtons()+'<button class="btn" data-action="certificate-review">Review</button><button class="btn primary" data-action="pdf">'+uiIcon('pdf')+' PDF</button></div>';
+    return '<div class="editor-dock" role="toolbar" aria-label="Certificate actions"><button class="btn cv-switch-button" data-action="switch-entry">'+(editMode==='certificate'?'☷ Quick Entry':'▤ Certificate View')+'</button>'+historyButtons()+'<button class="btn" data-action="certificate-review">Review</button><button class="btn primary" data-action="pdf">'+uiIcon('pdf')+' PDF</button></div>';
   }
 
   function formView() {
@@ -1826,6 +1882,7 @@
     migrateCertificate(cert);
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
+    if(editMode==='certificate')return certificateWorkspace(cert);
     const sections = schema.sections.map(part => {
       if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
       if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert);
@@ -3620,6 +3677,58 @@
     if (e.target.matches('[data-field],[data-table-input],[data-circuit-input],[data-board-input]')) markVoiceDone(e.target);
   });
 
+
+  // Certificate View edits the same objects and autosave queue as Quick Entry.
+  // An approved photographed test-button appearance is not an RCD functional test.
+  const cvAllowedScopes=new Set(['field','board','circuit','test','table']);
+  function saveCertificateViewValue(el){
+    if(!el.matches('[data-cv-scope]'))return;
+    const cert=getCurrent();if(!cert)return;
+    const scope=el.dataset.cvScope,key=el.dataset.cvKey,i=Number(el.dataset.cvIndex),table=el.dataset.cvTable||'';
+    if(!cvAllowedScopes.has(scope)||!key)return;
+    let dest=scope==='field'?cert.fields:
+      scope==='board'?cert.tables?.boards?.[i]:
+      scope==='circuit'?cert.tables?.circuits?.[i]:
+      scope==='test'?cert.tables?.tests?.[i]:
+      cert.tables?.[table]?.[i];
+    if(!dest||!Object.prototype.hasOwnProperty.call(dest,key) &&
+      scope==='table' && !SCHEMAS[cert.type]?.sections?.some(p=>p.key===table&&p.columns?.some(c=>c.key===key)))return;
+    let value=el.type==='checkbox'?el.checked:el.value;
+    if(scope==='circuit'&&key==='circuitNo'&&cert.tables.circuits.some((r,j)=>j!==i&&r.boardRef===dest.boardRef&&String(r.circuitNo)===String(value))){
+      el.setCustomValidity('Circuit number already exists on this consumer unit');el.reportValidity();return;
+    }
+    el.setCustomValidity?.('');
+    const old=dest[key];
+    if(old===value)return;
+    dest[key]=value;
+    if(scope==='circuit'&&key==='circuitNo'&&cert.tables.tests[i])cert.tables.tests[i].circuitNo=value;
+    if(scope==='circuit'&&key==='deviceKind'){
+      const proposed={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}};
+      for(const [k,v] of Object.entries(proposed[value]||{})){
+        if(!dest[k]){dest[k]=v;(cert.autoMeta||={})['circuit:'+i+':'+k]={source:'device-type-suggestion',note:'Verify actual marking before issue'};}
+      }
+    }
+    if(scope==='board'&&i===0)syncPrimaryBoardLegacyFields(cert);
+    scheduleAutosave();
+    if(scope==='circuit'&&key==='refMethod'){const hint=el.closest('.cv-field')?.querySelector('small');if(hint)hint.textContent=refMethodDescription(value);}
+  }
+  document.addEventListener('focusin',e=>{
+    if(e.target.matches?.('[data-cv-scope]'))pushEditHistory('Edit certificate field');
+  });
+  document.addEventListener('input',e=>saveCertificateViewValue(e.target));
+  document.addEventListener('change',e=>{
+    if(!e.target.matches?.('[data-cv-scope]'))return;
+    saveCertificateViewValue(e.target);
+    if(e.target.dataset.cvScope==='circuit'&&e.target.dataset.cvKey==='circuitNo'){
+      const cert=getCurrent(),r=cert?.tables?.circuits?.[Number(e.target.dataset.cvIndex)];
+      if(cert&&r)sortCircuitsByNumber(cert,r);
+    }
+    saveNow();
+  });
+  document.addEventListener('focusout',e=>{
+    if(e.target.matches?.('[data-cv-scope]'))saveNow();
+  });
+
   document.addEventListener('change',event=>{
     const el=event.target;
     if(el.matches('[data-sign-pdf]')){
@@ -3760,7 +3869,19 @@
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
-    if(action==='open-new'){screen('new');}
+    if(action==='choose-entry'){chooseEntry(button.dataset.mode);}
+    else if(action==='switch-entry'){chooseEntry(editMode==='quick'?'certificate':'quick');}
+    else if(action==='cv-pages'){window.SperinCertificateView?.togglePages();refreshCertificateView();}
+    else if(action==='cv-select-page'){window.SperinCertificateView?.switchPage(button.dataset.cvPage);refreshCertificateView();}
+    else if(action==='cv-page-next'){window.SperinCertificateView?.switchPage(window.SperinCertificateView.state.page+1);refreshCertificateView();}
+    else if(action==='cv-page-prev'){window.SperinCertificateView?.switchPage(window.SperinCertificateView.state.page-1);refreshCertificateView();}
+    else if(action==='cv-zoom-in'){window.SperinCertificateView?.setZoom(window.SperinCertificateView.state.zoom+.15);}
+    else if(action==='cv-zoom-out'){window.SperinCertificateView?.setZoom(window.SperinCertificateView.state.zoom-.15);}
+    else if(action==='cv-fit'){window.SperinCertificateView?.fit();}
+    else if(action==='cv-reset'){const p=document.querySelector('.cv-viewport');if(p){p.scrollTop=0;p.scrollLeft=0;}window.SperinCertificateView?.setZoom(1);}
+    else if(action==='cv-next-empty'){window.SperinCertificateView?.nextEmpty();}
+    else if(action==='cv-circuit-list'&&cert){editMode='quick';view.circuitIndex=null;openBoardAccordion(button.dataset.boardRef);render();goCircuits();}
+    else if(action==='open-new'){screen('new');}
     else if(action==='open-library'){screen('library');}
     else if(action==='open-tools') window.SperinSpeedSuite?.more?.();
     else if(action==='certificate-review') openCertificateReview(false);
@@ -3921,7 +4042,7 @@
     else if (action === 'edit') openCertificate(button.dataset.id)
     else if (action === 'duplicate') duplicateCertificate(button.dataset.id);
     else if (action === 'delete') deleteCertificate(button.dataset.id);
-    else if (action === 'home') { saveNow(); view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
+    else if (action === 'home') { saveNow();lastRequestedOrientation='';try{window.Android?.setCertificateOrientation?.('unspecified');}catch{} view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if(action==='pdf-open'){
       if(window.Android?.openLatestPdf){if(window.Android.openLatestPdf()===false)alert('PDF unavailable. Re-download the file.');}
       else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
