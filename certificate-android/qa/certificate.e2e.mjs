@@ -72,8 +72,8 @@ assert(
   "Certificate app is not using the shared IET-style renderer",
 );
 assert(
-  ietSource.includes("orientation:cert.type==='eic'?'landscape':'portrait'"),
-  "EIC certificate renderer must start on landscape A4",
+  ietSource.includes("orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'"),
+  "EIC and EICR certificate renderers must start on landscape A4",
 );
 assert(ietSource.includes("function pdfText"), "PDF glyph-safety normalizer missing");
 assert(ietSource.includes("MARK ONE BOX WITH X"), "Worksheet X-mark instruction missing");
