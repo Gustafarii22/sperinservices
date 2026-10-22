@@ -23,7 +23,7 @@
    }else{
      control='<input id="'+E(id)+'"'+attr+' value="'+E(text)+'" type="'+(field.type==='date'?'date':'text')+'" inputmode="'+(numeric?'decimal':'text')+'" autocomplete="off" placeholder="Tap to complete">';
    }
-   return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(key==='refMethod'?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
+   return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(numeric&&field.type!=='select'&&!Array.isArray(field.options)?'<button class="cv-keyboard-toggle" type="button" data-action="cv-keyboard" aria-label="Toggle numeric and text keyboard">ABC</button>':'')+(key==='refMethod'?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
  }
  function sectionPage(title,fields,cert,orientation,label){
    const max=orientation==='landscape'?18:13;
@@ -151,7 +151,7 @@
       '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">−</button>'+
       '<span data-cv-zoom-label>'+Math.round(persisted.zoom*100)+'%</span>'+
       '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">＋</button>'+
-      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">Upper Left</button></div>';
+      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">Upper Left</button><button class="btn" data-action="cv-next-empty">Next Empty</button></div>';
    const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select Pages</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
    return '<section class="cv-shell" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
      '<div class="cv-viewport" aria-label="Drag or swipe the certificate to pan; pinch to zoom" tabindex="0"><div class="cv-paper-wrap">'+
