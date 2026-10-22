@@ -818,25 +818,25 @@
   }
 
   function goCircuitBottom(boardRef){
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const key=normaliseBoardKey(boardRef);
-      // Section J wraps each board and its separate circuits accordion in one
-      // consumer-unit-group. Always scroll to the selected board, not DB1.
-      const target=document.querySelector('.consumer-unit-group[data-board-key="'+CSS.escape(key)+'"] .cu-circuits-accordion [data-board-add-circuit]') ||
-        document.querySelector('.consumer-unit-workflow .add-consumer-unit');
+    // Section J may expand asynchronously (e.g. after the editor and inspection
+    // accordions rebuild), so one immediate scroll calculation is insufficient.
+    // Keep retargeting the chosen board's Add Circuit button for a brief bounded
+    // period, without moving the viewport once the control is already visible.
+    const key=normaliseBoardKey(boardRef);
+    const exact='.consumer-unit-group[data-board-key="'+CSS.escape(key)+'"] .cu-circuits-accordion [data-board-add-circuit]';
+    const align=()=>{
+      if(view.page!=='form'||editMode==='certificate')return;
+      const target=document.querySelector(exact)||
+        document.querySelector('.cu-circuits-accordion [data-board-add-circuit]');
       if(!target)return;
-      // Center the Add Circuit control inside the unobstructed viewport.
-      // Scroll-to-end can put it behind the sticky bottom PDF/save toolbar,
-      // particularly on an EICR with additional inspection sections.
-      const absoluteTop=target.getBoundingClientRect().top+window.scrollY;
-      const visibleTop=Math.max(72,Math.min(270,window.innerHeight*.38));
-      window.scrollTo({top:Math.max(0,absoluteTop-visibleTop),left:0,behavior:'auto'});
-      requestAnimationFrame(()=>{
-        const rect=target.getBoundingClientRect();
-        const safeBottom=window.innerHeight-110;
-        if(rect.bottom>safeBottom)window.scrollBy({top:rect.bottom-safeBottom,left:0,behavior:'auto'});
-      });
-    }));
+      const rect=target.getBoundingClientRect();
+      const safeTop=92,safeBottom=window.innerHeight-126;
+      if(rect.top>=safeTop && rect.bottom<=safeBottom)return;
+      const desiredTop=Math.min(260,Math.max(safeTop,window.innerHeight*.31));
+      window.scrollBy({top:rect.top-desiredTop,left:0,behavior:'instant'});
+    };
+    requestAnimationFrame(()=>requestAnimationFrame(align));
+    [75,175,300].forEach(delay=>setTimeout(align,delay));
   }
 
   function goBoardCard(boardId){
