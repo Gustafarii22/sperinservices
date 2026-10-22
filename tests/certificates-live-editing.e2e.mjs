@@ -1,7 +1,15 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import assert from "node:assert/strict";
 import {chromium} from "playwright";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage"]});
 const page1=await browser.newPage({viewport:{width:430,height:900}}),page2=await browser.newPage({viewport:{width:430,height:900}});
+await autoChooseQuickEntry(page1);await autoChooseQuickEntry(page2);
 const url=process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/";
 let cloud=null,revision=1,events=[],patches=[],active=new Set();
 const read=(x,path)=>path.reduce((v,k)=>v==null?null:v[k],x)??null;
