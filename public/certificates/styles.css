@@ -843,3 +843,48 @@ body:not([data-page=form]) #sperin-live-indicator{display:none!important}
 @media screen{.form-head .actions>.btn{width:auto!important;max-width:none!important}.review-dialog{background:var(--ux-panel);color:var(--ux-text)}.review-item strong{font-weight:650}}
 
 @media screen{#sperin-live-indicator[hidden]{display:none!important}}
+
+
+/* v1.9.6 — editable print-layout-style certificate view; no certificate data is duplicated. */
+.cv-shell{display:flex;flex-direction:column;gap:9px;width:100%;min-width:0}
+.cv-toolbar{position:sticky;top:0;z-index:24;display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;background:#fff;border:1px solid #d9e2ef;border-radius:12px;padding:8px;box-shadow:0 4px 16px #11294816;scrollbar-width:thin}
+.cv-toolbar .btn{flex:0 0 auto}.cv-toolbar strong{font-size:12px}.cv-viewport{height:clamp(340px,68dvh,950px);width:100%;background:#e8edf5;border:1px solid #ccd7e4;border-radius:14px;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;box-shadow:inset 0 2px 12px #20355c12}
+.cv-paper-wrap{position:relative;margin:12px;min-width:1px;min-height:1px}
+.cv-paper{box-sizing:border-box;position:absolute;top:0;left:0;transform-origin:0 0;background:white;border:1px solid #bdc9d8;box-shadow:0 12px 35px #172b4c35;display:flex;flex-direction:column;padding:29px 35px 20px;color:#13243a}
+.cv-landscape{width:1122px;height:794px}.cv-portrait{width:794px;height:1122px}
+.cv-sheet-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:9px;border-bottom:3px solid #1a67c9;color:#203f6d;font-size:12px}.cv-sheet-header>strong{letter-spacing:1px}.cv-sheet-header small{font-size:11px;color:#445468}
+.cv-sheet-content{flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
+.cv-titleline{background:#eaf3fc;border:1px solid #abc5e3;color:#183c67;font-size:16px;font-weight:700;text-transform:uppercase;padding:9px 11px;margin:13px 0 9px}
+.cv-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:12px;row-gap:11px;align-content:start}
+.cv-portrait .cv-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cv-field{display:flex;flex-direction:column;gap:4px;min-width:0;color:#334561;font-size:11px;font-weight:600}
+.cv-field>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:13px}
+.cv-field input,.cv-field select,.cv-field textarea{box-sizing:border-box;width:100%;min-width:0;border:1px solid #c4cddb;border-radius:4px;background:white;color:#132537;font:normal 14px system-ui,sans-serif;min-height:30px;padding:4px 7px;box-shadow:none}
+.cv-field textarea{resize:vertical;min-height:31px}.cv-field input:focus,.cv-field select:focus,.cv-field textarea:focus{outline:2px solid #176ad6;border-color:#176ad6}
+.cv-field small{font-weight:400;font-size:10px;color:#64758a}.cv-field input[type="checkbox"]{width:19px;min-height:19px}
+.cv-wide{grid-column:span 2}.cv-sheet-footer{display:flex;justify-content:space-between;border-top:1px solid #d4dae2;color:#62768b;padding:8px 0 0;font-size:11px}
+.cv-board-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px 9px;padding:6px 0 10px}
+.cv-board-fields .cv-field{font-size:9px}.cv-board-fields input{font-size:11px;min-height:26px}
+.cv-schedule{border:1px solid #9aa9bd;margin-top:8px}.cv-schedule-header,.cv-schedule-row{display:grid;grid-template-columns:46px 2.4fr 1.35fr 1.7fr .85fr 1.6fr;gap:3px;align-items:center;border-bottom:1px solid #cfd9e5;padding:3px 6px;min-height:32px;font-size:10px}
+.cv-schedule-header{font-weight:700;background:#eaf3fc}.cv-schedule-row .cv-field{font-size:0}.cv-schedule-row .cv-field>span,.cv-schedule-row .cv-field small{display:none}.cv-schedule-row .cv-field input,.cv-schedule-row .cv-field select{height:27px;min-height:27px;font-size:11px;padding:2px 4px}
+.cv-test-schedule .cv-schedule-header,.cv-test-schedule .cv-schedule-row{grid-template-columns:46px repeat(5,minmax(0,1fr))}
+.cv-sheet-actions{display:flex;gap:7px;margin-top:12px}
+.cv-page-picker{border-radius:12px;padding:12px;background:#fff;border:1px solid #d8e1ec;max-height:45dvh;overflow:auto}
+.cv-picker-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cv-page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.cv-thumbnail{cursor:pointer;display:flex;flex-direction:column;gap:5px;align-items:center;background:#f9fbff;color:#253d5d;border:1px solid #dae4ef;border-radius:9px;padding:8px;text-align:center}
+.cv-thumbnail.active{border:2px solid #146acb;background:#eaf3ff}.cv-thumbnail small{font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis}.cv-thumbnail strong{font-size:12px}
+.cv-mini-sheet{box-sizing:border-box;width:92px;height:110px;background:white;border:1px solid #cad3e0;display:flex;flex-direction:column;gap:7px;padding:8px 6px;box-shadow:0 3px 9px #172c4319}
+.cv-mini-sheet.landscape{width:110px;height:80px}
+.cv-mini-sheet>span{font-size:6px;font-weight:700;white-space:nowrap;overflow:hidden}
+.cv-mini-sheet i{display:block;height:4px;width:85%;background:#cfdbec}.cv-mini-sheet i:nth-of-type(2){width:65%}.cv-mini-sheet i:nth-of-type(3){width:92%}
+.cv-footnote{font-size:11px;color:#64748b;padding:2px 4px 10px}
+.cv-opening{position:fixed;inset:0;background:#0b1f3b80;display:flex;align-items:center;justify-content:center;padding:15px;z-index:550}
+.cv-opening-inner{width:min(530px,100%);background:#fff;color:#152a45;border-radius:22px;padding:23px;box-shadow:0 24px 90px #11264760;display:grid;gap:13px;text-align:center}
+.cv-opening-inner h2{font-size:22px;margin:0}.cv-opening-inner p{margin:0;color:#56677d;font-size:13px}
+.cv-opening-options{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.cv-opening-options button{border:2px solid #d6e1ed;background:#f5f9ff;min-height:135px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#123456;cursor:pointer;padding:14px}
+.cv-opening-options button:first-child{border-color:#1973d1}
+.cv-opening-options strong{font-size:16px}.cv-opening-options small{font-size:12px;color:#66788c;line-height:1.4}
+.cv-switch-button{white-space:nowrap}
+@media(max-width:720px){.cv-viewport{height:calc(100dvh - 260px);min-height:320px}.cv-toolbar{border-radius:0;padding:5px}.cv-toolbar .btn{font-size:12px;padding:7px 9px}.cv-opening-inner{padding:17px}.cv-opening-options button{min-height:125px;padding:9px}}
