@@ -51,6 +51,14 @@ for(const std of ["BS EN 60898-1","BS EN 61009-1","BS EN 61009-2-1","BS 3871","B
 await bs.fill("BS EN 61009-2-1");
 await bs.dispatchEvent("input");
 assert.equal(await bs.inputValue(),"BS EN 61009-2-1");
+const method=tab.locator('[data-circuit-input="details"][data-col="refMethod"]');
+await method.fill("101");
+await method.dispatchEvent("input");
+assert((await tab.locator('[data-ref-method-hint]').textContent()).includes("over 100 mm"),
+  "Reference method 101 should explain ceiling insulation beside the selector");
+const methodOptions=await tab.locator('.combo-option[data-value="103"]').allTextContents();
+assert(methodOptions.some(x=>x.includes("not touching")),"Reference method options need clear descriptions");
+
 await circuits.locator("summary").first().click();
 assert(!(await circuits.evaluate(el=>el.open)),"Circuits tab must close");
 await j.locator("summary").first().click();
@@ -70,7 +78,7 @@ const cloudResult={board:[field("manufacturer","Wylex"),field("spd","Type 2"),fi
   {position:"2 MCB",association:"check",reason:"mock",fields:[field("deviceKind","MCB"),field("description","Lighting"),field("ocpdType","B"),field("ocpdRating","6")]},
   {position:"3 spare",association:"check",reason:"mock",fields:[field("deviceKind","Spare"),field("description","SPARE")]},
   {position:"4 second RCCB",association:"check",reason:"mock",fields:[field("deviceKind","RCD"),field("description","63 A 30 mA"),field("rcdBs","BS EN 61008-1")]},
-  {position:"5 second-bank RCBO",association:"check",reason:"mock",fields:[field("deviceKind","RCBO"),field("description","Sockets"),field("ocpdType","B"),field("ocpdRating","32")]}
+  {position:"5 second-bank RCBO",association:"check",reason:"mock",fields:[field("deviceKind","RCBO"),field("description","Sockets"),field("ocpdType","B"),field("ocpdRating","32"),field("poleCount","1"),field("testButtonVisual","Visible"),field("phaseAssociation","L1")]}
  ],warnings:[]};
 await page.route("**/api/owner/certificate-scan",r=>r.fulfill({status:200,contentType:"application/json",body:JSON.stringify(cloudResult)}));
 await page.locator('[data-scan-command="cloud-toggle"]').click();
@@ -94,6 +102,10 @@ assert.equal(kinds[0],"Main switch");
 assert.equal(kinds[1],"RCD");
 assert(kinds.includes("Spare"),"Blank/spare device not preserved");
 assert(kinds.includes("RCBO"),"RCBO not preserved");
+const scannedRcbo=boardRows.find(x=>x.deviceKind==="RCBO");
+assert.equal(scannedRcbo?.poleCount,"1");
+assert.equal(scannedRcbo?.testButtonVisual,"Visible");
+assert.equal(scannedRcbo?.phaseAssociation,"L1");
 assert.equal(record.tables.boards[0].spdBs,"BS EN 61643-11");
 await page.reload();
 assert.equal(await home().count(),0,"Continue editing should survive reload");
