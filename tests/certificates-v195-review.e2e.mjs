@@ -1,8 +1,15 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const browser=await chromium.launch({args:['--no-sandbox']});
 const base=process.env.CERT_BASE_URL||'http://127.0.0.1:4173/certificates/';
-const errors=[];let context=await browser.newContext({viewport:{width:412,height:915},acceptDownloads:true});let p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
+const errors=[];let context=await browser.newContext({viewport:{width:412,height:915},acceptDownloads:true});let p=await context.newPage();await autoChooseQuickEntry(p);p.on('pageerror',e=>errors.push(e.message));
 await p.goto(base);await p.locator('[data-action="open-tools"]').click();assert(await p.locator('[data-tool="backup"]').isVisible());await p.locator('[data-speed-close]').click();
 await p.locator('[data-action="open-new"]').click();await p.locator('[data-type="eic"]').click();
 assert.equal(await p.locator('[data-action="edit-undo"]').count(),1);
@@ -14,7 +21,7 @@ await p.locator('[data-action="review-edit"]').first().click();await p.locator('
 await p.locator('[data-action="complete-pdf"]').click();assert.equal(await p.locator('[data-action="review-finish"]').isDisabled(),false);await p.locator('[data-review-confirm]').check();
 const pdf=p.waitForEvent('download');await p.locator('[data-action="review-finish"]').click();await pdf;
 let state=await p.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')));assert.equal(state.certificates[0].status,'Complete');assert(state.certificates[0].reviewRecord);await context.close();
-async function seed(c){context=await browser.newContext({viewport:{width:360,height:800}});await context.addInitScript(s=>localStorage.setItem('sperin-certificates-data-v1',JSON.stringify(s)),{...state,certificates:[c]});p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(base);await p.locator('[data-action="open-library"]').click();await p.locator('[data-action="edit"]').first().click();}
+async function seed(c){context=await browser.newContext({viewport:{width:360,height:800}});await context.addInitScript(s=>localStorage.setItem('sperin-certificates-data-v1',JSON.stringify(s)),{...state,certificates:[c]});p=await context.newPage();await autoChooseQuickEntry(p);p.on('pageerror',e=>errors.push(e.message));await p.goto(base);await p.locator('[data-action="open-library"]').click();await p.locator('[data-action="edit"]').first().click();}
 let c=structuredClone(state.certificates[0]);c.status='Draft';c.voiceMeta={later:{'field:clientName':true,'circuit:tests:0:zs':true},completed:{},dismissed:{}};
 await seed(c);await p.locator('[data-action="complete-pdf"]').click();assert.equal(await p.locator('[data-action="review-na"]').count(),2);assert(await p.locator('[data-action="review-finish"]').isDisabled());p.on('dialog',d=>d.accept('Not applicable to the agreed scope'));
 await p.locator('[data-action="review-na"]').first().click();await p.locator('[data-action="review-na"]').first().click();assert.equal(await p.locator('[data-action="review-finish"]').isDisabled(),false);const stored=await p.evaluate(()=>JSON.parse(localStorage.getItem('sperin-certificates-data-v1')));assert.equal(Object.keys(stored.certificates[0].reviewNotApplicable).length,2);await context.close();
