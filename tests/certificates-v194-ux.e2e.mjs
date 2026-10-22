@@ -1,8 +1,16 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import {chromium} from "playwright";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage"]});
 const page=await browser.newPage({viewport:{width:412,height:850},acceptDownloads:true});
+await autoChooseQuickEntry(page);
 const errors=[],dialogs=[];page.on("pageerror",e=>errors.push(e.message));
 page.on("dialog",async d=>{dialogs.push(d.message());await d.accept();});
 const home=()=>page.locator(".minimal-home");
