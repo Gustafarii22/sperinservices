@@ -290,3 +290,20 @@ test("Unmarked RCD standard is not guessed from a 30mA label",()=>{
  assert.equal(f.find(v=>v.key==="rcdIdn")?.value,"30");
  assert.equal(f.find(v=>v.key==="rcdBs"),undefined);
 });
+
+
+test("visual pole, phase and photographed test-button clues are separate from electrical test results",()=>{
+  const c=cert();
+  const normal=core.normalise({board:[],warnings:[],circuits:[{
+    position:"Top rail device 1",association:"high",reason:"Evidence from close-up",
+    fields:[f("poleCount","3"),f("phaseAssociation","L1/L2/L3"),f("testButtonVisual","Visible"),f("zs","0.11"),f("rcdButton","Pass")]
+  }]},1);
+  assert.equal(normal.circuits[0].fields.length,3,"measured results must not be accepted from photos");
+  normal.circuits[0].target="c1";
+  normal.circuits[0].fields.forEach(x=>x.accepted=true);
+  const result=core.propose(c,"DB1",normal).certificate;
+  assert.equal(result.tables.circuits[0].poleCount,"3");
+  assert.equal(result.tables.circuits[0].phaseAssociation,"L1/L2/L3");
+  assert.equal(result.tables.circuits[0].testButtonVisual,"Visible");
+  assert.deepEqual(result.tables.tests,c.tables.tests,"photo appearance may not set RCD test results");
+});
