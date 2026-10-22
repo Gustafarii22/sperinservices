@@ -11,7 +11,7 @@ await page.goto(base,{waitUntil:"domcontentloaded"});
 await home().waitFor();
 assert.equal(await page.locator(".home-big-action").count(),2,"Only New and My Certificates should dominate home");
 assert.equal(await page.locator(".home-hero,.home-kpis,.home-metrics").count(),0,"No old hero or statistics");
-assert.equal(await page.locator("#speed-nav .speed-links button").count(),5);
+assert.equal(await page.locator("#speed-nav .speed-links button").count(),4);
 assert.equal(await page.locator('#speed-nav [data-speed="scan"]').count(),0,"No global Scan tab");
 await page.locator('[data-action="open-library"]').click();
 assert.equal(await page.locator('[data-library-search]').count(),1);

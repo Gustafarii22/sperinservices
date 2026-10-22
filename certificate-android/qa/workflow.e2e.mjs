@@ -347,7 +347,8 @@ await page.evaluate(() => {
     },
   };
 });
-await click('[data-action="backup"]');
+await click('#speed-nav [data-speed="more"]');
+await click('[data-tool="backup"]');
 await click('[data-action="recovery-confirm-next"]');
 await click('[data-action="recovery-confirm-do"]');
 const backup = await page.evaluate(() => window.qaBackup);

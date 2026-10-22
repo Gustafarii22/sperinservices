@@ -817,6 +817,8 @@ await page.locator('[data-action="pdf-dismiss"]').click();
 // Complete & PDF must create the file before the saved certificate is marked complete.
 const completePdfPromise = page.waitForEvent("download");
 await page.locator('[data-action="complete-pdf"]').click();
+await page.locator('[data-review-confirm]').check();
+await page.locator('[data-action="review-finish"]').click();
 const completedPdf = await completePdfPromise;
 assert((await completedPdf.path()) != null, "Complete & PDF did not create a PDF");
 await page.waitForTimeout(80);
@@ -1177,7 +1179,8 @@ console.log("MULTIBOARD_NUMBERING_PASS");
 
 // Backup must require two explicit confirmations before creating JSON.
 const backupPromise = page.waitForEvent("download");
-await page.locator('.topbar [data-action="backup"]').click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="backup"]').click();
 await page.waitForSelector(".recovery-confirm-modal");
 assert(
   (await page.locator(".recovery-confirm-modal h2").textContent()) === "Backup certificates?",
@@ -1198,7 +1201,8 @@ assert(backupDownload.suggestedFilename().endsWith(".json"), "Backup is not JSON
 console.log("BACKUP_DOUBLE_CONFIRM_PASS");
 
 // Restore must also require two explicit confirmations. Cancel at stage two must do nothing.
-await page.locator('.topbar [data-action="restore"]').click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="restore"]').click();
 await page.waitForSelector(".recovery-confirm-modal");
 assert(
   (await page.locator(".recovery-confirm-modal h2").textContent()) === "Restore latest backup?",

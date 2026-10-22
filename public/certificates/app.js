@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.4-dev';
+  const VERSION = '1.9.5-dev';
   // v1.7 form-reset verification trigger
   const TODAY = new Date().toISOString().slice(0, 10);
   const SHEET_PLANS_KEY = 'sperin-certificates-site-sheets-v1';
@@ -1679,8 +1679,9 @@
     preserveRequestedAccordions=false;
     const root = document.getElementById('app');
     persistView();
+    document.body.dataset.page=view.page;
     try {
-      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}</div>`;
+      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'?editorDock():''}</div>`;
       requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } });
     } catch(err) {
       console.error('Certificate render failed',err);
@@ -1714,6 +1715,7 @@
 
   function uiIcon(name) {
     const icons={
+      tools:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V3h8v4M3 12h18M10 12v3h4v-3"/></svg>',
       camera:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v14H3z"/><circle cx="12" cy="13" r="4"/></svg>',
       home:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
       user:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
@@ -1739,8 +1741,8 @@
   }
   function homeView(){
     return '<main class="minimal-home" aria-label="Home"><h2>Certificates</h2>'+
-      '<div class="home-primary-actions"><button class="home-big-action primary" data-action="open-new">+ <span>New Certificate</span><strong>›</strong></button>'+
-      '<button class="home-big-action" data-action="open-library">▤ <span>My Certificates</span><strong>›</strong></button></div></main>';
+      '<div class="home-primary-actions"><button class="home-big-action primary" data-action="open-new"><span class="home-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg></span><span>New Certificate</span><strong>›</strong></button>'+
+      '<button class="home-big-action" data-action="open-library"><span class="home-action-icon">'+uiIcon('pdf')+'</span><span>My Certificates</span><strong>›</strong></button></div><button class="home-tools" data-action="open-tools">'+uiIcon('tools')+'<span>Tools</span>'+uiIcon('chevron')+'</button></main>';
   }
   function newCertificateListView(){
     return '<main class="simple-list-page"><header><button class="btn back" data-action="home">← Home</button><h2>New Certificate</h2></header>'+
@@ -1779,6 +1781,10 @@
       '<div class="saved-cert-list" data-library-results>'+ (rows||'<div class="home-empty">No matching certificates</div>')+'</div></main>';
   }
 
+  function editorDock(){
+    return '<div class="editor-dock" role="toolbar" aria-label="Certificate actions">'+historyButtons()+'<button class="btn" data-action="certificate-review">Review</button><button class="btn primary" data-action="pdf">'+uiIcon('pdf')+' PDF</button></div>';
+  }
+
   function formView() {
     const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
     migrateCertificate(cert);
@@ -1791,8 +1797,8 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete & PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}${historyButtons()}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button><button class="btn primary" data-action="pdf">PDF</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -2063,7 +2069,7 @@
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
       : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
-    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}${historyButtons()}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="speed-convert">Copy to new type</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
+    return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="speed-convert">Copy to new type</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
   function renderInspectionChecklist(part, cert) {
@@ -2373,12 +2379,13 @@
     }
   }
 
-  async function completeAndCreatePdf() {
+  async function completeAndCreatePdf(reviewed=false) {
     const cert=getCurrent(); if(!cert)return;
     if(['pat','ev','solar','commercialFire'].includes(cert.type)){
       alert('Specialist records are DRAFT ONLY in this development preview. Final professional issue is blocked until the applicable technical/IET standards audit and real-world testing have passed. You can still export a clearly marked draft PDF.');
       return;
     }
+    if(!reviewed){openCertificateReview(true);return;}
     syncSingleSignatory(cert);
     saveNow();
     const ok=await downloadPDF();
@@ -2387,6 +2394,8 @@
     saveNow();
     render();
     toast('Certificate completed');
+    if(window.Android?.openLatestPdf)window.Android.openLatestPdf();
+    else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
   }
 
   function formatPdfValue(field, value) {
@@ -2629,15 +2638,74 @@
     const row=cert.tables?.circuits?.[index]||{},test=cert.tables?.tests?.[index]||{},out=[],add=(keys,title,note,source)=>{if(keys.includes(key))out.push({title,note,source});};
     const z=parseFloat(test.zs),max=parseFloat(row.maxZs);if(Number.isFinite(z)&&Number.isFinite(max)&&z>max)add(['zs','maxZs'],'Zs exceeds configured maximum','Measured Zs '+z+' Ω is greater than the current maximum '+max+' Ω for the recorded protective-device data. Check the measurement and device details; the app will not alter the result.','BS 7671 ADS / maximum Zs check');
     for(const k of ['irLL','irLE']){const v=parseFloat(test[k]),volts=parseFloat(test.irVoltage);if(Number.isFinite(v)&&Number.isFinite(volts)){const limit=volts>=500?1:(volts===250?1:null);if(limit!==null&&v<limit)add([k,'irVoltage'],'Insulation resistance needs checking',v+' MΩ is below 1 MΩ at '+volts+' V. At 250 V, 0.5 MΩ is the Table 64 minimum for SELV/PELV, while a reduced 250 V test used because connected equipment cannot be disconnected still requires at least 1 MΩ. Confirm which test condition applies.','BS 7671 Table 64 / IET inspection & testing guidance');}}
-    const rt=parseFloat(test.rcdTime);if(Number.isFinite(rt)&&rt>300)add(['rcdTime'],'RCD operating time needs checking',rt+' ms exceeds the 300 ms maximum used for the general non-delay RCD check. Verify whether a time-delayed device and different criteria apply.','BS 7671 Regs 643.7.1 / 643.8 guidance');if(String(test.polarity||'')==='Fail')add(['polarity'],'Polarity test failed','Polarity is recorded as Fail. Check and rectify the circuit before issue.','BS 7671 verification of polarity');
-    if(String(test.rcdButton||'')==='Fail')add(['rcdButton'],'RCD functional test failed','The RCD test-button result is recorded as Fail. Check the protective device before issue.','BS 7671 RCD functional testing');
-    if(String(test.afddButton||'')==='Fail')add(['afddButton'],'AFDD functional test failed','The AFDD manual test result is recorded as Fail. Check the device before issue.','BS 7671 AFDD functional testing');
+    const rt=parseFloat(test.rcdTime);if(Number.isFinite(rt)&&rt>300)add(['rcdTime'],'RCD operating time needs checking',rt+' ms exceeds the 300 ms maximum used for the general non-delay RCD check. Verify whether a time-delayed device and different criteria apply.','BS 7671 Regs 643.7.1 / 643.8 guidance');if(['Fail','No','✕'].includes(String(test.polarity||'')))add(['polarity'],'Polarity test failed','Polarity is recorded as Fail. Check and rectify the circuit before issue.','BS 7671 verification of polarity');
+    if(['Fail','No','✕'].includes(String(test.rcdButton||'')))add(['rcdButton'],'RCD functional test failed','The RCD test-button result is recorded as Fail. Check the protective device before issue.','BS 7671 RCD functional testing');
+    if(['Fail','No','✕'].includes(String(test.afddButton||'')))add(['afddButton'],'AFDD functional test failed','The AFDD manual test result is recorded as Fail. Check the device before issue.','BS 7671 AFDD functional testing');
     if(/twin\s*(?:&|and)\s*earth/i.test(row.wiringType||'')){const expected=tneCpc(row.liveCsa);if(expected&&row.cpcCsa&&String(row.cpcCsa)!==String(expected))add(['liveCsa','cpcCsa','wiringType'],'Twin & earth conductor pairing needs checking','Configured standard T&E pairing for '+row.liveCsa+' mm² live conductors is '+expected+' mm² CPC; recorded CPC is '+row.cpcCsa+' mm². Confirm the actual cable construction.','Standard UK flat T&E conductor pairing');}
     const ref=inferRef(row.installMethod||'');if(ref.c==='high'&&row.refMethod&&row.refMethod!==ref.v)add(['installMethod','refMethod'],'Reference method mismatch','"'+row.installMethod+'" maps to Reference Method '+ref.v+' in the app’s high-confidence phrases, but '+row.refMethod+' is recorded. Confirm the actual installation conditions.','BS 7671 Appendix 4 reference-method logic');else if(ref.c==='check'&&!row.refMethod)add(['installMethod','refMethod'],'Reference method not safely determined',ref.why,'BS 7671 Appendix 4');
     return out;
   }
   function validationWarnings(cert){const list=[];(cert?.tables?.circuits||[]).forEach((r,i)=>{const seen=new Set();['zs','maxZs','irLL','irLE','irVoltage','rcdTime','polarity','rcdButton','afddButton','liveCsa','cpcCsa','wiringType','installMethod','refMethod'].forEach(k=>warningForCircuit(cert,i,k).forEach(w=>{const sig=i+'|'+w.title;if(!seen.has(sig)){seen.add(sig);list.push({...w,scope:'circuit',index:i,key:k,boardRef:r.boardRef||'DB1',circuitNo:r.circuitNo??String(i+1)});}}));});if(cert?.type==='eic')(cert.tables?.eicInspection||[]).forEach((r,i)=>{if(String(r.outcome||'')==='✕')list.push({scope:'table',index:i,key:'outcome',title:'EIC inspection item not satisfactory',note:'Inspection item '+(r.item||i+1)+' is marked not satisfactory. Review and rectify before issue.',source:'BS 7671 initial verification workflow'});});
     if(cert?.type==='eicr')(cert.tables?.eicrInspection||[]).forEach((r,i)=>{if(['C1','C2','FI'].includes(String(r.outcome||'')))list.push({scope:'table',index:i,key:'outcome',title:'EICR item requires attention',note:'Inspection item '+(r.item||i+1)+' is recorded '+r.outcome+'. Ensure the observation and classification are complete before issue.',source:'EICR classification workflow'});});return list;}
+  // Review the stored model, including deferred fields inside closed/lazy sections.
+  // Empty optional inputs are deliberately not treated as regulatory failures.
+  function certificateReview(cert){
+    const items=validationWarnings(cert).map(w=>({...w,key:w.scope==='circuit'?'circuit:'+(['zs','irLL','irLE','irVoltage','rcdTime','polarity','rcdButton','afddButton'].includes(w.key)?'tests':'details')+':'+w.index+':'+w.key:undefined,title:(w.scope==='circuit'?w.boardRef+' · Circuit '+w.circuitNo+' · ':'')+w.title}));
+    const descriptors=rapidDescriptors(cert), byKey=new Map(descriptors.map(d=>[rapidDescriptorId(d),d]));
+    for(const [key,later] of Object.entries(cert.voiceMeta?.later||{})){
+      if(!later)continue;
+      const d=byKey.get(key);
+      items.push({title:'Deferred: '+(d?.label||key),note:d?.section||'Previously marked Review later',key,deferred:true,blocking:true});
+    }
+    const f=cert.fields||{},required=['installationAddress','premisesAddress'];
+    if(cert.type==='minor'){const proxy={tables:{circuits:[f],tests:[f]}};const seen=new Set();for(const key of ['irLL','irLE','rcdTime','polarity','rcdButton','afddButton'])for(const w of warningForCircuit(proxy,0,key)){if(!seen.has(w.title)){seen.add(w.title);items.push({...w,key:'field:'+key});}}}
+    if(cert.type==='eicr')required.push('overallAssessment','extentInspected');
+    for(const key of required){
+      const d=byKey.get('field:'+key);
+      if(d&&!String(f[key]||'').trim())items.push({title:d.label+' is missing',note:'Needed to identify the installation or the report scope/result.',key:'field:'+key,blocking:true});
+    }
+    for(const d of descriptors){
+      const raw=rapidGetValue(cert,d),v=String(raw??'').trim();
+      if(!v||/^(N\/?A|N\/?V|LIM|not applicable|not tested|not verified)$/i.test(v)||!NUMERIC_INPUT_KEYS.has(d.key))continue;
+      // Keep manual units, bounded instrument readings and supply-voltage pairs.
+      if(!/^[<>≤≥]?\s*\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)?\s*(?:MΩ|mohm|Ω|ohms?|ms|mA|A|V|Hz|kA|mm²|mm2|kVA)?$/i.test(v))
+        items.push({title:d.label+' needs a value check',key:rapidDescriptorId(d),note:d.section+': “'+v+'”. Confirm the reading, units or an explicit limitation; this value was not assessed numerically.'});
+    }
+    if(cert.type==='eicr'&&f.overallAssessment==='Satisfactory'){
+      const adverse=[...(cert.tables?.eicrInspection||[]),...(cert.tables?.observations||[])].some(r=>['C1','C2','FI'].includes(r.outcome||r.code||r.classification));
+      if(adverse)items.push({title:'Overall assessment conflicts with findings',note:'C1, C2 or FI is recorded. Review the Satisfactory assessment and observation classifications.',blocking:true});
+    }
+    const circuits=cert.type==='minor'?[{row:f,test:f,label:'Minor works'}]:(cert.tables?.circuits||[]).map((row,i)=>({row,test:cert.tables?.tests?.[i]||{},label:(row.boardRef||'DB1')+' · Circuit '+(row.circuitNo||i+1)}));
+    for(const {row,test,label} of circuits){
+      if(String(test.zs||'').trim()&&!String(row.maxZs||'').trim())items.push({title:label+' · Zs comparison needs review',note:'A Zs reading is entered without a configured maximum. Check the protective measure, device data and applicable disconnection time; no numerical pass has been established.'});
+      if((test.irLL||test.irLE)&&!test.irVoltage)items.push({title:label+' · Insulation test voltage missing',note:'Insulation resistance is entered. Record the test voltage or explain the limitation before assessing the result.'});
+      if(['eic','minor'].includes(cert.type))for(const key of ['polarity','rcdButton','afddButton'])if(['Fail','No','✕'].includes(String(test[key]||'')))items.push({title:label+' · Failed '+key+' result',note:'Resolve the failed verification result before completing an installation certificate. You can download a draft record.',blocking:true});
+    }
+    if(cert.type==='eic'&&(cert.tables?.eicInspection||[]).some(r=>r.outcome==='✕'))items.push({title:'Unsatisfactory initial inspection',note:'Resolve the unsatisfactory inspection entries before completing the EIC.',blocking:true});
+    return items;
+  }
+  function openReviewItem(key){
+    const d=rapidDescriptors(getCurrent()).find(d=>rapidDescriptorId(d)===key);
+    closeModal();if(!d){toast('Item has changed. Review its not-applicable status.');return;}
+    view.circuitIndex=null;
+    if(['circuits','tests'].includes(d.table)){view.circuitIndex=d.row;view.circuitStep=d.table==='tests'?'tests':'details';}
+    render();
+    requestAnimationFrame(()=>{
+      const selector=d.kind==='field'?'[data-field="'+CSS.escape(d.key)+'"]':d.table==='circuits'||d.table==='tests'?'[data-circuit-input="'+(d.table==='tests'?'tests':'details')+'"][data-index="'+d.row+'"][data-col="'+CSS.escape(d.key)+'"]':'[data-table-input="'+CSS.escape(d.table)+'"][data-row="'+d.row+'"][data-col="'+CSS.escape(d.key)+'"]';
+      const el=document.querySelector(selector);if(!el)return;
+      for(let a=el.parentElement;a;a=a.parentElement)if(a.tagName==='DETAILS')a.open=true;
+      el.scrollIntoView({block:'center'});el.focus({preventScroll:true});
+    });
+  }
+  function openCertificateReview(finish=false){
+    const cert=getCurrent();if(!cert)return;saveNow();
+    document.querySelector('.certificate-review-backdrop')?.remove();
+    const items=certificateReview(cert),blocked=items.some(x=>x.blocking);
+    const m=document.createElement('div');m.className='modal-backdrop certificate-review-backdrop';
+    m.innerHTML='<section class="card modal review-dialog" role="dialog" aria-modal="true" aria-label="Certificate review"><div class="review-heading"><h2>Certificate review</h2><button class="btn" data-action="close-modal">Back to certificate</button></div><p>Checks cover configured readings, recorded findings and deferred items. Empty optional boxes are allowed. Site inspection, applicable tests and professional judgement remain yours.</p><div class="review-items">'+(items.length?items.map(w=>'<article class="review-item"><strong>'+esc(w.title)+'</strong><p>'+esc(w.note)+'</p>'+(w.source?'<small>'+esc(w.source)+'</small>':'')+(w.key?'<button class="btn small" data-action="review-edit" data-key="'+esc(w.key)+'">Go to item</button>':'')+(w.deferred?'<button class="btn small" data-action="review-na" data-key="'+esc(w.key)+'" data-finish="'+finish+'">Not applicable · add reason</button>':'')+'</article>').join(''):'<article class="review-item"><strong>No configured issues found</strong><p>This is not a certificate of compliance or a complete standards audit.</p></article>')+'</div>'+ (finish?'<label class="review-confirm"><input type="checkbox" data-review-confirm> I have reviewed the applicable information, findings and limitations.</label><label>Review notes / reasons<textarea data-review-notes placeholder="Record any relevant explanation"></textarea></label><button class="btn primary" data-action="review-finish" '+(blocked?'disabled':'')+'>Complete and open PDF</button>':'')+'<p class="meta">'+(blocked?'Resolve missing essentials, contradictory findings and deferred items before completion. Draft PDF remains available.':'Checks do not cover every requirement of BS 7671, BS 5266 or BS 5839.')+'</p></section>';
+    document.body.appendChild(m);
+  }
+
   function warningButton(cert,index,key){return warningForCircuit(cert,index,key).length?'<button class="warning-button" type="button" data-action="warning-open" data-scope="circuit" data-index="'+index+'" data-key="'+esc(key)+'" aria-label="Review warning">⚠</button>':'';}
   function validationBanner(cert){const w=validationWarnings(cert);return w.length?'<button class="validation-banner warn" data-action="warnings-list"><span>⚠</span><div><strong>'+w.length+' item'+(w.length===1?'':'s')+' need checking</strong><small>Tap to see why. Recorded readings are never changed automatically.</small></div><em>›</em></button>':'<div class="validation-banner ok"><span>✓</span><div><strong>No configured technical warnings</strong><small>Still review the complete certificate before issue.</small></div></div>';}
   function openWarningModal(scope,index,key){const cert=getCurrent();if(!cert)return;const list=scope==='circuit'?warningForCircuit(cert,Number(index),key):validationWarnings(cert);const m=document.createElement('div');m.className='modal-backdrop warning-backdrop';m.innerHTML='<div class="card modal warning-modal" data-modal><div class="profile-head"><div><div class="eyebrow">⚠ TECHNICAL CHECK</div><h2>Review before issue</h2><p>Warnings never change your measured value.</p></div><button class="btn" data-action="close-modal">Close</button></div><div class="warning-list">'+list.map(w=>'<article><div class="warning-triangle">!</div><div><h3>'+esc(w.title)+'</h3><p>'+esc(w.note)+'</p><small>'+esc(w.source||'')+'</small></div></article>').join('')+'</div></div>';document.body.appendChild(m);}
@@ -3167,7 +3235,7 @@
 
   function visibleLaterCount() {
     const meta=ensureVoiceMeta(getCurrent());
-    return guidedControls().filter(el=>meta.later[voiceControlKey(el)]).length;
+    return Object.keys(meta.later).filter(k=>meta.later[k]).length;
   }
 
   function applyVoiceStatusClasses() {
@@ -3650,6 +3718,11 @@
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
     if(action==='open-new'){screen('new');}
     else if(action==='open-library'){screen('library');}
+    else if(action==='open-tools') window.SperinSpeedSuite?.more?.();
+    else if(action==='certificate-review') openCertificateReview(false);
+    else if(action==='review-finish'){const m=document.querySelector('.certificate-review-backdrop');if(!m?.querySelector('[data-review-confirm]')?.checked)return toast('Confirm your review first');const issues=certificateReview(getCurrent());if(issues.some(x=>x.blocking))return openCertificateReview(true);getCurrent().reviewRecord={at:new Date().toISOString(),notes:m.querySelector('[data-review-notes]').value,items:issues};m.remove();completeAndCreatePdf(true);}
+    else if(action==='review-edit') openReviewItem(button.dataset.key);
+    else if(action==='review-na'){const key=button.dataset.key;const reason=prompt('Why is this deferred item not applicable?');if(reason?.trim()){const c=getCurrent();c.reviewNotApplicable=c.reviewNotApplicable||{};c.reviewNotApplicable[key]={reason:reason.trim(),at:new Date().toISOString()};setVoiceStatus(key,'dismissed');saveNow();openCertificateReview(button.dataset.finish==='true');}}
     else if(action==='speed-quick') window.SperinSpeedSuite?.quick?.();
     else if(action==='speed-bulk') window.SperinSpeedSuite?.bulk?.();
     else if(action==='speed-convert') window.SperinSpeedSuite?.convert?.();
@@ -3786,7 +3859,7 @@
     else if (action === 'rapid-start-top') { if(rapidState){rapidState.cursor=0;getCurrent().rapidCursor=0;saveNow();renderRapidEntry();} else openRapidEntry(true); }
     else if (action === 'rapid-close') closeRapidEntry();
     else if (action === 'voice-guide') startGuidedVoice('main');
-    else if (action === 'voice-review-later') startGuidedVoice('later');
+    else if (action === 'voice-review-later') openCertificateReview(false);
     else if (action === 'voice-one') {
       const holder=button.closest('.voice-control') || button.closest('.field') || button.closest('td');
       startSingleVoice(holder && holder.querySelector('[data-field],[data-table-input],[data-circuit-input]'));
@@ -3814,7 +3887,7 @@
     else if (action === 'pdf') downloadPDF();
     else if (action === 'complete-pdf') completeAndCreatePdf();
     else if (action === 'print') printCertificate();
-    else if (action === 'status') { if (cert) { cert.status = cert.status === 'Complete' ? 'Draft' : 'Complete'; persist(); render(); toast(`Marked ${cert.status.toLowerCase()}`); } }
+    else if (action === 'status') { if (cert) { if(cert.status==='Complete'){cert.status='Draft';persist();render();toast('Marked draft');}else openCertificateReview(true); } }
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
     else if(action==='circuit-add' && cert){
       syncCircuitRows(cert);

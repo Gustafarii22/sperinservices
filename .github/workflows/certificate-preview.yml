@@ -70,6 +70,7 @@ jobs:
             curl -fsS http://127.0.0.1:4173/certificates/ >/dev/null && break
             sleep 1
           done
+          node tests/certificates-v195-review.e2e.mjs
           node tests/certificates-v194-ux.e2e.mjs
           node tests/certificates-v194-circuit-actions.e2e.mjs
           node certificate-android/qa/scan.e2e.mjs
@@ -89,32 +90,32 @@ jobs:
         run: |
           gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
 
       - name: Inspect APK and preserve original installation
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
           python3 certificate-android/qa/inspect-apk.py "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v194'" certificate-android/dist/package.txt
-          grep "versionCode='197'" certificate-android/dist/package.txt
-          grep "versionName='1.9.4-dev'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v195'" certificate-android/dist/package.txt
+          grep "versionCode='198'" certificate-android/dist/package.txt
+          grep "versionName='1.9.5-dev'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
           printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.4-INTEGRATED-DEV
+          name: Sperin-Certificates-v1.9.5-INTEGRATED-DEV
           path: |
-            certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
+            certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
             certificate-android/dist/BUILD-INFO.txt
           retention-days: 30
           if-no-files-found: error
@@ -139,7 +140,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.4-INTEGRATED-DEV-Android-QA
+          name: Sperin-Certificates-v1.9.5-INTEGRATED-DEV-Android-QA
           path: certificate-android/qa-output/preview-android/
           retention-days: 30
           if-no-files-found: warn
@@ -149,10 +150,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=certificates-v1.9.4-integrated-dev
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.4-INTEGRATED-DEV.apk
+          TAG=certificates-v1.9.5-integrated-dev
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
-            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.4 — Simple Home, Consumer Units and Scanner" --notes "Latest combined development APK: 9 certificate types, premium light/dark UX, board photo scan, PAT/EV/PV/fire specialist records (DRAFT), job evidence/QR/handover, cloud account and tenant-safe team editing code, conflict-safe simultaneous cell editing, Stripe sandbox billing interface, Bluetooth SPP device discovery and reviewed CSV import. Existing original app/data remain intact. No automatic cross-package data migration. Live cloud account, Stripe webhooks and scheduled email require hosting deployment and end-to-end verification. Megger proprietary transfer and any non-SPP Bluetooth protocol are NOT verified. Specialist standards sign-off NOT complete; do not sell or issue unaudited specialist forms."
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.5 — Refined Design, Sticky Tools and Certificate Review" --notes "Latest combined development APK: 9 certificate types, premium light/dark UX, board photo scan, PAT/EV/PV/fire specialist records (DRAFT), job evidence/QR/handover, cloud account and tenant-safe team editing code, conflict-safe simultaneous cell editing, Stripe sandbox billing interface, Bluetooth SPP device discovery and reviewed CSV import. Existing original app/data remain intact. No automatic cross-package data migration. Live cloud account, Stripe webhooks and scheduled email require hosting deployment and end-to-end verification. Megger proprietary transfer and any non-SPP Bluetooth protocol are NOT verified. Specialist standards sign-off NOT complete; do not sell or issue unaudited specialist forms."
           fi
