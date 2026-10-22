@@ -1,3 +1,10 @@
+async function autoChooseQuickEntry(page){
+  await page.addInitScript(()=>{
+    const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
+    new MutationObserver(choose).observe(document,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',choose,{once:true});
+  });
+}
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -12,6 +19,7 @@ const page = await browser.newPage({
   viewport: { width: 412, height: 915 },
   acceptDownloads: true,
 });
+await autoChooseQuickEntry(page);
 // Deep regression opens the relevant accordion as a user would before clicking.
 // Separate UX tests verify the actual default closed states and toggle behaviour.
 const locatorPrototype=Object.getPrototypeOf(page.locator('body'));
