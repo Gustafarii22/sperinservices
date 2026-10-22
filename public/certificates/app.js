@@ -2697,11 +2697,12 @@
       el.scrollIntoView({block:'center'});el.focus({preventScroll:true});
     });
   }
+  function reviewFingerprint(cert){return JSON.stringify([cert.fields,cert.tables,cert.voiceMeta,cert.status]);}
   function openCertificateReview(finish=false){
     const cert=getCurrent();if(!cert)return;saveNow();
     document.querySelector('.certificate-review-backdrop')?.remove();
     const items=certificateReview(cert),blocked=items.some(x=>x.blocking);
-    const m=document.createElement('div');m.className='modal-backdrop certificate-review-backdrop';
+    const m=document.createElement('div');m.className='modal-backdrop certificate-review-backdrop';m.dataset.fingerprint=reviewFingerprint(cert);
     m.innerHTML='<section class="card modal review-dialog" role="dialog" aria-modal="true" aria-label="Certificate review"><div class="review-heading"><h2>Certificate review</h2><button class="btn" data-action="close-modal">Back to certificate</button></div><p>Checks cover configured readings, recorded findings and deferred items. Empty optional boxes are allowed. Site inspection, applicable tests and professional judgement remain yours.</p><div class="review-items">'+(items.length?items.map(w=>'<article class="review-item"><strong>'+esc(w.title)+'</strong><p>'+esc(w.note)+'</p>'+(w.source?'<small>'+esc(w.source)+'</small>':'')+(w.key?'<button class="btn small" data-action="review-edit" data-key="'+esc(w.key)+'">Go to item</button>':'')+(w.deferred?'<button class="btn small" data-action="review-na" data-key="'+esc(w.key)+'" data-finish="'+finish+'">Not applicable · add reason</button>':'')+'</article>').join(''):'<article class="review-item"><strong>No configured issues found</strong><p>This is not a certificate of compliance or a complete standards audit.</p></article>')+'</div>'+ (finish?'<label class="review-confirm"><input type="checkbox" data-review-confirm> I have reviewed the applicable information, findings and limitations.</label><label>Review notes / reasons<textarea data-review-notes placeholder="Record any relevant explanation"></textarea></label><button class="btn primary" data-action="review-finish" '+(blocked?'disabled':'')+'>Complete and open PDF</button>':'')+'<p class="meta">'+(blocked?'Resolve missing essentials, contradictory findings and deferred items before completion. Draft PDF remains available.':'Checks do not cover every requirement of BS 7671, BS 5266 or BS 5839.')+'</p></section>';
     document.body.appendChild(m);
   }
@@ -3720,7 +3721,7 @@
     else if(action==='open-library'){screen('library');}
     else if(action==='open-tools') window.SperinSpeedSuite?.more?.();
     else if(action==='certificate-review') openCertificateReview(false);
-    else if(action==='review-finish'){const m=document.querySelector('.certificate-review-backdrop');if(!m?.querySelector('[data-review-confirm]')?.checked)return toast('Confirm your review first');const issues=certificateReview(getCurrent());if(issues.some(x=>x.blocking))return openCertificateReview(true);getCurrent().reviewRecord={at:new Date().toISOString(),notes:m.querySelector('[data-review-notes]').value,items:issues};m.remove();completeAndCreatePdf(true);}
+    else if(action==='review-finish'){const m=document.querySelector('.certificate-review-backdrop');if(!m?.querySelector('[data-review-confirm]')?.checked)return toast('Confirm your review first');if(m.dataset.fingerprint!==reviewFingerprint(getCurrent())){openCertificateReview(true);toast('Certificate changed. Review the latest information.');return;}const issues=certificateReview(getCurrent());if(issues.some(x=>x.blocking))return openCertificateReview(true);getCurrent().reviewRecord={at:new Date().toISOString(),notes:m.querySelector('[data-review-notes]').value,items:issues};m.remove();completeAndCreatePdf(true);}
     else if(action==='review-edit') openReviewItem(button.dataset.key);
     else if(action==='review-na'){const key=button.dataset.key;const reason=prompt('Why is this deferred item not applicable?');if(reason?.trim()){const c=getCurrent();c.reviewNotApplicable=c.reviewNotApplicable||{};c.reviewNotApplicable[key]={reason:reason.trim(),at:new Date().toISOString()};setVoiceStatus(key,'dismissed');saveNow();openCertificateReview(button.dataset.finish==='true');}}
     else if(action==='speed-quick') window.SperinSpeedSuite?.quick?.();

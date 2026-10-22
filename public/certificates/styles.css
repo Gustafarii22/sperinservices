@@ -841,3 +841,5 @@ body[data-page=form]{padding-bottom:165px!important}body[data-page=form] .saveba
 body:not([data-page=form]) #sperin-live-indicator{display:none!important}
 }
 @media screen{.form-head .actions>.btn{width:auto!important;max-width:none!important}.review-dialog{background:var(--ux-panel);color:var(--ux-text)}.review-item strong{font-weight:650}}
+
+@media screen{#sperin-live-indicator[hidden]{display:none!important}}

@@ -6,7 +6,7 @@ const page=await browser.newPage({viewport:{width:375,height:750},acceptDownload
 page.on("pageerror",e=>{console.log("PAGE_ERROR",e.message);});
 await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/",{waitUntil:"domcontentloaded"});
 await page.locator("#speed-nav").waitFor({timeout:5000});
-assert.equal(await page.locator(".speed-links [data-speed]").count(),5,"Five tap navigation");
+assert.equal(await page.locator(".speed-links [data-speed]").count(),4,"Four primary navigation destinations");
 await page.locator('[data-action="open-new"]').click();
 assert.equal(await page.locator(".cert-launch").count(),9,"All certificate types preserved");
 await page.locator('#speed-nav [data-speed="more"]').click();
