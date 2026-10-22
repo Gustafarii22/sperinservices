@@ -10,12 +10,13 @@ on:
       - "tests/certificates-fast-entry.e2e.mjs"
       - "tests/certificates-live-editing.e2e.mjs"
       - "tests/certificates-v194-ux.e2e.mjs"
+      - "tests/certificates-v196-view.e2e.mjs"
       - "tests/certificates-v194-circuit-actions.e2e.mjs"
       - "tests/certificates-iet-pat-model-v1-v6.audit.mjs"
       - "src/lib/certificates-live.server.ts"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux]
+    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux, feature/certificates-v196-quick-entry-certificate-view]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -75,6 +76,7 @@ jobs:
           node --check public/certificates/scan-core.js
           node --check public/certificates/speed-suite.js
           node --check public/certificates/live-editing.js
+          node --check public/certificates/certificate-view.js
           node --check public/certificates/app.js
           node --check public/certificates/iet-forms.js
 
@@ -111,6 +113,9 @@ jobs:
 
       - name: Home, J circuits, scanner standards, logo and PDF QA in multiple orders
         run: node tests/certificates-v194-ux.e2e.mjs
+
+      - name: Quick/Certificate View, orientation and editing QA
+        run: node tests/certificates-v196-view.e2e.mjs
 
       - name: Live concurrent editing with two independent engineers
         run: node tests/certificates-live-editing.e2e.mjs
