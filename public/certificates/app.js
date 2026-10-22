@@ -817,7 +817,10 @@
   function goCircuitBottom(boardRef){
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const key=normaliseBoardKey(boardRef);
-      const target=document.querySelector('[data-board-key="'+CSS.escape(key)+'"] [data-board-add-circuit]') ||
+      // Section J places the circuits accordion NEXT TO the CU card, not inside it.
+      // Keep the exact board's Add Circuit button visible after Complete.
+      const target=document.querySelector('.consumer-unit-card[data-board-key="'+CSS.escape(key)+'"] + .cu-circuits-accordion [data-board-add-circuit]') ||
+        document.querySelector('.cu-circuits-accordion [data-board-add-circuit]') ||
         document.querySelector('.consumer-unit-workflow .add-consumer-unit');
       if(!target) return;
       target.scrollIntoView({behavior:'auto',block:'end'});
