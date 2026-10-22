@@ -1,15 +1,15 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
 const CACHE="sperin-certificates-v1-9-6-dual-view";
 const SHELL=[
- "./","./index.html","./styles.css?v=1.8.6",
- "./vendor/jspdf.umd.min.js?v=1.8.6",
- "./vendor/jspdf.plugin.autotable.min.js?v=1.8.6",
- "./iet-forms.js?v=1.8.6","./scan-core.js?v=1.8.6",
- "./board-scan.js?v=1.8.6-scanfix1",
- "./team-workspace.js?v=1.9.0","./ai-assistance.js?v=1.9.0",
- "./instrument-import.js?v=1.9.0","./vendor/qrcode.min.js?v=1.9.1",
- "./job-centre.js?v=1.9.1","./speed-suite.js?v=1.9.2",
- "./live-editing.js?v=1.9.3","./app.js?v=1.9.3",
+ "./","./index.html","./styles.css?v=1.9.6",
+ "./vendor/jspdf.umd.min.js?v=1.9.6",
+ "./vendor/jspdf.plugin.autotable.min.js?v=1.9.6",
+ "./iet-forms.js?v=1.9.6","./scan-core.js?v=1.9.6",
+ "./board-scan.js?v=1.9.6",
+ "./team-workspace.js?v=1.9.6","./ai-assistance.js?v=1.9.6",
+ "./instrument-import.js?v=1.9.6","./vendor/qrcode.min.js?v=1.9.6",
+ "./job-centre.js?v=1.9.6","./speed-suite.js?v=1.9.6",
+ "./live-editing.js?v=1.9.6","./certificate-view.js?v=1.9.6","./app.js?v=1.9.6",
  "./manifest.webmanifest","./icon.svg"
 ];
 self.addEventListener("install",e=>e.waitUntil(
