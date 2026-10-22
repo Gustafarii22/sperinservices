@@ -23,7 +23,7 @@
    }else{
      control='<input id="'+E(id)+'"'+attr+' value="'+E(text)+'" type="'+(field.type==='date'?'date':'text')+'" inputmode="'+(numeric?'decimal':'text')+'" autocomplete="off" placeholder="Tap to complete">';
    }
-   return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(numeric&&field.type!=='select'&&!Array.isArray(field.options)?'<button class="cv-keyboard-toggle" type="button" data-action="cv-keyboard" aria-label="Toggle numeric and text keyboard">ABC</button>':'')+(key==='refMethod'?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
+   return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(numeric&&field.type!=='select'&&!Array.isArray(field.options)?'<button class="cv-keyboard-toggle" type="button" data-action="cv-keyboard" aria-label="Toggle numeric and text keyboard">ABC</button>':'')+(['refMethod','referenceMethod'].includes(key)?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
  }
  function sectionPage(title,fields,cert,orientation,label){
    const max=orientation==='landscape'?18:13;
@@ -132,7 +132,7 @@
    document.querySelectorAll('[data-cv-zoom-label]').forEach(el=>el.textContent=Math.round(persisted.zoom*100)+'%');
  }
  function setZoom(n){
-   persisted.zoom=Math.min(2.25,Math.max(.42,Number(n)||1));
+   persisted.zoom=Math.min(2.25,Math.max(.24,Number(n)||1));
    scalePage();
  }
  function applyViewport(){
