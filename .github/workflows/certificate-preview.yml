@@ -12,6 +12,7 @@ on:
       - feature/certificates-v192-ux-speed-audit
       - feature/certificates-v193-specialist-collab-integrations
       - feature/certificates-v194-home-boards-scan-ux
+      - feature/certificates-v196-quick-entry-certificate-view
     paths:
       - "public/certificates/**"
       - "certificate-android/**"
@@ -59,6 +60,7 @@ jobs:
           node --check public/certificates/live-editing.js
           node --check public/certificates/instrument-import.js
           node --check public/certificates/board-scan.js
+          node --check public/certificates/certificate-view.js
           node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs
 
       - name: Verify scanner, board workflows and forward/reverse/mixed certificate flows
@@ -70,8 +72,9 @@ jobs:
             curl -fsS http://127.0.0.1:4173/certificates/ >/dev/null && break
             sleep 1
           done
-          node tests/certificates-v195-review.e2e.mjs
+          node tests/certificates-v196-review.e2e.mjs
           node tests/certificates-v194-ux.e2e.mjs
+          node tests/certificates-v196-view.e2e.mjs
           node tests/certificates-v194-circuit-actions.e2e.mjs
           node certificate-android/qa/scan.e2e.mjs
           node certificate-android/qa/workflow.e2e.mjs
@@ -83,39 +86,39 @@ jobs:
       - name: Bundle reviewed white-theme and scanner
         run: |
           mkdir -p certificate-android/app/src/main/assets/certificates/vendor
-          cp public/certificates/{index.html,styles.css,app.js,team-workspace.js,ai-assistance.js,instrument-import.js,job-centre.js,speed-suite.js,live-editing.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
+          cp public/certificates/{index.html,styles.css,app.js,certificate-view.js,team-workspace.js,ai-assistance.js,instrument-import.js,job-centre.js,speed-suite.js,live-editing.js,scan-core.js,board-scan.js,iet-forms.js,manifest.webmanifest,icon.svg} certificate-android/app/src/main/assets/certificates/
           cp public/certificates/vendor/{jspdf.umd.min.js,jspdf.plugin.autotable.min.js,qrcode.min.js,QR-LICENSE.txt} certificate-android/app/src/main/assets/certificates/vendor/
 
       - name: Build separately installable preview
         run: |
           gradle -p certificate-android :app:assemblePreview --no-daemon --stacktrace
           mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk
 
       - name: Inspect APK and preserve original installation
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk
           python3 certificate-android/qa/inspect-apk.py "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v195'" certificate-android/dist/package.txt
-          grep "versionCode='198'" certificate-android/dist/package.txt
-          grep "versionName='1.9.5-dev'" certificate-android/dist/package.txt
+          grep "name='uk.co.sperinservices.certificates.stable.preview.team.v196'" certificate-android/dist/package.txt
+          grep "versionCode='199'" certificate-android/dist/package.txt
+          grep "versionName='1.9.6-dev'" certificate-android/dist/package.txt
 
       - name: Record APK build provenance
         run: |
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk
           printf 'commit=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > certificate-android/dist/BUILD-INFO.txt
           sha256sum "$APK" >> certificate-android/dist/BUILD-INFO.txt
 
       - name: Upload verified preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.5-INTEGRATED-DEV
+          name: Sperin-Certificates-v1.9.6-INTEGRATED-DEV
           path: |
-            certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
+            certificate-android/dist/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk
             certificate-android/dist/BUILD-INFO.txt
           retention-days: 30
           if-no-files-found: error
@@ -140,20 +143,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.9.5-INTEGRATED-DEV-Android-QA
+          name: Sperin-Certificates-v1.9.6-INTEGRATED-DEV-Android-QA
           path: certificate-android/qa-output/preview-android/
           retention-days: 30
           if-no-files-found: warn
 
       - name: Publish direct preview download
-        if: github.ref == 'refs/heads/feature/certificates-v194-home-boards-scan-ux'
+        if: github.ref == 'refs/heads/feature/certificates-v196-quick-entry-certificate-view'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=certificates-v1.9.5-integrated-dev
-          APK=certificate-android/dist/Sperin-Certificates-v1.9.5-INTEGRATED-DEV.apk
+          TAG=certificates-v1.9.6-integrated-dev
+          APK=certificate-android/dist/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --clobber
           else
-            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.5 — Refined Design, Sticky Tools and Certificate Review" --notes "Clean Home/New/My Certificates/Tools design; persistent Undo/Redo/Review/PDF toolbar; completion review for deferred items, malformed readings and configured technical checks; complete and open PDF. Review is not exhaustive regulatory validation. Specialist final issue restrictions remain. Installs separately as Sperin Certificates 1.9.5; existing app/data remain intact. Transfer certificates using Backup and Import. Cloud, billing and proprietary tester integrations retain their existing verification limitations."
+            gh release create "$TAG" "$APK" certificate-android/dist/BUILD-INFO.txt --target "$GITHUB_SHA" --prerelease --title "Sperin Certificates v1.9.6 — Refined Design, Sticky Tools and Certificate Review" --notes "Clean Home/New/My Certificates/Tools design; persistent Undo/Redo/Review/PDF toolbar; completion review for deferred items, malformed readings and configured technical checks; complete and open PDF. Review is not exhaustive regulatory validation. Specialist final issue restrictions remain. Installs separately as Sperin Certificates 1.9.5; existing app/data remain intact. Transfer certificates using Backup and Import. Cloud, billing and proprietary tester integrations retain their existing verification limitations."
           fi
