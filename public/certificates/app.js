@@ -68,6 +68,37 @@
     ]
   };
 
+  // Short on-screen guidance only; the saved/PDF field remains the BS 7671 method code.
+  // Use Appendix 4/Table 4A2 and the applicable rating table to verify selection.
+  const REF_METHOD_HELP = Object.freeze({
+    A1:'Single-core conductors in conduit within a thermally insulating wall',
+    A2:'Multicore cable in conduit within a thermally insulating wall',
+    B:'Conductors in surface conduit or trunking on a wall',
+    C:'Cable clipped direct to a wall or similar surface',
+    D1:'Cable in ducting buried in the ground',
+    D2:'Cable buried directly in the ground',
+    E:'Multicore cable in free air or on perforated tray',
+    F:'Single-core cables touching each other in free air',
+    G:'Single-core cables spaced apart in free air',
+    '100':'Flat twin & earth above plasterboard ceiling; insulation up to 100 mm',
+    '101':'Flat twin & earth above plasterboard ceiling; insulation over 100 mm',
+    '102':'Flat twin & earth in an insulated stud wall, touching the inner wall surface',
+    '103':'Flat twin & earth in an insulated stud wall, not touching the inner wall surface',
+    Other:'Check BS 7671 Appendix 4, Table 4A2 for the installation conditions'
+  });
+  function refMethodDescription(value){
+    const key=String(value||'').trim();
+    return (key&&REF_METHOD_HELP[key])||'Choose the actual installation method; check Appendix 4/Table 4A2.';
+  }
+  function refMethodHelp(value){
+    return '<small class="meta ref-method-help" data-ref-method-hint>'+
+      esc(refMethodDescription(value))+'</small>';
+  }
+  function refMethodOption(option,key){
+    return (key==='refMethod'||key==='referenceMethod') && REF_METHOD_HELP[option]
+      ? option+' — '+REF_METHOD_HELP[option] : String(option);
+  }
+
   const BONDING_OPTIONS = ['Water', 'Gas', 'Oil', 'Structural steel', 'Lightning protection system', 'Other'];
   const NUMERIC_INPUT_KEYS = new Set([
     'nominalVoltage','frequency','ipf','ze','maximumDemand','supplyDeviceRating',
@@ -1913,10 +1944,10 @@
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
-    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
-    return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div></div>`;
+    return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div>${['refMethod','referenceMethod'].includes(field.key)?refMethodHelp(value):''}</div>`;
   }
 
   function boardControl(boardIndex,key,label,value,options=null,extra=''){
@@ -2030,7 +2061,7 @@
 
   function comboControl(attrs,field,value){
     const id='options-'+uid();
-    return `<div class="combo-field"><input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="${id}" aria-label="${esc(field.label)}"/><button class="combo-arrow" type="button" data-action="combo-toggle" aria-label="Show ${esc(field.label)} options" aria-controls="${id}" aria-expanded="false">⌄</button><div class="combo-menu" id="${id}" role="listbox" hidden>${field.options.map(o=>`<button type="button" role="option" class="combo-option" data-action="combo-option" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+    return `<div class="combo-field"><input ${attrs}${inputModeAttrs(field.key)} value="${esc(value??'')}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="${id}" aria-label="${esc(field.label)}"/><button class="combo-arrow" type="button" data-action="combo-toggle" aria-label="Show ${esc(field.label)} options" aria-controls="${id}" aria-expanded="false">⌄</button><div class="combo-menu" id="${id}" role="listbox" hidden>${field.options.map(o=>`<button type="button" role="option" class="combo-option" data-action="combo-option" data-value="${esc(o)}">${esc(refMethodOption(o,field.key))}</button>`).join('')}</div></div>`;
   }
 
   function editorInput(cert,scope,index,field,value){
@@ -2049,7 +2080,7 @@
       ? '<div class="meta auto-zs-note">Design limit from BS, curve, rating and voltage. Manual override available.</div>'
       : '';
     const auto=cert.autoMeta?.['circuit:'+index+':'+field.key] ? `<button class="auto-derived-badge" type="button" data-action="auto-info" data-index="${index}" data-key="${esc(field.key)}">Auto</button>` : '';
-    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)} ${auto}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${warningButton(cert,index,field.key)}</div>${extra}</div>`;
+    return `<div class="field ${field.span==='full'?'full':''}"><label>${esc(field.label)} ${auto}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${warningButton(cert,index,field.key)}</div>${field.key==='refMethod'?refMethodHelp(value):''}${extra}</div>`;
   }
 
   function circuitEditorView(cert){
@@ -2093,7 +2124,7 @@
   function renderTableControl(tableKey, rowIndex, col, value) {
     if (col.readonly) return `<span>${esc(value)}</span>`;
     const attrs = `data-table-input="${tableKey}" data-row="${rowIndex}" data-col="${col.key}"`;
-    if (col.type === 'select') return `<div class="voice-control table-voice"><select ${attrs}><option value=""></option>${(col.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
+    if (col.type === 'select') return `<div class="voice-control table-voice"><select ${attrs}><option value=""></option>${(col.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,col.key))}</option>`).join('')}</select><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
     return `<div class="voice-control table-voice"><input ${attrs}${inputModeAttrs(col.key)} value="${esc(value)}" /><button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(col.label)}">🎙 <span>Speak</span></button></div>`;
   }
 
@@ -3701,6 +3732,13 @@
     if(e.key==='Enter' || e.key===' '){e.preventDefault();openCertificate(card.dataset.id);}
   });
 
+  // Update the plain-language hint immediately, without a rerender or data mutation.
+  for(const eventName of ['input','change'])document.addEventListener(eventName,e=>{
+    const input=e.target;
+    if(!input.matches?.('[data-circuit-input][data-col="refMethod"],[data-field="referenceMethod"],[data-field="refMethod"],[data-table-input][data-col="refMethod"]'))return;
+    const hint=input.closest('.field,.table-voice')?.querySelector('[data-ref-method-hint]');
+    if(hint)hint.textContent=refMethodDescription(input.value);
+  });
   document.addEventListener('click',e=>{
     const summary=e.target.closest('.cert-accordion-head,.cu-summary');
     if(!summary)return;
