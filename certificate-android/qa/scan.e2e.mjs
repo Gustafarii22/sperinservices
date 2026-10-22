@@ -49,7 +49,7 @@ await page.route("**/api/owner/certificate-scan",route=>route.fulfill({
   fields:[field("deviceKind","SPD"),field("description","SPD")]},
  {position:"Bank 1 first RCBO",association:"high",reason:"Fixture",
   fields:[field("description","Lighting"),field("ocpdType","B"),field("ocpdRating","6"),field("ocpdBs","BS EN 61009-1"),
-  field("rcdType","A"),field("rcdIdn","30"),field("deviceKind","RCBO")]}
+  field("rcdType","A"),field("rcdIdn","30"),field("deviceKind","RCBO"),field("poleCount","1"),field("testButtonVisual","Visible")]}
  ],warnings:[]
  })
 }));
@@ -89,6 +89,9 @@ assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.deviceManufacture
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.deviceModel,"RTA063240B");
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.ocpdBs,"BS EN 61009-1");
 assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.rcdIdn,"30");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.testButtonVisual,"Visible");
+assert.equal(cert.tables.circuits.find(c=>c.circuitNo==="12")?.poleCount,"1");
+assert.ok(!cert.tables.tests.some(t=>t.rcdButton==="Pass"),"Photo must not create a functional test result");
 assert.ok(!JSON.stringify(cert).includes("data:image/"));
 await page.reload();
 assert.equal((await readCert()).tables.circuits.find(c=>c.circuitNo==="12")?.description,"Confirmed lights");
