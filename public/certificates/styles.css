@@ -888,3 +888,6 @@ body:not([data-page=form]) #sperin-live-indicator{display:none!important}
 .cv-opening-options strong{font-size:16px}.cv-opening-options small{font-size:12px;color:#66788c;line-height:1.4}
 .cv-switch-button{white-space:nowrap}
 @media(max-width:720px){.cv-viewport{height:calc(100dvh - 260px);min-height:320px}.cv-toolbar{border-radius:0;padding:5px}.cv-toolbar .btn{font-size:12px;padding:7px 9px}.cv-opening-inner{padding:17px}.cv-opening-options button{min-height:125px;padding:9px}}
+
+/* Reserve reliable scroll space below Section J controls on smaller screens. */
+.distribution-section .distribution-body{padding-bottom:140px}
