@@ -115,8 +115,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t='light';try{if(localStorage.getItem('sperin-theme')==='dark')t='dark'}catch(e){}document.documentElement.classList.toggle('dark',t==='dark');})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t='light';try{if(localStorage.getItem('sperin-theme')==='dark')t='dark'}catch(e){}document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.style.colorScheme=t;})();` }} />
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=document.documentElement.classList.contains('dark')?'#192126':'#ffffff';})();` }} />
       </head>
       <body>
         {children}
