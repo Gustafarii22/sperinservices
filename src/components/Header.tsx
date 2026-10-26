@@ -81,7 +81,10 @@ export function Header() {
           </div>
 
           <nav className="p-3" aria-label="Mobile navigation">
-            <div className="mb-3 flex items-center justify-between px-2"><span className="text-sm font-semibold">Appearance</span><ThemeToggle /></div>
+            <div className="mb-3 flex items-center justify-between px-2">
+              <span className="text-sm font-semibold">Appearance</span>
+              <ThemeToggle />
+            </div>
             <div className="overflow-hidden rounded-lg border border-border bg-foreground/[0.025]">
               <details className="group">
                 <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-[15px] font-semibold transition hover:bg-foreground/[0.025] [&::-webkit-details-marker]:hidden">
