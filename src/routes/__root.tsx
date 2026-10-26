@@ -75,7 +75,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "robots",
         content: "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
       },
-      { name: "theme-color", content: "#090d12" },
+      { name: "theme-color", content: "#ffffff" },
       { property: "og:title", content: "Sperin Services | Electrical Contractors" },
       {
         property: "og:description",
@@ -113,8 +113,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t='light';try{if(localStorage.getItem('sperin-theme')==='dark')t='dark'}catch(e){}document.documentElement.classList.toggle('dark',t==='dark');})();` }} />
         <HeadContent />
       </head>
       <body>

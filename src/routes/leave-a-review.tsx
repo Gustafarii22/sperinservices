@@ -147,7 +147,7 @@ function LeaveReview() {
             id="review"
             name="review"
             required
-            className="mt-2 min-h-36 w-full rounded-xl border border-white/10 bg-black/20 p-4 outline-none focus:border-electric/50"
+            className="mt-2 min-h-36 w-full rounded-xl border border-border bg-muted p-4 outline-none focus:border-electric/50"
           />
         </div>
         <label className="flex items-start gap-3 text-sm text-muted-foreground">
@@ -178,7 +178,7 @@ function Field({ label, name, required }: { label: string; name: string; require
         name={name}
         required={required}
         maxLength={100}
-        className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 p-4 outline-none focus:border-electric/50"
+        className="mt-2 w-full rounded-xl border border-border bg-muted p-4 outline-none focus:border-electric/50"
       />
     </div>
   );

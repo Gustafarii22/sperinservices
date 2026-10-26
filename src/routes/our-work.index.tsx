@@ -69,7 +69,7 @@ function OurWork() {
               className={`shrink-0 border-b-2 px-3 py-2 text-xs font-semibold transition ${
                 category === c
                   ? "border-electric bg-electric/[0.035] text-electric"
-                  : "border-transparent text-muted-foreground hover:border-white/25 hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
               }`}
             >
               {c}
@@ -97,7 +97,7 @@ function OurWork() {
                 <Link
                   to="/our-work/$slug"
                   params={{ slug: project.slug }}
-                  className="block overflow-hidden bg-black/20"
+                  className="block overflow-hidden bg-muted"
                   aria-label={`View ${project.title}`}
                 >
                   <img
@@ -124,7 +124,7 @@ function OurWork() {
                       {project.scope.slice(0, 4).map((item) => (
                         <span
                           key={item}
-                          className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-foreground/70"
+                          className="rounded-full border border-border px-3 py-1.5 text-xs text-foreground/70"
                         >
                           {item}
                         </span>

@@ -44,7 +44,42 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+
 :root {
+  --radius: 0.65rem;
+  --background: #ffffff;
+  --foreground: #172638;
+  --card: #ffffff;
+  --card-foreground: #172638;
+  --popover: #ffffff;
+  --popover-foreground: #172638;
+  --primary: #0866d9;
+  --primary-foreground: #ffffff;
+  --secondary: #edf3fa;
+  --secondary-foreground: #20364e;
+  --muted: #f3f6fa;
+  --muted-foreground: #526174;
+  --accent: #0866d9;
+  --accent-foreground: #ffffff;
+  --destructive: #c52a36;
+  --destructive-foreground: #ffffff;
+  --border: #d5dfe9;
+  --input: #c5d2df;
+  --ring: #0866d9;
+  --electric: #0866d9;
+  --electric-soft: #0757bb;
+  --electric-deep: #064997;
+  --whatsapp: #12813c;
+  --gradient-electric: linear-gradient(135deg, #0873e8, #0757bb);
+  --gradient-radial-electric: radial-gradient(circle at 30% 20%, #0866d90b, transparent 66%);
+  --gradient-radial-gold: var(--gradient-radial-electric);
+  --gradient-gold: var(--gradient-electric);
+  --shadow-electric: 0 10px 30px -18px #0866d966;
+  --shadow-elegant: 0 24px 60px -26px #20364e33;
+  --glow-electric: 0 0 18px #0866d91a;
+}
+
+.dark {
   --radius: 0.35rem;
 
   --background: #111314;
@@ -96,12 +131,12 @@
     border-color: var(--color-border);
   }
   html {
-    color-scheme: dark;
+    color-scheme: light;
     scroll-behavior: smooth;
   }
   body {
     margin: 0;
-    min-width: 320px;
+    min-width: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -783,4 +818,51 @@ main h1 {
 @keyframes page-enter {
   from { opacity: .72; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Theme-aware surfaces shared by all routes and portal-based menus/dialogs. */
+html.dark { color-scheme: dark; }
+.glass, .surface, .glass-strong, .surface-strong, .surface-raised {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-elegant);
+}
+.technical-grid, .commercial-feature, .enquiry-section, .sector-link { background: var(--secondary); }
+.sector-link:hover, .service-row:hover { background: var(--muted); }
+.eyebrow, .hero-title span, .hero-footnote, .service-detail,
+.contractor-introduction p, .whatsapp-utility { color: var(--muted-foreground); }
+.display-title .text-electric { color: var(--electric); }
+.hairline, .hairline-gold, .rule, .service-row, .service-detail, .commercial-feature,
+.contractor-introduction, .service-standards, .sector-link, .enquiry-section { border-color: var(--border); }
+header { background: color-mix(in srgb, var(--background) 96%, transparent); border-color: var(--border); }
+footer, .mobile-contact-bar { background: var(--secondary); border-color: var(--border); }
+.button-primary, .skip-link { color: var(--primary-foreground); }
+.button-secondary { background: var(--card); border-color: var(--border); }
+.button-secondary:hover { background: var(--secondary); border-color: var(--electric); }
+.whatsapp-button, .whatsapp-utility svg { color: var(--whatsapp); }
+::selection { background: var(--electric); color: var(--primary-foreground); }
+input, textarea, select { color: var(--foreground); }
+select option { background: var(--popover); color: var(--popover-foreground); }
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 44px; min-height: 44px; flex-shrink: 0; padding: 8px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); color: var(--foreground); cursor: pointer;
+  font-size: 12px; font-weight: 650; transition: background 180ms, border-color 180ms;
+}
+.theme-toggle:hover { background: var(--secondary); border-color: var(--electric); }
+.theme-toggle .theme-sun { display: inline-flex; }
+.theme-toggle .theme-moon, .dark .theme-toggle .theme-sun { display: none; }
+.dark .theme-toggle .theme-moon { display: inline-flex; }
+.theme-toggle svg { width: 17px; height: 17px; color: var(--electric); }
+.site-logo { background: #111314; border-radius: 8px; }
+@media (min-width: 1024px) and (max-width: 1279px) {
+  header > div:first-child { gap: 8px; padding-inline: 16px; }
+  header nav a, header summary { padding-inline: 7px; font-size: 12px; }
+  header .site-logo { max-width: 260px; object-fit: contain; }
+}
+@media (max-width: 639px) {
+  header .site-logo { width: 100%; height: auto; max-height: 66px; }
+  header a[aria-label="Sperin Services home"] > span { max-width: 100%; }
+  header .theme-toggle { min-width: 40px; padding-inline: 6px; }
 }

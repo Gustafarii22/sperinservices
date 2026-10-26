@@ -5,7 +5,7 @@ import { SITE } from "@/lib/site";
 
 export function Footer() {
   return (
-    <footer className="mt-0 border-t border-white/10 bg-[#0b0d0e]">
+    <footer className="mt-0 border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
         <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
           <div>
@@ -42,7 +42,7 @@ export function Footer() {
             <Link to="/contact">Contact</Link>
           </nav>
         </div>
-        <div className="mt-7 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-7 flex flex-col gap-3 border-t border-border pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Sperin Services.</span>
           <div className="flex gap-5">
             <Link to="/faqs">FAQs</Link>

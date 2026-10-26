@@ -170,7 +170,7 @@ function OwnerReviews() {
               Sign out
             </button>
           </div>
-          <div className="border-y border-white/10 py-6">
+          <div className="border-y border-border py-6">
             <h2 className="font-bold">Links for your customers</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               <button
@@ -210,7 +210,7 @@ function OwnerReviews() {
             ))}
           </nav>
           {!reviews.some((r) => r.status === filter) ? (
-            <p className="border-t border-white/10 py-10 text-muted-foreground">
+            <p className="border-t border-border py-10 text-muted-foreground">
               No {filter === "rejected" ? "hidden" : filter} reviews.
             </p>
           ) : (
@@ -229,7 +229,7 @@ function OwnerReviews() {
         </p>
       )}
       {notice && (
-        <p role="status" className="mt-6 break-words rounded border border-white/20 p-4">
+        <p role="status" className="mt-6 break-words rounded border border-border p-4">
           {notice}
         </p>
       )}
@@ -247,7 +247,7 @@ function ReviewRow({
 }) {
   const [reply, setReply] = useState(review.reply);
   return (
-    <article className="border-t border-white/15 py-7">
+    <article className="border-t border-border py-7">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl font-bold break-words">
           {review.name}{" "}
@@ -273,7 +273,7 @@ function ReviewRow({
         onChange={(e) => setReply(e.target.value)}
         maxLength={2000}
         rows={3}
-        className="mt-2 w-full rounded border border-white/20 bg-black/20 px-4 py-3 text-foreground"
+        className="mt-2 w-full rounded border border-border bg-muted px-4 py-3 text-foreground"
       />
       <div className="mt-4 flex flex-wrap gap-3">
         {review.status !== "approved" && (

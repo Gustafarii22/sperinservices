@@ -48,12 +48,12 @@ function ServicesIndex() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
-        <div className="border-t border-white/10">
+        <div className="border-t border-border">
           {SERVICES.map((service, index) => (
             <Link
               key={service.slug}
               to={service.path}
-              className="group grid min-h-24 grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-white/10 py-4 transition hover:bg-white/[0.018] sm:px-3"
+              className="group grid min-h-24 grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] sm:px-3"
             >
               <span className="font-mono text-xs text-electric">
                 {String(index + 1).padStart(2, "0")}

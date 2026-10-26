@@ -1,3 +1,4 @@
+import { ThemeToggle } from "./ThemeToggle";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +27,7 @@ export function Header() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111314]/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-card backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-7xl items-center gap-2 px-2 sm:h-[72px] sm:px-3 lg:h-[82px] lg:gap-5 lg:px-8">
           <Link
             to="/"
@@ -48,11 +49,13 @@ export function Header() {
             ))}
           </nav>
 
+          <ThemeToggle />
+
           <DialogTrigger asChild>
             <button
               type="button"
               aria-label="Open menu"
-              className="mobile-menu-trigger ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
+              className="mobile-menu-trigger ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-foreground/[0.025] transition hover:border-electric/40 hover:bg-electric/[0.05] lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -60,12 +63,12 @@ export function Header() {
         </div>
 
         <DialogContent
-          className="mobile-navigation max-h-[92dvh] w-[calc(100%-18px)] max-w-md overflow-y-auto border-white/12 bg-[#101314] p-0 shadow-2xl"
+          className="mobile-navigation max-h-[92dvh] w-[calc(100%-18px)] max-w-md overflow-y-auto border-border bg-card p-0 shadow-2xl"
           aria-describedby={undefined}
         >
           <DialogTitle className="sr-only">Sperin Services navigation</DialogTitle>
 
-          <div className="border-b border-white/10 px-5 pb-4 pt-5 text-center">
+          <div className="border-b border-border px-5 pb-4 pt-5 text-center">
             <Link
               to="/"
               onClick={() => setOpen(false)}
@@ -78,9 +81,10 @@ export function Header() {
           </div>
 
           <nav className="p-3" aria-label="Mobile navigation">
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.018]">
+            <div className="mb-3 flex items-center justify-between px-2"><span className="text-sm font-semibold">Appearance</span><ThemeToggle /></div>
+            <div className="overflow-hidden rounded-lg border border-border bg-foreground/[0.025]">
               <details className="group">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-[15px] font-semibold transition hover:bg-white/[0.035] [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-[15px] font-semibold transition hover:bg-foreground/[0.025] [&::-webkit-details-marker]:hidden">
                   <span className="flex h-8 w-8 items-center justify-center rounded-md bg-electric/10 text-electric">
                     <Zap className="h-4 w-4" />
                   </span>
@@ -88,13 +92,13 @@ export function Header() {
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
                 </summary>
 
-                <div className="border-t border-white/10 bg-black/15 px-3 py-2">
+                <div className="border-t border-border bg-muted px-3 py-2">
                   {SERVICES.map((service) => (
                     <Link
                       key={service.slug}
                       to={service.path}
                       onClick={() => setOpen(false)}
-                      className="flex min-h-11 items-center border-b border-white/[0.07] px-3 text-sm text-foreground/82 transition last:border-b-0 hover:text-electric data-[status=active]:text-electric"
+                      className="flex min-h-11 items-center border-b border-border px-3 text-sm text-foreground/82 transition last:border-b-0 hover:text-electric data-[status=active]:text-electric"
                     >
                       {service.title}
                     </Link>
@@ -102,7 +106,7 @@ export function Header() {
                   <Link
                     to="/commercial"
                     onClick={() => setOpen(false)}
-                    className="flex min-h-11 items-center border-t border-white/[0.07] px-3 text-sm font-semibold text-foreground/90 transition hover:text-electric data-[status=active]:text-electric"
+                    className="flex min-h-11 items-center border-t border-border px-3 text-sm font-semibold text-foreground/90 transition hover:text-electric data-[status=active]:text-electric"
                   >
                     Commercial Electrical
                   </Link>
@@ -114,9 +118,9 @@ export function Header() {
                   key={to}
                   to={to}
                   onClick={() => setOpen(false)}
-                  className="flex min-h-14 items-center gap-3 border-t border-white/10 px-4 text-[15px] font-semibold transition hover:bg-white/[0.035] data-[status=active]:text-electric"
+                  className="flex min-h-14 items-center gap-3 border-t border-border px-4 text-[15px] font-semibold transition hover:bg-foreground/[0.025] data-[status=active]:text-electric"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/[0.035] text-electric">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground/[0.025] text-electric">
                     <Icon className="h-4 w-4" />
                   </span>
                   <span>{label}</span>
@@ -138,7 +142,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      className="relative rounded-md px-3 py-2.5 text-sm font-semibold text-foreground/72 transition hover:bg-white/[0.035] hover:text-foreground data-[status=active]:text-electric"
+      className="relative rounded-md px-3 py-2.5 text-sm font-semibold text-foreground/72 transition hover:bg-foreground/[0.025] hover:text-foreground data-[status=active]:text-electric"
     >
       {label}
     </Link>
@@ -175,7 +179,7 @@ function ServicesDropdown() {
       }}
     >
       <summary
-        className={`flex cursor-pointer list-none items-center gap-1 rounded-md px-3 py-2.5 text-sm font-semibold transition hover:bg-white/[0.035] hover:text-foreground [&::-webkit-details-marker]:hidden ${
+        className={`flex cursor-pointer list-none items-center gap-1 rounded-md px-3 py-2.5 text-sm font-semibold transition hover:bg-foreground/[0.025] hover:text-foreground [&::-webkit-details-marker]:hidden ${
           isActive ? "text-electric" : "text-foreground/72"
         }`}
       >
@@ -184,8 +188,8 @@ function ServicesDropdown() {
       </summary>
 
       <div className="absolute left-1/2 top-full w-[340px] -translate-x-1/2 pt-2">
-        <div className="overflow-hidden rounded-md border border-white/10 bg-[#141819] shadow-2xl">
-          <div className="border-b border-white/10 px-4 py-3">
+        <div className="overflow-hidden rounded-md border border-border bg-card shadow-2xl">
+          <div className="border-b border-border px-4 py-3">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-electric">
               Electrical Services
             </div>
@@ -195,7 +199,7 @@ function ServicesDropdown() {
             <Link
               key={service.slug}
               to={service.path}
-              className="block border-b border-white/[0.07] px-4 py-3.5 transition hover:bg-electric/[0.06]"
+              className="block border-b border-border px-4 py-3.5 transition hover:bg-electric/[0.06]"
             >
               <div className="text-sm font-semibold text-foreground/92">{service.title}</div>
               <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -206,7 +210,7 @@ function ServicesDropdown() {
 
           <Link
             to="/commercial"
-            className="block bg-white/[0.02] px-4 py-3.5 transition hover:bg-electric/[0.06]"
+            className="block bg-foreground/[0.025] px-4 py-3.5 transition hover:bg-electric/[0.06]"
           >
             <div className="text-sm font-semibold text-foreground/92">Commercial Electrical</div>
             <div className="mt-1 text-xs leading-relaxed text-muted-foreground">

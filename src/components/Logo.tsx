@@ -5,7 +5,7 @@ export function Logo({ className = "h-20 w-auto" }: { className?: string }) {
     <img
       src={logo}
       alt="Sperin Services"
-      className={`${className} block select-none`}
+      className={`${className} site-logo block select-none`}
       draggable={false}
       decoding="async"
       style={{

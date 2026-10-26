@@ -141,7 +141,7 @@ function Reviews() {
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2" aria-label="Loading customer reviews">
             {[0, 1, 2, 3].map((item) => (
-              <div key={item} className="h-40 animate-pulse rounded-md bg-white/[0.035]" />
+              <div key={item} className="h-40 animate-pulse rounded-md bg-foreground/[0.025]" />
             ))}
           </div>
         ) : error && combined.length === 0 ? (
@@ -199,7 +199,7 @@ function WebsiteReviewCard({ review }: { review: Review }) {
     <article className="surface rounded-md p-6">
       <div className="flex items-center justify-between gap-3">
         <Stars rating={review.rating} />
-        <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           Sperin website
         </span>
       </div>

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 const field =
-  "mt-2 w-full rounded-md border border-white/20 bg-black/20 px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-electric";
+  "mt-2 w-full rounded-md border border-border bg-muted px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-electric";
 type Photo = { name: string; type: "image/jpeg"; content: string };
 async function preparePhoto(file: File): Promise<Photo> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 15000000)
@@ -208,7 +208,7 @@ function Pricing() {
           <div>
             {["replacements", "packages"].map((group) => (
               <div key={group} className="mb-5">
-                <h3 className="mb-2 border-b border-white/15 pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <h3 className="mb-2 border-b border-border pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {group === "replacements"
                     ? "Straightforward replacements"
                     : "Inspection & consumer units"}
@@ -217,7 +217,7 @@ function Pricing() {
                   {JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
                     <article
                       key={j.id}
-                      className="rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5"
+                      className="rounded-xl border border-border bg-foreground/[0.025] px-3 py-2.5"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -240,13 +240,13 @@ function Pricing() {
                         <span className="text-xs text-muted-foreground">
                           {j.group ? "One package per circuit range" : "Quantity"}
                         </span>
-                        <div className="flex items-center rounded-md border border-white/20">
+                        <div className="flex items-center rounded-md border border-border">
                           <button
                             type="button"
                             aria-label={`Remove ${j.name}`}
                             disabled={!selection[j.id]}
                             onClick={() => change(j.id, -1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.05] disabled:opacity-30 hover:bg-white/10"
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground/[0.025] disabled:opacity-30 hover:bg-white/10"
                           >
                             <Minus size={18} />
                           </button>
@@ -283,7 +283,7 @@ function Pricing() {
             </p>
           </div>
           <aside
-            className="rounded-2xl border border-white/15 bg-white/[0.035] p-4 sm:p-5 xl:sticky xl:top-24"
+            className="rounded-2xl border border-border bg-foreground/[0.025] p-4 sm:p-5 xl:sticky xl:top-24"
             aria-label="Your estimate"
           >
             <span className="eyebrow">Your total</span>
@@ -327,7 +327,7 @@ function Pricing() {
                 </span>
               </label>
             )}
-            <div className="mt-6 border-t border-white/15 pt-5">
+            <div className="mt-6 border-t border-border pt-5">
               <label htmlFor="travel-postcode" className="flex items-center gap-2 font-semibold">
                 <MapPin size={16} />
                 Check travel
@@ -390,7 +390,7 @@ function Pricing() {
               )}
             </div>
             <div
-              className="mt-6 border-t border-white/15 pt-5"
+              className="mt-6 border-t border-border pt-5"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -434,7 +434,7 @@ function Pricing() {
         </div>
       </section>
       <section className="mx-auto mt-14 max-w-7xl px-4 lg:px-8">
-        <div className="border-t border-white/20 pt-8">
+        <div className="border-t border-border pt-8">
           <span className="eyebrow">02 / Other ways we charge</span>
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Hourly & day rates</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -442,7 +442,7 @@ function Pricing() {
             reasonably be priced in advance. If you selected a defined job above, you do not pay
             these rates on top.
           </p>
-          <div className="mt-7 grid divide-y divide-white/15 border-y border-white/15 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="mt-7 grid divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[
               ["£75", "First hour on site", "Local weekday visit, including attendance."],
               ["£50", "Each further hour", "Billed at £25 per started half-hour."],
@@ -455,7 +455,7 @@ function Pricing() {
               </div>
             ))}
           </div>
-          <details className="mt-4 border-b border-white/10 pb-4 text-sm text-muted-foreground">
+          <details className="mt-4 border-b border-border pb-4 text-sm text-muted-foreground">
             <summary className="cursor-pointer font-semibold text-foreground/86">
               Hourly, evening & weekend rates
             </summary>
@@ -469,7 +469,7 @@ function Pricing() {
         </div>
       </section>
       <section id="booking" className="mx-auto mt-16 max-w-7xl scroll-mt-28 px-4 lg:px-8">
-        <div className="grid gap-10 border-t border-white/20 pt-10 lg:grid-cols-[.8fr_1.2fr]">
+        <div className="grid gap-10 border-t border-border pt-10 lg:grid-cols-[.8fr_1.2fr]">
           <div>
             <span className="eyebrow">03 / Send the details</span>
             <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">Let’s check the job.</h2>
@@ -491,7 +491,7 @@ function Pricing() {
                 <span>Nothing is booked until you agree the confirmed price and timing.</span>
               </div>
             </div>
-            <details className="mt-5 border-t border-white/10 pt-4 text-sm">
+            <details className="mt-5 border-t border-border pt-4 text-sm">
               <summary className="cursor-pointer font-semibold">Estimate conditions</summary>
               <ul className="mt-3 space-y-2 text-muted-foreground">
                 {CONDITIONS.map((line) => (

@@ -55,7 +55,7 @@ const initialForm: FormState = {
 };
 
 const inputCls =
-  "mt-2 w-full rounded-md border border-white/15 bg-black/20 px-3.5 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
+  "mt-2 w-full rounded-md border border-border bg-muted px-3.5 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-electric/55 focus:outline-none focus:ring-2 focus:ring-electric/20";
 
 async function preparePhoto(file: File): Promise<Photo> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 15000000)
@@ -173,7 +173,7 @@ function Contact() {
               step.
             </p>
 
-            <div className="mt-6 border-y border-white/10">
+            <div className="mt-6 border-y border-border">
               <a href={`tel:${SITE.phone}`} className="flex items-center gap-3 py-4">
                 <Phone className="h-5 w-5 text-electric" />
                 <span>
@@ -185,7 +185,7 @@ function Contact() {
                 href={`https://wa.me/${SITE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 border-t border-white/10 py-4"
+                className="flex items-center gap-3 border-t border-border py-4"
               >
                 <WhatsAppGlyph className="h-5 w-5 text-[#25D366]" />
                 <span>
@@ -195,7 +195,7 @@ function Contact() {
               </a>
               <a
                 href={`mailto:${SITE.email}`}
-                className="flex items-center gap-3 border-t border-white/10 py-4"
+                className="flex items-center gap-3 border-t border-border py-4"
               >
                 <Mail className="h-5 w-5 text-electric" />
                 <span>
@@ -233,7 +233,7 @@ function Contact() {
           </div>
 
           <form onSubmit={submit} className="surface-raised p-5 sm:p-7" noValidate>
-            <div className="flex items-end justify-between gap-4 border-b border-white/10 pb-5">
+            <div className="flex items-end justify-between gap-4 border-b border-border pb-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-electric">
                   Job details
@@ -355,7 +355,7 @@ function Contact() {
               </Field>
 
               <div className="sm:col-span-2">
-                <label className="flex cursor-pointer items-center justify-between gap-4 border border-white/12 bg-white/[0.02] p-4">
+                <label className="flex cursor-pointer items-center justify-between gap-4 border border-border bg-foreground/[0.025] p-4">
                   <span>
                     <span className="flex items-center gap-2 font-semibold">
                       <Camera className="h-4 w-4 text-electric" /> Add photographs
@@ -386,7 +386,7 @@ function Contact() {
                         onClick={() =>
                           setPhotos((current) => current.filter((_, n) => n !== index))
                         }
-                        className="rounded-md border border-white/10 px-2.5 py-1.5 text-muted-foreground"
+                        className="rounded-md border border-border px-2.5 py-1.5 text-muted-foreground"
                       >
                         {photo.name} ×
                       </button>
@@ -437,7 +437,7 @@ function Contact() {
             {sent && (
               <div
                 role="status"
-                className="mt-4 border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-[#7ef0a7]"
+                className="mt-4 border border-[#25D366]/20 bg-[#25D366]/10 p-4 text-sm text-whatsapp"
               >
                 <div className="flex gap-2">
                   <Check className="h-4 w-4" /> Enquiry received.
@@ -458,7 +458,7 @@ function Contact() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8" aria-labelledby="coverage-title">
-        <div className="border-t border-white/10 pt-6">
+        <div className="border-t border-border pt-6">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-electric" />
             <h2 id="coverage-title" className="text-sm font-semibold">
@@ -469,7 +469,7 @@ function Contact() {
             {SITE.areas.map((area) => (
               <span
                 key={area}
-                className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-muted-foreground"
+                className="shrink-0 rounded-full border border-border px-3 py-2 text-xs text-muted-foreground"
               >
                 {area}
               </span>

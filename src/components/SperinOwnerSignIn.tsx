@@ -47,7 +47,7 @@ export function SperinOwnerSignIn({ onSignedIn }: { onSignedIn: () => Promise<vo
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="mt-2 w-full rounded border border-white/20 bg-black/20 px-4 py-3"
+            className="mt-2 w-full rounded border border-border bg-muted px-4 py-3"
           />
         </label>
       )}

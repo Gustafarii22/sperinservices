@@ -60,10 +60,10 @@ function HomePage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-md border border-white/10 bg-[#15191a]">
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <Link
               to="/pricing"
-              className="group flex min-h-24 items-center gap-4 border-b border-white/10 px-5 py-4 transition hover:bg-electric/[0.05]"
+              className="group flex min-h-24 items-center gap-4 border-b border-border px-5 py-4 transition hover:bg-electric/[0.05]"
             >
               <Calculator className="h-5 w-5 shrink-0 text-electric" />
               <span className="min-w-0 flex-1">
@@ -77,7 +77,7 @@ function HomePage() {
 
             <Link
               to="/contact"
-              className="group flex min-h-24 items-center gap-4 px-5 py-4 transition hover:bg-white/[0.03]"
+              className="group flex min-h-24 items-center gap-4 px-5 py-4 transition hover:bg-foreground/[0.025]"
             >
               <MessageSquareText className="h-5 w-5 shrink-0 text-electric" />
               <span className="min-w-0 flex-1">
@@ -92,7 +92,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.012]">
+      <section className="border-y border-border bg-foreground/[0.025]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:grid-cols-4 lg:px-8">
           {[
             [ShieldCheck, "£2m Public Liability"],
@@ -105,7 +105,7 @@ function HomePage() {
               <div
                 key={String(text)}
                 className={`flex min-h-20 items-center gap-3 px-2 py-4 sm:px-4 ${
-                  index > 0 ? "border-l border-white/10" : ""
+                  index > 0 ? "border-l border-border" : ""
                 }`}
               >
                 <ItemIcon className="h-5 w-5 shrink-0 text-electric" />
@@ -119,7 +119,7 @@ function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
-        <div className="border-b border-white/10 pb-4">
+        <div className="border-b border-border pb-4">
           <h2 className="text-3xl font-semibold sm:text-4xl">Electrical Services</h2>
           <p className="mt-1 text-sm text-muted-foreground">Choose what you need.</p>
         </div>
@@ -129,7 +129,7 @@ function HomePage() {
             <Link
               key={service.slug}
               to={service.path}
-              className={`group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-white/10 py-4 transition hover:bg-white/[0.018] lg:px-4 ${
+              className={`group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] lg:px-4 ${
                 index % 2 === 0 ? "lg:border-r" : ""
               }`}
             >
@@ -148,7 +148,7 @@ function HomePage() {
 
           <Link
             to="/commercial"
-            className="group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-white/10 py-4 transition hover:bg-white/[0.018] lg:col-span-2 lg:px-4"
+            className="group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] lg:col-span-2 lg:px-4"
           >
             <span className="font-mono text-xs text-electric">07</span>
             <span>
@@ -183,9 +183,9 @@ function HomePage() {
         <Link
           to="/our-work/$slug"
           params={{ slug: "rowley-park-primary-academy-refurbishment" }}
-          className="group block overflow-hidden rounded-md border border-white/10 bg-[#15191a]"
+          className="group block overflow-hidden rounded-md border border-border bg-card"
         >
-          <div className="border-b border-white/10 px-4 py-3 sm:px-5">
+          <div className="border-b border-border px-4 py-3 sm:px-5">
             <strong className="text-base">Rowley Park Primary Academy</strong>
             <span className="ml-2 text-xs text-muted-foreground">Commercial refurbishment</span>
           </div>

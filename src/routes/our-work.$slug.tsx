@@ -102,7 +102,7 @@ function ProjectPage() {
             photoTrigger.current = event.currentTarget;
             setActive(project.photos[0]);
           }}
-          className="group block w-full overflow-hidden rounded-2xl bg-black/20 text-left"
+          className="group block w-full overflow-hidden rounded-2xl bg-muted text-left"
         >
           <img
             src={project.cover}
@@ -141,7 +141,7 @@ function ProjectPage() {
 
       {gallery.length ? (
         <section className="mx-auto max-w-7xl px-4 pb-8 lg:px-8 lg:pb-14">
-          <div className="border-b border-white/10 pb-6">
+          <div className="border-b border-border pb-6">
             <span className="eyebrow">Finished details</span>
             <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
               A few details from the completed job.
@@ -156,7 +156,7 @@ function ProjectPage() {
                   photoTrigger.current = event.currentTarget;
                   setActive(photo);
                 }}
-                className="group overflow-hidden rounded-xl bg-black/20 text-left"
+                className="group overflow-hidden rounded-xl bg-muted text-left"
               >
                 <img
                   src={photo.src}
@@ -231,7 +231,7 @@ function ProjectPage() {
             event.preventDefault();
             photoTrigger.current?.focus();
           }}
-          className="max-w-5xl border-white/15 bg-background p-4 pt-12"
+          className="max-w-5xl border-border bg-background p-4 pt-12"
         >
           <DialogTitle className="sr-only">Project photograph</DialogTitle>
           {active && (

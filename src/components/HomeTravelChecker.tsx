@@ -30,7 +30,7 @@ export function HomeTravelChecker() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
-      <div className="grid gap-5 border-y border-white/10 py-6 md:grid-cols-[.8fr_1.2fr] md:items-center">
+      <div className="grid gap-5 border-y border-border py-6 md:grid-cols-[.8fr_1.2fr] md:items-center">
         <div>
           <h2 className="text-3xl font-semibold sm:text-4xl">Postcode Checker</h2>
           <p className="mt-1 max-w-md text-sm text-muted-foreground">
@@ -56,7 +56,7 @@ export function HomeTravelChecker() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && postcode.trim()) check();
                 }}
-                className="h-12 w-full rounded-md border border-white/15 bg-white/[0.025] pl-10 pr-3 text-base uppercase outline-none transition focus:border-electric/50 focus:ring-2 focus:ring-electric/20"
+                className="h-12 w-full rounded-md border border-border bg-foreground/[0.025] pl-10 pr-3 text-base uppercase outline-none transition focus:border-electric/50 focus:ring-2 focus:ring-electric/20"
               />
             </div>
             <button

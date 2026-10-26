@@ -133,7 +133,7 @@ function Commercial() {
           <Link
             to="/our-work/$slug"
             params={{ slug: "rowley-park-primary-academy-refurbishment" }}
-            className="group block overflow-hidden bg-black/20"
+            className="group block overflow-hidden bg-muted"
             aria-label="View Rowley Park Primary Academy refurbishment"
           >
             <img

@@ -59,7 +59,7 @@ export function ReviewPreview() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
-      <div className="flex items-end justify-between gap-5 border-b border-white/10 pb-5">
+      <div className="flex items-end justify-between gap-5 border-b border-border pb-5">
         <div>
           <h2 className="text-3xl font-semibold sm:text-4xl">Reviews</h2>
           <p className="mt-1 text-sm text-muted-foreground">What customers say.</p>
@@ -75,7 +75,7 @@ export function ReviewPreview() {
       {!ready ? (
         <div className="mt-5 grid gap-3 md:grid-cols-3" aria-label="Loading reviews">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="h-28 animate-pulse rounded-md bg-white/[0.035]" />
+            <div key={item} className="h-28 animate-pulse rounded-md bg-foreground/[0.025]" />
           ))}
         </div>
       ) : items.length ? (
@@ -102,7 +102,7 @@ export function ReviewPreview() {
           ))}
         </div>
       ) : (
-        <div className="mt-5 flex flex-col gap-4 border border-white/10 bg-white/[0.018] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 flex flex-col gap-4 border border-border bg-foreground/[0.025] p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <MessageSquareQuote className="mt-0.5 h-5 w-5 shrink-0 text-electric" />
             <div>
