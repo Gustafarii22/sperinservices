@@ -389,11 +389,7 @@ function Pricing() {
                 </p>
               )}
             </div>
-            <div
-              className="mt-6 border-t border-border pt-5"
-              aria-live="polite"
-              aria-atomic="true"
-            >
+            <div className="mt-6 border-t border-border pt-5" aria-live="polite" aria-atomic="true">
               <p className="text-sm text-muted-foreground">
                 {incomplete ? "Estimated priced subtotal" : "Estimated total"}
               </p>
