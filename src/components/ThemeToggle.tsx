@@ -10,9 +10,13 @@ function isDark() {
 
 function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.style.colorScheme = dark ? "dark" : "only light";
+  document
+    .querySelector('meta[name="color-scheme"]')
+    ?.setAttribute("content", dark ? "dark" : "only light");
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", dark ? "#192126" : "#ffffff");
+    ?.setAttribute("content", dark ? "#111314" : "#ffffff");
   window.dispatchEvent(new Event(eventName));
 }
 
