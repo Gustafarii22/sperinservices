@@ -80,46 +80,38 @@
 }
 
 .dark {
-  --radius: 0.35rem;
-
-  --background: #111314;
-  --foreground: oklch(0.965 0.006 240);
-  --card: oklch(0.105 0.012 250);
-  --card-foreground: oklch(0.965 0.006 240);
-  --popover: oklch(0.095 0.012 250);
-  --popover-foreground: oklch(0.965 0.006 240);
-
-  --primary: oklch(0.72 0.18 238);
-  --primary-foreground: oklch(0.08 0.01 250);
-  --secondary: oklch(0.15 0.012 250);
-  --secondary-foreground: oklch(0.95 0.006 240);
-  --muted: oklch(0.135 0.01 250);
-  --muted-foreground: #b7bbbd;
-  --accent: oklch(0.72 0.18 238);
-  --accent-foreground: oklch(0.08 0.01 250);
-  --destructive: oklch(0.58 0.18 27);
-  --destructive-foreground: oklch(0.98 0.01 90);
-  --border: oklch(0.72 0.02 240 / 0.18);
-  --input: oklch(0.16 0.012 250);
-  --ring: oklch(0.72 0.18 238);
-
-  --electric: oklch(0.76 0.16 235);
-  --electric-soft: oklch(0.84 0.1 230);
-  --electric-deep: oklch(0.52 0.18 250);
-  --whatsapp: #25d366;
-
-  --gradient-electric: linear-gradient(135deg, oklch(0.82 0.12 232), oklch(0.69 0.18 242));
-  --gradient-radial-electric: radial-gradient(
-    circle at 30% 20%,
-    oklch(0.7 0.18 240 / 0.11),
-    transparent 66%
-  );
+  /* The existing charcoal/electric-blue look belongs to Dark, not Light. */
+  --radius: 0.55rem;
+  --background: #192126;
+  --foreground: #f1f5f7;
+  --card: #222b31;
+  --card-foreground: #f1f5f7;
+  --popover: #222b31;
+  --popover-foreground: #f1f5f7;
+  --primary: #73baff;
+  --primary-foreground: #101820;
+  --secondary: #20282e;
+  --secondary-foreground: #f1f5f7;
+  --muted: #2a343b;
+  --muted-foreground: #c0cbd1;
+  --accent: #73baff;
+  --accent-foreground: #101820;
+  --destructive: #fa747a;
+  --destructive-foreground: #161a1f;
+  --border: #3e4a53;
+  --input: #43515c;
+  --ring: #73baff;
+  --electric: #73baff;
+  --electric-soft: #98ceff;
+  --electric-deep: #3d97f3;
+  --whatsapp: #41d77b;
+  --gradient-electric: linear-gradient(135deg, #83c8ff, #4c9fe6);
+  --gradient-radial-electric: radial-gradient(circle at 30% 20%, #73baff17, transparent 66%);
   --gradient-radial-gold: var(--gradient-radial-electric);
   --gradient-gold: var(--gradient-electric);
-
-  --shadow-electric: 0 10px 30px -18px oklch(0.7 0.18 240 / 0.8);
-  --shadow-elegant: 0 24px 60px -26px oklch(0 0 0 / 0.85);
-  --glow-electric: 0 0 18px oklch(0.7 0.18 240 / 0.25);
+  --shadow-electric: 0 10px 30px -18px #73baff99;
+  --shadow-elegant: 0 24px 60px -26px #000000a6;
+  --glow-electric: 0 0 18px #73baff33;
 }
 
 .dark {
@@ -843,18 +835,40 @@ footer, .mobile-contact-bar { background: var(--secondary); border-color: var(--
 ::selection { background: var(--electric); color: var(--primary-foreground); }
 input, textarea, select { color: var(--foreground); }
 select option { background: var(--popover); color: var(--popover-foreground); }
+/* A clear two-option switch; the selected setting is always visible. */
 .theme-toggle {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-width: 44px; min-height: 44px; flex-shrink: 0; padding: 8px;
-  border: 1px solid var(--border); border-radius: 999px;
-  background: var(--card); color: var(--foreground); cursor: pointer;
-  font-size: 12px; font-weight: 650; transition: background 180ms, border-color 180ms;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--foreground);
 }
-.theme-toggle:hover { background: var(--secondary); border-color: var(--electric); }
-.theme-toggle .theme-sun { display: inline-flex; }
-.theme-toggle .theme-moon, .dark .theme-toggle .theme-sun { display: none; }
-.dark .theme-toggle .theme-moon { display: inline-flex; }
-.theme-toggle svg { width: 17px; height: 17px; color: var(--electric); }
+.theme-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+.theme-toggle button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 6px #00000016;
+}
+.theme-toggle button:hover { color: var(--electric); }
+.theme-toggle button:focus-visible { outline-offset: 2px; }
+.theme-toggle svg { width: 16px; height: 16px; color: var(--electric); }
 .site-logo { background: #111314; border-radius: 8px; }
 @media (min-width: 1024px) and (max-width: 1279px) {
   header > div:first-child { gap: 8px; padding-inline: 16px; }
@@ -866,3 +880,67 @@ select option { background: var(--popover); color: var(--popover-foreground); }
   header a[aria-label="Sperin Services home"] > span { max-width: 100%; }
   header .theme-toggle { min-width: 40px; padding-inline: 6px; }
 }
+
+/* True white light theme. Legacy page CSS used literal charcoal values;
+   pin every shared surface to its theme tokens so all routes stay coherent. */
+html:not(.dark) { color-scheme: light; }
+html:not(.dark) body { background: #ffffff; color: var(--foreground); }
+html:not(.dark) header,
+html:not(.dark) footer,
+html:not(.dark) .mobile-contact-bar {
+  background: #ffffff;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+html:not(.dark) .surface,
+html:not(.dark) .surface-strong,
+html:not(.dark) .surface-raised,
+html:not(.dark) .glass,
+html:not(.dark) .glass-strong {
+  background: #ffffff;
+  color: var(--foreground);
+  border-color: var(--border);
+  box-shadow: 0 8px 30px -24px #17324b38;
+}
+html:not(.dark) .technical-grid,
+html:not(.dark) .commercial-feature,
+html:not(.dark) .enquiry-section,
+html:not(.dark) .sector-link { background: #f3f6fa; color: var(--foreground); }
+html:not(.dark) .service-row:hover,
+html:not(.dark) .sector-link:hover { background: #eef4fa; }
+html:not(.dark) .eyebrow,
+html:not(.dark) .hero-title span,
+html:not(.dark) .hero-footnote,
+html:not(.dark) .service-detail,
+html:not(.dark) .contractor-introduction p,
+html:not(.dark) .whatsapp-utility { color: #526174; }
+html:not(.dark) .hairline,
+html:not(.dark) .hairline-gold,
+html:not(.dark) .rule,
+html:not(.dark) .service-row,
+html:not(.dark) .service-detail,
+html:not(.dark) .commercial-feature,
+html:not(.dark) .contractor-introduction,
+html:not(.dark) .service-standards,
+html:not(.dark) .sector-link,
+html:not(.dark) .enquiry-section { border-color: var(--border); }
+html:not(.dark) .button-primary { background: #0866d9; color: #ffffff; }
+html:not(.dark) .button-primary:hover { background: #0757bb; }
+html:not(.dark) .button-secondary { background: #ffffff; color: #172638; border-color: #b8c8d7; }
+html:not(.dark) .button-secondary:hover { background: #edf3fa; }
+html:not(.dark) .whatsapp-button { color: #12813c; }
+html:not(.dark) .hero-photograph { background: #edf3fa; }
+html:not(.dark) .mobile-contact-bar a { color: #172638; }
+html:not(.dark) .mobile-contact-bar a:active { background: #edf3fa; }
+/* Brand artwork retains its charcoal backdrop for legibility on both modes. */
+.site-logo { background: #111314; }
+/* Ensure small screens have enough room for logo, mode controls and menu. */
+@media (max-width: 639px) {
+  header .theme-toggle { min-width: 0; padding: 2px; }
+  header .theme-toggle button { padding: 6px; min-width: 34px; min-height: 34px; }
+  header .theme-toggle .theme-label { display: none; }
+  header a[aria-label="Sperin Services home"] { min-width: 0; }
+}
+/* Error/warning statuses must remain legible on an actual white background. */
+html:not(.dark) .text-red-300 { color: #b42335; }
+html:not(.dark) .text-amber-200 { color: #874a06; }
