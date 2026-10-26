@@ -10,10 +10,9 @@ function isDark() {
 
 function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    "content",
-    dark ? "#192126" : "#ffffff",
-  );
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", dark ? "#192126" : "#ffffff");
   window.dispatchEvent(new Event(eventName));
 }
 
@@ -22,8 +21,11 @@ function subscribe(callback: () => void) {
     if (event.key !== storageKey && event.key !== null) return;
     // A change on another tab should be reflected without a page reload.
     let selected = "light";
-    try { selected = localStorage.getItem(storageKey) || "light"; }
-    catch { /* Storage can be unavailable in a private browser. */ }
+    try {
+      selected = localStorage.getItem(storageKey) || "light";
+    } catch {
+      /* Storage can be unavailable in a private browser. */
+    }
     applyTheme(selected === "dark");
   };
   window.addEventListener(eventName, callback);
@@ -36,8 +38,11 @@ function subscribe(callback: () => void) {
 
 function selectTheme(dark: boolean) {
   applyTheme(dark);
-  try { localStorage.setItem(storageKey, dark ? "dark" : "light"); }
-  catch { /* The toggle still works without persistent storage. */ }
+  try {
+    localStorage.setItem(storageKey, dark ? "dark" : "light");
+  } catch {
+    /* The toggle still works without persistent storage. */
+  }
 }
 
 export function ThemeToggle() {
