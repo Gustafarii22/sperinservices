@@ -82,24 +82,24 @@
 .dark {
   /* The existing charcoal/electric-blue look belongs to Dark, not Light. */
   --radius: 0.55rem;
-  --background: #192126;
+  --background: #111314;
   --foreground: #f1f5f7;
-  --card: #222b31;
+  --card: #1b1e20;
   --card-foreground: #f1f5f7;
-  --popover: #222b31;
+  --popover: #1b1e20;
   --popover-foreground: #f1f5f7;
   --primary: #73baff;
   --primary-foreground: #101820;
-  --secondary: #20282e;
+  --secondary: #202426;
   --secondary-foreground: #f1f5f7;
-  --muted: #2a343b;
+  --muted: #262b2f;
   --muted-foreground: #c0cbd1;
   --accent: #73baff;
   --accent-foreground: #101820;
   --destructive: #fa747a;
   --destructive-foreground: #161a1f;
-  --border: #3e4a53;
-  --input: #43515c;
+  --border: #353d43;
+  --input: #343f46;
   --ring: #73baff;
   --electric: #73baff;
   --electric-soft: #98ceff;
@@ -883,7 +883,7 @@ select option { background: var(--popover); color: var(--popover-foreground); }
 
 /* True white light theme. Legacy page CSS used literal charcoal values;
    pin every shared surface to its theme tokens so all routes stay coherent. */
-html:not(.dark) { color-scheme: light; }
+html:not(.dark) { color-scheme: only light; }
 html:not(.dark) body { background: #ffffff; color: var(--foreground); }
 html:not(.dark) header,
 html:not(.dark) footer,
@@ -944,3 +944,14 @@ html:not(.dark) .mobile-contact-bar a:active { background: #edf3fa; }
 /* Error/warning statuses must remain legible on an actual white background. */
 html:not(.dark) .text-red-300 { color: #b42335; }
 html:not(.dark) .text-amber-200 { color: #874a06; }
+
+/* Advertise the author's light colours to browsers that honour color-scheme.
+   Some versions of Samsung Internet can still force darken pages via a user setting. */
+:root:not(.dark) { color-scheme: only light; }
+:root.dark { color-scheme: dark; }
+:root:not(.dark) body,
+:root:not(.dark) #main-content,
+:root:not(.dark) .page-enter { background-color: #ffffff; }
+:root:not(.dark) input,
+:root:not(.dark) textarea,
+:root:not(.dark) select { background-color: #ffffff; color: #172638; }
