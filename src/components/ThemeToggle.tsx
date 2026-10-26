@@ -2,35 +2,68 @@ import { useSyncExternalStore } from "react";
 import { Sun, Moon } from "lucide-react";
 
 const eventName = "sperin-theme-change";
-function getTheme() { return document.documentElement.classList.contains("dark"); }
+const storageKey = "sperin-theme";
+
+function isDark() {
+  return document.documentElement.classList.contains("dark");
+}
+
 function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#111314" : "#ffffff");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    "content",
+    dark ? "#192126" : "#ffffff",
+  );
   window.dispatchEvent(new Event(eventName));
 }
+
 function subscribe(callback: () => void) {
-  const sync = (event: StorageEvent) => {
-    if (event.key === "sperin-theme" || event.key === null) applyTheme(event.newValue === "dark");
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== storageKey && event.key !== null) return;
+    // A change on another tab should be reflected without a page reload.
+    let selected = "light";
+    try { selected = localStorage.getItem(storageKey) || "light"; }
+    catch { /* Storage can be unavailable in a private browser. */ }
+    applyTheme(selected === "dark");
   };
   window.addEventListener(eventName, callback);
-  window.addEventListener("storage", sync);
+  window.addEventListener("storage", onStorage);
   return () => {
     window.removeEventListener(eventName, callback);
-    window.removeEventListener("storage", sync);
+    window.removeEventListener("storage", onStorage);
   };
 }
+
+function selectTheme(dark: boolean) {
+  applyTheme(dark);
+  try { localStorage.setItem(storageKey, dark ? "dark" : "light"); }
+  catch { /* The toggle still works without persistent storage. */ }
+}
+
 export function ThemeToggle() {
-  const dark = useSyncExternalStore(subscribe, getTheme, () => false);
+  const dark = useSyncExternalStore(subscribe, isDark, () => false);
   return (
-    <button type="button" className="theme-toggle" aria-label="Dark theme" aria-pressed={dark}
-      title={dark ? "Switch to light mode" : "Switch to dark mode"}
-      onClick={() => {
-        const next = !getTheme();
-        applyTheme(next);
-        try { localStorage.setItem("sperin-theme", next ? "dark" : "light"); } catch { /* Works when storage is unavailable. */ }
-      }}>
-      <span className="theme-sun items-center gap-1.5"><Sun aria-hidden="true" /><span>Light</span></span>
-      <span className="theme-moon items-center gap-1.5"><Moon aria-hidden="true" /><span>Dark</span></span>
-    </button>
+    <div className="theme-toggle" role="group" aria-label="Website appearance">
+      <button
+        type="button"
+        aria-label="Use light theme"
+        aria-pressed={!dark}
+        title="Light theme"
+        onClick={() => selectTheme(false)}
+      >
+        <Sun aria-hidden="true" />
+        <span className="theme-label">Light</span>
+      </button>
+      <button
+        type="button"
+        aria-label="Use dark theme"
+        aria-pressed={dark}
+        title="Dark theme"
+        onClick={() => selectTheme(true)}
+      >
+        <Moon aria-hidden="true" />
+        <span className="theme-label">Dark</span>
+      </button>
+    </div>
   );
 }
