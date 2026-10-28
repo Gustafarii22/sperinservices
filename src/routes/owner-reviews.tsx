@@ -49,6 +49,18 @@ function OwnerReviews() {
         if (alive) {
           if (session.signedOut) return;
           setSignedIn(true);
+          // Retry the existing durable queue on an authenticated visit; failures never hide reviews.
+          void api("/api/owner/retry-notifications", {})
+            .then((result) => {
+              if (alive && result.remaining > 0)
+                setNotice(
+                  `${result.remaining} notification(s) remain queued. Use Retry notifications to try again.`,
+                );
+            })
+            .catch(() => {
+              if (alive)
+                setNotice("Reviews are safe; notification retries are temporarily unavailable.");
+            });
           void load().catch((e) => setError(e.message));
         }
       })
@@ -104,6 +116,17 @@ function OwnerReviews() {
         <SperinOwnerSignIn
           onSignedIn={async () => {
             setSignedIn(true);
+            // Retry the existing durable queue on an authenticated visit; failures never hide reviews.
+            void api("/api/owner/retry-notifications", {})
+              .then((result) => {
+                if (result.remaining > 0)
+                  setNotice(
+                    `${result.remaining} notification(s) remain queued. Use Retry notifications to try again.`,
+                  );
+              })
+              .catch(() => {
+                setNotice("Reviews are safe; notification retries are temporarily unavailable.");
+              });
             await load();
           }}
         />

@@ -34,6 +34,7 @@ type GoogleFeed = {
 };
 
 function Reviews() {
+  const [copied, setCopied] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [google, setGoogle] = useState<GoogleFeed>({ configured: false, reviews: [] });
   const [loading, setLoading] = useState(true);
@@ -94,9 +95,8 @@ function Reviews() {
             <span className="eyebrow">Customer reviews</span>
             <h1 className="display-title mt-5 text-5xl sm:text-6xl">Your experience matters.</h1>
             <p className="mt-5 max-w-2xl text-muted-foreground">
-              Genuine feedback from approved Sperin Services submissions and, when connected,
-              automatically from the verified Google Business Profile. No reviews are fabricated or
-              imported from unrelated sources.
+              Feedback from customers who have worked with Sperin Services. Read their experiences
+              or leave a review of your own completed job.
             </p>
             <Link to="/leave-a-review" className="button-primary mt-7">
               Leave a review <ArrowRight className="h-4 w-4" />
@@ -171,6 +171,35 @@ function Reviews() {
         )}
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+        <div className="surface p-6">
+          <h2 className="text-xl">Invite feedback after a job</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Copy a short invitation to share with a customer once their work is complete.
+          </p>
+          <button
+            type="button"
+            className="button-secondary mt-4"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(
+                  "Thank you for choosing Sperin Services. If you’d like to share your experience, please leave a review: https://sperinservices.co.uk/leave-a-review — Gus",
+                );
+                setCopied(true);
+              } catch {
+                setCopied(false);
+              }
+            }}
+          >
+            Copy review invitation
+          </button>
+          <p role="status" className="mt-2 text-sm">
+            {copied
+              ? "Invitation copied — ready to paste into your message."
+              : "Review link: https://sperinservices.co.uk/leave-a-review"}
+          </p>
+        </div>
+      </section>
       <CTA
         title="Ready to discuss your job?"
         subtitle="Tell us what you need and we’ll come back with the right next step."

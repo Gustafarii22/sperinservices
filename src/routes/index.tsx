@@ -1,18 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Calculator,
-  CheckCircle2,
-  ClipboardCheck,
-  MessageSquareText,
-  ShieldCheck,
-  Wrench,
-} from "lucide-react";
-import { SERVICES, SITE } from "@/lib/site";
+import { ArrowRight, Phone, ClipboardCheck, Wrench, UserRound, MessageCircle } from "lucide-react";
+import { SITE } from "@/lib/site";
 import { electricianJsonLd } from "@/lib/seo";
 import { ReviewPreview } from "@/components/ReviewPreview";
 import { HomeTravelChecker } from "@/components/HomeTravelChecker";
-
+import { ServiceCards } from "@/components/ServiceCards";
+import { HowItWorks } from "@/components/HowItWorks";
+import { FAQ } from "@/components/FAQ";
+import { CTA } from "@/components/CTA";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -47,166 +42,154 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-10">
-        <div className="grid gap-7 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
-          <div>
-            <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] sm:text-4xl lg:text-[2.9rem]">
-              Electrical services for homes &amp; businesses.
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              From small electrical jobs and EICRs to rewires, EV charging and commercial
-              installations. Clear advice, careful installation, testing and certification — with
-              one point of contact throughout.
-            </p>
-          </div>
-
-          <div className="overflow-hidden rounded-md border border-border bg-card">
-            <Link
-              to="/pricing"
-              className="group flex min-h-24 items-center gap-4 border-b border-border px-5 py-4 transition hover:bg-electric/[0.05]"
-            >
-              <Calculator className="h-5 w-5 shrink-0 text-electric" />
-              <span className="min-w-0 flex-1">
-                <strong className="block text-lg">Price Your Job</strong>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
-                  Pick the work and see the price.
-                </span>
-              </span>
-              <ArrowRight className="h-5 w-5 text-electric transition group-hover:translate-x-1" />
+      <section className="premium-hero mx-auto max-w-7xl px-4 lg:px-8">
+        <div>
+          <span className="eyebrow">Independent electrician · West Midlands</span>
+          <h1>
+            Good electrical work.
+            <br />
+            <span className="text-electric">Made straightforward.</span>
+          </h1>
+          <p className="hero-lead">
+            Electrical installations, EICRs, rewires and repairs for homes and businesses across
+            Birmingham and the West Midlands. Speak directly with Gus, your electrician.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/contact" className="button-primary">
+              Get a Quote <ArrowRight size={18} />
             </Link>
-
-            <Link
-              to="/contact"
-              className="group flex min-h-24 items-center gap-4 px-5 py-4 transition hover:bg-foreground/[0.025]"
-            >
-              <MessageSquareText className="h-5 w-5 shrink-0 text-electric" />
-              <span className="min-w-0 flex-1">
-                <strong className="block text-lg">Discuss Your Job</strong>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
-                  Send the details, postcode and photos.
-                </span>
-              </span>
-              <ArrowRight className="h-5 w-5 text-electric transition group-hover:translate-x-1" />
+            <Link to="/pricing" className="button-secondary">
+              Estimate your job
             </Link>
           </div>
-        </div>
-      </section>
-
-      <section className="border-y border-border bg-foreground/[0.025]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:grid-cols-4 lg:px-8">
-          {[
-            [ShieldCheck, "£2m Public Liability"],
-            [ClipboardCheck, "City & Guilds 2391"],
-            [Wrench, "18th Edition"],
-            [CheckCircle2, "Testing & Certification"],
-          ].map(([Icon, text], index) => {
-            const ItemIcon = Icon as typeof ShieldCheck;
-            return (
-              <div
-                key={String(text)}
-                className={`flex min-h-20 items-center gap-3 px-2 py-4 sm:px-4 ${
-                  index > 0 ? "border-l border-border" : ""
-                }`}
-              >
-                <ItemIcon className="h-5 w-5 shrink-0 text-electric" />
-                <span className="text-xs font-semibold text-foreground/88 sm:text-sm">
-                  {String(text)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
-        <div className="border-b border-border pb-4">
-          <h2 className="text-3xl font-semibold sm:text-4xl">Electrical Services</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Choose what you need.</p>
-        </div>
-
-        <div className="grid lg:grid-cols-2">
-          {SERVICES.map((service, index) => (
-            <Link
-              key={service.slug}
-              to={service.path}
-              className={`group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] lg:px-4 ${
-                index % 2 === 0 ? "lg:border-r" : ""
-              }`}
+          <div className="hero-contact">
+            <a href={`tel:${SITE.phone}`}>
+              <Phone size={17} />
+              {SITE.phoneDisplay}
+            </a>
+            <a
+              href={`https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent("Hi Gus, I’d like a quote for electrical work. My postcode is: ")}`}
+              target="_blank"
+              rel="noreferrer"
             >
-              <span className="font-mono text-xs text-electric">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>
-                <strong className="block text-base sm:text-lg">{service.title}</strong>
-                <span className="mt-1 hidden text-sm text-muted-foreground sm:block">
-                  {service.short}
-                </span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
-            </Link>
-          ))}
-
-          <Link
-            to="/commercial"
-            className="group grid min-h-24 grid-cols-[2.4rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] lg:col-span-2 lg:px-4"
-          >
-            <span className="font-mono text-xs text-electric">07</span>
-            <span>
-              <strong className="block text-base sm:text-lg">Commercial Electrical</strong>
-              <span className="mt-1 hidden text-sm text-muted-foreground sm:block">
-                Testing, lighting, power, access control and refurbishment.
-              </span>
-            </span>
-            <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </section>
-
-      <ReviewPreview />
-
-      <HomeTravelChecker />
-
-      <section className="mx-auto max-w-7xl px-4 pb-8 pt-5 lg:px-8 lg:pb-9">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-semibold sm:text-4xl">Our Work</h2>
-            <p className="mt-1 text-sm text-muted-foreground">View genuine completed projects.</p>
+              <MessageCircle size={18} />
+              WhatsApp your photos
+            </a>
           </div>
-          <Link
-            to="/our-work"
-            className="hidden items-center gap-2 text-sm font-bold text-electric sm:inline-flex"
-          >
-            View projects <ArrowRight className="h-4 w-4" />
-          </Link>
+          <p className="mt-5 text-xs text-muted-foreground">
+            Industry experience since {SITE.industrySince} · Independent since {SITE.founded}
+          </p>
         </div>
-
-        <Link
-          to="/our-work/$slug"
-          params={{ slug: "rowley-park-primary-academy-refurbishment" }}
-          className="group block overflow-hidden rounded-md border border-border bg-card"
-        >
-          <div className="border-b border-border px-4 py-3 sm:px-5">
-            <strong className="text-base">Rowley Park Primary Academy</strong>
-            <span className="ml-2 text-xs text-muted-foreground">Commercial refurbishment</span>
-          </div>
+        <figure className="hero-project">
           <img
             src="/projects/rowley-park/rowley-park-overview.webp"
-            alt="Completed Sperin Services refurbishment at Rowley Park Primary Academy"
+            alt="Completed lighting and electrical installation at Rowley Park Primary Academy"
             width="1120"
             height="840"
-            loading="lazy"
+            fetchPriority="high"
             decoding="async"
-            className="aspect-[16/9] max-h-[440px] w-full object-cover transition duration-500 group-hover:scale-[1.005]"
           />
-        </Link>
-
-        <Link
-          to="/our-work"
-          className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-electric sm:hidden"
-        >
-          View projects <ArrowRight className="h-4 w-4" />
-        </Link>
+          <figcaption>
+            <span>Our work, in the real world</span>
+            <Link
+              to="/our-work/$slug"
+              params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+            >
+              Rowley Park Primary Academy <ArrowRight size={17} />
+            </Link>
+          </figcaption>
+        </figure>
       </section>
+      <div className="border-y border-border bg-muted/50">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:grid-cols-3 lg:px-8">
+          {[
+            { icon: UserRound, title: "One point of contact", text: "Deal directly with Gus" },
+            { icon: Wrench, title: "City & Guilds 2360", text: "Parts 1 & 2" },
+            { icon: ClipboardCheck, title: "City & Guilds 2391", text: "Inspection & testing" },
+          ].map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex items-center gap-3">
+              <Icon className="text-electric" size={23} />
+              <div>
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="text-xs text-muted-foreground">{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <section className="section-pad mx-auto max-w-7xl px-4 lg:px-8">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="eyebrow">What can we help with?</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl">Electrical services</h2>
+          </div>
+          <Link to="/services" className="card-link">
+            All services <ArrowRight size={16} />
+          </Link>
+        </div>
+        <ServiceCards />
+      </section>
+      <HowItWorks />
+      <section className="section-pad mx-auto max-w-7xl px-4 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="eyebrow">A closer look</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl">Care in every detail.</h2>
+          </div>
+          <Link to="/our-work" className="card-link">
+            Explore our work <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            { src: "board", title: "Distribution & circuit protection" },
+            { src: "kitchen", title: "Kitchen electrical installation" },
+            { src: "access-control", title: "Access control & door release" },
+          ].map((p) => (
+            <Link
+              key={p.src}
+              to="/our-work/$slug"
+              params={{ slug: "rowley-park-primary-academy-refurbishment" }}
+              className="project-tile"
+            >
+              <img
+                src={`/projects/rowley-park/rowley-park-${p.src}.webp`}
+                alt={`${p.title} at Rowley Park Primary Academy`}
+                width="900"
+                height="675"
+                loading="lazy"
+                decoding="async"
+              />
+              <div>
+                <h3>{p.title}</h3>
+                <p>Rowley Park Primary Academy</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <ReviewPreview />
+      <HomeTravelChecker />
+      <FAQ
+        items={[
+          {
+            q: "Can I get a price before booking?",
+            a: "Yes. Use the calculator for an indicative estimate or send your job details. A fixed quotation follows assessment; some work needs a site survey.",
+          },
+          {
+            q: "Can I send photographs on WhatsApp?",
+            a: "Yes. Send your postcode, a short description and photos of the relevant fittings or area. Only photograph what is safely accessible; do not remove electrical covers.",
+          },
+          {
+            q: "Will I receive a certificate?",
+            a: "We inspect and test electrical installation work and provide the appropriate certification and handover information where applicable. EICRs report on the condition of an existing installation.",
+          },
+        ]}
+      />
+      <CTA
+        title="Let’s talk about your job."
+        subtitle="A small repair or a bigger project — send the details and we’ll agree the next step."
+      />
     </>
   );
 }

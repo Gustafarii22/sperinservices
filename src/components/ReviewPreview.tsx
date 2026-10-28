@@ -57,6 +57,8 @@ export function ReviewPreview() {
     [website, google.reviews],
   );
 
+  if (ready && !items.length) return null;
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
       <div className="flex items-end justify-between gap-5 border-b border-border pb-5">

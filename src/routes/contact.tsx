@@ -1,10 +1,13 @@
+import { track } from "@/lib/analytics";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Check, Mail, MapPin, Phone, Send } from "lucide-react";
 import { z } from "zod";
 import { SITE, SERVICES } from "@/lib/site";
 import { WhatsAppGlyph } from "@/components/WhatsAppButton";
 
+import { CONTACT_DRAFT, ESTIMATE_DRAFT, clearDraft, readDraft, saveDraft } from "@/lib/drafts";
+import { JOBS, estimate, money, type Selection } from "@/lib/pricing";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/contact" }],
@@ -31,6 +34,7 @@ const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   phone: z.string().trim().min(7, "Phone number is required").max(25),
   email: z.string().trim().email("Enter a valid email address").max(255),
+  address: z.string().trim().max(300),
   postcode: z.string().trim().min(3, "Postcode is required").max(10),
   service: z.string().min(1, "Choose the type of work"),
   property: z.string().min(1, "Choose the property or premises type"),
@@ -47,6 +51,7 @@ const initialForm: FormState = {
   phone: "",
   email: "",
   postcode: "",
+  address: "",
   service: "",
   property: "",
   timescale: "",
@@ -89,7 +94,41 @@ function Contact() {
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  const reference = useRef("");
+  const [selection, setSelection] = useState<Selection>({});
+  const [draftReady, setDraftReady] = useState(false);
+  useEffect(() => {
+    const saved = readDraft<Partial<FormState>>(CONTACT_DRAFT);
+    const priced = readDraft<{ selection: Selection; postcode: string }>(ESTIMATE_DRAFT);
+    if (saved) setForm({ ...initialForm, ...saved });
+    if (priced) {
+      setSelection(
+        Object.fromEntries(
+          JOBS.filter(
+            (j) => Number.isInteger(priced.selection?.[j.id]) && priced.selection[j.id] > 0,
+          ).map((j) => [j.id, Math.min(j.group ? 1 : 20, priced.selection[j.id])]),
+        ),
+      );
+      if (!saved?.postcode) setForm((current) => ({ ...current, postcode: priced.postcode || "" }));
+    }
+    setDraftReady(true);
+  }, []);
+  useEffect(() => {
+    if (draftReady && !sent) saveDraft(CONTACT_DRAFT, form);
+  }, [draftReady, form, sent]);
+  const selectedEstimate = estimate(selection);
+  const whatsappText = [
+    "Hi Gus, I’d like a quote.",
+    form.postcode && `Postcode: ${form.postcode}`,
+    form.message,
+    ...selectedEstimate.rows.map((j) => `${j.quantity} × ${j.name}`),
+    "I can attach photos in WhatsApp.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+    reference.current = "";
     setForm((current) => ({ ...current, [key]: value }));
     setSent("");
   }
@@ -111,7 +150,7 @@ function Contact() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (website) return;
+    if (website || sending || sent || photoBusy) return;
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       const nextErrors: Record<string, string> = {};
@@ -130,7 +169,7 @@ function Contact() {
     setSubmitError("");
     setSending(true);
     try {
-      const reference = crypto.randomUUID();
+      reference.current ||= crypto.randomUUID();
       const response = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,13 +179,18 @@ function Contact() {
           consent,
           website,
           photos,
-          reference,
+          reference: reference.current,
+          selection,
         }),
       });
       const result = await response.json();
       if (!response.ok || !result.success)
         throw Error(result.error || "The enquiry could not be sent.");
       setSent(result.reference);
+      track("enquiry_success");
+      clearDraft(CONTACT_DRAFT);
+      clearDraft(ESTIMATE_DRAFT);
+      setSelection({});
       setForm(initialForm);
       setPhotos([]);
       setConsent(false);
@@ -182,7 +226,7 @@ function Contact() {
                 </span>
               </a>
               <a
-                href={`https://wa.me/${SITE.whatsapp}`}
+                href={`https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(whatsappText)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 border-t border-border py-4"
@@ -243,6 +287,46 @@ function Contact() {
               <MapPin className="h-5 w-5 text-electric" />
             </div>
 
+            {selectedEstimate.count > 0 && (
+              <div className="mt-5 rounded-xl border border-electric/30 bg-electric/5 p-4">
+                <h3 className="font-semibold">Your estimate is attached</h3>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {selectedEstimate.rows.map((j) => (
+                    <li key={j.id}>
+                      {j.quantity} × {j.name} —{" "}
+                      {selectedEstimate.unknown.includes(j.id) ? "Quote required" : money(j.amount)}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-sm">
+                  {selectedEstimate.visit > 0 && (
+                    <>Single visit allowance: {money(selectedEstimate.visit)}. </>
+                  )}
+                  Priced subtotal: {money(selectedEstimate.subtotal)}. Travel and survey items to be
+                  confirmed. No VAT added.
+                </p>
+                <Link
+                  to="/pricing"
+                  className="mt-2 inline-flex min-h-11 items-center text-sm text-electric underline"
+                >
+                  Edit estimate
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelection({});
+                    clearDraft(ESTIMATE_DRAFT);
+                  }}
+                  className="ml-4 min-h-11 text-sm underline"
+                >
+                  Remove estimate
+                </button>
+              </div>
+            )}
+            <p className="mt-4 text-xs text-muted-foreground">
+              Text details are kept in this browser tab for up to 24 hours. If you leave this page,
+              please reattach photographs before sending.
+            </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="Name" error={errors.name}>
                 <input
@@ -280,6 +364,19 @@ function Contact() {
                 />
               </Field>
 
+              <Field
+                label="Job address (optional)"
+                error={errors.address}
+                className="sm:col-span-2"
+              >
+                <input
+                  className={inputCls}
+                  autoComplete="street-address"
+                  value={form.address}
+                  maxLength={300}
+                  onChange={(e) => update("address", e.target.value)}
+                />
+              </Field>
               <Field label="Work" error={errors.service}>
                 <select
                   className={inputCls}
@@ -386,7 +483,7 @@ function Contact() {
                         onClick={() =>
                           setPhotos((current) => current.filter((_, n) => n !== index))
                         }
-                        className="rounded-md border border-border px-2.5 py-1.5 text-muted-foreground"
+                        className="min-h-11 rounded-md border border-border px-2.5 py-1.5 text-muted-foreground"
                       >
                         {photo.name} ×
                       </button>
@@ -428,10 +525,11 @@ function Contact() {
 
             <button
               type="submit"
-              disabled={sending || photoBusy}
+              disabled={sending || photoBusy || !!sent}
               className="button-primary mt-5 w-full disabled:opacity-50"
             >
-              <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send job details"}
+              <Send className="h-4 w-4" />{" "}
+              {sent ? "Enquiry sent" : sending ? "Sending…" : "Send job details"}
             </button>
 
             {sent && (
@@ -442,7 +540,10 @@ function Contact() {
                 <div className="flex gap-2">
                   <Check className="h-4 w-4" /> Enquiry received.
                 </div>
-                <div className="mt-1 text-xs">Reference: {sent}</div>
+                <div className="mt-1 text-xs">
+                  Reference: {sent}. Gus will review your details and contact you about the next
+                  step. No work is booked yet.
+                </div>
               </div>
             )}
             {submitError && (

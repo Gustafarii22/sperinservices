@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check, Phone } from "lucide-react";
 import { CTA } from "@/components/CTA";
-import { SITE } from "@/lib/site";
+import { SITE, OWNER_PHOTO } from "@/lib/site";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -54,6 +54,18 @@ function About() {
           </div>
 
           <aside className="surface-raised technical-grid rounded-md p-6 sm:p-8">
+            {OWNER_PHOTO && (
+              <figure className="mb-6 overflow-hidden rounded-xl">
+                <img
+                  src={OWNER_PHOTO.src}
+                  alt={OWNER_PHOTO.alt}
+                  width="600"
+                  height="720"
+                  className="aspect-[5/4] w-full object-cover"
+                />
+                <figcaption>Gus · Sperin Services</figcaption>
+              </figure>
+            )}
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-electric">
               Trade record
             </div>
@@ -63,20 +75,19 @@ function About() {
                 ["Sperin Services", `Trading since ${SITE.founded}`],
                 ["Inspection & testing", "City & Guilds 2391"],
                 ["Electrical training", "City & Guilds 2360 Parts 1 & 2"],
-                ["Wiring regulations", "18th Edition"],
-                ["Public liability", "£2,000,000"],
-                ["Employers’ liability", "£10,000,000"],
-                ["Professional indemnity", "£2,000,000"],
               ].map(([term, value]) => (
                 <div
                   key={term}
-                  className="rule grid grid-cols-[1fr_auto] gap-5 py-4 first:border-t-0 first:pt-0"
+                  className="rule grid grid-cols-[1fr_1fr] gap-5 py-4 first:border-t-0 first:pt-0"
                 >
                   <dt className="text-sm text-muted-foreground">{term}</dt>
                   <dd className="text-right text-sm font-semibold text-foreground/95">{value}</dd>
                 </div>
               ))}
             </dl>
+            <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+              Ask Gus for qualification and current insurance details when discussing your work.
+            </p>
           </aside>
         </div>
       </section>

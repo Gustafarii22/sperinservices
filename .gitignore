@@ -35,3 +35,7 @@ dist-ssr
 
 # Generated certificate QA evidence
 certificate-android/qa-output/
+
+# Local website verification outputs
+.qa/
+public/__qa.html

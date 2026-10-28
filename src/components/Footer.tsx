@@ -1,3 +1,4 @@
+import { AnalyticsPreference } from "./AnalyticsPreference";
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone } from "lucide-react";
 import { Logo } from "./Logo";
@@ -40,8 +41,17 @@ export function Footer() {
             <Link to="/reviews">Reviews</Link>
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
+            <Link to="/services/data-network-cabling">Data & networks</Link>
+            <Link to="/commercial">Commercial</Link>
+            <Link to="/leave-a-review">Leave a review</Link>
           </nav>
         </div>
+        <p className="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+          Serving Birmingham, Smethwick &amp; Bearwood, Sutton Coldfield, Tamworth and surrounding
+          West Midlands locations. Travel is assessed from our Smethwick base; use the postcode
+          checker for an indication.
+        </p>
+        <AnalyticsPreference />
         <div className="mt-7 flex flex-col gap-3 border-t border-border pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Sperin Services.</span>
           <div className="flex gap-5">

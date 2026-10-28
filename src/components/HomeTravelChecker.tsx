@@ -32,9 +32,10 @@ export function HomeTravelChecker() {
     <section className="mx-auto max-w-7xl px-4 py-9 lg:px-8">
       <div className="grid gap-5 border-y border-border py-6 md:grid-cols-[.8fr_1.2fr] md:items-center">
         <div>
-          <h2 className="text-3xl font-semibold sm:text-4xl">Postcode Checker</h2>
+          <h2 className="text-3xl font-semibold sm:text-4xl">Areas covered</h2>
           <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Enter your postcode to see whether travel is included.
+            Birmingham, Smethwick & Bearwood, Sutton Coldfield, Tamworth and surrounding West
+            Midlands locations. Check your postcode for an indication of travel.
           </p>
         </div>
 
@@ -54,7 +55,7 @@ export function HomeTravelChecker() {
                   setError("");
                 }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && postcode.trim()) check();
+                  if (event.key === "Enter" && postcode.trim() && !checking) check();
                 }}
                 className="h-12 w-full rounded-md border border-border bg-foreground/[0.025] pl-10 pr-3 text-base uppercase outline-none transition focus:border-electric/50 focus:ring-2 focus:ring-electric/20"
               />
@@ -83,7 +84,10 @@ export function HomeTravelChecker() {
               </p>
               {travel.minutes !== undefined ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  About {travel.minutes} minutes each way, without live traffic.
+                  About {travel.minutes} minutes each way, without live traffic.{" "}
+                  {travel.source === "fallback"
+                    ? "Road routing is unavailable; this is a postcode-distance estimate, to be confirmed."
+                    : "Timing and any travel charge are confirmed before booking."}
                 </p>
               ) : null}
             </div>

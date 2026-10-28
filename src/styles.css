@@ -44,7 +44,6 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-
 :root {
   --radius: 0.65rem;
   --background: #ffffff;
@@ -682,13 +681,13 @@ main h1 {
 .whatsapp-button {
   background: transparent;
   color: #25d366;
-  border: 1px solid rgba(37, 211, 102, .34);
+  border: 1px solid rgba(37, 211, 102, 0.34);
 }
 .whatsapp-button svg {
-  filter: drop-shadow(0 0 4px rgba(37, 211, 102, .48));
+  filter: drop-shadow(0 0 4px rgba(37, 211, 102, 0.48));
 }
 .whatsapp-button:hover {
-  background: rgba(37, 211, 102, .08);
+  background: rgba(37, 211, 102, 0.08);
 }
 .enquiry-section {
   border-top: 1px solid #657079;
@@ -737,10 +736,12 @@ main h1 {
     font-size: 10px;
     font-weight: 650;
     letter-spacing: 0.01em;
-    transition: background 160ms ease, color 160ms ease;
+    transition:
+      background 160ms ease,
+      color 160ms ease;
   }
   .mobile-contact-bar a:active {
-    background: rgba(255,255,255,.05);
+    background: rgba(255, 255, 255, 0.05);
   }
   footer {
     padding-bottom: 90px;
@@ -790,7 +791,7 @@ main h1 {
   z-index: 100;
   height: 3px;
   overflow: hidden;
-  background: rgba(255,255,255,.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 .route-progress::after {
   content: "";
@@ -801,40 +802,111 @@ main h1 {
   animation: route-progress 650ms ease-in-out infinite alternate;
 }
 @keyframes route-progress {
-  from { transform: translateX(-35%); }
-  to { transform: translateX(180%); }
+  from {
+    transform: translateX(-35%);
+  }
+  to {
+    transform: translateX(180%);
+  }
 }
 .page-enter {
   animation: page-enter 180ms ease-out both;
 }
 @keyframes page-enter {
-  from { opacity: .72; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0.72;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Theme-aware surfaces shared by all routes and portal-based menus/dialogs. */
-html.dark { color-scheme: dark; }
-.glass, .surface, .glass-strong, .surface-strong, .surface-raised {
+html.dark {
+  color-scheme: dark;
+}
+.glass,
+.surface,
+.glass-strong,
+.surface-strong,
+.surface-raised {
   background: var(--card);
   border-color: var(--border);
   box-shadow: var(--shadow-elegant);
 }
-.technical-grid, .commercial-feature, .enquiry-section, .sector-link { background: var(--secondary); }
-.sector-link:hover, .service-row:hover { background: var(--muted); }
-.eyebrow, .hero-title span, .hero-footnote, .service-detail,
-.contractor-introduction p, .whatsapp-utility { color: var(--muted-foreground); }
-.display-title .text-electric { color: var(--electric); }
-.hairline, .hairline-gold, .rule, .service-row, .service-detail, .commercial-feature,
-.contractor-introduction, .service-standards, .sector-link, .enquiry-section { border-color: var(--border); }
-header { background: color-mix(in srgb, var(--background) 96%, transparent); border-color: var(--border); }
-footer, .mobile-contact-bar { background: var(--secondary); border-color: var(--border); }
-.button-primary, .skip-link { color: var(--primary-foreground); }
-.button-secondary { background: var(--card); border-color: var(--border); }
-.button-secondary:hover { background: var(--secondary); border-color: var(--electric); }
-.whatsapp-button, .whatsapp-utility svg { color: var(--whatsapp); }
-::selection { background: var(--electric); color: var(--primary-foreground); }
-input, textarea, select { color: var(--foreground); }
-select option { background: var(--popover); color: var(--popover-foreground); }
+.technical-grid,
+.commercial-feature,
+.enquiry-section,
+.sector-link {
+  background: var(--secondary);
+}
+.sector-link:hover,
+.service-row:hover {
+  background: var(--muted);
+}
+.eyebrow,
+.hero-title span,
+.hero-footnote,
+.service-detail,
+.contractor-introduction p,
+.whatsapp-utility {
+  color: var(--muted-foreground);
+}
+.display-title .text-electric {
+  color: var(--electric);
+}
+.hairline,
+.hairline-gold,
+.rule,
+.service-row,
+.service-detail,
+.commercial-feature,
+.contractor-introduction,
+.service-standards,
+.sector-link,
+.enquiry-section {
+  border-color: var(--border);
+}
+header {
+  background: color-mix(in srgb, var(--background) 96%, transparent);
+  border-color: var(--border);
+}
+footer,
+.mobile-contact-bar {
+  background: var(--secondary);
+  border-color: var(--border);
+}
+.button-primary,
+.skip-link {
+  color: var(--primary-foreground);
+}
+.button-secondary {
+  background: var(--card);
+  border-color: var(--border);
+}
+.button-secondary:hover {
+  background: var(--secondary);
+  border-color: var(--electric);
+}
+.whatsapp-button,
+.whatsapp-utility svg {
+  color: var(--whatsapp);
+}
+::selection {
+  background: var(--electric);
+  color: var(--primary-foreground);
+}
+input,
+textarea,
+select {
+  color: var(--foreground);
+}
+select option {
+  background: var(--popover);
+  color: var(--popover-foreground);
+}
 /* A clear two-option switch; the selected setting is always visible. */
 .theme-toggle {
   display: inline-flex;
@@ -859,32 +931,70 @@ select option { background: var(--popover); color: var(--popover-foreground); }
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 .theme-toggle button[aria-pressed="true"] {
   background: var(--card);
   color: var(--foreground);
   box-shadow: 0 1px 6px #00000016;
 }
-.theme-toggle button:hover { color: var(--electric); }
-.theme-toggle button:focus-visible { outline-offset: 2px; }
-.theme-toggle svg { width: 16px; height: 16px; color: var(--electric); }
-.site-logo { background: #111314; border-radius: 8px; }
+.theme-toggle button:hover {
+  color: var(--electric);
+}
+.theme-toggle button:focus-visible {
+  outline-offset: 2px;
+}
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  color: var(--electric);
+}
+.site-logo {
+  background: #111314;
+  border-radius: 8px;
+}
 @media (min-width: 1024px) and (max-width: 1279px) {
-  header > div:first-child { gap: 8px; padding-inline: 16px; }
-  header nav a, header summary { padding-inline: 7px; font-size: 12px; }
-  header .site-logo { max-width: 260px; object-fit: contain; }
+  header > div:first-child {
+    gap: 8px;
+    padding-inline: 16px;
+  }
+  header nav a,
+  header summary {
+    padding-inline: 7px;
+    font-size: 12px;
+  }
+  header .site-logo {
+    max-width: 260px;
+    object-fit: contain;
+  }
 }
 @media (max-width: 639px) {
-  header .site-logo { width: 100%; height: auto; max-height: 66px; }
-  header a[aria-label="Sperin Services home"] > span { max-width: 100%; }
-  header .theme-toggle { min-width: 40px; padding-inline: 6px; }
+  header .site-logo {
+    width: 100%;
+    height: auto;
+    max-height: 66px;
+  }
+  header a[aria-label="Sperin Services home"] > span {
+    max-width: 100%;
+  }
+  header .theme-toggle {
+    min-width: 40px;
+    padding-inline: 6px;
+  }
 }
 
 /* True white light theme. Legacy page CSS used literal charcoal values;
    pin every shared surface to its theme tokens so all routes stay coherent. */
-html:not(.dark) { color-scheme: only light; }
-html:not(.dark) body { background: #ffffff; color: var(--foreground); }
+html:not(.dark) {
+  color-scheme: only light;
+}
+html:not(.dark) body {
+  background: #ffffff;
+  color: var(--foreground);
+}
 html:not(.dark) header,
 html:not(.dark) footer,
 html:not(.dark) .mobile-contact-bar {
@@ -905,15 +1015,22 @@ html:not(.dark) .glass-strong {
 html:not(.dark) .technical-grid,
 html:not(.dark) .commercial-feature,
 html:not(.dark) .enquiry-section,
-html:not(.dark) .sector-link { background: #f3f6fa; color: var(--foreground); }
+html:not(.dark) .sector-link {
+  background: #f3f6fa;
+  color: var(--foreground);
+}
 html:not(.dark) .service-row:hover,
-html:not(.dark) .sector-link:hover { background: #eef4fa; }
+html:not(.dark) .sector-link:hover {
+  background: #eef4fa;
+}
 html:not(.dark) .eyebrow,
 html:not(.dark) .hero-title span,
 html:not(.dark) .hero-footnote,
 html:not(.dark) .service-detail,
 html:not(.dark) .contractor-introduction p,
-html:not(.dark) .whatsapp-utility { color: #526174; }
+html:not(.dark) .whatsapp-utility {
+  color: #526174;
+}
 html:not(.dark) .hairline,
 html:not(.dark) .hairline-gold,
 html:not(.dark) .rule,
@@ -923,35 +1040,304 @@ html:not(.dark) .commercial-feature,
 html:not(.dark) .contractor-introduction,
 html:not(.dark) .service-standards,
 html:not(.dark) .sector-link,
-html:not(.dark) .enquiry-section { border-color: var(--border); }
-html:not(.dark) .button-primary { background: #0866d9; color: #ffffff; }
-html:not(.dark) .button-primary:hover { background: #0757bb; }
-html:not(.dark) .button-secondary { background: #ffffff; color: #172638; border-color: #b8c8d7; }
-html:not(.dark) .button-secondary:hover { background: #edf3fa; }
-html:not(.dark) .whatsapp-button { color: #12813c; }
-html:not(.dark) .hero-photograph { background: #edf3fa; }
-html:not(.dark) .mobile-contact-bar a { color: #172638; }
-html:not(.dark) .mobile-contact-bar a:active { background: #edf3fa; }
+html:not(.dark) .enquiry-section {
+  border-color: var(--border);
+}
+html:not(.dark) .button-primary {
+  background: #0866d9;
+  color: #ffffff;
+}
+html:not(.dark) .button-primary:hover {
+  background: #0757bb;
+}
+html:not(.dark) .button-secondary {
+  background: #ffffff;
+  color: #172638;
+  border-color: #b8c8d7;
+}
+html:not(.dark) .button-secondary:hover {
+  background: #edf3fa;
+}
+html:not(.dark) .whatsapp-button {
+  color: #12813c;
+}
+html:not(.dark) .hero-photograph {
+  background: #edf3fa;
+}
+html:not(.dark) .mobile-contact-bar a {
+  color: #172638;
+}
+html:not(.dark) .mobile-contact-bar a:active {
+  background: #edf3fa;
+}
 /* Brand artwork retains its charcoal backdrop for legibility on both modes. */
-.site-logo { background: #111314; }
+.site-logo {
+  background: #111314;
+}
 /* Ensure small screens have enough room for logo, mode controls and menu. */
 @media (max-width: 639px) {
-  header .theme-toggle { min-width: 0; padding: 2px; }
-  header .theme-toggle button { padding: 6px; min-width: 34px; min-height: 34px; }
-  header .theme-toggle .theme-label { display: none; }
-  header a[aria-label="Sperin Services home"] { min-width: 0; }
+  header .theme-toggle {
+    min-width: 0;
+    padding: 2px;
+  }
+  header .theme-toggle button {
+    padding: 6px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+  header .theme-toggle .theme-label {
+    display: none;
+  }
+  header a[aria-label="Sperin Services home"] {
+    min-width: 0;
+  }
 }
 /* Error/warning statuses must remain legible on an actual white background. */
-html:not(.dark) .text-red-300 { color: #b42335; }
-html:not(.dark) .text-amber-200 { color: #874a06; }
+html:not(.dark) .text-red-300 {
+  color: #b42335;
+}
+html:not(.dark) .text-amber-200 {
+  color: #874a06;
+}
 
 /* Advertise the author's light colours to browsers that honour color-scheme.
    Some versions of Samsung Internet can still force darken pages via a user setting. */
-:root:not(.dark) { color-scheme: only light; }
-:root.dark { color-scheme: dark; }
+:root:not(.dark) {
+  color-scheme: only light;
+}
+:root.dark {
+  color-scheme: dark;
+}
 :root:not(.dark) body,
 :root:not(.dark) #main-content,
-:root:not(.dark) .page-enter { background-color: #ffffff; }
+:root:not(.dark) .page-enter {
+  background-color: #ffffff;
+}
 :root:not(.dark) input,
 :root:not(.dark) textarea,
-:root:not(.dark) select { background-color: #ffffff; color: #172638; }
+:root:not(.dark) select {
+  background-color: #ffffff;
+  color: #172638;
+}
+
+/* Shared premium surfaces. Theme colours and the approved mode switch stay intact. */
+:root {
+  --radius: 1rem;
+  --shadow-elegant: 0 12px 38px -24px #17324b40;
+}
+main .rounded-xl,
+main .rounded-2xl,
+.surface,
+.surface-strong,
+.surface-raised {
+  border-radius: 1rem;
+}
+.button-primary,
+.button-secondary {
+  border-radius: 0.65rem;
+  min-height: 48px;
+}
+.premium-hero {
+  display: grid;
+  gap: 48px;
+  align-items: center;
+  padding-block: 56px;
+}
+.premium-hero h1 {
+  margin-top: 20px;
+  font-size: clamp(2.35rem, 4.2vw, 3.65rem);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.hero-lead {
+  margin-top: 22px;
+  max-width: 560px;
+  color: var(--muted-foreground);
+  font-size: 17px;
+  line-height: 1.75;
+}
+.hero-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 18px;
+}
+.hero-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.hero-contact svg {
+  color: var(--electric);
+}
+.hero-project {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  margin: 0;
+  background: var(--muted);
+}
+.hero-project img {
+  width: 100%;
+  aspect-ratio: 1.12;
+  object-fit: cover;
+}
+.hero-project figcaption {
+  position: absolute;
+  margin: 0;
+  inset: auto 0 0;
+  padding: 64px 24px 24px;
+  background: linear-gradient(transparent, #071423e8);
+  color: #fff;
+}
+.hero-project figcaption span {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.hero-project figcaption a {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 650;
+}
+.service-cards {
+  display: grid;
+  gap: 16px;
+}
+.service-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 6px 24px -20px #17324b50;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.service-card:hover {
+  border-color: var(--electric);
+  box-shadow: var(--shadow-elegant);
+}
+.icon-tile {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--secondary);
+  color: var(--electric);
+}
+.service-card h3 {
+  margin-top: 18px;
+  font-size: 18px;
+}
+.service-card p {
+  margin-block: 9px 20px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+.card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--electric);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: auto;
+  min-height: 32px;
+}
+.project-tile {
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+.project-tile img {
+  aspect-ratio: 4/3;
+  width: 100%;
+  object-fit: cover;
+}
+.project-tile > div {
+  padding: 18px;
+}
+.project-tile h3 {
+  font-size: 16px;
+}
+.project-tile p {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.service-visual img {
+  border-radius: 16px;
+}
+.quantity-button {
+  min-height: 46px;
+  min-width: 46px;
+}
+.calculator-summary {
+  position: sticky;
+  top: 68px;
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card);
+  border-block: 1px solid var(--border);
+  box-shadow: 0 6px 14px -10px #17324b50;
+}
+section[id] {
+  scroll-margin-top: 150px;
+}
+@media (min-width: 640px) {
+  .service-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .premium-hero {
+    grid-template-columns: 1.08fr 0.92fr;
+  }
+  .service-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .calculator-summary {
+    top: 82px;
+  }
+}
+@media (max-width: 639px) {
+  .premium-hero {
+    gap: 28px;
+    padding-block: 30px;
+  }
+  .hero-project img {
+    aspect-ratio: 16/10;
+  }
+  .hero-lead {
+    font-size: 16px;
+  }
+  .premium-hero .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+  .hero-contact {
+    gap: 0 16px;
+  }
+  .service-card {
+    padding: 20px;
+  }
+  header .site-logo {
+    max-height: 56px;
+  }
+}

@@ -42,6 +42,8 @@ const schema = z.object({
 });
 
 const enquirySchema = z.object({
+  address: z.string().trim().max(300).optional().default(""),
+  selection: z.record(z.number().int().min(0).max(20)).optional().default({}),
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
   phone: z.string().trim().min(7).max(30),
@@ -155,6 +157,22 @@ export async function lookupTravel(raw: string): Promise<Travel> {
   return finish(estimatedMinutes, "fallback", true);
 }
 
+async function acknowledge(email: string, reference: string) {
+  if (process.env.SPERIN_ENQUIRY_ACKNOWLEDGEMENTS !== "true") return;
+  try {
+    await sendSperinEmail(
+      email,
+      {
+        subject: `Sperin Services — enquiry ${reference}`,
+        text: `Thank you for your enquiry. Your reference is ${reference}. Gus will review your details and contact you about the next step. This is not a confirmed appointment.\n\nSperin Services | 07817 360156 | info@sperinservices.co.uk`,
+        html: `<p>Thank you for your enquiry.</p><p>Your reference is <strong>${reference}</strong>. Gus will review your details and contact you about the next step. This is not a confirmed appointment.</p><p>Sperin Services | 07817 360156</p>`,
+      },
+      `sperin-ack-${reference}`,
+    );
+  } catch {
+    console.error("Sperin acknowledgement delivery failed", reference);
+  }
+}
 export async function bookingApi(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
   if (
@@ -194,6 +212,16 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       if (!parsed.success)
         return json({ error: "Please check your contact details and job information." }, 400);
       const p = parsed.data;
+      const selected = JOBS.filter((j) => p.selection[j.id] > 0);
+      if (
+        Object.keys(p.selection).some((id) => !JOBS.some((j) => j.id === id)) ||
+        ["eicr", "board"].some(
+          (group) =>
+            selected.filter((j) => j.group === group).length > 1 ||
+            selected.some((j) => j.group === group && p.selection[j.id] !== 1),
+        )
+      )
+        return json({ error: "Please check your selected estimate items." }, 400);
       let photoBytes = 0;
       const attachments = p.photos.map((photo, index) => {
         if (!/^[A-Za-z0-9+/]*={0,2}$/.test(photo.content)) throw Error("photo");
@@ -242,6 +270,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
         `Phone: ${p.phone}`,
         `Email: ${p.email}`,
         `Postcode: ${p.postcode}`,
+        `Address: ${p.address || "Not supplied"}`,
         `Work: ${p.service}`,
         `Property / premises: ${p.property}`,
         `Timescale: ${p.timescale}`,
@@ -249,6 +278,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
         `Photographs: ${p.photos.length}`,
         "",
         p.message,
+        ...(selected.length ? ["", ...estimateLines(p.selection, undefined, reference)] : []),
       ].join("\n");
       const escaped = text.replace(
         /[&<>]/g,
@@ -266,6 +296,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
         },
         `sperin-enquiry-${digest}`,
       );
+      await acknowledge(p.email, reference);
       return json({ success: true, reference });
     }
 
@@ -302,7 +333,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       const bytes = estimatePdf(p.selection, travel, reference, {
         postcode: p.postcode || undefined,
       });
-      return new Response(bytes, {
+      return new Response(new Uint8Array(bytes).buffer, {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",
@@ -406,6 +437,7 @@ export async function bookingApi(req: Request): Promise<Response | null> {
       },
       `sperin-booking-${digest}`,
     );
+    await acknowledge(p.email, reference);
     return json({ success: true, reference });
   } catch (error) {
     if (error instanceof Error && error.message === "photo")

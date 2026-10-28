@@ -302,3 +302,18 @@ test("travel check has a deterministic fallback when road routing is unavailable
   assert.match(data.message, /travel included/);
   globalThis.__routeFails = false;
 });
+
+test("contact handoff recalculates items and rejects manipulated selections", async () => {
+  globalThis.__allow = true; globalThis.__failEmail = false;
+  const body = {...payload(), service:"Other", property:"House / flat", timescale:"Flexible", contactMethod:"Email", message:"Test only; please do not book", total:1};
+  const make = b => new Request("https://sperinservices.co.uk/api/enquiry",{method:"POST",headers:{origin:"https://sperinservices.co.uk","Content-Type":"application/json"},body:JSON.stringify(b)});
+  assert.equal((await bookingApi(make(body))).status,200);
+  assert.match(globalThis.__email[1].text,/£120/);
+  assert.match(globalThis.__email[1].text,/Address: Test address/);
+  for(const selection of [{fake:1},{board6:1,board10:1},{eicr6:2}]) assert.equal((await bookingApi(make({...body,selection}))).status,400);
+});
+test("survey-only selection has no charge and remains flagged in PDF text", () => {
+  const e=estimate({rewire:1,"ev-charger":1});
+  assert.equal(e.subtotal,0); assert.equal(e.unknown.length,2);
+  assert.match(estimateLines({rewire:1}).join("\n"),/to be confirmed/);
+});

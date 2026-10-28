@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Building2 } from "lucide-react";
-import { SERVICES } from "@/lib/site";
+import { ServiceCards } from "@/components/ServiceCards";
+import { CTA } from "@/components/CTA";
 import { breadcrumbJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/services/")({
@@ -48,41 +49,9 @@ function ServicesIndex() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
-        <div className="border-t border-border">
-          {SERVICES.map((service, index) => (
-            <Link
-              key={service.slug}
-              to={service.path}
-              className="group grid min-h-24 grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border py-4 transition hover:bg-foreground/[0.025] sm:px-3"
-            >
-              <span className="font-mono text-xs text-electric">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>
-                <strong className="block text-lg sm:text-xl">{service.title}</strong>
-                <span className="mt-1 block text-sm text-muted-foreground">{service.short}</span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
-            </Link>
-          ))}
-        </div>
-
-        <Link
-          to="/commercial"
-          className="group mt-4 flex min-h-20 items-center gap-4 border border-electric/20 bg-electric/[0.035] px-4 py-4 transition hover:bg-electric/[0.06] sm:px-5"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-electric/10 text-electric">
-            <Building2 className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <strong className="block text-lg">Commercial Electrical</strong>
-            <span className="mt-0.5 block text-sm text-muted-foreground">
-              Schools, offices, shops and commercial premises.
-            </span>
-          </span>
-          <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
-        </Link>
+        <ServiceCards />
       </section>
+      <CTA />
     </>
   );
 }

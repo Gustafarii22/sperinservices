@@ -117,10 +117,9 @@ function ProjectPage() {
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-12 lg:grid-cols-[.72fr_1.28fr] lg:px-8 lg:py-16">
         <div>
           <span className="eyebrow">Project scope</span>
-          <h2 className="mt-4 text-3xl font-bold sm:text-4xl">One coordinated refurbishment.</h2>
+          <h2 className="mt-4 text-3xl font-bold sm:text-4xl">What this project involved.</h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-            The job covered the wider space as well as the electrical installation, so the finished
-            result could be delivered as a complete area rather than separate isolated packages.
+            The agreed scope, installation details and handover for this Sperin Services project.
           </p>
         </div>
 
@@ -168,6 +167,7 @@ function ProjectPage() {
                   className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                 />
                 <span className="block px-1 pt-3 text-sm leading-relaxed text-muted-foreground">
+                  <strong className="mr-2 capitalize text-electric">{photo.stage}</strong>
                   {photo.alt}
                 </span>
               </button>
@@ -193,7 +193,7 @@ function ProjectPage() {
               </Link>
               {project.relatedService && (
                 <a href={project.relatedService} className="button-secondary">
-                  Commercial services
+                  Related service
                 </a>
               )}
             </div>
@@ -232,6 +232,19 @@ function ProjectPage() {
             photoTrigger.current?.focus();
           }}
           className="max-w-5xl border-border bg-background p-4 pt-12"
+          onKeyDown={(event) => {
+            if (!active) return;
+            const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+            if (delta) {
+              event.preventDefault();
+              setActive(
+                project.photos[
+                  (project.photos.indexOf(active) + delta + project.photos.length) %
+                    project.photos.length
+                ],
+              );
+            }
+          }}
         >
           <DialogTitle className="sr-only">Project photograph</DialogTitle>
           {active && (
@@ -241,7 +254,39 @@ function ProjectPage() {
                 alt={active.alt}
                 className="mx-auto max-h-[72dvh] max-w-full object-contain"
               />
-              <figcaption className="mt-4 text-sm text-muted-foreground">{active.alt}</figcaption>
+              <figcaption className="mt-4 text-sm text-muted-foreground">
+                <strong className="capitalize">{active.stage}</strong> · {active.alt}
+              </figcaption>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() =>
+                    setActive(
+                      project.photos[
+                        (project.photos.indexOf(active) - 1 + project.photos.length) %
+                          project.photos.length
+                      ],
+                    )
+                  }
+                >
+                  ← Previous
+                </button>
+                <span className="text-xs" aria-live="polite">
+                  {project.photos.indexOf(active) + 1} / {project.photos.length}
+                </span>
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() =>
+                    setActive(
+                      project.photos[(project.photos.indexOf(active) + 1) % project.photos.length],
+                    )
+                  }
+                >
+                  Next →
+                </button>
+              </div>
             </figure>
           )}
         </DialogContent>

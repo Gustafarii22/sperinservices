@@ -1,7 +1,9 @@
+import { track } from "@/lib/analytics";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, Download, ArrowRight, Check, MapPin } from "lucide-react";
 import { JOBS, estimate, money, CONDITIONS, type Selection, type Travel } from "@/lib/pricing";
+import { ESTIMATE_DRAFT, clearDraft, readDraft, saveDraft } from "@/lib/drafts";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://sperinservices.co.uk/pricing" }],
@@ -59,6 +61,32 @@ function Pricing() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState("");
   const [reference, setReference] = useState("");
+  const bookingForm = useRef<HTMLFormElement>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  useEffect(() => {
+    const saved = readDraft<{ selection: Selection; postcode: string }>(ESTIMATE_DRAFT);
+    if (saved) {
+      setSelection(
+        Object.fromEntries(
+          JOBS.filter(
+            (j) => Number.isInteger(saved.selection?.[j.id]) && saved.selection[j.id] > 0,
+          ).map((j) => [j.id, Math.min(j.group ? 1 : 20, saved.selection[j.id])]),
+        ),
+      );
+      setPostcode(saved.postcode || "");
+    }
+    const booking = readDraft<Record<string, string>>("sperin-booking-v1");
+    if (booking && bookingForm.current)
+      for (const [key, value] of Object.entries(booking)) {
+        const input = bookingForm.current.elements.namedItem(key);
+        if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)
+          input.value = value;
+      }
+    setDraftReady(true);
+  }, []);
+  useEffect(() => {
+    if (draftReady) saveDraft(ESTIMATE_DRAFT, { selection, postcode });
+  }, [draftReady, selection, postcode]);
   const e = estimate(selection);
   const total = e.subtotal + (travel?.charge || 0);
   const incomplete = !!e.unknown.length || travel?.charge == null;
@@ -69,7 +97,9 @@ function Pricing() {
     return next;
   }
   function change(id: string, delta: number) {
+    track("calculator_change");
     setSent("");
+    setReference("");
     setOverlapConfirmed(false);
     setSelection((current) => {
       const job = JOBS.find((j) => j.id === id)!;
@@ -131,6 +161,7 @@ function Pricing() {
       a.download = `Sperin-Services-estimate-${id.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
+      track("estimate_pdf");
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     } catch (err) {
@@ -171,7 +202,9 @@ function Pricing() {
       const result = await response.json();
       if (!response.ok || !result.success)
         throw Error(result.error || "Request could not be sent.");
+      clearDraft("sperin-booking-v1");
       setSent(result.reference);
+      track("enquiry_success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send. Please call 07817 360156.");
     } finally {
@@ -194,6 +227,23 @@ function Pricing() {
           </p>
         </div>
       </section>
+      <div className="calculator-summary">
+        <span className="text-sm">
+          <strong>
+            {e.count
+              ? e.subtotal === 0 && e.unknown.length
+                ? "Quote required"
+                : money(total)
+              : "Choose your work"}
+          </strong>
+          {e.count > 0 && (
+            <span className="ml-2 text-xs text-muted-foreground">{e.count} item(s) · estimate</span>
+          )}
+        </span>
+        <a href="#estimate-summary" className="text-sm font-bold text-electric">
+          View breakdown ↓
+        </a>
+      </div>
       <section id="calculator" className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -206,15 +256,23 @@ function Pricing() {
         </div>
         <div className="grid items-start gap-5 xl:grid-cols-[1fr_340px]">
           <div>
-            {["replacements", "packages"].map((group) => (
+            {["replacements", "packages", "survey"].map((group) => (
               <div key={group} className="mb-5">
                 <h3 className="mb-2 border-b border-border pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {group === "replacements"
                     ? "Straightforward replacements"
-                    : "Inspection & consumer units"}
+                    : group === "packages"
+                      ? "Inspection & consumer units"
+                      : "Survey & tailored quotations"}
                 </h3>
                 <div className="grid gap-2 md:grid-cols-2">
-                  {JOBS.filter((j) => (group === "packages" ? !!j.group : !j.group)).map((j) => (
+                  {JOBS.filter((j) =>
+                    group === "survey"
+                      ? j.quoteOnly
+                      : group === "packages"
+                        ? !!j.group
+                        : !j.group && !j.quoteOnly,
+                  ).map((j) => (
                     <article
                       key={j.id}
                       className="rounded-xl border border-border bg-foreground/[0.025] px-3 py-2.5"
@@ -226,7 +284,9 @@ function Pricing() {
                             {j.detail}
                           </p>
                           <p className="mt-3 text-sm">
-                            <strong>From {money(j.price)}</strong>
+                            <strong>
+                              {j.quoteOnly ? "Survey required" : `From ${money(j.price)}`}
+                            </strong>
                             {j.additional !== undefined && (
                               <span className="text-muted-foreground">
                                 {" "}
@@ -246,7 +306,7 @@ function Pricing() {
                             aria-label={`Remove ${j.name}`}
                             disabled={!selection[j.id]}
                             onClick={() => change(j.id, -1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground/[0.025] disabled:opacity-30 hover:bg-white/10"
+                            className="quantity-button flex h-12 w-12 items-center justify-center rounded-full bg-foreground/[0.025] disabled:opacity-30 hover:bg-white/10"
                           >
                             <Minus size={18} />
                           </button>
@@ -261,7 +321,7 @@ function Pricing() {
                             aria-label={`Add ${j.name}`}
                             disabled={selection[j.id] >= (j.group ? 1 : 20)}
                             onClick={() => change(j.id, 1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-electric/15 text-electric disabled:opacity-30 hover:bg-electric/25"
+                            className="quantity-button flex h-12 w-12 items-center justify-center rounded-full bg-electric/15 text-electric disabled:opacity-30 hover:bg-electric/25"
                           >
                             <Plus size={18} />
                           </button>
@@ -284,6 +344,8 @@ function Pricing() {
           </div>
           <aside
             className="rounded-2xl border border-border bg-foreground/[0.025] p-4 sm:p-5 xl:sticky xl:top-24"
+            id="estimate-summary"
+            style={{ scrollMarginTop: 160 }}
             aria-label="Your estimate"
           >
             <span className="eyebrow">Your total</span>
@@ -298,9 +360,26 @@ function Pricing() {
                   <li key={j.id} className="flex justify-between gap-4">
                     <span>
                       {j.quantity} × {j.name}
+                      <button
+                        type="button"
+                        aria-label={`Remove all ${j.name}`}
+                        className="block min-h-11 text-xs text-electric underline"
+                        onClick={() => {
+                          setSelection((current) => {
+                            const next = { ...current };
+                            delete next[j.id];
+                            return next;
+                          });
+                          setSent("");
+                          setReference("");
+                          setOverlapConfirmed(false);
+                        }}
+                      >
+                        Remove
+                      </button>
                     </span>
                     <span className="shrink-0 font-semibold">
-                      {e.unknown.includes(j.id) ? "Assess" : money(j.amount)}
+                      {e.unknown.includes(j.id) ? "Quote required" : money(j.amount)}
                     </span>
                   </li>
                 ))}
@@ -393,11 +472,13 @@ function Pricing() {
               <p className="text-sm text-muted-foreground">
                 {incomplete ? "Estimated priced subtotal" : "Estimated total"}
               </p>
-              <p className="mt-2 text-4xl font-semibold tracking-tight">{money(total)}</p>
+              <p className="mt-2 text-4xl font-semibold tracking-tight">
+                {e.count && e.subtotal === 0 && e.unknown.length ? "Quote required" : money(total)}
+              </p>
               {e.unknown.length > 0 && (
                 <p className="mt-3 text-sm text-amber-200">
-                  Items marked “Assess” are not included. We’ll price these together after checking
-                  the job.
+                  Items marked “Quote required” are not included. We’ll price these together after
+                  checking the job.
                 </p>
               )}
               {travel?.charge == null && (
@@ -413,7 +494,7 @@ function Pricing() {
               type="button"
               disabled={!e.count || pdfBusy}
               onClick={download}
-              className="button-secondary mt-6 w-full disabled:opacity-40"
+              className="button-secondary mt-6 w-full !border-electric !text-electric disabled:opacity-40"
             >
               <Download size={17} />
               {pdfBusy ? "Creating letterheaded PDF…" : "Download estimate PDF"}
@@ -424,8 +505,14 @@ function Pricing() {
               </p>
             )}
             <a href="#booking" className="button-primary mt-3 w-full">
-              Request this booking <ArrowRight size={17} />
+              Request Fixed Quote <ArrowRight size={17} />
             </a>
+            <Link
+              to="/contact"
+              className="mt-3 flex min-h-11 items-center justify-center text-sm font-semibold text-electric"
+            >
+              Continue in contact form →
+            </Link>
           </aside>
         </div>
       </section>
@@ -496,7 +583,24 @@ function Pricing() {
               </ul>
             </details>
           </div>
-          <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
+          <form
+            ref={bookingForm}
+            onSubmit={submit}
+            onChange={() => {
+              if (!bookingForm.current) return;
+              const data = new FormData(bookingForm.current);
+              saveDraft(
+                "sperin-booking-v1",
+                Object.fromEntries(
+                  ["name", "email", "phone", "address", "timing", "notes"].map((key) => [
+                    key,
+                    data.get(key) || "",
+                  ]),
+                ),
+              );
+            }}
+            className="grid gap-5 sm:grid-cols-2"
+          >
             {(
               [
                 ["name", "Your name", "text", "name"],
@@ -646,7 +750,7 @@ function Pricing() {
                 }
                 className="button-primary w-full sm:w-auto disabled:opacity-40"
               >
-                {sending ? "Sending request…" : "Request this booking"}
+                {sending ? "Sending request…" : "Request Fixed Quote"}
                 <ArrowRight size={17} />
               </button>
             </div>

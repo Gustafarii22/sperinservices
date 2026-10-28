@@ -31,7 +31,7 @@ function Privacy() {
       <h1 className="mt-5 text-4xl font-bold sm:text-5xl">
         <span className="gradient-electric-text">Privacy Policy</span>
       </h1>
-      <p className="mt-4 text-sm text-muted-foreground">Last updated: 4 October 2026</p>
+      <p className="mt-4 text-sm text-muted-foreground">Last updated: 28 October 2026</p>
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-muted-foreground">
         <PolicySection title="Who we are">
@@ -83,12 +83,11 @@ function Privacy() {
             required by law. Website reviews are stored in a dedicated Neon database with access
             controls. Submitted reviews stay private until approved; names, towns, ratings, service
             details and review text are published with consent. Job references remain private. Owner
-            access uses a secure, short-lived sign-in cookie. Website quote requests are processed
-            by FormSubmit and forwarded to our business email. Pricing-page booking requests and
-            optional photographs are sent privately through Resend to our business email.
-            Photographs are resized in your browser before upload. Where enabled, postcode travel
-            checks use Postcodes.io and openrouteservice; only location information needed for
-            routing is sent.
+            access uses a secure, short-lived sign-in cookie. Website enquiries, pricing-page quote
+            requests and optional photographs are sent privately through Resend to our business
+            email. Photographs are resized in your browser before upload. Where enabled, postcode
+            travel checks use Postcodes.io and openrouteservice or OSRM; only location information
+            needed for routing is sent.
           </p>
         </PolicySection>
 
@@ -140,9 +139,15 @@ function Privacy() {
 
         <PolicySection title="Cookies and technical information">
           <p>
-            This website does not currently use advertising or analytics cookies. Our hosting and
-            security providers may process limited technical information, such as IP addresses and
-            request logs, to deliver and protect the website.
+            This website does not use advertising cookies. Your theme preference is saved on this
+            device. Enquiry text and calculator selections are saved in this browser tab for up to
+            24 hours to let you continue between pages; photographs are not stored in these drafts.
+            Optional usage measurement is off by default and can be changed in the footer. If you
+            allow it, we record event names for contact clicks, calculator use, PDF downloads and
+            successful enquiries in our hosting logs. No form contents, photographs, visitor
+            identifiers or advertising profiles are included. Do Not Track is respected. Our hosting
+            and security providers may process limited technical information, such as IP addresses
+            and request logs, to deliver and protect the website.
           </p>
         </PolicySection>
 

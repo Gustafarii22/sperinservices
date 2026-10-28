@@ -4,6 +4,7 @@ export type Project = {
   slug: string;
   title: string;
   service: string;
+  categories?: string[];
   area: string;
   date: string;
   summary: string;
@@ -22,6 +23,13 @@ export const projects: Project[] = [
     slug: "rowley-park-primary-academy-refurbishment",
     title: "Rowley Park Primary Academy — Early Years Refurbishment",
     service: "Commercial",
+    categories: [
+      "Commercial",
+      "Consumer Units",
+      "Electrical Installations",
+      "Kitchens",
+      "Smart Home",
+    ],
     area: "Stafford",
     date: "2026",
     summary:
@@ -88,4 +96,6 @@ export const projectCategories = [
   "Bathrooms",
   "Commercial",
   "Building Work",
+  "Electrical Installations",
+  "Data & Network Cabling",
 ];

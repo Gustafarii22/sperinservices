@@ -27,10 +27,10 @@ export function CTA({
           </Link>
           <Link
             to="/contact"
-            className="group flex min-h-20 items-center gap-3 px-5 transition hover:bg-foreground/[0.025]"
+            className="group flex min-h-20 items-center gap-3 px-5 bg-primary text-primary-foreground transition hover:opacity-90"
           >
-            <MessageSquareText className="h-5 w-5 text-electric" />
-            <span className="flex-1 font-semibold">Discuss Your Job</span>
+            <MessageSquareText className="h-5 w-5" />
+            <span className="flex-1 font-semibold">Get a Quote</span>
             <ArrowRight className="h-4 w-4 text-electric transition group-hover:translate-x-1" />
           </Link>
         </div>

@@ -284,6 +284,8 @@ function notesBlock(document: PdfDocument, y: number) {
     "This is an estimate only. A fixed quotation is confirmed after assessment and before work starts.",
     "Prices assume suitable existing wiring, same-position replacement where applicable and normal safe access.",
     "Sperin Services is not VAT registered. No VAT is charged.",
+    "Consumer-unit packages include installation testing and certification. A separate EICR is only needed if agreed.",
+    "Existing faults, bonding upgrades, board relocation and EICR remedial work are quoted separately.",
   ];
   if (document.hasUnknown)
     notes.push("Any work marked TO ASSESS is excluded from the priced subtotal.");
@@ -415,7 +417,7 @@ export function estimatePdf(
 
   let finalY = pageRows.length === 1 ? 602 : 662;
   for (const row of pageRows.at(-1) || []) finalY -= rowHeight(row);
-  if (finalY < 275) pageRows.push([]);
+  if (finalY < 330) pageRows.push([]);
 
   const pages = pageRows.length;
   const streams: string[] = [];

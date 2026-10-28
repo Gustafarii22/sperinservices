@@ -32,6 +32,16 @@ export function ServicePage(p: ServicePageProps) {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-8 pt-8 lg:px-8 lg:pb-10 lg:pt-12">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-5 flex flex-wrap gap-2 text-xs text-muted-foreground"
+        >
+          <Link to="/">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link to="/services">Services</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{p.title}</span>
+        </nav>
         <div className="grid items-stretch gap-6 lg:grid-cols-[1.15fr_.85fr]">
           <div className="py-4 lg:py-8">
             <span className="eyebrow">Electrical service · West Midlands</span>
@@ -51,7 +61,7 @@ export function ServicePage(p: ServicePageProps) {
                 </Link>
               ) : (
                 <Link to="/contact" className="button-primary">
-                  Discuss Your Job <ArrowRight className="h-4 w-4" />
+                  Get a Quote <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
               <a href={`tel:${SITE.phone}`} className="button-secondary">

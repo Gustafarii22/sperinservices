@@ -39,7 +39,10 @@ export const Route = createFileRoute("/our-work/")({
 
 function OurWork() {
   const [category, setCategory] = useState("All");
-  const shown = category === "All" ? projects : projects.filter((p) => p.service === category);
+  const shown =
+    category === "All"
+      ? projects
+      : projects.filter((p) => p.service === category || p.categories?.includes(category));
 
   return (
     <>
@@ -60,21 +63,26 @@ function OurWork() {
           role="group"
           aria-label="Filter projects by category"
         >
-          {projectCategories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCategory(c)}
-              aria-pressed={category === c}
-              className={`shrink-0 border-b-2 px-3 py-2 text-xs font-semibold transition ${
-                category === c
-                  ? "border-electric bg-electric/[0.035] text-electric"
-                  : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
-              }`}
-            >
-              {c}
-            </button>
-          ))}
+          {projectCategories
+            .filter(
+              (c) =>
+                c === "All" || projects.some((p) => p.service === c || p.categories?.includes(c)),
+            )
+            .map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                aria-pressed={category === c}
+                className={`shrink-0 border-b-2 min-h-11 px-3 py-2 text-xs font-semibold transition ${
+                  category === c
+                    ? "border-electric bg-electric/[0.035] text-electric"
+                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
         </div>
 
         {projects.length === 0 ? (

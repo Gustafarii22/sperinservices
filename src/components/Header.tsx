@@ -96,6 +96,13 @@ export function Header() {
                 </summary>
 
                 <div className="border-t border-border bg-muted px-3 py-2">
+                  <Link
+                    to="/services"
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-11 items-center px-3 text-sm font-bold text-electric"
+                  >
+                    All electrical services
+                  </Link>
                   {SERVICES.map((service) => (
                     <Link
                       key={service.slug}
@@ -191,10 +198,10 @@ function ServicesDropdown() {
       </summary>
 
       <div className="absolute left-1/2 top-full w-[340px] -translate-x-1/2 pt-2">
-        <div className="overflow-hidden rounded-md border border-border bg-card shadow-2xl">
+        <div className="max-h-[calc(100dvh-110px)] overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
           <div className="border-b border-border px-4 py-3">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-electric">
-              Electrical Services
+              <Link to="/services">All electrical services →</Link>
             </div>
           </div>
 

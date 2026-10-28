@@ -24,6 +24,7 @@ export const SITE = {
   areas: [
     "Birmingham",
     "Smethwick",
+    "Bearwood",
     "Quinton",
     "Harborne",
     "Oldbury",
@@ -41,6 +42,8 @@ export const SITE = {
     "18th Edition Wiring Regulations",
   ],
 };
+
+export const OWNER_PHOTO: { src: string; alt: string } | null = null; // Add only an approved, genuine portrait.
 
 export const SERVICES = [
   {
@@ -84,6 +87,13 @@ export const SERVICES = [
     title: "Kitchens & Bathrooms",
     short: "Electrical work integrated with the wider project",
     image: "kitchen",
+  },
+  {
+    slug: "data-network-cabling",
+    path: "/services/data-network-cabling",
+    title: "Data & Network Cabling",
+    short: "Wired networks, data outlets and connectivity for homes and businesses",
+    image: "network",
   },
 ] as const;
 
