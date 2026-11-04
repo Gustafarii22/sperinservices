@@ -68,6 +68,8 @@ const layout=await bar.evaluate(e=>({display:getComputedStyle(e).display,whiteSp
 assert.equal(layout.display,"flex");
 assert(layout.firstHeight>=43,"Mobile edit action must be finger-sized");
 await fourth.locator('[data-action="template-save-circuit"]').click();
+await page.locator('[data-template-name]').fill('QA circuit template');
+await page.locator('[data-action="template-save-choice"][data-results="no"]').click();
 assert((await page.locator(".toast,.toast-message").count())>=0);
 for(let i=0;i<3;i++){
  const moving=await row("QA Circuit 4");
