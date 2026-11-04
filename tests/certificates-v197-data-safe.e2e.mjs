@@ -75,4 +75,4 @@ try{
  assert.equal((await read()).fields.clientName,'Existing customer');assert.equal((await read()).tables.boards[0].spdBs,'Existing SPD standard');
  mkdirSync('certificate-android/qa-output',{recursive:true});await page.screenshot({path:'certificate-android/qa-output/v197-mobile.png',fullPage:false});
  assert.deepEqual(errors,[]);console.log('V197_DATA_PRESERVATION_DUPLICATE_TEMPLATES_SCROLL_MOBILE_INSTRUMENTS_PASS');
-}finally{await browser.close();}
+}finally{mkdirSync('certificate-android/qa-output',{recursive:true});await page.screenshot({path:'certificate-android/qa-output/v197-final.png',fullPage:false}).catch(()=>{});await browser.close();}

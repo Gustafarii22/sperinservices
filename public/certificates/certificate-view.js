@@ -203,7 +203,7 @@
    const dock=document.querySelector('.editor-dock');
    const dockTop=dock?.getBoundingClientRect().top;
    const bottomSpace=Number.isFinite(dockTop)?Math.max(0,window.innerHeight-dockTop):90;
-   const reserved=(toolbar?.getBoundingClientRect().height||60)+bottomSpace+40;
+   const reserved=(toolbar?.getBoundingClientRect().height||60)+bottomSpace+140;
    port.style.height=Math.max(100,window.innerHeight-reserved)+'px';
  }
  function fit(){

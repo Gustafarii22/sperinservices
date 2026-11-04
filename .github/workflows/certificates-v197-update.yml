@@ -17,6 +17,8 @@ jobs:
           node-version: 22
       - name: Install browser tests
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y poppler-utils
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Start offline app

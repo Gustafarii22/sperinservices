@@ -901,7 +901,7 @@ body:not([data-page=form]) #sperin-live-indicator{display:none!important}
 .circuit-summary-actions .btn{min-height:44px;padding:7px 9px}
 .inline-circuit-summary{flex-wrap:wrap;min-width:0}
 .inline-circuit-summary small{min-width:0;overflow-wrap:anywhere}
-details[data-accordion-key]{scroll-margin-top:110px;overflow-anchor:none}
+details[data-accordion-key]{scroll-margin-top:18px;overflow-anchor:none}
 @media(max-width:600px){.inline-circuit .fields{grid-template-columns:minmax(0,1fr)}.inline-circuit .field{grid-column:1/-1}.inline-circuit-summary small{flex-basis:100%}.inline-circuit-actions .btn{white-space:normal}}
 
 /* Keep preview actions visible and allow a whole page on a landscape phone. */
