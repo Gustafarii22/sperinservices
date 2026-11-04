@@ -401,6 +401,29 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 await autoChooseQuickEntry(page);
+
+// Legacy PDF and circuit regression exercises the retained advanced editor
+// handler. Only expose this QA bridge inside Playwright; production users
+// continue seeing the simplified seven-action inline toolbar.
+await page.addInitScript(()=>{
+  const expose=()=>{
+    document.querySelectorAll('.inline-circuit[data-inline-index]').forEach(row=>{
+      if(row.querySelector('[data-action="circuit-open"]'))return;
+      const target=row.querySelector('.inline-circuit-actions');
+      if(!target)return;
+      const b=document.createElement('button');
+      b.type='button';b.className='btn small qa-legacy-edit';
+      b.dataset.action='circuit-open';b.dataset.index=row.dataset.inlineIndex;
+      b.textContent='QA advanced editor';
+      target.append(b);
+    });
+  };
+  document.addEventListener('DOMContentLoaded',()=>{
+    new MutationObserver(expose).observe(document.body,{childList:true,subtree:true});
+    expose();
+  },{once:true});
+});
+
 const errors = [];
 const dialogs = [];
 page.on("pageerror", (err) => errors.push(String(err)));
