@@ -35,11 +35,14 @@ try {
   await page.locator('[data-action="home"]').first().click();
   await page.locator('[data-action="settings"]').first().click();
 
-  const downloadPromise=page.waitForEvent('download',{timeout:15000});
-  await page.locator('[data-action="backup"]').click();
-  await page.locator('[data-action="recovery-confirm-next"]').click();
-  await page.locator('[data-action="recovery-confirm-do"]').click();
-  const download=await downloadPromise;
+  const [download]=await Promise.all([
+    page.waitForEvent('download',{timeout:15000}),
+    (async()=>{
+      await page.locator('.profile-modal [data-action="backup"]').click();
+      await page.locator('[data-action="recovery-confirm-next"]').click();
+      await page.locator('[data-action="recovery-confirm-do"]').click();
+    })()
+  ]);
   assert(download.suggestedFilename().endsWith('.json'));
   await download.saveAs(backupPath);
   const content=await readFile(backupPath,'utf8');
