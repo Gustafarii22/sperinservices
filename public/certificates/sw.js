@@ -1,15 +1,15 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
 const CACHE="sperin-certificates-v1-9-6-dual-view";
 const SHELL=[
- "./","./index.html","./styles.css?v=1.9.6",
- "./vendor/jspdf.umd.min.js?v=1.9.6",
- "./vendor/jspdf.plugin.autotable.min.js?v=1.9.6",
- "./iet-forms.js?v=1.9.6","./scan-core.js?v=1.9.6",
- "./board-scan.js?v=1.9.6",
- "./team-workspace.js?v=1.9.6","./ai-assistance.js?v=1.9.6",
- "./instrument-import.js?v=1.9.6","./vendor/qrcode.min.js?v=1.9.6",
- "./job-centre.js?v=1.9.6","./speed-suite.js?v=1.9.6",
- "./live-editing.js?v=1.9.6","./certificate-view.js?v=1.9.6","./app.js?v=1.9.6",
+ "./","./index.html","./styles.css?v=1.9.7",
+ "./vendor/jspdf.umd.min.js?v=1.9.7",
+ "./vendor/jspdf.plugin.autotable.min.js?v=1.9.7",
+ "./iet-forms.js?v=1.9.7","./scan-core.js?v=1.9.7",
+ "./board-scan.js?v=1.9.7",
+ "./team-workspace.js?v=1.9.7","./ai-assistance.js?v=1.9.7",
+ "./instrument-import.js?v=1.9.7","./vendor/qrcode.min.js?v=1.9.7",
+ "./job-centre.js?v=1.9.7","./speed-suite.js?v=1.9.7",
+ "./live-editing.js?v=1.9.7","./certificate-view.js?v=1.9.7","./app.js?v=1.9.7",
  "./manifest.webmanifest","./icon.svg"
 ];
 self.addEventListener("install",e=>e.waitUntil(

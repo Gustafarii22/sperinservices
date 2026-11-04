@@ -6,7 +6,7 @@
  const LANDSCAPE_TYPES=new Set(['eic','eicr']);
  const METHOD={A1:'Single-core in conduit within insulated wall',A2:'Multicore in conduit within insulated wall',B:'Conduit/trunking on wall',C:'Clipped direct',D1:'In underground duct',D2:'Direct buried',E:'Multicore in free air',F:'Single-core touching, free air',G:'Single-core spaced, free air',100:'Above insulated ceiling, up to 100 mm',101:'Above insulated ceiling, over 100 mm',102:'Inside insulated stud wall, touching inner face',103:'Inside insulated stud wall, not touching inner face'};
  const isLandscape=type=>LANDSCAPE_TYPES.has(type);
- const persisted={page:0,zoom:1,showPages:false};
+ const persisted={page:0,zoom:1,showPages:false,fitMode:true};
  const rowsPerPage=12;
  function fieldInput(scope,key,value,field={},row=-1,kind=''){
    const id='cv-'+scope+'-'+row+'-'+key;
@@ -26,11 +26,12 @@
    return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(numeric&&field.type!=='select'&&!Array.isArray(field.options)?'<button class="cv-keyboard-toggle" type="button" data-action="cv-keyboard" aria-label="Toggle numeric and text keyboard">ABC</button>':'')+(['refMethod','referenceMethod'].includes(key)?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
  }
  function sectionPage(title,fields,cert,orientation,label){
+   fields=fields.filter(f=>!f.showWhen||String(cert.fields?.[f.showWhen.key]||'')===String(f.showWhen.value));
    const max=orientation==='landscape'?18:13;
    const pages=[];
    for(let off=0;off<fields.length||off===0;off+=max){
      const chunk=fields.slice(off,off+max);
-     pages.push({title:title+(off?' · continued':''),label:label||title,orientation,html:'<div class="cv-titleline">'+E(title)+'</div><div class="cv-fields">'+chunk.map(f=>fieldInput('field',f.key,cert.fields?.[f.key],f)).join('')+'</div>'});
+     pages.push({title:title+(off?' · continued':''),label:label||title,orientation,html:'<div class="cv-titleline">'+E(title)+'</div><div class="cv-fields">'+chunk.map(f=>fieldInput('field',f.key,f.key==='supplyDeviceBs'?[cert.fields?.supplyDeviceBs,cert.fields?.supplyDeviceType?'Type '+cert.fields.supplyDeviceType:''].filter(Boolean).join(' '):cert.fields?.[f.key],f)).join('')+'</div>'});
      if(!fields.length)break;
    }
    return pages;
@@ -77,7 +78,7 @@
   {key:'zdb',label:'Zdb Ω'},{key:'ipf',label:'Ipf kA'},
   {key:'rcdBs',label:'RCD BS EN'},{key:'rcdType',label:'RCD type'},
   {key:'rcdRating',label:'RCD rating A'},{key:'rcdIdn',label:'RCD IΔn mA'},
-  {key:'spd',label:'SPD type'},{key:'spdBs',label:'SPD standard'}
+  {key:'spd',label:'SPD type'}
  ];
  function boardPages(cert){
    const boards=cert.tables?.boards||[];
@@ -121,7 +122,7 @@
    if(isLandscape(cert.type))out.push(...boardPages(cert));
    return out.length?out:[{title:'Certificate details',label:'Details',orientation,html:'<p>No editable fields on this form.</p>'}];
  }
- function reset(){persisted.page=0;persisted.zoom=1;persisted.showPages=false;}
+ function reset(){persisted.page=0;persisted.zoom=1;persisted.showPages=false;persisted.fitMode=true;}
  function scalePage(){
    const paper=document.querySelector('.cv-paper'),wrap=document.querySelector('.cv-paper-wrap');
    if(!paper||!wrap)return;
@@ -131,12 +132,14 @@
    wrap.style.height=(h*persisted.zoom)+'px';
    document.querySelectorAll('[data-cv-zoom-label]').forEach(el=>el.textContent=Math.round(persisted.zoom*100)+'%');
  }
- function setZoom(n){
-   persisted.zoom=Math.min(2.25,Math.max(.24,Number(n)||1));
+ function setZoom(n,automatic=false){
+   persisted.fitMode=automatic;
+   persisted.zoom=Math.min(2.25,Math.max(.05,Number(n)||1));
    scalePage();
  }
  function applyViewport(){
-   scalePage();
+   sizeViewport();
+   if(persisted.fitMode)fit();else scalePage();
    const port=document.querySelector('.cv-viewport');
    if(port){port.scrollTop=0;port.scrollLeft=0;}
  }
@@ -151,7 +154,7 @@
       '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">−</button>'+
       '<span data-cv-zoom-label>'+Math.round(persisted.zoom*100)+'%</span>'+
       '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">＋</button>'+
-      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">Upper Left</button><button class="btn" data-action="cv-next-empty">Next Empty</button></div>';
+      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">100%</button><button class="btn" data-action="cv-next-empty">Next Empty</button></div>';
    const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select Pages</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
    return '<section class="cv-shell" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
      '<div class="cv-viewport" aria-label="Drag or swipe the certificate to pan; pinch to zoom" tabindex="0"><div class="cv-paper-wrap">'+
@@ -192,9 +195,30 @@
    },{passive:true});
    port.addEventListener('touchend',e=>{if(e.touches.length<2)port._cvPinch=null;});
  }
- function switchPage(next){persisted.page=Math.max(0,Number(next)||0);persisted.showPages=false;persisted.zoom=1;}
+ function switchPage(next){persisted.page=Math.max(0,Number(next)||0);persisted.showPages=false;persisted.fitMode=true;}
  function togglePages(){persisted.showPages=!persisted.showPages;}
- function fit(){const port=document.querySelector('.cv-viewport'),paper=document.querySelector('.cv-paper');if(!port||!paper)return;setZoom(Math.min((port.clientWidth-12)/(paper.classList.contains('cv-landscape')?1122:794),1.4));port.scrollTop=0;port.scrollLeft=0;}
+ function sizeViewport(){
+   const port=document.querySelector('.cv-viewport'),toolbar=document.querySelector('.cv-toolbar');
+   if(!port)return;
+   const dock=document.querySelector('.editor-dock');
+   const dockTop=dock?.getBoundingClientRect().top;
+   const bottomSpace=Number.isFinite(dockTop)?Math.max(0,window.innerHeight-dockTop):90;
+   const reserved=(toolbar?.getBoundingClientRect().height||60)+bottomSpace+40;
+   port.style.height=Math.max(100,window.innerHeight-reserved)+'px';
+ }
+ function fit(){
+   const port=document.querySelector('.cv-viewport'),paper=document.querySelector('.cv-paper');
+   if(!port||!paper)return;
+   sizeViewport();
+   const landscape=paper.classList.contains('cv-landscape'),w=landscape?1122:794,h=landscape?794:1122;
+   // Include the paper's 12px margins on BOTH sides and fit both dimensions.
+   setZoom(Math.min(Math.max(1,port.clientWidth-24)/w,Math.max(1,port.clientHeight-24)/h,1),true);
+   port.scrollTop=0;port.scrollLeft=0;
+ }
+ window.addEventListener('resize',()=>{
+   if(document.activeElement?.matches?.('input,textarea,select'))return;
+   sizeViewport();if(persisted.fitMode)fit();
+ });
  function nextEmpty(){const inputs=[...document.querySelectorAll('.cv-paper input:not([type=checkbox]),.cv-paper textarea,.cv-paper select')],target=inputs.find(x=>!x.value);if(target){target.scrollIntoView({block:'center',inline:'center'});target.focus();return true;}return false;}
  window.SperinCertificateView={isLandscape,pages,render,reset,attachGestures,switchPage,togglePages,setZoom,fit,nextEmpty,state:persisted};
 })();

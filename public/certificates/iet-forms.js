@@ -819,12 +819,12 @@
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
         const instrumentDetails=[
-          'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
-          'Continuity: '+display(ff.instrumentContinuity,worksheet),
-          'Insulation resistance: '+display(ff.instrumentInsulation,worksheet),
-          'Earth fault loop impedance: '+display(ff.instrumentLoop,worksheet),
-          'RCD: '+display(ff.instrumentRcd,worksheet),
-          'Earth electrode resistance: '+display(ff.instrumentEarth,worksheet)
+          'Multifunction: '+display(ff.testerMft===false?'':(ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
+          'Continuity: '+display(ff.testerLowOhm===false?'':ff.instrumentContinuity,worksheet),
+          'Insulation resistance: '+display(ff.testerInsulation===false?'':ff.instrumentInsulation,worksheet),
+          'Earth fault loop impedance: '+display(ff.testerLoop===false?'':ff.instrumentLoop,worksheet),
+          'RCD: '+display(ff.testerRcd===false?'':ff.instrumentRcd,worksheet),
+          'Earth electrode resistance: '+display(ff.testerEarth===false?'':ff.instrumentEarth,worksheet)
         ];
         write(doc,instrumentDetails.join('   '),x,ty+4,w,{size:4.7,maxLines:2});
         write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+11,w,{size:5.2});

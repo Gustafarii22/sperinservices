@@ -43,6 +43,13 @@ try{
  await page.goto(base);
  await start('eic');
  assert.equal(await page.locator('.cv-shell[data-cv-orientation="landscape"]').count(),1);
+ const initialFit=await page.locator('.cv-viewport').evaluate(port=>{
+   const paper=port.querySelector('.cv-paper').getBoundingClientRect(),box=port.getBoundingClientRect();
+   return {width:paper.width,height:paper.height,availableWidth:port.clientWidth,availableHeight:port.clientHeight,left:paper.left-box.left,top:paper.top-box.top};
+ });
+ assert(initialFit.width+24<=initialFit.availableWidth+1,'Initial page must fit width');
+ assert(initialFit.height+24<=initialFit.availableHeight+1,'Initial page must fit height');
+
  assert(await page.locator('.cv-paper.cv-landscape').count()===1);
  assert.equal(await page.locator('.cv-viewport').evaluate(el=>el.scrollLeft),0);
  const first=page.locator('[data-cv-scope="field"][data-cv-key="clientName"]').first();

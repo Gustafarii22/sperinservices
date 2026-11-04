@@ -891,3 +891,38 @@ body:not([data-page=form]) #sperin-live-indicator{display:none!important}
 
 /* Reserve reliable scroll space below Section J controls on smaller screens. */
 .distribution-section .distribution-body{padding-bottom:140px}
+
+/* v1.9.7: keep all editing controls inside narrow phone screens. */
+.inline-circuit,.inline-circuit-fields,.inline-circuit-group,.inline-circuit .fields,.inline-circuit .field,.consumer-unit-group,.cu-accordion-body{min-width:0;max-width:100%;box-sizing:border-box}
+.inline-circuit-actions{flex-wrap:wrap;overflow:visible;white-space:normal;margin-inline:0}
+.inline-circuit-actions .danger{margin-left:0}
+.inline-circuit input,.inline-circuit select,.inline-circuit textarea,.inline-circuit .voice-control,.inline-circuit .combo-field{min-width:0;max-width:100%;box-sizing:border-box}
+.circuit-summary-actions{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
+.circuit-summary-actions .btn{min-height:44px;padding:7px 9px}
+.inline-circuit-summary{flex-wrap:wrap;min-width:0}
+.inline-circuit-summary small{min-width:0;overflow-wrap:anywhere}
+details[data-accordion-key]{scroll-margin-top:110px;overflow-anchor:none}
+@media(max-width:600px){.inline-circuit .fields{grid-template-columns:minmax(0,1fr)}.inline-circuit .field{grid-column:1/-1}.inline-circuit-summary small{flex-basis:100%}.inline-circuit-actions .btn{white-space:normal}}
+
+/* Keep preview actions visible and allow a whole page on a landscape phone. */
+.cv-toolbar{flex-wrap:wrap;overflow:visible;white-space:normal}
+.cv-toolbar .btn{min-height:40px}
+.cv-viewport{min-height:100px}
+.cv-shell{scroll-margin-top:8px}
+@media(max-width:720px){.cv-viewport{min-height:100px}}
+
+/* Quiet form hierarchy: primary work stays visible; occasional tools stay nearby. */
+.entry-tools{position:relative;min-width:0;max-width:100%}
+.entry-tools>summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border:1px solid var(--line,#d9e2ef);border-radius:10px;background:#fff;color:#334155;font-weight:600;font-size:14px;box-sizing:border-box}
+.entry-tools>summary::-webkit-details-marker{display:none}
+.entry-tools>summary::after{content:'⌄'}
+.entry-tools[open]>summary::after{content:'⌃'}
+.entry-tools-panel{display:flex;flex-wrap:wrap;gap:8px;padding:12px 0;max-width:100%}
+.entry-tools-panel .btn{white-space:normal;min-height:44px}
+.form-primary-actions{align-items:center;gap:8px}
+.finish-panel>.entry-tools{margin-bottom:14px}
+.form-section>.cert-accordion-head h3,.cu-summary strong{line-height:1.35}
+.inline-circuit-group h4{font-size:14px;letter-spacing:0;margin:0 0 12px;color:#334155}
+.inline-circuit-actions{gap:8px;padding:14px}
+.inline-circuit-actions [data-action="circuit-done"]{margin-left:auto;min-width:88px}
+@media(max-width:600px){.form-primary-actions{width:100%;justify-content:space-between}.form-primary-actions>.entry-tools[open]{flex-basis:100%}.entry-tools-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.entry-tools-panel .btn{min-width:0;font-size:13px}.form-head .form-title h2{font-size:21px;line-height:1.25}.inline-circuit-actions .btn{flex:1 1 calc(50% - 8px)}.inline-circuit-actions [data-action="circuit-done"]{flex-basis:100%}}

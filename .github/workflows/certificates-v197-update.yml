@@ -1,0 +1,47 @@
+name: Verify data-safe 1.9.6 update
+on:
+  push:
+    branches: [fix/certificates-v197-data-safe-ux]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser tests
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start offline app
+        run: python3 -m http.server 4173 -d public > /tmp/cert-server.log 2>&1 &
+      - name: Scanner preservation tests
+        run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificates-v197-preservation.test.mjs tests/certificates-v197-fit.test.mjs
+      - name: Existing certificate view and PDF regression
+        run: node tests/certificates-v196-view.e2e.mjs
+      - name: Mobile upgrade data and workflow regression
+        run: node tests/certificates-v197-data-safe.e2e.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: certificates-v197-verification
+          path: certificate-android/qa-output/
+  signing-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect retained signing material metadata only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_JKS: ${{ secrets.SPERIN_CERTIFICATES_V196_SIGNING_JKS_BASE64 }}
+          ORIGINAL_JKS: ${{ secrets.SPERIN_CERTIFICATES_SIGNING_JKS_BASE64 }}
+        run: |
+          if [ -n "$PREVIEW_JKS" ]; then echo 'V196_SIGNING_SECRET_PRESENT'; else echo 'V196_SIGNING_SECRET_MISSING'; fi
+          if [ -n "$ORIGINAL_JKS" ]; then echo 'STABLE_SIGNING_SECRET_PRESENT_NOT_ASSUMED_COMPATIBLE'; else echo 'STABLE_SIGNING_SECRET_MISSING'; fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/caches?per_page=100" --jq '.actions_caches[] | {key,ref,last_accessed_at}'
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | test("key|sign|1.9.6";"i")) | {name,expired,id}'

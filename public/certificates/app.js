@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.6-dev';
+  const VERSION = '1.9.7-dev';
   const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196';
   let editMode = 'quick';
   let lastRequestedOrientation = '';
@@ -57,8 +57,8 @@
     conductorMaterial: ['Copper', 'Aluminium', 'Other'],
     poles: ['1', '2', '3', '4'],
     rcdIdn: ['10', '30', '100', '300', '500', 'Other'],
-    earthElectrodeType: ['Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
-    supplyDeviceBs: ['BS 88-2', 'BS88-3', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
+    earthElectrodeType: ['N/A', 'Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
+    supplyDeviceBs: ['BS 88-2', 'BS88-3', 'BS 1361', 'BS EN 60898-1 Type B', 'BS EN 60898-1 Type C', 'BS EN 60898-1 Type D', 'BS EN 60947-2', 'BS EN 61009-1 Type B', 'BS EN 61009-1 Type C', 'BS EN 61009-1 Type D', 'BS 3036', 'BS 1362', 'Other'],
     spdType: [
       'No SPD / N/A',
       'Type 1 — BS EN IEC 61643-11:2025+A11:2025',
@@ -186,7 +186,6 @@
       { key:'description', label:'Circuit description', span:'full' },
       { key:'phaseAssociation', label:'Verified phase / line (L1, L2, L3 or TP&N)' },
       { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
-      { key:'installMethod', label:'Installation / containment method', span:'full' },
       { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
       { key:'points', label:'Number of points served' },
       { key:'liveCsa', label:'Live conductor csa (mm²)', options:OPTIONS.conductorCsa },
@@ -195,7 +194,6 @@
     { title: 'Overcurrent protective device', fields: [
       { key:'deviceKind', label:'Device type', options:OPTIONS.deviceKind },
       { key:'poleCount', label:'Number of poles (visually confirmed)', options:OPTIONS.poles },
-      { key:'testButtonVisual', label:'Photo shows test button (not electrical test)', options:['Visible','Not visible','Unclear'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -213,7 +211,7 @@
   const CIRCUIT_TEST_GROUPS = [
     { title:'Continuity', fields:[
       { key:'r1', label:'r1 (line) Ω' }, { key:'rn', label:'rn (neutral) Ω' }, { key:'r2', label:'r2 (CPC) Ω' },
-      { key:'r1r2', label:'R1 + R2 (Ω)' }, { key:'r2only', label:'R2 (Ω)' }
+      { key:'continuityMethod', label:'Continuity test', options:['R1 + R2','R2','Both'] }, { key:'r1r2', label:'R1 + R2 (Ω)' }, { key:'r2only', label:'R2 (Ω)' }
     ]},
     { title:'Insulation resistance', fields:[
       { key:'irVoltage', label:'Test voltage (V)', options:['250','500','1000'] },
@@ -247,7 +245,7 @@
     spdOperational:'spdOperational'
   };
 
-  // Explicit allowlists: templates and linked feeds can never carry measured readings.
+  // Linked feeds and design-only templates exclude readings. Full templates require explicit opt-in.
   function circuitDesign(row){
     const keys=['deviceManufacturer','deviceModel','deviceKind','poleCount','phaseAssociation','testButtonVisual','description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
     return Object.fromEntries(keys.filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));
@@ -255,7 +253,7 @@
   function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd','manufacturer','model','ways','populated','spareWays','markings'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
   function templateKey(kind){return kind==='board'?BOARD_TEMPLATES_KEY:CIRCUIT_TEMPLATES_KEY;}
   function cleanTemplate(kind,t){
-    return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):circuitDesign(t.design||{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
+    return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):(t.includeResults?JSON.parse(JSON.stringify(t.design||{})):circuitDesign(t.design||{})),...(kind==='circuit'&&t.includeResults?{includeResults:true,tests:JSON.parse(JSON.stringify(t.tests||{}))}:{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
   }
   function reusableTemplates(kind){const list=readStore(templateKey(kind),[]);return Array.isArray(list)?list.filter(isRecord).map(t=>cleanTemplate(kind,t)):[];}
   function saveReusableTemplates(kind,list){localStorage.setItem(templateKey(kind),JSON.stringify(list.map(t=>cleanTemplate(kind,t))));}
@@ -305,6 +303,11 @@
   let templatePicker=null;
   function saveDesignTemplate(kind,cert,index){
     const row=kind==='board'?cert.tables.boards[index]:cert.tables.circuits[index];if(!row)return;
+    if(kind==='circuit'){
+      closeModal();
+      document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop"><div class="card modal" data-modal><h3>Save circuit template</h3><div class="field"><label>Template name</label><input data-template-name value="${esc(row.description||'Circuit')}"/></div><div class="actions"><button class="btn" data-action="template-save-choice" data-index="${index}" data-results="no">Details only</button><button class="btn primary" data-action="template-save-choice" data-index="${index}" data-results="yes">All information, including test results</button><button class="btn" data-action="close-modal">Cancel</button></div></div></div>`);
+      return;
+    }
     const name=prompt('Template name',kind==='board'?'Consumer unit':row.description||'Circuit');if(!name?.trim())return;
     const item={id:uid(),name:name.trim(),design:kind==='board'?boardDesign(row):circuitDesign(row)};
     if(kind==='board'&&confirm('Include the circuit design layout? Measured readings are always excluded.'))item.circuits=boardCircuitIndices(cert,row.ref).filter(i=>!cert.tables.circuits[i]._incomingFeed).map(i=>circuitDesign(cert.tables.circuits[i]));
@@ -326,8 +329,8 @@
     closeModal();
     if(kind==='board'){addBoard(cert,t);return;}
     if(boardIndexByRef(cert,boardRef)<0)return;
-    pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...circuitDesign(t.design),id:uid(),boardRef,circuitNo:no};
-    cert.tables.circuits.push(row);cert.tables.tests.push({boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
+    pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...(t.includeResults?JSON.parse(JSON.stringify(t.design)):circuitDesign(t.design)),id:uid(),boardRef,circuitNo:no};
+    cert.tables.circuits.push(row);cert.tables.tests.push({...JSON.parse(JSON.stringify(t.tests||{})),boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,!t.includeResults);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
   }
 
   function boardIndexByRef(cert,ref){
@@ -641,7 +644,7 @@
   function recalculateCircuitZs(cert,index,force=false) {
     const row=cert?.tables?.circuits?.[index]; if(!row) return;
     if(force) row.maxZsManual=false;
-    if(row.maxZsManual) return;
+    if(row.maxZsManual || (!force && String(row.maxZs||'').trim())) return;
     const calc=calculateMaxZs(row,cert);
     row.maxZs=calc||'';
   }
@@ -796,6 +799,10 @@
       f.testerMake=f.testerMake||'';
       f.testerModel=f.testerModel||'';
       f.testerSerial=f.testerSerial||f.instrumentMft||'';
+      if(!f.instrumentSelectionVersion){
+        INSTRUMENTS.forEach(([key,,make,model,serial])=>{if(f[make]||f[model]||f[serial])f[key]=true;});
+        f.instrumentSelectionVersion=1;
+      }
       if(f.testerMft===undefined) f.testerMft=Boolean(f.instrumentMft);
       ['testerLowOhm','testerInsulation','testerLoop','testerRcd','testerEarth','testerVoltage'].forEach(k=>{if(f[k]===undefined)f[k]=false;});
     }
@@ -815,28 +822,6 @@
 
   function restoreScroll(y){
     requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'}));
-  }
-
-  function goCircuitBottom(boardRef){
-    // Section J may expand asynchronously (e.g. after the editor and inspection
-    // accordions rebuild), so one immediate scroll calculation is insufficient.
-    // Keep retargeting the chosen board's Add Circuit button for a brief bounded
-    // period, without moving the viewport once the control is already visible.
-    const key=normaliseBoardKey(boardRef);
-    const exact='.consumer-unit-group[data-board-key="'+CSS.escape(key)+'"] .cu-circuits-accordion [data-board-add-circuit]';
-    const align=()=>{
-      if(view.page!=='form'||editMode==='certificate')return;
-      const target=document.querySelector(exact)||
-        document.querySelector('.cu-circuits-accordion [data-board-add-circuit]');
-      if(!target)return;
-      const rect=target.getBoundingClientRect();
-      const safeTop=92,safeBottom=window.innerHeight-126;
-      if(rect.top>=safeTop && rect.bottom<=safeBottom)return;
-      const desiredTop=Math.min(260,Math.max(safeTop,window.innerHeight*.31));
-      window.scrollBy({top:rect.top-desiredTop,left:0,behavior:'instant'});
-    };
-    requestAnimationFrame(()=>requestAnimationFrame(align));
-    [75,175,300].forEach(delay=>setTimeout(align,delay));
   }
 
   function goBoardCard(boardId){
@@ -932,6 +917,31 @@
     ['8.1', 'Prosumer’s low voltage electrical installation(s) — Chapter 82 items recorded where applicable']
   ].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));
 
+  const INSTRUMENTS=[
+    ['testerMft','Multifunction tester','testerMake','testerModel','testerSerial'],
+    ['testerLowOhm','Low resistance ohmmeter','continuityMake','continuityModel','instrumentContinuity'],
+    ['testerInsulation','Insulation resistance','insulationMake','insulationModel','instrumentInsulation'],
+    ['testerLoop','Earth fault loop impedance','loopMake','loopModel','instrumentLoop'],
+    ['testerRcd','RCD','rcdInstrumentMake','rcdInstrumentModel','instrumentRcd'],
+    ['testerEarth','Earth electrode resistance','earthInstrumentMake','earthInstrumentModel','instrumentEarth'],
+    ['testerVoltage','Voltage indicator','voltageMake','voltageModel','instrumentVoltage']
+  ];
+  function instrumentFields(){
+    return [...INSTRUMENTS.flatMap(([key,label,make,model,serial])=>[
+      f(key,label,'checkbox',{span:'full'}),
+      ...[[make,'Make'],[model,'Model'],[serial,'Serial number']].map(([k,l])=>f(k,l,'text',{showWhen:{key,value:true}}))
+    ]),f('testedBy','Tested by'),f('testedDate','Tested date','date')];
+  }
+  function supplyDeviceDisplay(fields){
+    const bs=String(fields.supplyDeviceBs||''),type=String(fields.supplyDeviceType||'');
+    return type&&!bs.includes('Type '+type)?bs+' Type '+type:bs;
+  }
+  function setSupplyDevice(fields,value){
+    const match=String(value).match(/^(.*?) Type (.+)$/);
+    fields.supplyDeviceBs=match?match[1]:value;
+    fields.supplyDeviceType=match?match[2]:'';
+  }
+
   const SCHEMAS = {
     eic: {
       code: 'EIC',
@@ -987,8 +997,8 @@
           select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA)
         ]),
         section('D · Next inspection', [f('nextInspectionInterval', 'Recommended interval before next inspection (years/months)', 'text', { span: 'full' })]),
-        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), select('earthElectrodeLocation', 'Earth electrode location', ['N/A']), select('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)', ['N/A']), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         table('eicInspection', 'H · Installation inspection checklist', [
           { key: 'item', label: 'Item', readonly: true },
           { key: 'description', label: 'Check', readonly: true },
@@ -999,22 +1009,7 @@
         table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', [
-          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
-          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
-          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
-          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
-          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
-          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
-          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
-          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
-          f('instrumentContinuity','Continuity instrument serial / asset number'),
-          f('instrumentInsulation','Insulation resistance instrument serial / asset number'),
-          f('instrumentLoop','Earth fault loop impedance instrument serial / asset number'),
-          f('instrumentRcd','RCD instrument serial / asset number'),
-          f('instrumentEarth','Earth electrode resistance instrument serial / asset number'),
-          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
-        ])
+        section('Test instrument', instrumentFields())
       ]
     },
 
@@ -1033,8 +1028,8 @@
         section('F · Recommendation for next inspection', [f('nextInspectionDate', 'Further inspection recommended before', 'date'), f('nextInspectionReason', 'Reason for recommended interval', 'textarea', { span: 'full' })]),
         section('G · Declaration', [f('inspectedBy', 'Inspected and tested by'), f('inspectorPosition', 'Position'), f('inspectorCompany', 'For/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea'), f('inspectorSignature', 'Inspector signature / typed name'), f('inspectorDate', 'Inspector date', 'date'), f('authorisedBy', 'Report authorised for issue by'), f('authoriserPosition', 'Authoriser position'), f('authoriserCompany', 'For/on behalf of'), f('authoriserAddress', 'Authoriser address', 'textarea'), f('authoriserSignature', 'Authoriser signature / typed name'), f('authoriserDate', 'Authoriser date', 'date')]),
         section('H · Schedules attached', [f('continuationSheets', 'Continuation sheets / sections'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
-        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('J · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main protective bonding to', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('J · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), select('earthElectrodeLocation', 'Earth electrode location', ['N/A']), select('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)', ['N/A']), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main protective bonding to', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         table('observations', 'K · Observations', [
           { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
         ], [{ item: '1' }]),
@@ -1045,22 +1040,7 @@
         table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', [
-          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
-          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
-          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
-          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
-          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
-          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
-          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
-          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
-          f('instrumentContinuity', 'Continuity instrument serial / asset number'),
-          f('instrumentInsulation', 'Insulation resistance instrument serial / asset number'),
-          f('instrumentLoop', 'Earth fault loop impedance instrument serial / asset number'),
-          f('instrumentRcd', 'RCD instrument serial / asset number'),
-          f('instrumentEarth', 'Earth electrode resistance instrument serial / asset number'),
-          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
-        ])
+        section('Test instrument', instrumentFields())
       ]
     },
 
@@ -1654,7 +1634,7 @@
     if ('testedBy' in fields) fields.testedBy = settings.engineerName || '';
     if ('position' in fields && !fields.position) fields.position = settings.engineerPosition || '';
     if ('inspectorPosition' in fields && !fields.inspectorPosition) fields.inspectorPosition = settings.engineerPosition || '';
-    if ('testerMft' in fields) fields.testerMft = true;
+    if ('testerMft' in fields) fields.testerMft = Boolean(fields.testerMake||fields.testerModel||fields.testerSerial);
     const cert = { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
     migrateCertificate(cert);
     syncSingleSignatory(cert);
@@ -1689,7 +1669,8 @@
     window.SperinCertificateView?.reset?.();
     view.circuitIndex=null;view.circuitStep='details';
     document.querySelector('.cv-opening')?.remove();
-    applyEntryOrientation(cert);render();goTop();
+    applyEntryOrientation(cert);render();
+    if(mode==='certificate')requestAnimationFrame(()=>document.querySelector('.cv-shell')?.scrollIntoView({block:'start',behavior:'instant'}));else goTop();
   }
   function certificateWorkspace(cert){
     const sheet=window.SperinCertificateView;
@@ -1701,14 +1682,14 @@
   function refreshCertificateView(){
     if(editMode!=='certificate')return;
     const port=document.querySelector('.cv-viewport');const cert=getCurrent();if(!cert)return;
-    const left=port?.scrollLeft||0,top=port?.scrollTop||0,zoom=window.SperinCertificateView.state.zoom;
+    const left=port?.scrollLeft||0,top=port?.scrollTop||0;
+    const fitting=window.SperinCertificateView.state.fitMode;
     const container=document.querySelector('.cv-shell');if(!container)return;
     container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type]);
     window.SperinCertificateView.attachGestures();
-    if(port?.isConnected!==true && (left||top)){
+    if(!fitting && port?.isConnected!==true && (left||top)){
       const target=document.querySelector('.cv-viewport');target.scrollLeft=left;target.scrollTop=top;
     }
-    window.SperinCertificateView.setZoom(zoom);
   }
 
   function openCertificate(id) {
@@ -1881,6 +1862,10 @@
     return '<div class="editor-dock" role="toolbar" aria-label="Certificate actions"><button class="btn cv-switch-button" data-action="switch-entry">'+(editMode==='certificate'?'☷ Quick Entry':'▤ Certificate View')+'</button>'+historyButtons()+'<button class="btn" data-action="certificate-review">Review</button><button class="btn primary" data-action="pdf">'+uiIcon('pdf')+' PDF</button></div>';
   }
 
+  function entryTools(contents){
+    return '<details class="entry-tools"><summary>More tools</summary><div class="entry-tools-panel" role="group" aria-label="Additional certificate tools">'+contents+'</div></details>';
+  }
+
   function formView() {
     const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
     migrateCertificate(cert);
@@ -1894,8 +1879,8 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1992,6 +1977,7 @@
   }
 
   function renderField(field, value, cert) {
+    if(field.key==='supplyDeviceBs')value=supplyDeviceDisplay(cert.fields);
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
 
@@ -2010,7 +1996,7 @@
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
-    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
+    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs','earthElectrodeLocation','earthElectrodeResistance'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div>${['refMethod','referenceMethod'].includes(field.key)?refMethodHelp(value):''}</div>`;
@@ -2024,6 +2010,18 @@
     return `<div class="field"><label>${esc(label)}</label>${control}</div>`;
   }
 
+  function circuitSummaryActions(i,pos,count,row){
+    return [['circuit-move-up','↑','Move up',pos===0],['circuit-move-down','↓','Move down',pos===count-1],['circuit-delete','Delete','Delete circuit',false]].map(([action,text,label,disabled])=>'<button type="button" class="btn small" data-action="'+action+'" data-index="'+i+'" aria-label="'+label+'" '+(disabled||row._incomingFeed?'disabled':'')+'>'+text+'</button>').join('');
+  }
+  function alignAccordion(node){requestAnimationFrame(()=>requestAnimationFrame(()=>{if(node?.isConnected)node.scrollIntoView({block:'start',behavior:'instant'});}));}
+  function finishCircuit(cert,index){
+    const row=cert.tables.circuits[index];if(!row)return;
+    saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(row.boardRef);
+    accordionState.set('inline-circuit:'+cert.id+':'+row.id,false);
+    preserveRequestedAccordions=true;render();keepCircuitAccordionVisible(cert,row.boardRef);
+    const card=document.querySelector('[data-inline-index="'+index+'"]');
+    if(card){card.open=false;alignAccordion(card);}
+  }
   function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);
     const indices=boardCircuitIndices(cert,board.ref);
@@ -2035,16 +2033,15 @@
       const key='inline-circuit:'+cert.id+':'+(row.id||i);
       return '<details class="inline-circuit cert-accordion" data-accordion-key="'+esc(key)+'" data-inline-index="'+i+'" '+(accordionOpen(key,false)?'open':'')+'>'+
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
-        '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
+        '<small>'+esc(details||'Enter details and measurements')+'</small><span class="circuit-summary-actions">'+circuitSummaryActions(i,pos,indices.length,row)+'</span><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
         '<div class="inline-circuit-actions" role="group" aria-label="Circuit '+esc(number)+' actions">'+
-        '<button class="btn small primary inline-circuit-edit" data-action="circuit-open" data-index="'+i+'" aria-label="Edit circuit '+esc(number)+' in the full editor" title="Open complete circuit editor">✎ Edit</button>'+
         '<button class="btn small" data-action="circuit-move-up" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' up" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ <span class="inline-action-word">Up</span></button>'+
         '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' down" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ <span class="inline-action-word">Down</span></button>'+
         '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
         '<button class="btn small" data-action="template-save-circuit" data-index="'+i+'" title="Save this circuit as a reusable template" '+(row._incomingFeed?'disabled':'')+'>＋ <span>Save Template</span></button>'+
         '<button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="'+esc(board.ref)+'" title="Insert a saved circuit template">↳ <span>Use Template</span></button>'+
-        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
+        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button><button class="btn primary" data-action="circuit-done" data-index="'+i+'">Done</button></div></details>';
     }).join('');
     return '<div class="board-circuit-list circuit-list">'+(cards||'<div class="empty">No circuits added.</div>')+'</div>'+
       '<div class="table-tools board-circuit-tools"><button class="btn primary" data-board-add-circuit data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
@@ -2054,6 +2051,7 @@
     if(!details.open)return;
     const cert=getCurrent(),idx=Number(details.dataset.inlineIndex),body=details.querySelector('[data-inline-body]');
     if(!cert||!body||body.dataset.loaded==='true'||!Number.isInteger(idx)||!cert.tables.circuits?.[idx])return;
+    recalculateCircuitZs(cert,idx);
     const renderGroups=(groups,scope,src)=>groups.map(g=>
       '<div class="inline-circuit-group"><h4>'+esc(g.title)+'</h4><div class="fields">'+
       g.fields.map(f=>editorInput(cert,scope,idx,f,src?.[f.key]??'')).join('')+'</div></div>').join('');
@@ -2100,7 +2098,6 @@
           ${boardControl(bi,'distributionOcpdType','Distribution circuit OCPD type',board.distributionOcpdType,OPTIONS.ocpdType)}
           ${boardControl(bi,'distributionOcpdRating','Distribution circuit OCPD rating / setting (A)',board.distributionOcpdRating)}
           ${boardControl(bi,'spd','SPD type(s)',board.spd,OPTIONS.spdType)}
-          ${boardControl(bi,'spdBs','SPD standard / BS EN (as marked)',board.spdBs||'')}
           ${boardControl(bi,'rcdBs','RCD BS (EN)',board.rcdBs)}
           ${boardControl(bi,'rcdType','RCD type',board.rcdType,OPTIONS.rcdType)}
           ${boardControl(bi,'rcdRating','RCD rating (A)',board.rcdRating,OPTIONS.ocpdRating)}
@@ -2131,6 +2128,11 @@
   }
 
   function editorInput(cert,scope,index,field,value){
+    const method=cert.tables.tests[index]?.continuityMethod || (cert.tables.tests[index]?.r2only?'Both':'R1 + R2');
+    if(field.key==='continuityMethod'&&!value)value=method;
+    if(field.key==='r2only' && method==='R1 + R2')return '';
+    if(field.key==='r1r2' && method==='R2')return '';
+
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
     if(field.key==='boardRef' || (scope==='details' && cert.tables.circuits[index]?._incomingFeed && field.key!=='maxZs')){
@@ -2165,7 +2167,7 @@
     const title=`Circuit ${esc(number)}`;
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
-      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
+      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Done</button>`;
     return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="speed-convert">Copy to new type</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
@@ -3598,6 +3600,7 @@
       const key=e.target.dataset.field;
       const previousValue=cert.fields[key];
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
+      if(key==='supplyDeviceBs')setSupplyDevice(cert.fields,e.target.value);
       if(key==='certificateNo') cert.number=e.target.value;
       if(key==='nominalVoltage' && previousValue!==cert.fields[key] && Array.isArray(cert.tables?.circuits)){
         cert.tables.circuits.forEach((_,i)=>{
@@ -3705,6 +3708,9 @@
     const old=dest[key];
     if(old===value)return;
     dest[key]=value;
+    if(scope==='field'&&key==='supplyDeviceBs')setSupplyDevice(cert.fields,value);
+    if(scope==='circuit'&&['ocpdBs','ocpdType','ocpdRating'].includes(key))recalculateCircuitZs(cert,i,true);
+    if(scope==='field'&&key==='nominalVoltage')cert.tables.circuits?.forEach((_,j)=>recalculateCircuitZs(cert,j,true));
     if(scope==='circuit'&&key==='circuitNo'&&cert.tables.tests[i])cert.tables.tests[i].circuitNo=value;
     if(scope==='circuit'&&key==='deviceKind'){
       const proposed={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}};
@@ -3728,6 +3734,7 @@
       if(cert&&r)sortCircuitsByNumber(cert,r);
     }
     saveNow();
+    if(e.target.dataset.cvScope==='field'&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.cvKey))refreshCertificateView();
   });
   document.addEventListener('focusout',e=>{
     if(e.target.matches?.('[data-cv-scope]'))saveNow();
@@ -3840,6 +3847,16 @@
     if(e.target.matches('[data-library-status]')){libraryStatus=e.target.value;render();}
     if(e.target.matches('[data-library-sort]')){librarySort=e.target.value;render();}
   });
+  document.addEventListener('change',e=>{
+    const cert=getCurrent();if(!cert)return;
+    if(e.target.matches('[data-field][type="checkbox"]')&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.field)){
+      saveNow();const y=scrollY;render();restoreScroll(y);
+    }
+    if(e.target.matches('[data-circuit-input][data-col="continuityMethod"]')){
+      saveNow();const card=e.target.closest('.inline-circuit');
+      if(card){card.querySelector('[data-inline-body]').dataset.loaded='';populateInlineCircuit(card);}else{const y=scrollY;render();restoreScroll(y);}
+    }
+  });
   document.addEventListener('toggle',e=>{
     const node=e.target;
     if(node instanceof HTMLElement&&node.matches('details.inline-circuit')&&node.open)populateInlineCircuit(node);
@@ -3858,18 +3875,21 @@
     if(hint)hint.textContent=refMethodDescription(input.value);
   });
   document.addEventListener('click',e=>{
-    const summary=e.target.closest('.cert-accordion-head,.cu-summary');
-    if(!summary)return;
-    const current=summary.closest('details[data-accordion-key]');
-    if(!current||current.open)return;
-    const group=summary.matches('.cu-summary')?'cu-accordion':'cert-accordion';
-    document.querySelectorAll('#app details.'+group+'[open]').forEach(other=>{
-      if(other!==current)other.open=false;
-    });
+    const summary=e.target.closest('summary');
+    if(!summary||e.target.closest('[data-action]'))return;
+    const current=summary.parentElement;
+    if(!current.matches('details[data-accordion-key]')||current.open)return;
+    const peers=current.classList.contains('inline-circuit')?current.parentElement.querySelectorAll(':scope > details.inline-circuit'):
+      current.classList.contains('cu-accordion')||current.classList.contains('cu-circuits-accordion')?current.closest('.distribution-body').querySelectorAll('.cu-accordion,.cu-circuits-accordion'):
+      document.querySelectorAll('#app > .shell > details.cert-accordion');
+    const list=peers.length?peers:document.querySelectorAll('#app details.cert-accordion:not(.inline-circuit)');
+    list.forEach(other=>{if(other!==current&&!other.contains(current))other.open=false;});
+    alignAccordion(current);
   });
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
+    if(button.closest('summary')){e.preventDefault();e.stopPropagation();}
     const action = button.dataset.action;
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
@@ -3931,6 +3951,14 @@
     }
     else if(action==='board-add' && cert){addBoard(cert);}
     else if(action==='board-delete' && cert){deleteBoard(cert,Number(button.dataset.boardIndex));}
+    else if(action==='template-save-choice' && cert){
+      const index=Number(button.dataset.index),row=cert.tables.circuits[index],name=document.querySelector('[data-template-name]')?.value.trim();
+      if(!row||!name)return;
+      const includeResults=button.dataset.results==='yes';
+      const item={id:uid(),name,includeResults,design:includeResults?JSON.parse(JSON.stringify(row)):circuitDesign(row),...(includeResults?{tests:JSON.parse(JSON.stringify(cert.tables.tests[index]||{}))}:{})};
+      try{saveReusableTemplates('circuit',[...reusableTemplates('circuit'),item]);scheduleNativeAutoBackup();closeModal();toast('Template saved');}catch(err){alert('Template could not be saved: '+err.message);}
+    }
+    else if(action==='circuit-done' && cert){finishCircuit(cert,Number(button.dataset.index));}
     else if(action==='template-save-board' && cert){saveDesignTemplate('board',cert,Number(button.dataset.boardIndex));}
     else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,button.dataset.index!==undefined?Number(button.dataset.index):view.circuitIndex);}
     else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef);}
@@ -4077,7 +4105,7 @@
       const source=cert.tables.circuits[i]||{};
       const no=nextCircuitNumber(cert,source.boardRef||'DB1');
       pushEditHistory('Duplicate circuit');
-      const c={...circuitDesign(source),id:uid(),boardRef:source.boardRef,circuitNo:no},t={boardRef:source.boardRef,circuitNo:no};
+      const c={...JSON.parse(JSON.stringify(source)),id:uid(),boardRef:source.boardRef,circuitNo:no},t={...JSON.parse(JSON.stringify(cert.tables.tests[i]||{})),boardRef:source.boardRef,circuitNo:no};
       cert.tables.circuits.push(c);cert.tables.tests.push(t);sortCircuitsByNumber(cert,c);view.circuitIndex=cert.tables.circuits.indexOf(c);view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
@@ -4091,8 +4119,8 @@
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
-    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();keepCircuitAccordionVisible(cert,button.dataset.boardRef);goCircuits();}
+    else if(action==='circuit-complete' && cert){finishCircuit(cert,view.circuitIndex);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if(action==='clear-brand-images'){if(confirm('Remove saved report images from this device?')){settings.reportLogo='';settings.reportSignature='';saveSettings();closeModal();openSettings();}}
