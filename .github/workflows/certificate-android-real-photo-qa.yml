@@ -35,6 +35,8 @@ jobs:
           gradle-version: "8.10.2"
       - name: Prepare genuine existing consumer-unit image for private test app
         run: |
+          mkdir -p certificate-android/app/src/main/assets/certificates
+          cp -a public/certificates/. certificate-android/app/src/main/assets/certificates/
           mkdir -p certificate-android/app/src/androidTest/assets
           cp public/projects/nursery-refurbishment/distribution-board.webp certificate-android/app/src/androidTest/assets/consumer-unit-qa.webp
       - name: Allow hardware accelerated Android emulator
