@@ -1112,7 +1112,7 @@ await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("2.00");
-await page.getByRole("button", { name: "Complete circuit" }).click();
+await page.locator('[data-action="circuit-complete"]').click();
 await page.waitForSelector(".validation-banner.warn");
 assert(
   (await page.locator(".validation-banner.warn").textContent()).includes("need checking"),
