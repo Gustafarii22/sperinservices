@@ -203,16 +203,19 @@ jobs:
           pdftoppm -f 1 -l 2 -png -r 130 "$PDF" certificate-android/qa-output/eicr-renders/eicr
 
       - name: Audit pass 1 — forward order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: forward
         run: node certificate-android/qa/certificate.e2e.mjs
 
       - name: Audit pass 2 — reverse order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: reverse
         run: node certificate-android/qa/certificate.e2e.mjs
 
       - name: Audit pass 3 — mixed order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: mixed
         run: node certificate-android/qa/certificate.e2e.mjs

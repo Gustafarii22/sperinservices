@@ -52,6 +52,16 @@ try {
  }
  assert.deepEqual(actual.jobs,[fixture.job]);assert.deepEqual(actual.photos,exported.jobPhotos);
  assert.deepEqual(actual.plans,fixture.plans);assert.deepEqual(actual.templates,fixture.templates);
+ // Restored certificates remain editable through the real mobile form.
+ await dest.locator('#speed-nav [data-speed="certificates"]').click();
+ await dest.locator('.saved-cert-row[data-id="'+fixture.certificates[0].id+'"] .saved-cert-copy').click();
+ if(await dest.locator('.cv-opening').count())await dest.locator('[data-action="choose-entry"][data-mode="quick"]').click();
+ await dest.locator('[data-field="clientName"]').fill('EDITED AFTER RESTORE');
+ await dest.waitForFunction(k=>JSON.parse(localStorage.getItem(k)).certificates[0].fields.clientName==='EDITED AFTER RESTORE',key);
+ await dest.reload();
+ actual.data=await dest.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+ assert.equal(actual.data.certificates[0].fields.clientName,'EDITED AFTER RESTORE');
+ await dest.locator('[data-action="home"]').first().click();
  // Invalid complete backup must not alter saved state.
  const bad=structuredClone(exported);bad.jobPhotos={};
  await dest.evaluate(data=>window.sperinRestoreBackup(JSON.stringify(data)),bad);

@@ -2256,6 +2256,9 @@
   function prepareBackupData(json) {
     const data=typeof json==='string'?JSON.parse(json):json;
     if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    if(data.backupSchema!==undefined && data.backupSchema!==2) throw new Error('Unsupported backup schema; keep this file and update the app');
+    const ids=data.certificates.map(c=>c?.id).filter(Boolean);
+    if(new Set(ids).size!==ids.length) throw new Error('Duplicate certificate IDs in backup');
     const certificates=data.certificates.map((raw,index)=>{
       const copy=clone(raw);
       const migrated=migrateCertificate(copy);
@@ -2286,7 +2289,7 @@
     // Photo imports use fresh IDs on collisions, preserving the rollback's bytes.
     prepared.jobs=prepared.jobs===undefined?undefined:clone(prepared.jobs);
     await window.SperinJobCentre.restorePhotos(prepared.jobPhotos||{},prepared.jobs||[]);
-    const keys=[STORAGE_KEY,SETTINGS_KEY,VIEW_KEY,SHEET_PLANS_KEY,SHEET_TEMPLATES_KEY,templateKey('board'),templateKey('circuit')];
+    const keys=['sperin-certificate-jobs-v1',STORAGE_KEY,SETTINGS_KEY,VIEW_KEY,SHEET_PLANS_KEY,SHEET_TEMPLATES_KEY,templateKey('board'),templateKey('circuit')];
     const previous=new Map(keys.map(k=>[k,localStorage.getItem(k)]));
     const previousState=state,previousSettings=settings,previousView=view,previousJobs=window.SperinJobCentre.backup();
     try{
