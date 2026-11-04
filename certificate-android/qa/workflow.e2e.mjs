@@ -350,7 +350,14 @@ assert.equal(await input("boardRef").inputValue(), child.ref);
 await click('[data-action="circuit-next"]');
 assert.equal(await page.locator('[data-col="zs"]').inputValue(), "");
 await click('[data-action="circuit-complete"]');
-await page.waitForTimeout(100);
+await page.waitForFunction(ref=>{
+  const add=document.querySelector('[data-board-add-circuit][data-board-ref="'+CSS.escape(ref)+'"]');
+  const rect=add?.getBoundingClientRect(),dock=document.querySelector('.editor-dock')?.getBoundingClientRect();
+  return rect&&rect.top>=0&&rect.bottom<=(dock?.top||innerHeight-72);
+},child.ref,{timeout:5000}).catch(async error=>{
+  console.log('CIRCUIT_RETURN_GEOMETRY',await page.evaluate(ref=>({scrollY,ref,buttons:[...document.querySelectorAll('[data-board-add-circuit]')].map(x=>({ref:x.dataset.boardRef,rect:x.getBoundingClientRect().toJSON(),closed:[...function*(n){for(let p=n.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS'&&!p.open)yield p.className}(x)]}))}),child.ref));
+  await page.screenshot({path:'certificate-android/qa-output/circuit-return-failure.png'});throw error;
+});
 const addCircuitBox = await board(child.ref).locator("[data-board-add-circuit]").boundingBox();
 assert(addCircuitBox, "Add circuit button missing after completing circuit");
 const viewport = page.viewportSize();
