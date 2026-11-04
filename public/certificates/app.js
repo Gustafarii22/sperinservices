@@ -2051,7 +2051,9 @@
     if(!details.open)return;
     const cert=getCurrent(),idx=Number(details.dataset.inlineIndex),body=details.querySelector('[data-inline-body]');
     if(!cert||!body||body.dataset.loaded==='true'||!Number.isInteger(idx)||!cert.tables.circuits?.[idx])return;
+    const previousMaxZs=cert.tables.circuits[idx].maxZs;
     recalculateCircuitZs(cert,idx);
+    if(cert.tables.circuits[idx].maxZs!==previousMaxZs)saveNow();
     const renderGroups=(groups,scope,src)=>groups.map(g=>
       '<div class="inline-circuit-group"><h4>'+esc(g.title)+'</h4><div class="fields">'+
       g.fields.map(f=>editorInput(cert,scope,idx,f,src?.[f.key]??'')).join('')+'</div></div>').join('');
