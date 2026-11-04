@@ -36,7 +36,11 @@ await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
 await page.locator('#speed-nav [data-speed="more"]').click();
 await page.locator('[data-tool="jobs"]').click();
-await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
+// A selected certificate can open directly on its linked job; show all jobs first.
+await page.locator('.jc-dialog [data-jc="all"]').click();
+const savedJob=page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first();
+if(!(await savedJob.count()))throw Error("Saved job missing after navigating: "+JSON.stringify(await page.evaluate(()=>({jobs:localStorage.getItem("sperin-certificate-jobs-v1"),dialog:document.querySelector(".jc-dialog")?.innerText?.slice(0,900)}))));
+await savedJob.click();
 await page.locator('[data-jc-cert]').selectOption({index:1});
 await page.locator('[data-jc="link"]').click();
 const certLinked=await page.evaluate(()=>{
