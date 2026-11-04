@@ -83,6 +83,7 @@ await page.evaluate(async()=>{
 await page.locator('[data-jc="close"]').click();
 await page.locator('#speed-nav [data-speed="more"]').click();
 await page.locator('[data-tool="jobs"]').click();
+await page.locator('.jc-dialog [data-jc="all"]').click();
 await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
 const [completePack]=await Promise.all([page.waitForEvent("download"),page.locator('[data-jc="pack"]').click()]);
 const completePath="/tmp/sperin-job-41-photos.zip";await completePack.saveAs(completePath);
