@@ -232,5 +232,40 @@ function showRef(a,id,ref){open(a,id);selectedEvidenceRef=String(ref||"").slice(
 function reminders(){return jobs.reduce((n,j)=>n+(j.reminders||[]).filter(x=>x.dueDate&&delta(x.dueDate)<=30).length,0);}
 function incomingAsset(){const id=location.hash.match(/asset=([0-9a-f-]{36})/i)?.[1];if(id&&adapter){open(adapter);scanAsset(id);}}
 function importMetadata(records){if(!Array.isArray(records)||records.length>600)throw Error('Invalid job metadata');let added=0;for(const x of records){if(!x||!UUID.test(x.id)||!UUID.test(x.assetId)||JSON.stringify(x).length>180000)continue;if(jobs.some(j=>j.id===x.id))continue;jobs.push({...x,evidence:Array.isArray(x.evidence)?x.evidence:[],reminders:Array.isArray(x.reminders)?x.reminders:[]});added++;}store();return added;}
-window.SperinJobCentre={open,showRef,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),importMetadata,incomingAsset};
+// Portable backups include the IndexedDB image bytes, not just references.
+function validateBackup(records,photos,schema){
+ if(!Array.isArray(records)||records.some(x=>!x||!UUID.test(x.id)||!UUID.test(x.assetId)||!Array.isArray(x.evidence||[])))throw Error('Invalid job records');
+ if(new Set(records.map(x=>x.id)).size!==records.length)throw Error('Duplicate job IDs');
+ if(photos!==undefined&&(!photos||Array.isArray(photos)||typeof photos!=='object'))throw Error('Invalid photo backup');
+ for(const [id,data] of Object.entries(photos||{}))if(!UUID.test(id)||typeof data!=='string'||!/^data:image\/(jpeg|png|webp|bmp);base64,[A-Za-z0-9+/]+=*$/.test(data))throw Error('Invalid evidence photo');
+ if(schema>=2)for(const j of records)for(const x of j.evidence||[])if(!Object.hasOwn(photos||{},x.id))throw Error('Backup is missing photo '+x.id);
+}
+async function exportPhotos(records){
+ const photos={};
+ for(const j of records)for(const x of j.evidence||[]){
+  const data=await photoGet(x.id);
+  if(!data)throw Error('Evidence photo missing on this device: '+(x.label||x.id)+'. Fetch team evidence or recover the original photo before migrating.');
+  photos[x.id]=data;
+ }
+ validateBackup(records,photos,2);return photos;
+}
+async function restorePhotos(photos,records=[]){
+ photos={...photos};
+ for(const id of Object.keys(photos)){
+  const existing=await photoGet(id);
+  if(existing&&existing!==photos[id]){
+   const replacement=guid();photos[replacement]=photos[id];delete photos[id];
+   for(const j of records)for(const x of j.evidence||[])if(x.id===id)x.id=replacement;
+  }
+ }
+ if(!Object.keys(photos).length)return;
+ const db=await photoDB();
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('photos','readwrite');
+  for(const [id,data] of Object.entries(photos))tx.objectStore('photos').put(data,id);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('Photo restore aborted'));tx.onerror=()=>reject(tx.error);
+ }).finally(()=>db.close());
+}
+function replaceMetadata(records){localStorage.setItem(KEY,JSON.stringify(records));jobs=structuredClone(records);}
+window.SperinJobCentre={validateBackup,exportPhotos,restorePhotos,replaceMetadata,open,showRef,install:a=>{adapter=a;},reminderCount:reminders,backup:()=>jobs.map(x=>({...x})),importMetadata,incomingAsset};
 })();

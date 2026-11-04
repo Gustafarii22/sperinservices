@@ -16,7 +16,7 @@ on:
       - "src/lib/certificates-live.server.ts"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux, feature/certificates-v196-quick-entry-certificate-view]
+    branches: [fix/certificates-v197-data-safe-ux, main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux, feature/certificates-v196-quick-entry-certificate-view]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -116,6 +116,11 @@ jobs:
 
       - name: Quick/Certificate View, orientation and editing QA
         run: node tests/certificates-v196-view.e2e.mjs
+
+      - name: Complete portable backup, photos and recovery
+        run: |
+          node tests/certificates-v197-transfer.e2e.mjs
+          node tests/certificates-complete-backup.e2e.mjs
 
       - name: Live concurrent editing with two independent engineers
         run: node tests/certificates-live-editing.e2e.mjs

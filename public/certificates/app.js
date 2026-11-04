@@ -1542,7 +1542,7 @@
   }
 
   function autoBackupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] });
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
   function flushNativeAutoBackup() {
@@ -2228,7 +2228,15 @@
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
   function backupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
+  }
+
+  async function portableBackupPayload() {
+    saveNow();
+    const data=JSON.parse(backupPayload());
+    data.backupSchema=2;
+    data.jobPhotos=await window.SperinJobCentre.exportPhotos(data.jobs);
+    return JSON.stringify(data,null,2);
   }
 
   function savePreRestoreSnapshot() {
@@ -2258,36 +2266,59 @@
         templates[kind]=data[key].map(t=>cleanTemplate(kind,t));
       }
     }
-    return {certificates,settings:importedSettings,templates,jobs:Array.isArray(data.jobs)?data.jobs:[]};
+    for(const key of ['jobs','sitePlans','siteTemplates']){
+      if(data[key]!==undefined && !Array.isArray(data[key])) throw new Error('Invalid '+key);
+    }
+    window.SperinJobCentre.validateBackup(data.jobs||[],data.jobPhotos,data.backupSchema);
+    return {certificates,settings:importedSettings,templates,jobs:data.jobs,jobPhotos:data.jobPhotos,
+      sitePlans:data.sitePlans,siteTemplates:data.siteTemplates};
   }
 
-  function applyBackupJson(json,preserveCurrent=true) {
+  async function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
-    if(preserveCurrent) savePreRestoreSnapshot();
-    Object.entries(prepared.templates).forEach(([kind,list])=>saveReusableTemplates(kind,list));
-    resetEditHistory();
-    state={certificates:prepared.certificates};
-    settings=prepared.settings;
-    if(prepared.jobs?.length)window.SperinJobCentre?.importMetadata?.(prepared.jobs);
-    view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
-    closeModal();
-    persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
+    // Keep a complete rollback copy before touching either storage system.
+    if(preserveCurrent) localStorage.setItem(PRE_RESTORE_KEY,await portableBackupPayload());
+    // Photo imports use fresh IDs on collisions, preserving the rollback's bytes.
+    prepared.jobs=prepared.jobs===undefined?undefined:clone(prepared.jobs);
+    await window.SperinJobCentre.restorePhotos(prepared.jobPhotos||{},prepared.jobs||[]);
+    const keys=[STORAGE_KEY,SETTINGS_KEY,VIEW_KEY,SHEET_PLANS_KEY,SHEET_TEMPLATES_KEY,templateKey('board'),templateKey('circuit')];
+    const previous=new Map(keys.map(k=>[k,localStorage.getItem(k)]));
+    const previousState=state,previousSettings=settings,previousView=view,previousJobs=window.SperinJobCentre.backup();
+    try{
+      if(prepared.sitePlans!==undefined) localStorage.setItem(SHEET_PLANS_KEY,JSON.stringify(prepared.sitePlans));
+      if(prepared.siteTemplates!==undefined) localStorage.setItem(SHEET_TEMPLATES_KEY,JSON.stringify(prepared.siteTemplates));
+      Object.entries(prepared.templates).forEach(([kind,list])=>saveReusableTemplates(kind,list));
+      state={certificates:prepared.certificates};settings=prepared.settings;
+      if(prepared.jobs!==undefined)window.SperinJobCentre.replaceMetadata(prepared.jobs);
+      view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
+      persist();saveSettings();
+    }catch(err){
+      state=previousState;settings=previousSettings;view=previousView;
+      // Remove new values first to release space before restoring old values.
+      keys.forEach(k=>localStorage.removeItem(k));
+      previous.forEach((v,k)=>{if(v!==null)localStorage.setItem(k,v);});
+      window.SperinJobCentre.replaceMetadata(previousJobs);
+      throw err;
+    }
+    resetEditHistory();closeModal();scheduleNativeAutoBackup();render();goTop();
+    if(prepared.jobPhotos===undefined && prepared.jobs?.some(j=>j.evidence?.length))
+      alert('This older backup contains photo references but no photo files. Keep the original app. Export each job handover ZIP there to preserve its photos before migrating.');
   }
 
-  function undoLastRestore(){
+  async function undoLastRestore(){
     const recovery=localStorage.getItem(PRE_RESTORE_KEY);
     if(!recovery){alert('No pre-restore recovery snapshot is available on this device.');return;}
     try{
-      const current=backupPayload();
-      applyBackupJson(recovery,false);
+      const current=await portableBackupPayload();
+      await applyBackupJson(recovery,false);
       localStorage.setItem(PRE_RESTORE_KEY,current);
       toast('Previous certificate data recovered');
     }catch(err){alert('Could not recover the previous data: '+err.message);}
   }
 
-  window.sperinRestoreBackup=function(json,error){
+  window.sperinRestoreBackup=async function(json,error){
     if(error){alert('Backup import/restore failed: '+error);return;}
-    try{applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
+    try{await applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
     catch(err){alert('Could not load backup: '+err.message);}
   };
 
@@ -2332,8 +2363,9 @@
     document.body.insertAdjacentHTML('beforeend',html);
   }
 
-  function performBackup() {
-    const content=backupPayload();
+  async function performBackup() {
+    let content;
+    try{content=await portableBackupPayload();}catch(err){alert('Backup failed: '+err.message);return;}
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.saveBackup==='function'){
       try {
@@ -2359,7 +2391,7 @@
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
+      reader.onload=async()=>{try{await applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
@@ -2390,8 +2422,9 @@
     else if(pending.kind==='import') performImportBackupFile();
   }
 
-  function shareBackup() {
-    const content=backupPayload();
+  async function shareBackup() {
+    let content;
+    try{content=await portableBackupPayload();}catch(err){alert('Backup failed: '+err.message);return;}
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.shareBackup==='function'){
       try { window.Android.shareBackup(content,filename); return; } catch(err){console.warn(err);}

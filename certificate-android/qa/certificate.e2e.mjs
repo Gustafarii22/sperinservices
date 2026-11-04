@@ -513,18 +513,11 @@ assert(
 );
 assert((await page.locator(".app-error").count()) === 0, "Legacy certificate hit render error");
 
-// Compact field actions must stay obvious without icon-only controls.
-assert(
-  (await page.getByRole("button", { name: "Voice", exact: true }).count()) === 1,
-  "Voice button missing",
-);
-assert(
-  (await page.getByRole("button", { name: "Site sheet", exact: true }).count()) === 1,
-  "Site sheet button missing",
-);
-const explainer = await page.locator(".entry-tools-explainer").textContent();
-assert(explainer.includes("adds to long answers"), "Voice append explanation missing");
-assert(explainer.includes("matches the issued PDF"), "Site-sheet explanation missing");
+// Occasional tools remain available through the actual production menu.
+await page.locator('.form-head .entry-tools summary').click();
+assert(await page.locator('[data-action="rapid-entry"]').isVisible(), 'Voice entry missing');
+assert(await page.locator('[data-action="rapid-sheet"]').isVisible(), 'Site sheet missing');
+await page.locator('.form-head .entry-tools summary').click();
 
 // One-tap field helpers: same-client, bonding and signatory mode.
 await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham");
