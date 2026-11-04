@@ -857,7 +857,10 @@ assert(
   "Complete & PDF did not save Complete status",
 );
 await page.locator('[data-action="pdf-dismiss"]').click();
-await page.locator('[data-action="status"]').click();
+// Return to draft is in a collapsed More tools menu after completing the PDF.
+const statusTools = page.locator('details.entry-tools').filter({ has: page.locator('[data-action="status"]') }).first();
+if (!(await statusTools.evaluate(el => el.open))) await statusTools.locator('summary').click();
+await statusTools.locator('[data-action="status"]').click();
 await page.waitForTimeout(40);
 console.log("COMPLETE_PDF_PASS");
 
