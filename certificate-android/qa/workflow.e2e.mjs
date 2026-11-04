@@ -337,6 +337,8 @@ for (const [i, c] of cert.tables.circuits.entries())
 await board("CU1").locator('[data-action="circuit-open"]').first().click();
 promptName = "32A ring";
 await click('[data-action="template-save-circuit"]');
+await page.locator('[data-template-name]').fill(promptName);
+await click('[data-action="template-save-choice"][data-results="no"]');
 await click('[data-action="circuit-list"]');
 await board(child.ref).locator('.board-circuit-tools [data-action="template-open"]').click();
 await click('[data-action="template-use"]');
