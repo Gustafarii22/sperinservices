@@ -60,7 +60,7 @@ async function row(description){
 }
 const fourth=await row("QA Circuit 4");
 for(const name of ["circuit-move-up","circuit-move-down","circuit-duplicate","template-save-circuit","template-open","circuit-delete","circuit-done"]){
- assert.equal(await fourth.locator('[data-action="'+name+'"]').count(),1,"Missing circuit toolbar action "+name);
+ assert.equal(await fourth.locator('.inline-circuit-actions [data-action="'+name+'"]').count(),1,"Missing circuit toolbar action "+name);
 }
 const bar=fourth.locator(".inline-circuit-actions");
 assert.equal(await bar.locator("button").count(),7,"One aligned seven-action row required");
