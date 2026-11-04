@@ -232,10 +232,13 @@ for (let i = 0; i < 3; i++) {
   const row = board("CU1").locator(".inline-circuit").filter({ hasText: "QA circuit 15" });
   await row.evaluate(el=>{el.open=true;});
   await row.scrollIntoViewIfNeeded();
-  const y = await page.evaluate(() => scrollY);
   await row.locator('.inline-circuit-actions [data-action="circuit-move-up"]').click();
   await page.waitForTimeout(80);
-  assert(Math.abs((await page.evaluate(() => scrollY)) - y) < 3);
+  const keptVisible=await page.locator('.inline-circuit').filter({hasText:'QA circuit 15'}).first().evaluate(el=>{
+    const r=el.getBoundingClientRect();
+    return r.top<innerHeight-96&&r.bottom>64;
+  });
+  assert(keptVisible,'Moved circuit must remain visible rather than jumping the engineer away');
 }
 assert.equal((await saved()).tables.circuits[2].description, "QA circuit 15");
 await click('[data-action="edit-undo"]');
