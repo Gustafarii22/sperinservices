@@ -160,7 +160,7 @@ return new Blob([...items,...central,tail],{type:"application/zip"});
 async function downloadPack(j){
 const items=[],linked=certificates().filter(c=>j.certIds.includes(c.id));
 for(const cert of linked){const d=window.SperinIetForms.build({cert,schema:adapter.schema(cert.type),settings:adapter.settings(),worksheet:false});items.push(["certificates/"+filename(cert.number||cert.type)+".pdf",new Uint8Array(d.output("arraybuffer"))]);}
-for(const x of (j.evidence||[]).slice(0,40)){const image=await photoGet(x.id);if(!image)continue;const bytes=Uint8Array.from(atob(image.split(",")[1]),c=>c.charCodeAt(0));items.push(["evidence/"+filename(x.circuitRef||"photo")+"-"+filename(x.id)+".jpg",bytes]);}
+for(const x of (j.evidence||[])){const image=await photoGet(x.id);if(!image)throw Error("Handover not created: evidence photo is missing on this device. Retrieve all evidence before exporting.");const bytes=Uint8Array.from(atob(image.split(",")[1]),c=>c.charCodeAt(0));items.push(["evidence/"+filename(x.circuitRef||"photo")+"-"+filename(x.id)+".jpg",bytes]);}
 const overview=["SPERIN CERTIFICATES | JOB HANDOVER",j.siteName,j.address,j.postcode,"Customer: "+j.customer,"Asset: "+j.assetId,"Notes: "+j.notes,"CERTIFICATES",...linked.map(c=>c.number+" "+c.type+" "+c.status),"COMPLIANCE DATES",...(j.reminders||[]).map(x=>x.kind+" "+x.dueDate+" "+x.description),"EVIDENCE INDEX",...(j.evidence||[]).map(x=>[x.circuitRef,x.observationRef,x.label,x.author,x.createdAt].join(" | "))];
 items.unshift(["INDEX.txt",encode(overview.join("\r\n"))]);
 const blob=zip(items),name=filename(j.siteName)+"-handover.zip";

@@ -69,5 +69,29 @@ if(await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').count())await 
 assert((await page.locator(".jc-dialog").textContent()).includes("Device marking evidence"),"Offline job persistence failed");
 await page.locator('[data-jc="sync"]').click();
 assert((await page.locator("[data-jc-status]").textContent()).includes("Enable cloud consent"),"Cloud upload must remain disabled by default");
+// A handover must include evidence beyond the previous 40-photo cutoff.
+await page.evaluate(async()=>{
+ const api=window.SperinJobCentre, jobs=api.backup(), j=jobs[0];
+ const originals=await api.exportPhotos(jobs), image=originals[j.evidence[0].id], photos={};
+ while(j.evidence.length<41){const id=crypto.randomUUID();j.evidence.push({...j.evidence[0],id});photos[id]=image;}
+ await api.restorePhotos(photos,jobs);api.replaceMetadata(jobs);
+});
+await page.locator('[data-jc="close"]').click();
+await page.locator('#speed-nav [data-speed="more"]').click();
+await page.locator('[data-tool="jobs"]').click();
+await page.locator('[data-jc="open"][data-id="'+newJobId+'"]').first().click();
+const [completePack]=await Promise.all([page.waitForEvent("download"),page.locator('[data-jc="pack"]').click()]);
+const completePath="/tmp/sperin-job-41-photos.zip";await completePack.saveAs(completePath);
+const completeBytes=await fs.readFile(completePath);
+// ZIP end-of-central-directory entry count: index + certificate + 41 photos.
+assert.equal(completeBytes.readUInt16LE(completeBytes.length-12),43,"Handover truncated evidence");
+await page.evaluate(async()=>{
+ const j=window.SperinJobCentre.backup()[0];
+ await new Promise((resolve,reject)=>{const r=indexedDB.open("sperin-job-evidence-v1",1);r.onsuccess=()=>{const db=r.result,tx=db.transaction("photos","readwrite");tx.objectStore("photos").delete(j.evidence[40].id);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>reject(tx.error);};});
+});
+let unexpectedDownload=false;page.on("download",()=>{unexpectedDownload=true;});
+await page.locator('[data-jc="pack"]').click();
+await page.waitForFunction(()=>document.querySelector('[data-jc-status]')?.textContent.includes("evidence photo is missing"));
+assert.equal(unexpectedDownload,false,"Incomplete handover was silently exported");
 await browser.close();
 console.log("JOBS_QR_EVIDENCE_REMINDERS_PDF_HANDOVER_ZIP_AND_OPT_IN_PASS");

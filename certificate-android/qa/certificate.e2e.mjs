@@ -761,6 +761,7 @@ console.log("CIRCUIT_AUTOSORT_PASS");
 // Rotation/reload must preserve the active certificate, circuit page and autosaved data.
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
+await page.locator('[data-circuit-input="tests"][data-col="continuityMethod"]').selectOption("Both");
 const rotationField = page.locator('[data-circuit-input="tests"][data-col="r2only"]');
 await rotationField.fill("0.20");
 await page.waitForTimeout(450);
