@@ -943,6 +943,9 @@ await page.waitForTimeout(50);
 // Start new EIC and verify tester defaults prefill.
 await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
+// New certificate accordions start collapsed. Inspect defaults via the real section UI.
+const newInstrumentSection = page.locator('details.form-section').filter({ has: page.locator('summary').filter({ hasText: 'Test instrument' }) }).first();
+if (!(await newInstrumentSection.evaluate(el => el.open))) await newInstrumentSection.locator('summary').first().click();
 await page.waitForSelector('[data-field="testerMake"]');
 assert(
   (await page.locator('[data-field="testerMake"]').inputValue()) === "Megger",
