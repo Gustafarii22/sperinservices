@@ -26,6 +26,11 @@ try {
   localStorage.setItem('sperin-certificates-site-sheet-templates-v1',JSON.stringify(templates));
   return {certificates,job,plans,templates};
  },{key,types,photo});
+ await source.addInitScript(({key,certificates})=>{
+  if(!sessionStorage.getItem('complete-backup-fixture')){
+   localStorage.setItem(key,JSON.stringify({certificates}));sessionStorage.setItem('complete-backup-fixture','yes');
+  }
+ },{key,certificates:fixture.certificates});
  await source.reload();
  await source.locator('[data-action="home"]').first().click();
  await source.locator('[data-action="settings"]').first().click();
@@ -33,7 +38,7 @@ try {
  await source.locator('[data-action="share-backup"]').click();
  const file=await downloading;await file.saveAs('/tmp/complete-backup.json');
  const content=await readFile('/tmp/complete-backup.json','utf8'),exported=JSON.parse(content);
- assert.equal(exported.backupSchema,2);assert.equal(exported.jobPhotos[fixture.job.evidence[0].id],photo);
+ assert.equal(exported.certificates.length,types.length);assert.equal(exported.backupSchema,2);assert.equal(exported.jobPhotos[fixture.job.evidence[0].id],photo);
  const dest=await browser.newPage();dest.on('dialog',d=>d.accept());await dest.goto(url);
  await dest.evaluate(content=>window.sperinRestoreBackup(content),content);
  await dest.reload();
