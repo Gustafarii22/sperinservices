@@ -59,7 +59,7 @@ async function row(description){
  return x;
 }
 const fourth=await row("QA Circuit 4");
-for(const name of ["circuit-open","circuit-move-up","circuit-move-down","circuit-duplicate","template-save-circuit","template-open","circuit-delete"]){
+for(const name of ["circuit-move-up","circuit-move-down","circuit-duplicate","template-save-circuit","template-open","circuit-delete","circuit-done"]){
  assert.equal(await fourth.locator('[data-action="'+name+'"]').count(),1,"Missing circuit toolbar action "+name);
 }
 const bar=fourth.locator(".inline-circuit-actions");
@@ -71,7 +71,7 @@ await fourth.locator('[data-action="template-save-circuit"]').click();
 assert((await page.locator(".toast,.toast-message").count())>=0);
 for(let i=0;i<3;i++){
  const moving=await row("QA Circuit 4");
- await moving.locator('[data-action="circuit-move-up"]').click();
+ await moving.locator('.inline-circuit-actions [data-action="circuit-move-up"]').click();
 }
 const read=()=>page.evaluate(()=>{
  const s=JSON.parse(localStorage.getItem("sperin-certificates-data-v1"));
@@ -83,14 +83,14 @@ assert.deepEqual(state.map(x=>x.no),["1","2","3","4"],"Circuit positions must re
 assert.deepEqual(state.map(x=>x.description),["QA Circuit 4","QA Circuit 1","QA Circuit 2","QA Circuit 3"],"Moved circuit must become circuit 1");
 assert.deepEqual(state.map(x=>x.zs),["4.01","1.01","2.01","3.01"],"Measurements must travel with circuit");
 let second=await row("QA Circuit 1");
-await second.locator('[data-action="circuit-delete"]').click();
+await second.locator('.inline-circuit-actions [data-action="circuit-delete"]').click();
 state=await read();
 assert.deepEqual(state.map(x=>x.no),["1","2","3"]);
 assert.deepEqual(state.map(x=>x.description),["QA Circuit 4","QA Circuit 2","QA Circuit 3"]);
 assert.deepEqual(state.map(x=>x.zs),["4.01","2.01","3.01"]);
 const toEdit=await row("QA Circuit 2");
-await toEdit.locator('[data-action="circuit-open"]').click();
-assert.equal(await page.locator(".form-head.circuit-head").count(),1,"Edit must open full circuit editor");
+assert(await toEdit.locator(".inline-circuit-fields [data-circuit-input]").count()>0,"Existing circuit edits should open inline without leaving the certificate");
+await toEdit.locator('.inline-circuit-actions [data-action="circuit-done"]').click();
 await page.reload();
 const persisted=await read();
 assert.deepEqual(persisted.map(x=>x.description),["QA Circuit 4","QA Circuit 2","QA Circuit 3"],"Order and deletes survive app reload");
