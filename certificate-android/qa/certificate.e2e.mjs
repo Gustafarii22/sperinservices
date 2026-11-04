@@ -865,8 +865,10 @@ await page.waitForTimeout(40);
 console.log("COMPLETE_PDF_PASS");
 
 // Printable worksheet must also download and be landscape.
+const worksheetTools = page.locator('details.entry-tools').filter({ has: page.locator('[data-action="rapid-sheet"]') }).first();
+if (!(await worksheetTools.evaluate(el => el.open))) await worksheetTools.locator('summary').click();
 const worksheetPromise = page.waitForEvent("download");
-await page.getByRole("button", { name: "Site sheet", exact: true }).click();
+await worksheetTools.locator('[data-action="rapid-sheet"]').click();
 const worksheet = await worksheetPromise;
 assert(worksheet.suggestedFilename().includes("Site-Worksheet"), "Site worksheet filename unclear");
 const worksheetPath = await worksheet.path();
