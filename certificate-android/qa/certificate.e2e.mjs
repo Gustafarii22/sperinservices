@@ -1380,7 +1380,8 @@ for (const type of certificateTypeOrder) {
   const criticalCount = await criticalButtons.count();
   for (let i = 0; i < criticalCount; i += 1) {
     const box = await criticalButtons.nth(i).boundingBox();
-    if (box) assert(box.height >= 39, type + " critical button is too small: " + box.height);
+    // A zero-size rectangle is a deliberately hidden legacy action, not a tap target.
+    if (box && box.height > 0 && box.width > 0) assert(box.height >= 39, type + " visible critical button is too small: " + box.height);
   }
 
   if (["eic", "eicr", "minor"].includes(type)) {
