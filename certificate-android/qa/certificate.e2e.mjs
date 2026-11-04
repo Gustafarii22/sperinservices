@@ -723,14 +723,10 @@ assert(
 );
 await page.locator('[data-action="circuit-list"]').first().click();
 await page.waitForSelector(".circuit-list");
-await page.waitForTimeout(80);
-const circuitTop = await page
-  .locator("[data-board-add-circuit]")
-  .evaluate((el) => el.getBoundingClientRect().top);
-assert(
-  circuitTop >= 0 && circuitTop < 850,
-  "Saving circuit should return to circuit schedule, top=" + circuitTop,
-);
+await page.waitForFunction(()=>{
+ const r=document.querySelector('.inline-circuit > summary')?.getBoundingClientRect();
+ return r&&r.top>=0&&r.bottom<innerHeight-140;
+});
 console.log("CIRCUIT_FLOW_PASS");
 
 // Circuit numbers should drive the normal schedule order without losing paired test results.

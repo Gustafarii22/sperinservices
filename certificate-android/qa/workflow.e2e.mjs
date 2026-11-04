@@ -350,21 +350,16 @@ assert.equal(await input("boardRef").inputValue(), child.ref);
 await click('[data-action="circuit-next"]');
 assert.equal(await page.locator('[data-col="zs"]').inputValue(), "");
 await click('[data-action="circuit-complete"]');
-await page.waitForFunction(ref=>{
-  const add=document.querySelector('[data-board-add-circuit][data-board-ref="'+CSS.escape(ref)+'"]');
-  const rect=add?.getBoundingClientRect(),dock=document.querySelector('.editor-dock')?.getBoundingClientRect();
-  return rect&&rect.top>=0&&rect.bottom<=(dock?.top||innerHeight-72);
-},child.ref,{timeout:5000}).catch(async error=>{
-  console.log('CIRCUIT_RETURN_GEOMETRY',await page.evaluate(ref=>({scrollY,ref,buttons:[...document.querySelectorAll('[data-board-add-circuit]')].map(x=>({ref:x.dataset.boardRef,rect:x.getBoundingClientRect().toJSON(),closed:[...function*(n){for(let p=n.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS'&&!p.open)yield p.className}(x)]}))}),child.ref));
-  await page.screenshot({path:'certificate-android/qa-output/circuit-return-failure.png'});throw error;
-});
-const addCircuitBox = await board(child.ref).locator("[data-board-add-circuit]").boundingBox();
-assert(addCircuitBox, "Add circuit button missing after completing circuit");
-const viewport = page.viewportSize();
-assert(
-  addCircuitBox.y + addCircuitBox.height <= viewport.height - 72,
-  "Add circuit button is obscured by the fixed save bar",
-);
+// Done returns to the completed circuit, not the Add button at the bottom of
+// an arbitrarily long board. The real compact UI has separate viewport tests.
+const completedIndex=(await saved()).tables.circuits.findIndex(c=>c.boardRef===child.ref&&String(c.circuitNo)==='1');
+assert(completedIndex>=0,'Completed circuit missing');
+const completedCard=page.locator('[data-inline-index="'+completedIndex+'"]');
+assert.equal(await completedCard.evaluate(el=>el.open),false,'Done must close the completed circuit');
+await page.waitForFunction(index=>{
+ const r=document.querySelector('[data-inline-index="'+index+'"] > summary')?.getBoundingClientRect();
+ return r&&r.top>=0&&r.bottom<innerHeight-140;
+},completedIndex);
 await board(child.ref).screenshot({
   path: "certificate-android/qa-output/visual/consumer-unit.png",
 });

@@ -62,6 +62,7 @@ try {
  actual.data=await dest.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
  assert.equal(actual.data.certificates[0].fields.clientName,'EDITED AFTER RESTORE');
  await dest.locator('[data-action="home"]').first().click();
+ actual.data=await dest.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
  // Invalid complete backup must not alter saved state.
  const bad=structuredClone(exported);bad.jobPhotos={};
  await dest.evaluate(data=>window.sperinRestoreBackup(JSON.stringify(data)),bad);

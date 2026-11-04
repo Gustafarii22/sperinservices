@@ -2020,12 +2020,7 @@
     accordionState.set('inline-circuit:'+cert.id+':'+row.id,false);
     preserveRequestedAccordions=true;render();keepCircuitAccordionVisible(cert,row.boardRef);
     const card=document.querySelector('[data-inline-index="'+index+'"]');
-    if(card)card.open=false;
-    // Return to the next useful action above the fixed navigation/dock.
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const add=document.querySelector('[data-board-add-circuit][data-board-ref="'+CSS.escape(row.boardRef||'DB1')+'"]');
-      (add||card)?.scrollIntoView({block:'center',behavior:'instant'});
-    }));
+    if(card){card.open=false;alignAccordion(card);}
   }
   function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);
@@ -4162,7 +4157,7 @@
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();keepCircuitAccordionVisible(cert,button.dataset.boardRef);goCircuits();}
+    else if(action==='circuit-list' && cert){finishCircuit(cert,view.circuitIndex);}
     else if(action==='circuit-complete' && cert){finishCircuit(cert,view.circuitIndex);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }

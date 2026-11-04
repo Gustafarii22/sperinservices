@@ -51,7 +51,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | test("key|sign|1.9.6";"i")) | {name,expired,id}'
 
   safe-preview-apk:
-    name: Build separate data-safe 1.9.7 preview
+    name: Compile and inspect emulator-only QA APK
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -93,12 +93,5 @@ jobs:
           grep -F "versionCode='200'" certificate-android/dist/package.txt
           grep -F "versionName='1.9.7-dev'" certificate-android/dist/package.txt
           sha256sum "$APK" > certificate-android/dist/SHA256SUMS.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Sperin-Certificates-1.9.7-SAFE-PREVIEW
-          path: |
-            certificate-android/dist/Sperin-Certificates-1.9.7-SAFE-PREVIEW.apk
-            certificate-android/dist/package.txt
-            certificate-android/dist/SHA256SUMS.txt
-          retention-days: 30
-          if-no-files-found: error
+      # Do not distribute this disposable debug-signed APK. User candidates must
+      # use certificate-apk.yml and the backed-up permanent signing identity.
