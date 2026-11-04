@@ -814,6 +814,10 @@ await page
     "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
   );
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
+// Instrument make/model/serial are only shown after enabling the multifunction tester.
+const instrumentSection = page.locator('details.form-section').filter({ has: page.locator('summary').filter({ hasText: 'Test instrument' }) }).first();
+if (!(await instrumentSection.evaluate(el => el.open))) await instrumentSection.locator('summary').first().click();
+await page.locator('[data-field="testerMft"]').check();
 await page.locator('[data-field="testerMake"]').fill("Megger");
 await page.locator('[data-field="testerModel"]').fill("MFT-X1");
 await page.locator('[data-field="testerSerial"]').fill("ABC123");
