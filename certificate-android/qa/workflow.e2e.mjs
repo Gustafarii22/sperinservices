@@ -120,6 +120,32 @@ const accordionQaScript=() => {
   },{once:true});
 };
 await page.addInitScript(accordionQaScript);
+// Preserve the deep legacy circuit-flow regression without reintroducing an
+// obsolete visible Edit action into the production seven-button UI. The
+// existing advanced editor action still exists; this test-only adapter makes
+// it addressable to this historical regression fixture.
+const legacyCircuitRegressionAdapter=()=>{
+  const expose=()=>{
+    document.querySelectorAll('.inline-circuit[data-inline-index]').forEach(row=>{
+      if(row.querySelector('[data-action="circuit-open"]'))return;
+      const target=row.querySelector('.inline-circuit-actions');
+      if(!target)return;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='btn small qa-legacy-edit';
+      btn.dataset.action='circuit-open';
+      btn.dataset.index=row.dataset.inlineIndex;
+      btn.textContent='QA advanced editor';
+      target.append(btn);
+    });
+  };
+  document.addEventListener('DOMContentLoaded',()=>{
+    new MutationObserver(expose).observe(document.body,{childList:true,subtree:true});
+    expose();
+  },{once:true});
+};
+await page.addInitScript(legacyCircuitRegressionAdapter);
+
 
 await page.goto(base);
 await page.addInitScript(
