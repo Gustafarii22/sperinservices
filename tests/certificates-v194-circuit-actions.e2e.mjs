@@ -91,7 +91,7 @@ assert.deepEqual(state.map(x=>x.no),["1","2","3"]);
 assert.deepEqual(state.map(x=>x.description),["QA Circuit 4","QA Circuit 2","QA Circuit 3"]);
 assert.deepEqual(state.map(x=>x.zs),["4.01","2.01","3.01"]);
 const toEdit=await row("QA Circuit 2");
-assert(await toEdit.locator(".inline-circuit-fields [data-circuit-input]").count()>0,"Existing circuit edits should open inline without leaving the certificate");
+await toEdit.locator(".inline-circuit-fields [data-circuit-input]").first().waitFor({state:"visible",timeout:5000}); // lazy-rendered on accordion toggle
 await toEdit.locator('.inline-circuit-actions [data-action="circuit-done"]').click();
 await page.reload();
 const persisted=await read();
