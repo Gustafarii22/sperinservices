@@ -38,6 +38,6 @@ test('paired legacy circuit and result fields survive normalisation without drop
 });
 test('Android update retains installed identity and storage namespace',()=>{
  const gradle=readFileSync('certificate-android/app/build.gradle','utf8');
- assert(gradle.includes("applicationId 'uk.co.sperinservices.certificates.stable'"));assert(gradle.includes("applicationIdSuffix '.preview.team.v197'"));assert(gradle.includes('versionCode 200'));
+ assert(gradle.includes("applicationId 'uk.co.sperinservices.certificates.stable'"));assert(gradle.includes("applicationIdSuffix '.preview.team.v197'"));assert(gradle.includes("versionCode (project.findProperty('releaseVersionCode') ?: '200').toInteger()"));
  assert(source.includes("const STORAGE_KEY = 'sperin-certificates-data-v1'"));assert(source.includes("const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196'"));
 });

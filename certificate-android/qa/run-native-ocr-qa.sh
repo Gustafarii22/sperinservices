@@ -13,5 +13,5 @@ APP_ID=$("${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt" d
 test -n "$APP_ID"
 TEST_INSTRUMENTATION=$(adb shell pm list instrumentation | tr -d '\r' | grep -F "(target=$APP_ID)" | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p')
 test -n "$TEST_INSTRUMENTATION"
-adb shell am instrument -w -r "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/results.txt
+adb shell am instrument -w -r -e class uk.co.sperinservices.certificates.ConsumerUnitOcrTest "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/results.txt
 grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt

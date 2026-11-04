@@ -2020,7 +2020,12 @@
     accordionState.set('inline-circuit:'+cert.id+':'+row.id,false);
     preserveRequestedAccordions=true;render();keepCircuitAccordionVisible(cert,row.boardRef);
     const card=document.querySelector('[data-inline-index="'+index+'"]');
-    if(card){card.open=false;alignAccordion(card);}
+    if(card)card.open=false;
+    // Return to the next useful action above the fixed navigation/dock.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const add=document.querySelector('[data-board-add-circuit][data-board-ref="'+CSS.escape(row.boardRef||'DB1')+'"]');
+      (add||card)?.scrollIntoView({block:'center',behavior:'instant'});
+    }));
   }
   function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);

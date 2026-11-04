@@ -49,7 +49,7 @@ location are required. Do not use ChatGPT files, git, Actions artifacts or cache
    locations, recovery custodian and restore date only. Destroy temporary plaintext copies.
 3. Provision protected GitHub Environment `certificates-production` with secrets:
    `SPERIN_PERMANENT_JKS_BASE64`, `SPERIN_STORE_PASSWORD`, `SPERIN_KEY_PASSWORD`,
-   `SPERIN_KEY_ALIAS`. Require trusted branch/ref restrictions and owner review.
+   `SPERIN_KEY_ALIAS`, and `SPERIN_BACKUP_VERIFIED_SHA256` (public fingerprint, set only after the restore drill). Require trusted branch/ref restrictions and owner review.
 4. Commit ONLY the approved public SHA-256 fingerprint (64 hex characters) in
    `certificate-android/signing/permanent.sha256`, plus a nonsecret backup verification receipt.
 5. Build variant `permanent`: package `uk.co.sperinservices.certificates.stable.permanent`.

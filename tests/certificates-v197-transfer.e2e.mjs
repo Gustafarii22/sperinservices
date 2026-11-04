@@ -10,7 +10,7 @@ const page=await browser.newPage({viewport:{width:390,height:844},acceptDownload
 const errors=[];
 page.on('pageerror',e=>errors.push(e.message));
 try {
-  await page.goto(base);
+  await page.goto(process.env.CERT_SOURCE_URL||base);
   await page.locator('[data-action="open-new"]').click();
   await page.locator('[data-action="new"][data-type="eic"]').click();
   await page.locator('[data-action="choose-entry"][data-mode="quick"]').click();

@@ -6,7 +6,7 @@ android {
     namespace 'uk.co.sperinservices.certificates'
     compileSdk 35
     // Android instruments the custom preview build type, not debug or release.
-    testBuildType 'preview'
+    testBuildType (project.findProperty('testVariant') ?: 'preview')
 
     signingConfigs {
         permanent {
@@ -28,7 +28,7 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        versionCode 200
+        versionCode (project.findProperty('releaseVersionCode') ?: '200').toInteger()
         versionName '1.9.7-dev'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
