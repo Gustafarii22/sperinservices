@@ -30,7 +30,7 @@ android {
     buildTypes {
         preview {
             initWith release
-            applicationIdSuffix '.preview.team.v196'
+            applicationIdSuffix '.preview.team.v197'
             signingConfig signingConfigs.debug
             debuggable false
             manifestPlaceholders = [appLabel: 'Sperin Certificates 1.9.7']
