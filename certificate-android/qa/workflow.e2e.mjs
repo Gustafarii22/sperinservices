@@ -233,7 +233,7 @@ for (let i = 0; i < 3; i++) {
   await row.evaluate(el=>{el.open=true;});
   await row.scrollIntoViewIfNeeded();
   const y = await page.evaluate(() => scrollY);
-  await row.locator('[data-action="circuit-move-up"]').click();
+  await row.locator('.inline-circuit-actions [data-action="circuit-move-up"]').click();
   await page.waitForTimeout(80);
   assert(Math.abs((await page.evaluate(() => scrollY)) - y) < 3);
 }
@@ -453,7 +453,7 @@ const row = board("CU1").locator(".inline-circuit").filter({ hasText: "QA circui
 await row.evaluate(el=>{el.open=true;});
 await row.scrollIntoViewIfNeeded();
 const deletedIndex=Number(await row.getAttribute("data-inline-index"));
-await row.locator('[data-action="circuit-delete"]').click();
+await row.locator('.inline-circuit-actions [data-action="circuit-delete"]').click();
 await page.waitForTimeout(100);
 const neighbour=page.locator('details.inline-circuit > summary').nth(deletedIndex);
 const neighbourBox=await neighbour.boundingBox();
