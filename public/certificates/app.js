@@ -2219,7 +2219,7 @@
       <div class="field"><label>Your signature image (PNG, JPEG, WebP or BMP · up to 8 MB)</label><input data-report-image="reportSignature" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" /></div></div>
       <button class="btn small" type="button" data-action="clear-brand-images">Clear logo and signature</button>
       </section>
-      <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">The app keeps an automatic recovery copy. Imports and destructive deletes save an undo snapshot first.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import file</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
+      <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">Moving certificates from your previous app? Tap <strong>Import certificate JSON</strong> and select its exported <strong>.json</strong> file. <strong>Restore this app</strong> only uses backups saved by this installation. Your encrypted signing-key .bin file is not a certificate backup. Your current data is saved to recovery before importing.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import certificate JSON</button><button class="btn" data-action="restore">Restore this app</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
     document.body.insertAdjacentHTML('beforeend',html);
@@ -2249,8 +2249,9 @@
   }
 
   function prepareBackupData(json) {
+    if(typeof json==='string' && !/^\s*\{/.test(json)) throw new Error('Select a Sperin Certificates .json backup exported from the old app. The encrypted signing-key .bin file is not a certificate backup.');
     const data=typeof json==='string'?JSON.parse(json):json;
-    if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates certificate backup (.json).');
     if(data.backupSchema!==undefined && data.backupSchema!==2) throw new Error('Unsupported backup schema; keep this file and update the app');
     const ids=data.certificates.map(c=>c?.id).filter(Boolean);
     if(new Set(ids).size!==ids.length) throw new Error('Duplicate certificate IDs in backup');
@@ -2320,7 +2321,15 @@
   }
 
   window.sperinRestoreBackup=async function(json,error){
-    if(error){alert('Backup import/restore failed: '+error);return;}
+    if(error){
+      if(String(error).includes('No Sperin Certificates backup was found')){
+        toast('No backup in this app. Choose the certificate .json exported from your old app.');
+        performImportBackupFile();
+        return;
+      }
+      alert('Backup import/restore failed: '+error);
+      return;
+    }
     try{await applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
     catch(err){alert('Could not load backup: '+err.message);}
   };
@@ -2335,17 +2344,17 @@
         finalLabel:'Backup now'
       },
       restore:{
-        firstTitle:'Restore latest backup?',
-        firstText:'This replaces the current certificate data with the latest backup. Your current data is saved to recovery first.',
+        firstTitle:'Restore a backup made by this app?',
+        firstText:'This searches backups saved by this installation. To move certificates from an old app, choose Import certificate JSON instead. Your current data is saved to recovery first.',
         secondTitle:'Confirm restore',
-        secondText:'This is the restore action. Press Restore now only if you want to replace the current data.',
+        secondText:'Restore this installation’s backup, or choose your exported JSON file if no local backup exists.',
         finalLabel:'Restore now'
       },
       import:{
-        firstTitle:'Import backup file?',
-        firstText:'This will load certificate data from a backup file. Your current data is saved to recovery first.',
+        firstTitle:'Import a Sperin Certificates .json backup?',
+        firstText:'Select the certificate .json file exported from your old app. The encrypted signing-key .bin is not a certificate backup. Your current data is saved to recovery first.',
         secondTitle:'Confirm import',
-        secondText:'Press Import now to choose and load the backup file.',
+        secondText:'Choose the certificate .json file to load; the existing app and its data stay untouched.',
         finalLabel:'Import now'
       }
     };
