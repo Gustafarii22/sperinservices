@@ -168,7 +168,7 @@ function apply(){
      for(const d of proposal.circuits)if(conflicts.some(c=>c.target===d.target))d.identityConfirmed=true;
    }
    const before=JSON.stringify(cert),result=core.propose(cert,boardRef,proposal);
-   if(!result.changes.length){s.modal.remove();session=null;s.adapter.commit(result.certificate);return;}
+   if(!result.changes.length){s.adapter.commit(result.certificate);s.modal.remove();session=null;return;}
    const replaced=result.changes.filter(c=>c.before&&c.before!==c.after&&
      (/^Circuit \d+/.test(c.label))).length;
    if(replaced&&!confirm('Existing circuit details to overwrite:\n\n'+
