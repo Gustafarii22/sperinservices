@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Domestic and commercial electrician across Birmingham and the West Midlands. Rewires, consumer units, EICRs, EV charging, lighting, fault finding and commercial electrical work.",
+          "Domestic and commercial electrician in Birmingham and the West Midlands. Consumer units, EICRs, rewires, EV charging, lighting, fault finding and repairs.",
       },
       {
         property: "og:title",
