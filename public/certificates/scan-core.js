@@ -11,7 +11,7 @@ function fields(rows,keys,count){
   const value=text(r.value);const confidence=!value?'missing':r.confidence==='high'&&evidence.length?'high':'check';
   // Reading text is not equivalent to the installer confirming a device or standard.
   const provenance=!value?'unknown':r.provenance==='inferred'?'inferred':
-    r.provenance==='observed'?'observed':evidence.length?'observed':'inferred';
+    r.provenance==='observed'&&evidence.length?'observed':evidence.length?'observed':'inferred';
   return [{key:r.key,value,confidence,evidence,reason:text(r.reason),provenance,
     reviewStatus:'unreviewed',accepted:false}];
  });
