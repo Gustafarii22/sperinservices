@@ -27,6 +27,8 @@ jobs:
         run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificates-v197-preservation.test.mjs tests/certificates-v197-fit.test.mjs
       - name: Existing certificate view and PDF regression
         run: node tests/certificates-v196-view.e2e.mjs
+      - name: Full-page EIC edit count matches exported PDF
+        run: node tests/certificates-immersive-pages.e2e.mjs
       - name: Mobile upgrade data and workflow regression
         run: node tests/certificates-v197-data-safe.e2e.mjs
       - name: Portable JSON backup and fresh-install import safety
