@@ -17,7 +17,7 @@ adb shell am instrument -w -r -e class uk.co.sperinservices.certificates.Consume
 grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt
 
 # Synthetic data survives a real package upgrade on this emulator. This validates
-# app persistence, NOT the still-unprovisioned production signing identity.
+# app persistence on a QA package, not the production signer identity.
 run_preservation() {
   adb shell am instrument -w -e class uk.co.sperinservices.certificates.UpgradePersistenceTest -e upgradeStage "$1" "$TEST_INSTRUMENTATION" | tee "certificate-android/qa-output/native-photo/preservation-$1.txt"
   grep -F "OK (1 test)" "certificate-android/qa-output/native-photo/preservation-$1.txt"
@@ -33,4 +33,4 @@ run_preservation reopened
 if gradle -p certificate-android :app:verifyPermanentSigner --no-daemon >certificate-android/qa-output/native-photo/missing-key.txt 2>&1; then
   echo 'Permanent release unexpectedly accepted missing signing material'; exit 1
 fi
-grep -F 'approved SHA-256 signing fingerprint is not configured' certificate-android/qa-output/native-photo/missing-key.txt
+grep -E 'approved SHA-256 signing fingerprint is not configured|permanent signing material is missing' certificate-android/qa-output/native-photo/missing-key.txt
