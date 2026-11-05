@@ -119,6 +119,9 @@ jobs:
       - name: Quick/Certificate View, orientation and editing QA
         run: node tests/certificates-v196-view.e2e.mjs
 
+      - name: PDF-sized immersive EIC page count and floating menu regression
+        run: node tests/certificates-immersive-pages.e2e.mjs
+
       - name: Complete portable backup, photos and recovery
         run: |
           node tests/certificates-v197-transfer.e2e.mjs
