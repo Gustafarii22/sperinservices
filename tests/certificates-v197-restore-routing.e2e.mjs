@@ -17,7 +17,7 @@ try {
   const profile = page.locator('.profile-modal');
   assert.match(await profile.locator('[data-action="import-backup"]').innerText(), /Import certificate JSON/);
   assert.match(await profile.locator('[data-action="restore"]').innerText(), /Restore this app/);
-  assert.match(await profile.innerText(), /signing-key \\.bin file is not a certificate backup/);
+  assert.match(await profile.innerText(), /signing-key \.bin file is not a certificate backup/);
 
   await page.evaluate(() => {
     window.__backupPickerCalls = 0;
@@ -36,7 +36,7 @@ try {
 
   // Do not interpret the encrypted Android signing-key backup as a certificate file.
   await page.evaluate(() => window.sperinRestoreBackup('NOT-JSON-ENCRYPTED-KEY-DATA', ''));
-  assert.match(dialogs.at(-1) || '', /Select a Sperin Certificates \\.json backup/);
+  assert.match(dialogs.at(-1) || '', /Select a Sperin Certificates \.json backup/);
   assert.equal(await page.evaluate(() => localStorage.getItem('sperin-certificates-data-v1')), before);
 
   // Unrelated errors must not silently redirect to another file.
