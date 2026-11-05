@@ -1130,10 +1130,10 @@ public class MainActivity extends Activity {
             if (uri == null) return false;
             runOnUiThread(() -> {
                 try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    Intent intent = new Intent(MainActivity.this, PdfPreviewActivity.class);
                     intent.setDataAndType(uri, "application/pdf");
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(intent, "Open certificate PDF"));
+                    startActivity(intent);
                 } catch (Exception ex) {
                     Toast.makeText(MainActivity.this, "No PDF viewer available", Toast.LENGTH_LONG).show();
                 }
