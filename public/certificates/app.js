@@ -1677,7 +1677,7 @@
     if(!sheet)return '<div class="card app-error">Certificate View is unavailable. Switch to Quick Entry.</div>';
     const schema=SCHEMAS[cert.type];
     return '<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">'+esc(schema.standard)+'</div><h2>'+esc(schema.name)+'</h2><p>'+esc(cert.number)+' · '+esc(cert.status)+'</p></div></div>'+
-      sheet.render(cert,schema);
+      sheet.render(cert,schema,settings);
   }
   function refreshCertificateView(){
     if(editMode!=='certificate')return;
@@ -1685,7 +1685,7 @@
     const left=port?.scrollLeft||0,top=port?.scrollTop||0;
     const fitting=window.SperinCertificateView.state.fitMode;
     const container=document.querySelector('.cv-shell');if(!container)return;
-    container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type]);
+    container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type],settings);
     window.SperinCertificateView.attachGestures();
     if(!fitting && port?.isConnected!==true && (left||top)){
       const target=document.querySelector('.cv-viewport');target.scrollLeft=left;target.scrollTop=top;
@@ -1757,8 +1757,9 @@
     const root = document.getElementById('app');
     persistView();
     document.body.dataset.page=view.page;
+    document.body.dataset.entryMode=(view.page==='form'&&editMode==='certificate')?'certificate':'quick';
     try {
-      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'?editorDock():''}</div>`;
+      root.innerHTML = `<div class="shell">${view.page==='form'&&editMode==='certificate'?'':topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'&&editMode!=='certificate'?editorDock():''}</div>`;
       requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } if(editMode==='certificate'&&view.page==='form')window.SperinCertificateView?.attachGestures?.(); });
     } catch(err) {
       console.error('Certificate render failed',err);
@@ -3938,6 +3939,7 @@
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
     if(button.closest('summary')){e.preventDefault();e.stopPropagation();}
     const action = button.dataset.action;
+    if(button.closest('.cv-menu-panel'))button.closest('.cv-menu')?.removeAttribute('open');
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
     if(action==='cv-keyboard'){const input=button.closest('.cv-field')?.querySelector('input');if(input){input.inputMode=input.inputMode==='decimal'?'text':'decimal';button.textContent=input.inputMode==='decimal'?'ABC':'123';input.focus();}}
