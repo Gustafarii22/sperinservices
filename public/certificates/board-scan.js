@@ -37,7 +37,7 @@ function scanField(r,i,group){
    '<datalist id="'+listId+'">'+[...new Set(opt)].map(v=>'<option value="'+esc(v)+'"></option>').join('')+'</datalist>':
    opt?'<select '+attr+'><option value="">Select</option>'+[...new Set([...opt,r.value].filter(Boolean))].map(v=>'<option value="'+esc(v)+'" '+(v===r.value?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':
    '<input '+attr+' value="'+esc(r.value)+'" autocomplete="off" placeholder="'+(key==='description'?'e.g. Sockets':'')+'">';
- return '<label class="scan-input"><span>'+esc(labels[key]||core.circuitKeys[key]||key)+'</span>'+select+'</label>'+((r.value&&(r.reason||r.evidence?.length))?'<small class="meta scan-field-evidence">'+esc((r.confidence==='high'?'Clearly read — ':'Check — ')+(r.reason||'')+(r.evidence?.length?' · Photo '+r.evidence.map(e=>e.image).join(', '):''))+'</small>':'');
+ return '<label class="scan-input"><span>'+esc(labels[key]||core.circuitKeys[key]||key)+'</span>'+select+'</label>'+((r.value&&(r.reason||r.evidence?.length))?'<small class="meta scan-field-evidence">'+esc((r.provenance==='inferred'?'UNVERIFIED SUGGESTION — ':r.provenance==='observed'?'Photo text observed; verify device — ':r.confidence==='high'?'Clearly read — ':'Check — ')+(r.reason||'')+(r.evidence?.length?' · Photo '+r.evidence.map(e=>e.image).join(', '):''))+'</small>':'');
 }
 function render(){
  const s=session;if(!s)return;
@@ -50,6 +50,12 @@ function render(){
    const rating=d.fields.find(f=>f.key==='ocpdRating')?.value||'';
    const curve=d.fields.find(f=>f.key==='ocpdType')?.value||'';
    const n=d.number||String(i);
+   const possible=(cert.tables?.circuits||[]).filter(c=>c.boardRef===s.boardRef&&!c._incomingFeed);
+   const destination=cert.type==='minor'?'':('<label class="scan-input"><span>Existing circuit identity / destination</span><select data-device-target="'+i+'">'+
+     '<option value="" '+(!d.target?'selected':'')+'>Select circuit destination</option>'+
+     '<option value="new" '+(d.target==='new'?'selected':'')+'>Create new circuit (number must be unused)</option>'+
+     possible.map(c=>'<option value="'+esc(c.id)+'" '+(d.target===c.id?'selected':'')+'>Existing '+esc(c.circuitNo)+' · '+esc(c.description||c.deviceKind||'Unnamed')+'</option>').join('')+
+     '</select></label>');
    const fixed=kind==='Main switch'||kind==='SPD'||kind==='Spare';
    const label=kind==='Main switch'?'MAIN SWITCH':kind==='SPD'?'SPD':kind==='Spare'?'SPARE':title||((curve||'')+(rating||'')+(rating?' A':''))||'New circuit';
    const selected=s.active==='c'+i;
@@ -61,7 +67,7 @@ function render(){
    const realIndices=d.fields;
    const fi=k=>realIndices.findIndex(f=>f.key===k);
    const renderKeys=ks=>ks.map(k=>scanField(realIndices[fi(k)],fi(k),String(i))).join('');
-   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','poleCount','testButtonVisual','phaseAssociation','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
+   return '<section class="scan-circuit '+(selected?'expanded':'')+'"><button class="scan-circuit-title" data-open="c'+i+'" aria-expanded="'+selected+'"><span class="scan-number">'+esc(n)+'</span><span class="scan-circuit-name"><strong>'+esc(label)+'</strong><small>'+esc(title&&label!==title?title:(curve&&rating?curve+rating+' A':''))+'</small></span><span class="scan-chevron">'+(selected?'−':'+')+'</span></button>'+(selected?'<div class="scan-circuit-body"><div class="scan-field-grid"><label class="scan-input"><span>Circuit number</span><input data-number="'+i+'" value="'+esc(n)+'" inputmode="numeric"></label>'+destination+renderKeys(['description'])+'</div>'+(fixed?'': '<div class="scan-field-group"><h4>Overcurrent protective device</h4><div class="scan-field-grid">'+renderKeys(['deviceManufacturer','deviceModel','deviceKind','poleCount','testButtonVisual','phaseAssociation','ocpdBs','ocpdRating','ocpdType','breakingCapacity'])+'</div></div><div class="scan-field-group"><h4>RCD</h4><div class="scan-field-grid">'+renderKeys(['rcdBs','rcdType','rcdIdn','rcdRating'])+'</div></div>')+'<div class="scan-circuit-actions"><button class="btn small" data-device-up="'+i+'" '+(i===0?'disabled':'')+'>↑ Move</button><button class="btn small" data-device-down="'+i+'" '+(i===s.result.circuits.length-1?'disabled':'')+'>↓ Move</button><button class="btn small danger" data-device-delete="'+i+'">Delete</button></div></div>':'')+'</section>';
  }).join('');
  const expanded=s.active==='board'||String(s.active||'').startsWith('c');
  const custom=window.Android?.scanSheetImageBase64;
@@ -129,7 +135,7 @@ function apply(){
      if(same.length>1)throw Error('Circuit '+n+' needs checking in the certificate.');
      const kind=d.fields.find(f=>f.key==='deviceKind')?.value||'';
      const acceptedKeys=new Set(['description','deviceManufacturer','deviceModel','deviceKind','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','poleCount','phaseAssociation','testButtonVisual']);
-     const fields=d.fields.map(f=>({...f,accepted:acceptedKeys.has(f.key)&&!!String(f.value||'').trim()}));
+     const fields=d.fields.map(f=>({...f,accepted:acceptedKeys.has(f.key)&&!!String(f.value||'').trim(),reviewStatus:'installer-confirmed'}));
      // Spare, main switch and SPD are schedule positions, not tested outgoing circuits.
      if(['Spare','Main switch','SPD'].includes(kind)){
        for(const f of fields)if(!['description','deviceKind'].includes(f.key))f.accepted=false;
@@ -137,18 +143,35 @@ function apply(){
      const filled=fields.some(f=>f.accepted);
      if(!filled)continue;
      
-     proposal.circuits.push({...d,fields,number:n,target:same.length?same[0].id:cert.type==='minor'?'minor':'new'});
+     const target=cert.type==='minor'?'minor':d.target||(!same.length?'new':'');
+     if(!target)throw Error('Circuit '+n+' already exists. Choose its identity explicitly, or enter a different number.');
+     if(target==='new'&&same.length)throw Error('Circuit '+n+' already exists. Choose the matching circuit instead.');
+     if(target!=='new'&&target!=='minor'&&!same.some(c=>c.id===target))
+       throw Error('Selected circuit identity does not match number '+n+'. Do not remap existing readings.');
+     proposal.circuits.push({...d,fields,number:n,target});
    }
    if(!proposal.circuits.length&&!proposal.board.some(f=>f.accepted))throw Error('Add or read a circuit before saving.');
    if(!confirm('Have you checked ALL device markings, protective-device ratings and standards, spare ways, and their actual positions against the consumer unit?\n\nPress OK for YES, or Cancel for NO and return to the review.')) {
      s.message='Review the devices and positions before adding them.';
      render();return;
    }
+   const conflicts=core.identityConflicts(cert,boardRef,proposal.circuits);
+   if(conflicts.length){
+     const detailed=conflicts.flatMap(c=>c.changes.map(change=>'Circuit '+c.circuitNo+' · '+change.field+': '+(change.before||'[blank]')+' → '+change.after));
+     const warning='These circuits ALREADY HAVE MEASURED TEST RESULTS. Changing the device details could leave readings attached to the wrong equipment.\n\n'+detailed.slice(0,24).join('\n')+
+       (detailed.length>24?'\n… and '+(detailed.length-24)+' more changes':'')+
+       '\n\nOnly approve if you have inspected the original circuit and confirmed its identity has NOT changed. Otherwise cancel and create a separate circuit. Continue?';
+     if(!confirm(warning))return;
+     for(const d of proposal.circuits)if(conflicts.some(c=>c.target===d.target))d.identityConfirmed=true;
+   }
    const before=JSON.stringify(cert),result=core.propose(cert,boardRef,proposal);
    if(!result.changes.length){s.modal.remove();session=null;s.adapter.commit(result.certificate);return;}
    const replaced=result.changes.filter(c=>c.before&&c.before!==c.after&&
      (/^Circuit \d+/.test(c.label))).length;
-   if(replaced&&!confirm('Some existing circuit details will change. Save these changes?'))return;
+   if(replaced&&!confirm('Existing circuit details to overwrite:\n\n'+
+     result.changes.filter(c=>c.before&&c.before!==c.after&&/^Circuit \d+/.test(c.label))
+       .map(c=>c.label+': '+c.before+' → '+c.after).slice(0,30).join('\n')+
+     '\n\nAre these exact changes correct?'))return;
    if(JSON.stringify(s.adapter.getCert())!==before)throw Error('The certificate changed. Please try saving again.');
    s.adapter.commit(result.certificate);
    s.modal.remove();session=null;
@@ -245,6 +268,16 @@ document.addEventListener('change',function(e){
  if(el.matches('[data-board-photos],[data-board-camera]'))files(el.files);
  if(el.matches('[data-board-consent]')){s.consent=el.checked;render();}
 
+ if(el.dataset.deviceTarget!==undefined){
+   const d=s.result.circuits[Number(el.dataset.deviceTarget)];
+   if(d){d.target=el.value;d.identityConfirmed=false;
+     if(el.value&&el.value!=='new'){
+       const row=(s.adapter.getCert().tables?.circuits||[]).find(c=>c.id===el.value&&c.boardRef===s.boardRef);
+       if(row)d.number=String(row.circuitNo);
+     }
+     render();
+   }
+ }
  if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){
    f.value=el.value;
    if(f.key==='deviceKind'){
@@ -266,8 +299,8 @@ document.addEventListener('change',function(e){
 document.addEventListener('input',function(e){
  if(!session||!session.modal.contains(e.target))return;
  const el=e.target,s=session;
- if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;const d=s.result.circuits[Number(group)];if(d)d.verified=false;}}
- if(el.dataset.number!==undefined){const d=s.result.circuits[Number(el.dataset.number)];if(d){d.number=el.value;d.verified=false;}}
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;f.reviewStatus='installer-confirmed';const d=s.result.circuits[Number(group)];if(d){d.verified=false;d.identityConfirmed=false;}}}
+ if(el.dataset.number!==undefined){const d=s.result.circuits[Number(el.dataset.number)];if(d){d.number=el.value;d.verified=false;d.identityConfirmed=false;d.target='';}}
  if(el.hasAttribute('data-board-key')){
    const key=el.dataset.boardKey;
    if(!Object.hasOwn(core.boardKeys,key))return;
@@ -329,14 +362,14 @@ document.addEventListener('click',function(e){
      // Respect manual removal of an SPD, even if the original board still has a value.
      if(d?.fields.find(f=>f.key==='deviceKind')?.value==='SPD')s.result.board.push({key:'spd',value:'Not fitted',accepted:false,evidence:[]});
    }
-   s.result.circuits.forEach((d,i)=>{d.number=String(i);d.verified=false;});
+   s.result.circuits.forEach(d=>{d.verified=false;d.identityConfirmed=false;});
    s.active='board';render();return;
  }
  if(el.dataset.deviceUp!==undefined||el.dataset.deviceDown!==undefined){
    const i=Number(el.dataset.deviceUp??el.dataset.deviceDown),j=i+(el.dataset.deviceUp!==undefined?-1:1);
    if(j>=0&&j<s.result.circuits.length){
      [s.result.circuits[i],s.result.circuits[j]]=[s.result.circuits[j],s.result.circuits[i]];
-     s.result.circuits.forEach((d,k)=>{d.number=String(k);d.target='';d.verified=false;});
+     s.result.circuits.forEach(d=>{d.target='';d.verified=false;d.identityConfirmed=false;});
      s.active='c'+j;render();
    }return;
  }
