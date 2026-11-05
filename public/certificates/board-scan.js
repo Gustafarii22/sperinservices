@@ -299,14 +299,14 @@ document.addEventListener('change',function(e){
 document.addEventListener('input',function(e){
  if(!session||!session.modal.contains(e.target))return;
  const el=e.target,s=session;
- if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;f.reviewStatus='installer-confirmed';const d=s.result.circuits[Number(group)];if(d){d.verified=false;d.identityConfirmed=false;}}}
+ if(el.dataset.value){const [group,idx]=el.dataset.value.split(':'),f=s.result.circuits[Number(group)]?.fields[Number(idx)];if(f){f.value=el.value;f.provenance||='installer-entered';f.reviewStatus='installer-confirmed';const d=s.result.circuits[Number(group)];if(d){d.verified=false;d.identityConfirmed=false;}}}
  if(el.dataset.number!==undefined){const d=s.result.circuits[Number(el.dataset.number)];if(d){d.number=el.value;d.verified=false;d.identityConfirmed=false;d.target='';}}
  if(el.hasAttribute('data-board-key')){
    const key=el.dataset.boardKey;
    if(!Object.hasOwn(core.boardKeys,key))return;
    let f=s.result.board.find(x=>x.key===key);
    if(!f){f={key,value:'',accepted:false,evidence:[]};s.result.board.push(f);}
-   f.value=el.value;
+   f.value=el.value;f.provenance||='installer-entered';f.reviewStatus='installer-confirmed';
  }
  if(el.hasAttribute('data-brand')){
    let f=s.result.board.find(f=>f.key==='manufacturer');
