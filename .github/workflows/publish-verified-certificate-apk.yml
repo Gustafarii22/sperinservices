@@ -19,12 +19,12 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/sperin-release"
           cd "$RUNNER_TEMP/sperin-release"
-          actual="$(gh api repos/Gustafarii22/sperinservices/actions/runs/41990604930 --jq '.head_sha')"
-          test "$actual" = '6b3a5a433baddb11963033aef82cf137198d8728'
-          gh run download 41990604930 -R Gustafarii22/sperinservices \
+          actual="$(gh api repos/Gustafarii22/sperinservices/actions/runs/42001333167 --jq '.head_sha')"
+          test "$actual" = 'cc2219f7837364ca46895ef542c6738fe822c7b2'
+          gh run download 42001333167 -R Gustafarii22/sperinservices \
             --name Sperin-permanent-verified-candidates --dir .
           test -s update.apk
-          printf '0d3dca4c90c04f56db8b4e78690e99c5b8df0a1146f4b226c28f1424a80ce4aa  update.apk\n' | sha256sum -c -
+          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  update.apk\n' | sha256sum -c -
           test -s upgrade-check.txt
           test -s upgrade-reopened.txt
           grep -q 'OK (1 test)' upgrade-check.txt
@@ -39,26 +39,26 @@ jobs:
           "$SDK/apksigner" verify --print-certs "$APK" > "$RUNNER_TEMP/signer.txt"
           grep -Fi '200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1' "$RUNNER_TEMP/signer.txt"
           "$SDK/aapt" dump badging "$APK" > "$RUNNER_TEMP/package.txt"
-          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='202' versionName='1.9.7-dev'" "$RUNNER_TEMP/package.txt"
-          test "$(stat -c %s "$APK")" -eq 46183410
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='203' versionName='1.9.7-dev'" "$RUNNER_TEMP/package.txt"
+          test "$(stat -c %s "$APK")" -eq 46183658
       - name: Publish direct APK GitHub release asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG='certificates-v1.9.7-permanent-20261105'
-          ASSET="$RUNNER_TEMP/sperin-release/Sperin-Certificates-v1.9.7-Verified.apk"
+          TAG='certificates-v1.9.7-backup-import-fix-20261105'
+          ASSET="$RUNNER_TEMP/sperin-release/Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk"
           cp "$RUNNER_TEMP/sperin-release/update.apk" "$ASSET"
-          printf '0d3dca4c90c04f56db8b4e78690e99c5b8df0a1146f4b226c28f1424a80ce4aa  Sperin-Certificates-v1.9.7-Verified.apk\n' > "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt"
+          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk\n' > "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt"
           if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
             echo "::error::Release already exists; refusing to replace a published APK."
             exit 1
           fi
           gh release create "$TAG" "$ASSET" "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt" \
             -R Gustafarii22/sperinservices \
-            --target '6b3a5a433baddb11963033aef82cf137198d8728' \
-            --title 'Sperin Certificates 1.9.7 — permanent signer (Android APK)' \
+            --target 'cc2219f7837364ca46895ef542c6738fe822c7b2' \
+            --title 'Sperin Certificates 1.9.7 — Backup import fix (Android APK)' \
             --prerelease \
-            --notes 'Direct Android APK download. Provenance: Actions run 41990604930 (all regression, signature, install, update and reopen checks successful). This is the v1.9.7-dev (version code 202) independent package uk.co.sperinservices.certificates.stable.permanent. Keep your existing Certificates app installed and export/import certificate data separately. Cloud/billing/hardware integrations have not been verified for production.'
+            --notes 'Direct Android APK download. Provenance: Actions run 42001333167 (all regression, signature, install, update and reopen checks successful). This release fixes missing-backup restore by launching the old-app JSON import picker and clarifies the Backup & recovery buttons. This is the v1.9.7-dev (version code 203) independent package uk.co.sperinservices.certificates.stable.permanent. Keep your existing Certificates app installed and export/import certificate data separately. Cloud/billing/hardware integrations have not been verified for production.'
           gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \
             --jq '.assets[] | [.name, .size, .digest, .url] | @tsv'
