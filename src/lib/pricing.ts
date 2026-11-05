@@ -11,35 +11,35 @@ export const JOBS: Job[] = [
   {
     id: "switch",
     name: "Light switch",
-    price: 80,
+    price: 65,
     additional: 15,
     detail: "Standard white switch supplied. Same position and suitable existing wiring.",
   },
   {
     id: "socket",
     name: "Double socket",
-    price: 85,
+    price: 70,
     additional: 20,
     detail: "Standard white socket supplied. Decorative, USB and smart accessories extra.",
   },
   {
     id: "fcu",
     name: "Fused spur / FCU",
-    price: 85,
+    price: 70,
     additional: 20,
     detail: "Standard white fused connection unit supplied.",
   },
   {
     id: "pendant",
     name: "Pendant & rose",
-    price: 85,
+    price: 70,
     additional: 25,
     detail: "Standard pendant and ceiling rose supplied.",
   },
   {
     id: "light",
     name: "Light fitting",
-    price: 75,
+    price: 65,
     additional: 25,
     detail:
       "Customer supplies light. Straightforward fitting; chandeliers, assembly and heavy fittings assessed separately.",
@@ -47,28 +47,28 @@ export const JOBS: Job[] = [
   {
     id: "external",
     name: "External light",
-    price: 90,
+    price: 80,
     additional: 35,
     detail: "Customer supplies light. Existing position, suitable wiring and normal safe access.",
   },
   {
     id: "oven",
     name: "Oven connection",
-    price: 90,
+    price: 80,
     detail:
       "Customer supplies oven. Suitable existing connection; additional ovens assessed separately.",
   },
   {
     id: "fan",
     name: "Extractor fan",
-    price: 100,
+    price: 90,
     detail:
       "Customer supplies fan. Existing opening and suitable wiring; additional fans assessed separately.",
   },
   {
     id: "alarm",
     name: "Smoke / heat alarm",
-    price: 75,
+    price: 65,
     additional: 20,
     detail:
       "Customer supplies a compatible alarm. Existing position and suitable circuit/interconnection.",
@@ -76,21 +76,21 @@ export const JOBS: Job[] = [
   {
     id: "doorbell",
     name: "Wired doorbell",
-    price: 90,
+    price: 80,
     detail:
       "Customer supplies doorbell. Suitable existing wiring and transformer required; additional units assessed separately.",
   },
   {
     id: "usb-socket",
     name: "USB double socket",
-    price: 100,
+    price: 90,
     additional: 35,
     detail: "Standard USB double socket supplied. Same position and suitable existing wiring.",
   },
   {
     id: "dimmer",
     name: "LED dimmer",
-    price: 95,
+    price: 85,
     additional: 30,
     detail: "Standard compatible LED dimmer supplied. Existing lamps and wiring must be suitable.",
   },
@@ -135,7 +135,7 @@ export const JOBS: Job[] = [
   {
     id: "eicr6",
     name: "EICR — up to 6 circuits",
-    price: 130,
+    price: 160,
     group: "eicr",
     detail:
       "One consumer unit. Inspection, testing and report included. Remedial work quoted separately.",
@@ -143,7 +143,7 @@ export const JOBS: Job[] = [
   {
     id: "eicr10",
     name: "EICR — 7–10 circuits",
-    price: 180,
+    price: 200,
     group: "eicr",
     detail:
       "One consumer unit. Inspection, testing and report included. Larger installations quoted individually.",

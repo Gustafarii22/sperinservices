@@ -12,14 +12,14 @@ const pdfUrl = url(source("estimate-pdf").replace('"./pricing"', JSON.stringify(
 const { estimate, travelCharge, estimateLines } = await import(pricingUrl);
 const { estimatePdf } = await import(pdfUrl);
 test("agreed mixed-job and multiple-switch examples", () => {
-  assert.equal(estimate({ switch: 1, socket: 2 }).subtotal, 120);
-  assert.equal(estimate({ socket: 2, switch: 1 }).subtotal, 120);
-  assert.equal(estimate({ switch: 3 }).subtotal, 110);
+  assert.equal(estimate({ switch: 1, socket: 2 }).subtotal, 105);
+  assert.equal(estimate({ socket: 2, switch: 1 }).subtotal, 105);
+  assert.equal(estimate({ switch: 3 }).subtotal, 95);
 });
 test("standalone prices and zero quantities", () => {
   assert.equal(estimate({ switch: 0 }).subtotal, 0);
-  assert.equal(estimate({ light: 1 }).subtotal, 75);
-  assert.equal(estimate({ oven: 1 }).subtotal, 90);
+  assert.equal(estimate({ light: 1 }).subtotal, 65);
+  assert.equal(estimate({ oven: 1 }).subtotal, 80);
 });
 test("consumer unit includes attendance; additional small jobs charged once", () => {
   const e = estimate({ board10: 1, socket: 2 });
@@ -30,12 +30,13 @@ test("consumer unit includes attendance; additional small jobs charged once", ()
 test("unpriced mixed work is flagged and not silently assigned a price", () => {
   const e = estimate({ oven: 1, switch: 1 });
   assert.deepEqual(e.unknown, ["oven"]);
-  assert.equal(e.subtotal, 80);
+  assert.equal(e.subtotal, 65);
   assert.match(estimateLines({ oven: 1, switch: 1 }).join("\n"), /NOT included/);
 });
 test("whole property EICR is distinct and explicitly flagged with board package", () => {
   assert.equal(estimate({ board10: 1, eicr6: 1 }).overlap, true);
-  assert.equal(estimate({ eicr6: 1 }).subtotal, 130);
+  assert.equal(estimate({ eicr6: 1 }).subtotal, 160);
+  assert.equal(estimate({ eicr10: 1 }).subtotal, 200);
 });
 test("travel boundaries", () => {
   for (const [m, p] of [
@@ -161,7 +162,7 @@ test("booking server recalculates and sends private PDF to the owner", async () 
   const r = await bookingApi(request(p));
   assert.equal(r.status, 200);
   assert.equal(globalThis.__email[0], "info@sperinservices.co.uk");
-  assert.match(globalThis.__email[1].text, /£120/);
+  assert.match(globalThis.__email[1].text, /£105/);
   assert.equal(globalThis.__email[1].attachments[0].filename, "SS-12345678-estimate.pdf");
   assert.equal(globalThis.__email[1].reply_to, "test@example.com");
 });
@@ -308,7 +309,7 @@ test("contact handoff recalculates items and rejects manipulated selections", as
   const body = {...payload(), service:"Other", property:"House / flat", timescale:"Flexible", contactMethod:"Email", message:"Test only; please do not book", total:1};
   const make = b => new Request("https://sperinservices.co.uk/api/enquiry",{method:"POST",headers:{origin:"https://sperinservices.co.uk","Content-Type":"application/json"},body:JSON.stringify(b)});
   assert.equal((await bookingApi(make(body))).status,200);
-  assert.match(globalThis.__email[1].text,/£120/);
+  assert.match(globalThis.__email[1].text,/£105/);
   assert.match(globalThis.__email[1].text,/Address: Test address/);
   for(const selection of [{fake:1},{board6:1,board10:1},{eicr6:2}]) assert.equal((await bookingApi(make({...body,selection}))).status,400);
 });
