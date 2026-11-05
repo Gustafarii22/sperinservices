@@ -16,6 +16,10 @@ test -n "$TEST_INSTRUMENTATION"
 adb shell am instrument -w -r -e class uk.co.sperinservices.certificates.ConsumerUnitOcrTest "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/results.txt
 grep -F "OK (1 test)" certificate-android/qa-output/native-photo/results.txt
 
+# Android-native six-page PDF preview must fit one complete page on opening.
+adb shell am instrument -w -r -e class uk.co.sperinservices.certificates.PdfPreviewActivityTest "$TEST_INSTRUMENTATION" | tee certificate-android/qa-output/native-photo/pdf-full-page.txt
+grep -F "OK (1 test)" certificate-android/qa-output/native-photo/pdf-full-page.txt
+
 # Synthetic data survives a real package upgrade on this emulator. This validates
 # app persistence on a QA package, not the production signer identity.
 run_preservation() {
