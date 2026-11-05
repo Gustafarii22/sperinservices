@@ -30,7 +30,7 @@ const cert = () => ({
 });
 const result = () => ({
   board: [f("manufacturer", "Wylex")],
-  circuits: [{ target: "c1", fields: [f("description", "Lights"), f("ocpdRating", "10")] }],
+  circuits: [{ target: "c1", identityConfirmed: true, fields: [f("description", "Lights"), f("ocpdRating", "10")] }],
 });
 test("proposals are unapproved; measured or invented fields rejected and evidence bounded", () => {
   const r = core.normalise(
@@ -65,6 +65,10 @@ test("transaction preserves original/customer/conductors/tests and shows overwri
     before: "6",
     after: "10",
     evidence: [{ image: 1, text: "10" }],
+    provenance: "observed",
+    confidence: "high",
+    reason: "",
+    reviewStatus: "installer-confirmed",
   });
 });
 test("unchecked values never apply", () => {
@@ -124,7 +128,7 @@ test("Minor Works description maps to existing correct field with accurate befor
 
 test("scanned BS EN 61009-1 RCBO marks and Type A residual detection populate the correct existing circuit",()=>{
  const input=cert();
- const proposal={board:[],circuits:[{target:"c1",fields:[
+ const proposal={board:[],circuits:[{target:"c1",identityConfirmed:true,fields:[
   f("deviceManufacturer","FuseBox"),f("deviceModel","F32M"),
   f("deviceKind","RCBO"),f("ocpdBs","BS EN 61009-1"),
   f("ocpdType","B"),f("ocpdRating","32"),
@@ -300,10 +304,64 @@ test("visual pole, phase and photographed test-button clues are separate from el
   }]},1);
   assert.equal(normal.circuits[0].fields.length,3,"measured results must not be accepted from photos");
   normal.circuits[0].target="c1";
+  normal.circuits[0].identityConfirmed=true;
   normal.circuits[0].fields.forEach(x=>x.accepted=true);
   const result=core.propose(c,"DB1",normal).certificate;
   assert.equal(result.tables.circuits[0].poleCount,"3");
   assert.equal(result.tables.circuits[0].phaseAssociation,"L1/L2/L3");
   assert.equal(result.tables.circuits[0].testButtonVisual,"Visible");
   assert.deepEqual(result.tables.tests,c.tables.tests,"photo appearance may not set RCD test results");
+});
+
+test("reading-linked device changes cannot save without a separate identity acknowledgement",()=>{
+ const original=cert(),before=JSON.stringify(original);
+ const scan={board:[],circuits:[{id:"photo-1",number:"1",target:"c1",fields:[
+  f("deviceKind","RCBO"),f("ocpdRating","40"),f("description","Possibly a different device")
+ ]}]};
+ const conflicts=core.identityConflicts(original,"DB1",scan.circuits);
+ assert.equal(conflicts.length,1);
+ assert.equal(conflicts[0].circuitNo,"1");
+ assert.ok(conflicts[0].changes.some(c=>c.field==="Rating (A)"&&c.before==="6"&&c.after==="40"));
+ assert.throws(()=>core.propose(original,"DB1",scan),/Existing measured results/);
+ assert.equal(JSON.stringify(original),before);
+ scan.circuits[0].identityConfirmed=true;
+ const changed=core.propose(original,"DB1",scan).certificate;
+ assert.equal(changed.tables.tests[0].zs,".44");
+ assert.equal(changed.tables.circuits[0].id,"c1");
+});
+test("explicit identity cannot be used to renumber or redirect readings to another existing circuit",()=>{
+ const scan={board:[],circuits:[{target:"c1",number:"4",identityConfirmed:true,fields:[f("ocpdRating","32")]}]};
+ assert.throws(()=>core.propose(cert(),"DB1",scan),/number differs/);
+});
+test("existing occupied circuit is never preselected from the photograph order",()=>{
+ const photo={board:[],circuits:[{fields:[f("deviceKind","MCB"),f("ocpdRating","32")]}]};
+ core.numberFromMain(photo,cert(),"DB1");
+ assert.equal(photo.circuits[1].number,"1");
+ assert.equal(photo.circuits[1].target,"");
+});
+test("inferred standard remains explicitly unverified in durable scan audit",()=>{
+ const normal=core.normalise({board:[],circuits:[{fields:[f("deviceKind","MCB")]}]},1);
+ const standard=normal.circuits[0].fields.find(x=>x.key==="ocpdBs");
+ assert.equal(standard.provenance,"inferred");
+ assert.equal(standard.confidence,"check");
+ normal.circuits[0].target="new";
+ normal.circuits[0].number="2";
+ normal.circuits[0].fields.forEach(x=>{x.accepted=true;x.reviewStatus="installer-confirmed";});
+ const out=core.propose(cert(),"DB1",normal).certificate;
+ const audit=out.photoScanAudit.at(-1).changes;
+ const record=audit.find(x=>x.label==="Circuit 2 · OCPD BS / EN");
+ assert.equal(record.provenance,"inferred");
+ assert.equal(record.reviewStatus,"installer-confirmed");
+ assert.match(record.reason,/Not read from the product label/);
+ assert.deepEqual(record.evidence,[]);
+});
+
+test("photographed main switch stays in its true rail position rather than being moved to zero",()=>{
+ const c=cert();c.tables.circuits=[];c.tables.tests=[];
+ const dev=kind=>({fields:[f("deviceKind",kind),f("description",kind)]});
+ const scan={board:[],warnings:[],circuits:[dev("MCB"),dev("Main switch"),dev("RCBO")]};
+ core.numberFromMain(scan,c,"DB1");
+ assert.deepEqual(scan.circuits.map(d=>d.fields.find(f=>f.key==="deviceKind").value),
+  ["MCB","Main switch","RCBO"]);
+ assert.deepEqual(scan.circuits.map(d=>d.number),["0","1","2"]);
 });
