@@ -527,9 +527,9 @@ function Pricing() {
           </p>
           <div className="mt-7 grid divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[
-              ["£75", "First hour on site", "Local weekday visit, including attendance."],
-              ["£50", "Each further hour", "Billed at £25 per started half-hour."],
-              ["£350", "Eight-hour day", "Pre-booked electrician. Mate +£200/day."],
+              ["£60", "First hour on site", "Local weekday visit, including attendance."],
+              ["£40", "Each further hour", "Billed at £20 per started half-hour."],
+              ["£300", "Eight-hour day", "Pre-booked electrician. Mate +£150/day."],
             ].map(([price, title, detail]) => (
               <div key={title} className="py-6 sm:px-6 first:sm:pl-0">
                 <div className="text-4xl font-semibold tracking-tight">{price}</div>
