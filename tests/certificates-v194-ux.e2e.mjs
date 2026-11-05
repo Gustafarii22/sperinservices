@@ -100,6 +100,17 @@ const rcbo=page.locator(".scan-circuit.expanded");
 const k=rcbo.getByLabel("Device kind (MCB / RCBO / RCD / fuse)");
 assert(await k.count()>0,"Editable protective device class missing");
 assert((await rcbo.getByLabel("BS (EN)").first().inputValue()).includes("61009"),"Reviewable RCBO BS EN suggestion missing");
+// An existing circuit cannot be remapped solely because the photo places a
+// device at the same number. Test the explicit, installer-selected identity.
+const previouslyStored=await page.evaluate(()=>JSON.parse(localStorage.getItem("sperin-certificates-data-v1")).certificates[0].tables.circuits);
+for(const row of previouslyStored){
+ const index=Number(row.circuitNo);
+ if(row.id&&Number.isInteger(index)&&index>=0&&index<6){
+  const card=page.locator('.scan-circuit').nth(index);
+  if(!await card.evaluate(el=>el.classList.contains('expanded')))await page.locator('[data-open="c'+index+'"]').click();
+  await page.locator('[data-device-target="'+index+'"]').selectOption(row.id);
+ }
+}
 await page.locator('[data-scan-command="apply"]').click();
 await page.locator('.board-scan-modal').waitFor({state:"detached",timeout:10000});
 assert(dialogs.some(x=>x.includes("ALL device markings")),"Whole board confirmation missing");
