@@ -6,6 +6,7 @@ on:
       - '.github/workflows/certificate-apk.yml'
       - 'public/certificates/**'
       - 'certificate-android/qa/certificate.e2e.mjs'
+      - 'certificate-android/qa/inspect-apk.py'
       - 'certificate-android/app/src/main/**'
       - 'certificate-android/app/src/androidTest/**'
       - 'certificate-android/app/build.gradle'
