@@ -30,7 +30,9 @@ jobs:
       - name: Mobile upgrade data and workflow regression
         run: node tests/certificates-v197-data-safe.e2e.mjs
       - name: Portable JSON backup and fresh-install import safety
-        run: node tests/certificates-v197-transfer.e2e.mjs
+        run: |
+          node tests/certificates-v197-transfer.e2e.mjs
+          node tests/certificates-v197-restore-routing.e2e.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
