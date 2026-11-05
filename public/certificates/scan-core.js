@@ -107,7 +107,7 @@ function localOcrCandidates(photos,options={}){
    }
    for(let i=0;i<grouped.length;i++){
      const g=grouped[i],ev=evidence(p,g.examples[0]);
-     const make=(key,value,reason)=>({key,value,confidence:'check',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
+     const make=(key,value,reason)=>({key,value,confidence:'check',provenance:'observed',reviewStatus:'unreviewed',evidence:ev,reason:reason||'Text detected by on-device OCR. Confirm against the device.',accepted:false});
      const near=rows.filter(l=>valid(l)&&g.x!==null&&Math.abs(middle(l)-g.x)<=Math.max(18,width*.031)&&Math.abs((l.top+l.bottom)/2-g.y)<Math.max(100,(Number(photo.height)||800)*.16));
      const joined=near.map(l=>l.text).join(' ');
      // Read markings from the same device column AND rail. A second DIN rail can
@@ -140,7 +140,7 @@ function localOcrCandidates(photos,options={}){
      devices.push(dev);
      for(const blank of blanks.filter(b=>b.index===i+1))for(let n=0;n<blank.count;n++){
        const spare=coreDraftForOcr(p,grouped.length+devices.length+n,'possible blank space');
-       spare.fields=[make('description','SPARE','Suggested from the gap between devices; confirm or delete.'),make('deviceKind','Spare','Check the blank space.')];
+       spare.fields=[{...make('description','SPARE','Suggested from the gap between devices; confirm or delete.'),provenance:'inferred'}, {...make('deviceKind','Spare','Check the blank space.'),provenance:'inferred'}];
        devices.push(spare);
      }
    }
