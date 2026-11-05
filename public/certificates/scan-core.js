@@ -9,7 +9,11 @@ function fields(rows,keys,count){
   if(!r||!Object.hasOwn(keys,r.key)||seen.has(r.key))return [];seen.add(r.key);
   const evidence=(Array.isArray(r.evidence)?r.evidence:[]).filter(e=>Number.isInteger(e.image)&&e.image>=1&&e.image<=count&&text(e.text)).slice(0,6).map(e=>({image:e.image,text:text(e.text)}));
   const value=text(r.value);const confidence=!value?'missing':r.confidence==='high'&&evidence.length?'high':'check';
-  return [{key:r.key,value,confidence,evidence,reason:text(r.reason),accepted:false}];
+  // Reading text is not equivalent to the installer confirming a device or standard.
+  const provenance=!value?'unknown':r.provenance==='inferred'?'inferred':
+    r.provenance==='observed'?'observed':evidence.length?'observed':'inferred';
+  return [{key:r.key,value,confidence,evidence,reason:text(r.reason),provenance,
+    reviewStatus:'unreviewed',accepted:false}];
  });
 }
 function normalise(raw,count){
@@ -20,7 +24,7 @@ function normalise(raw,count){
    const assumed={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},
      RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}}[kind]||{};
    for(const [key,value] of Object.entries(assumed))if(!proposed.some(x=>x.key===key&&x.value)){
-     proposed.push({key,value,confidence:'check',reason:'Suggested by apparent device class. Not read from the product label; electrician must verify.',evidence:[],accepted:false});
+     proposed.push({key,value,confidence:'check',provenance:'inferred',reviewStatus:'unreviewed',reason:'Suggested by apparent device class. Not read from the product label; electrician must verify.',evidence:[],accepted:false});
    }
    return {id:'device-'+i,position:text(c.position),association:c.association==='high'?'high':'check',
       reason:text(c.reason),fields:proposed,target:'',number:''};
@@ -204,8 +208,12 @@ function numberFromMain(result,cert,boardRef){
    const priorUsed=!!(text(prior?.description)||text(prior?.ocpdRating)||text(prior?.ocpdBs));
    // Never silently replace a populated circuit with a main switch, SPD, spare
    // or a different protective device. The installer must select it explicitly.
+   const priorTest=(cert.tables?.tests||[]).find(t=>t.boardRef===boardRef&&String(t.circuitNo)===number);
+   const hasResults=priorTest&&Object.entries(priorTest).some(([key,value])=>!['boardRef','circuitNo','id'].includes(key)&&value!==''&&value!==null&&value!==undefined);
    const compatible=!!prior&&(!priorUsed||!!priorKind&&priorKind===proposedKind);
-   d.target=!matches.length?'new':compatible&&!occupied.has(prior.id)?prior.id:'';
+   // Never preselect an occupied or tested circuit by its photographed position.
+   // The installer must explicitly choose the existing identity.
+   d.target=!matches.length?'new':compatible&&!priorUsed&&!hasResults&&!occupied.has(prior.id)?prior.id:'';
    if(d.target&&d.target!=='new')occupied.add(d.target);
    d.fields.forEach(f=>{f.accepted=false;});
  });
@@ -213,13 +221,41 @@ function numberFromMain(result,cert,boardRef){
  return result;
 }
 function selected(rows){return rows.filter(r=>r.accepted&&text(r.value));}
+// A photographic position/number is not a stable circuit identity. Changing any
+// protection-device detail while a measured test row is attached needs an
+// additional, separate installer acknowledgement. No test row is ever remapped.
+const identityKeys=['deviceKind','deviceManufacturer','deviceModel','ocpdBs','ocpdType',
+ 'ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','poleCount','phaseAssociation'];
+function identityConflicts(cert,boardRef,devices){
+ const circuits=cert.tables?.circuits||[],tests=cert.tables?.tests||[];
+ const conflicts=[];
+ for(const device of devices||[]){
+  if(!device.target||device.target==='new'||device.target==='minor')continue;
+  const row=circuits.find(c=>c.id===device.target&&c.boardRef===boardRef);
+  if(!row)continue;
+  const test=tests.find(t=>t.boardRef===boardRef&&String(t.circuitNo)===String(row.circuitNo));
+  const hasReadings=test&&Object.entries(test).some(([key,value])=>
+   !['id','boardRef','circuitNo'].includes(key)&&value!==''&&value!==null&&value!==undefined);
+  if(!hasReadings)continue;
+  const differences=selected(device.fields||[]).filter(r=>identityKeys.includes(r.key)&&
+   String(row[r.key]??'')!==String(r.value)).map(r=>({
+    field:circuitKeys[r.key],before:String(row[r.key]??''),after:String(r.value)
+   }));
+  if(differences.length)conflicts.push({deviceId:device.id||'',target:row.id,
+    circuitNo:String(row.circuitNo),changes:differences});
+ }
+ return conflicts;
+}
 function propose(cert,boardRef,result){
  const copy=JSON.parse(JSON.stringify(cert)),changes=[];
  const minor=cert.type==='minor';
  if(!minor&&!['eic','eicr'].includes(cert.type))throw Error('This certificate type does not support board scanning.');
  const board=minor?(copy.photoBoard ||= {}):(copy.tables?.boards||[]).find(b=>b.ref===boardRef);
  if(!board)throw Error('The selected consumer unit no longer exists.');
- const put=(dest,r,label)=>{if(!Object.hasOwn(boardKeys,r.key)&&!Object.hasOwn(circuitKeys,r.key))throw Error('Unsupported scan field');const before=String(dest[r.key]??'');if(before===r.value)return;dest[r.key]=r.value;changes.push({label,before,after:r.value,evidence:r.evidence});};
+ const put=(dest,r,label)=>{if(!Object.hasOwn(boardKeys,r.key)&&!Object.hasOwn(circuitKeys,r.key))throw Error('Unsupported scan field');const before=String(dest[r.key]??'');if(before===r.value)return;dest[r.key]=r.value;
+  changes.push({label,before,after:r.value,evidence:r.evidence,
+   provenance:r.provenance||(!r.value?'unknown':r.evidence?.length?'observed':'inferred'),
+   confidence:r.confidence||'check',reason:text(r.reason),reviewStatus:r.reviewStatus||'installer-confirmed'});};
  selected(result.board).forEach(r=>{if(!Object.hasOwn(boardKeys,r.key))throw Error('Unsupported board field');put(board,r,boardKeys[r.key]);});
  const used=new Set();
  for(const device of result.circuits){
@@ -235,6 +271,10 @@ function propose(cert,boardRef,result){
   }else{
    row=copy.tables.circuits.find(r=>r.id===device.target&&r.boardRef===boardRef);
    if(!row||row._incomingFeed)throw Error('The target circuit is missing or linked to an upstream supply.');
+   if(device.number!==undefined&&text(device.number)!==String(row.circuitNo))
+    throw Error('Circuit number differs from the selected existing circuit. Do not remap attached readings.');
+   if(identityConflicts(cert,boardRef,[device]).length&&!device.identityConfirmed)
+    throw Error('Existing measured results are linked to this circuit. Review and explicitly confirm every changed protective-device detail before saving.');
   }
   for(const r of approved){
    if(!Object.hasOwn(circuitKeys,r.key))throw Error('Unsupported circuit field');
@@ -246,5 +286,5 @@ function propose(cert,boardRef,result){
  if(changes.length)copy.photoScanAudit=[...(copy.photoScanAudit||[]).slice(-19),{at:new Date().toISOString(),boardRef,changes}];
  return {certificate:copy,changes};
 }
-root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,localOcrCandidates,numberFromMain,propose};
+root.SperinBoardScan={boardKeys,circuitKeys,normalise,blank,draftDevice,localOcrCandidates,numberFromMain,identityConflicts,propose};
 })(globalThis);
