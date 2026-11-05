@@ -12,24 +12,25 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Retrieve verified, previously tested APK artifact
+      - name: Retrieve tested signed v1.9.8 APK without rebuilding it
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/sperin-release"
           cd "$RUNNER_TEMP/sperin-release"
-          actual="$(gh api repos/Gustafarii22/sperinservices/actions/runs/42001333167 --jq '.head_sha')"
-          test "$actual" = 'cc2219f7837364ca46895ef542c6738fe822c7b2'
-          gh run download 42001333167 -R Gustafarii22/sperinservices \
+          test "$(gh api repos/Gustafarii22/sperinservices/actions/runs/42009820435 --jq '.conclusion')" = 'success'
+          test "$(gh api repos/Gustafarii22/sperinservices/actions/runs/42009820435 --jq '.head_sha')" = '5b4f9ee25772e518a7061c283e40937126a7d7c4'
+          gh run download 42009820435 -R Gustafarii22/sperinservices \
             --name Sperin-permanent-verified-candidates --dir .
           test -s update.apk
-          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  update.apk\n' | sha256sum -c -
           test -s upgrade-check.txt
           test -s upgrade-reopened.txt
-          grep -q 'OK (1 test)' upgrade-check.txt
-          grep -q 'OK (1 test)' upgrade-reopened.txt
-      - name: Independently inspect APK identity and signature
+          grep -F 'OK (1 test)' upgrade-check.txt
+          grep -F 'OK (1 test)' upgrade-reopened.txt
+          test "$(stat -c %s update.apk)" -gt 35000000
+          sha256sum update.apk
+      - name: Independently inspect permanent signing, package and APK version
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
@@ -39,26 +40,26 @@ jobs:
           "$SDK/apksigner" verify --print-certs "$APK" > "$RUNNER_TEMP/signer.txt"
           grep -Fi '200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1' "$RUNNER_TEMP/signer.txt"
           "$SDK/aapt" dump badging "$APK" > "$RUNNER_TEMP/package.txt"
-          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='203' versionName='1.9.7-dev'" "$RUNNER_TEMP/package.txt"
-          test "$(stat -c %s "$APK")" -eq 46183658
-      - name: Publish direct APK GitHub release asset
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='205' versionName='1.9.8-dev'" "$RUNNER_TEMP/package.txt"
+      - name: Publish a direct one-tap GitHub APK asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG='certificates-v1.9.7-backup-import-fix-20261105'
-          ASSET="$RUNNER_TEMP/sperin-release/Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk"
-          cp "$RUNNER_TEMP/sperin-release/update.apk" "$ASSET"
-          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk\n' > "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt"
+          TAG='certificates-v1.9.8-full-page-20261105'
+          cd "$RUNNER_TEMP/sperin-release"
+          ASSET='Sperin-Certificates-v1.9.8-Full-Page.apk'
+          cp update.apk "$ASSET"
+          sha256sum "$ASSET" > SHA256SUMS.txt
           if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
-            echo "::error::Release already exists; refusing to replace a published APK."
+            echo "::error::Release exists already; refusing to silently overwrite a published APK."
             exit 1
           fi
-          gh release create "$TAG" "$ASSET" "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt" \
+          gh release create "$TAG" "$ASSET" SHA256SUMS.txt \
             -R Gustafarii22/sperinservices \
-            --target 'cc2219f7837364ca46895ef542c6738fe822c7b2' \
-            --title 'Sperin Certificates 1.9.7 — Backup import fix (Android APK)' \
+            --target '5b4f9ee25772e518a7061c283e40937126a7d7c4' \
+            --title 'Sperin Certificates v1.9.8 — Full-page Certificate View' \
             --prerelease \
-            --notes 'Direct Android APK download. Provenance: Actions run 42001333167 (all regression, signature, install, update and reopen checks successful). This release fixes missing-backup restore by launching the old-app JSON import picker and clarifies the Backup & recovery buttons. This is the v1.9.7-dev (version code 203) independent package uk.co.sperinservices.certificates.stable.permanent. Keep your existing Certificates app installed and export/import certificate data separately. Cloud/billing/hardware integrations have not been verified for production.'
+            --notes 'Direct Android APK download; versionCode 205, permanently signed with the retained Sperin Services key. Improves Certificate View: fit entire sheet, compact floating three-line menu, real-PDF page count instead of extra editing-only pages. Adds a built-in full-page PDF reader with pinch-to-zoom. Verified in GitHub Actions run 42009820435: complete browser/PDF regression, Android install/update/reopen and certificate data retention; native six-page PDF viewer passed the separate emulator suite. This is a prerelease for user acceptance, not a guarantee of electrical standards sign-off. Existing permanently signed v1.9.7 installations can update in-place without uninstalling. Keep the older app until transfer has been checked.'
           gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \
             --jq '.assets[] | [.name, .size, .digest, .url] | @tsv'
