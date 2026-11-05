@@ -146,7 +146,7 @@ jobs:
         run: node tests/certificates-live-editing.e2e.mjs
 
       - name: Photo scan safety and API tests
-        run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs
+        run: node --test certificate-android/qa/score-labelled-scans.test.mjs certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificate-scan.test.mjs tests/independent-reviews.test.mjs tests/iet-a4-model-form-audit.mjs
 
       - name: Photo review workflow (mock analysis, not recognition accuracy)
         run: node certificate-android/qa/scan.e2e.mjs
