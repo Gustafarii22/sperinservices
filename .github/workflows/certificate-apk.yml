@@ -7,6 +7,7 @@ on:
       - 'public/certificates/**'
       - 'certificate-android/qa/certificate.e2e.mjs'
       - 'certificate-android/app/src/main/**'
+      - 'certificate-android/app/src/androidTest/**'
       - 'certificate-android/app/build.gradle'
       - 'tests/certificates-immersive-pages.e2e.mjs'
       - 'tests/certificates-v196-view.e2e.mjs'
