@@ -271,7 +271,7 @@ function propose(cert,boardRef,result){
   }else{
    row=copy.tables.circuits.find(r=>r.id===device.target&&r.boardRef===boardRef);
    if(!row||row._incomingFeed)throw Error('The target circuit is missing or linked to an upstream supply.');
-   if(device.number!==undefined&&text(device.number)!==String(row.circuitNo))
+   if(device.number!==undefined&&text(device.number)&&text(device.number)!==String(row.circuitNo))
     throw Error('Circuit number differs from the selected existing circuit. Do not remap attached readings.');
    if(identityConflicts(cert,boardRef,[device]).length&&!device.identityConfirmed)
     throw Error('Existing measured results are linked to this circuit. Review and explicitly confirm every changed protective-device detail before saving.');
