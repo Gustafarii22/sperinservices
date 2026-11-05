@@ -6,13 +6,17 @@ on:
       - '.github/workflows/certificate-apk.yml'
       - 'public/certificates/**'
       - 'certificate-android/qa/certificate.e2e.mjs'
+      - 'certificate-android/app/src/main/**'
+      - 'certificate-android/app/build.gradle'
+      - 'tests/certificates-immersive-pages.e2e.mjs'
+      - 'tests/certificates-v196-view.e2e.mjs'
       - 'tests/certificates-v197-restore-routing.e2e.mjs'
   workflow_dispatch:
     inputs:
       first_version_code:
         description: 'Unused version code (upgrade proof uses this + 1)'
         required: true
-        default: '202'
+        default: '204'
 permissions:
   contents: read
 concurrency:
@@ -62,7 +66,7 @@ jobs:
           gradle -p certificate-android :app:verifyPermanentSigner --no-daemon
       - name: Bundle exact source and build first permanent candidate
         env:
-          FIRST: ${{ inputs.first_version_code || '202' }}
+          FIRST: ${{ inputs.first_version_code || '204' }}
         run: |
           set -euo pipefail
           [[ "$FIRST" =~ ^[0-9]+$ ]] && test "$FIRST" -gt 200
@@ -72,7 +76,7 @@ jobs:
           cp certificate-android/app/build/outputs/apk/permanent/app-permanent.apk certificate-android/dist/first.apk
       - name: Restore retained key again and build a later version
         env:
-          FIRST: ${{ inputs.first_version_code || '202' }}
+          FIRST: ${{ inputs.first_version_code || '204' }}
           JKS: ${{ secrets.SPERIN_PERMANENT_JKS_BASE64 }}
         run: |
           set -euo pipefail
