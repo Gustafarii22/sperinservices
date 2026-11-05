@@ -3,6 +3,8 @@ import {chromium} from 'playwright';
 import {mkdirSync} from 'node:fs';
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:851,height:393}});
+page.on('console',m=>{if(m.type()==='error')console.log('BROWSER_ERROR',m.text());});
+page.on('requestfailed',r=>console.log('REQUEST_FAILED',r.url(),r.failure()));
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.addInitScript(()=>{window.__orientation=[];window.Android={setCertificateOrientation:value=>window.__orientation.push(value)};});
 const menu=async action=>{await page.locator('.cv-menu>summary').click();await page.locator('.cv-menu-panel [data-action="'+action+'"]').click();};
