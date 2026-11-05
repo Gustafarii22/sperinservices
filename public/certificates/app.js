@@ -1679,17 +1679,22 @@
     return '<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">'+esc(schema.standard)+'</div><h2>'+esc(schema.name)+'</h2><p>'+esc(cert.number)+' · '+esc(cert.status)+'</p></div></div>'+
       sheet.render(cert,schema,settings);
   }
+  let refreshingCertificateView=false;
   function refreshCertificateView(){
+    if(refreshingCertificateView)return;
     if(editMode!=='certificate')return;
     const port=document.querySelector('.cv-viewport');const cert=getCurrent();if(!cert)return;
     const left=port?.scrollLeft||0,top=port?.scrollTop||0;
     const fitting=window.SperinCertificateView.state.fitMode;
     const container=document.querySelector('.cv-shell');if(!container)return;
+    refreshingCertificateView=true;
+    try {
     container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type],settings);
     window.SperinCertificateView.attachGestures();
     if(!fitting && port?.isConnected!==true && (left||top)){
       const target=document.querySelector('.cv-viewport');target.scrollLeft=left;target.scrollTop=top;
     }
+    }finally{refreshingCertificateView=false;}
   }
 
   function openCertificate(id) {
