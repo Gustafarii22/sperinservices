@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.7-dev';
+  const VERSION = '1.9.8-dev';
   const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196';
   let editMode = 'quick';
   let lastRequestedOrientation = '';
