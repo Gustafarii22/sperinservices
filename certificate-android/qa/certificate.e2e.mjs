@@ -102,7 +102,7 @@ assert(appSource.includes('data-action="rapid-entry">Voice'), "Voice action labe
 assert(appSource.includes("prepareBackupData"), "Validated backup import staging missing");
 assert(appSource.includes("Backup certificates?"), "First backup confirmation missing");
 assert(appSource.includes("Confirm backup"), "Second backup confirmation missing");
-assert(appSource.includes("Restore latest backup?"), "First restore confirmation missing");
+assert(appSource.includes("Restore a backup made by this app?"), "First restore confirmation missing");
 assert(appSource.includes("Confirm restore"), "Second restore confirmation missing");
 assert(
   appSource.includes('data-action="restore">Restore</button>'),
