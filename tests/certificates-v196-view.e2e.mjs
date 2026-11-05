@@ -11,7 +11,8 @@ const page=await browser.newPage({viewport:{width:1000,height:870},acceptDownloa
 const errs=[];
 page.on('pageerror',e=>errs.push(e.message));
 const saved=async()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'{}').certificates||[],store);
-const home=async()=>page.locator('[data-action="home"]').first().click();
+const menu=async action=>{await page.locator('.cv-menu > summary').click();await page.locator('.cv-menu-panel [data-action="'+action+'"]').click();};
+const home=async()=>{if(await page.locator('.cv-shell').count())await menu('home');else await page.locator('[data-action="home"]').first().click();};
 const choose=async(mode)=>{await page.locator('.cv-opening').waitFor();await page.locator('[data-action="choose-entry"][data-mode="'+mode+'"]').click();};
 const start=async(type,mode='certificate')=>{
  await page.locator('[data-action="open-new"]').click();
@@ -20,7 +21,8 @@ const start=async(type,mode='certificate')=>{
 };
 async function pdfAndCheck(expected,filename){
  const event=page.waitForEvent('download',{timeout:25000});
- await page.locator('[data-action="pdf"]').first().click();
+ if(await page.locator('.cv-shell').count()) await menu('pdf');
+ else await page.locator('.editor-dock [data-action="pdf"]').click();
  const download=await event;
  await download.saveAs(filename);
  assert(existsSync(filename),'Missing generated PDF');
@@ -60,20 +62,20 @@ try{
  await firstControl.dispatchEvent('change');
  const original=(await saved())[0];
  assert.equal(original.fields[key],'Certificate View QA','CV edits must autosave to the existing data model');
- await page.locator('[data-action="cv-pages"]').click();
+ await menu('cv-pages');
  assert(await page.locator('.cv-thumbnail').count()>3,'Page gallery missing');
  await page.locator('.cv-thumbnail').nth(1).click();
  assert.equal(await page.locator('.cv-viewport').evaluate(el=>el.scrollLeft),0);
- await page.locator('[data-action="cv-zoom-in"]').click();
+ await menu('cv-zoom-in');
  assert(await page.locator('[data-cv-zoom-label]').innerText()!=='100%','Zoom did not change');
- await page.locator('[data-action="cv-fit"]').click();
+ await menu('cv-fit');
  assert((await page.locator('.cv-paper-wrap').evaluate(el=>el.clientWidth))<1122,'Fit Page did not scale');
- await page.locator('[data-action="cv-page-prev"]').click();
- await page.locator('[data-action="cv-next-empty"]').click();
- await page.locator('[data-action="switch-entry"]').click();
+ await page.locator('.cv-page-steps [data-action="cv-page-prev"]').click();
+ await menu('cv-next-empty');
+ await menu('switch-entry');
  assert.equal(await page.locator('.cv-shell').count(),0,'Quick Entry switch failed');
  assert.equal((await saved())[0].fields[key],'Certificate View QA');
- await page.locator('[data-action="switch-entry"]').click();
+ await page.locator('.editor-dock [data-action="switch-entry"]').click();
  assert(await page.locator('.cv-paper').count()===1,'Switching back lost CV');
  await pdfAndCheck('landscape','/tmp/sperin-v196-eic.pdf');
 
@@ -103,7 +105,7 @@ try{
  assert(await page.locator('.editor-dock').count()===1);
  await page.locator('[data-action="switch-entry"]').click();
  assert.equal(await page.locator('.cv-paper.cv-portrait').count(),1);
- assert.equal(await page.locator('[data-action="cv-page-next"]').count(),1);
+ assert.equal(await page.locator('.cv-page-steps [data-action="cv-page-next"]').count(),1);
  const field=page.locator('.cv-paper [data-cv-scope="field"][data-cv-key="clientName"]');
  if(await field.count()){
    await field.fill('Client v196 smoke test');
