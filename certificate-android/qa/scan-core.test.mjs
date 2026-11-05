@@ -355,3 +355,13 @@ test("inferred standard remains explicitly unverified in durable scan audit",()=
  assert.match(record.reason,/Not read from the product label/);
  assert.deepEqual(record.evidence,[]);
 });
+
+test("photographed main switch stays in its true rail position rather than being moved to zero",()=>{
+ const c=cert();c.tables.circuits=[];c.tables.tests=[];
+ const dev=kind=>({fields:[f("deviceKind",kind),f("description",kind)]});
+ const scan={board:[],warnings:[],circuits:[dev("MCB"),dev("Main switch"),dev("RCBO")]};
+ core.numberFromMain(scan,c,"DB1");
+ assert.deepEqual(scan.circuits.map(d=>d.fields.find(f=>f.key==="deviceKind").value),
+  ["MCB","Main switch","RCBO"]);
+ assert.deepEqual(scan.circuits.map(d=>d.number),["0","1","2"]);
+});
