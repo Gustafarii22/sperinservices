@@ -7,6 +7,8 @@
  const METHOD={A1:'Single-core in conduit within insulated wall',A2:'Multicore in conduit within insulated wall',B:'Conduit/trunking on wall',C:'Clipped direct',D1:'In underground duct',D2:'Direct buried',E:'Multicore in free air',F:'Single-core touching, free air',G:'Single-core spaced, free air',100:'Above insulated ceiling, up to 100 mm',101:'Above insulated ceiling, over 100 mm',102:'Inside insulated stud wall, touching inner face',103:'Inside insulated stud wall, not touching inner face'};
  const isLandscape=type=>LANDSCAPE_TYPES.has(type);
  const persisted={page:0,zoom:1,showPages:false,fitMode:true};
+ // The issued PDF renderer is the page-count authority; no artificial editor-only pages.
+ const activePaperDimensions={landscape:[1122,794],portrait:[794,1122]};
  const rowsPerPage=12;
  function fieldInput(scope,key,value,field={},row=-1,kind=''){
    const id='cv-'+scope+'-'+row+'-'+key;
@@ -108,7 +110,72 @@
    });
    return pages;
  }
- function pages(cert,schema){
+ function compactPart(part,cert,orientation){
+   if(part.type==='section'){
+     const fields=(part.fields||[]).filter(f=>!f.showWhen||String(cert.fields?.[f.showWhen.key]||'')===String(f.showWhen.value));
+     if(!fields.length)return '';
+     return '<div class="cv-titleline">'+E(part.title)+'</div><div class="cv-fields">'+fields.map(f=>fieldInput('field',f.key,cert.fields?.[f.key],f)).join('')+'</div>';
+   }
+   if(part.key==='eicInspection'){
+     const rows=cert.tables?.eicInspection||[];
+     return '<div class="cv-titleline">'+E(part.title)+'</div><div class="cv-inspection-grid">'+
+       rows.map((row,i)=>'<div class="cv-inspection-line"><span class="cv-inspection-code">'+E(row.item||'')+'</span><span class="cv-inspection-description">'+E(row.description||'')+'</span>'+
+         fieldInput('table','outcome',row.outcome,{label:'Inspection outcome',options:['✓','✕','N/A']},i,'eicInspection')+'</div>').join('')+'</div>';
+   }
+   if(part.type==='table')return tablePages(part.title,part.key,part.columns||[],cert.tables?.[part.key],orientation).map(x=>x.html).join('');
+   return '';
+ }
+ function pdfPageCount(cert,schema,settings){
+   try{
+     return window.SperinIetForms?.build({cert,schema,settings:settings||{},worksheet:false})?.getNumberOfPages()||0;
+   }catch(err){
+     console.warn('Could not determine PDF page count; keeping editable pages',err);
+     return 0;
+   }
+ }
+ function eicPages(cert,schema,settings){
+   const parts=schema.sections||[],find=key=>parts.find(p=>p.title?.startsWith(key));
+   const ab=[find('A ·'),find('B ·')].filter(Boolean),c=find('C ·'),d=find('D ·'),f=find('F ·'),g=find('G ·'),
+     h=parts.find(p=>p.key==='eicInspection'),i=find('I ·'),j=find('J ·');
+   const make=(title,list)=>({orientation:'landscape',title,label:title,html:list.filter(Boolean).map(p=>compactPart(p,cert,'landscape')).join('')});
+   const schedules=boardPages(cert);
+   const expected=pdfPageCount(cert,schema,settings);
+   // PDFs may have extra pages when certification declarations or annotations expand.
+   // Match their count without multiplying the number of data-entry screens.
+   const mainCount=Math.max(3,expected-schedules.length||3);
+   let groups;
+   if(mainCount<=3)groups=[
+     make('Client, installation and certification',[...ab,c]),
+     make('Inspection interval, supply and installation',[d,f,g]),
+     make('Inspection, comments and schedules',[h,i,j])
+   ];
+   else groups=[
+     make('Client and installation details',ab),
+     make('Certification and signatories',[c]),
+     make('Inspection interval, supply and installation',[d,f,g]),
+     make('Inspection, comments and schedules',[h,i,j])
+   ];
+   if(mainCount>4&&c){
+     const fields=(c.fields||[]).filter(x=>!x.showWhen||String(cert.fields?.[x.showWhen.key]||'')===String(x.showWhen.value));
+     const half=Math.max(1,Math.ceil(fields.length/2));
+     const first={...c,fields:fields.slice(0,half)},second={...c,title:c.title+' · continued',fields:fields.slice(half)};
+     groups.splice(1,1,make('Certification and signatories',[first]),make('Certification and signatories · continued',[second]));
+   }
+   if(mainCount>5&&g){
+     const idx=groups.findIndex(p=>p.title==='Inspection interval, supply and installation');
+     if(idx>=0)groups.splice(idx,1,make('Inspection interval and supply',[d,f]),make('Installation particulars',[g]));
+   }
+   // Extra PDF continuation sheets are representable, without dropping any editing fields.
+   while(groups.length<mainCount){
+     const idx=groups.findIndex(p=>p.title==='Inspection, comments and schedules');
+     if(idx<0)break;
+     groups.splice(idx,1,make('Inspection',[h]),make('Comments and schedules',[i,j]));
+   }
+   // Never advertise false page numbers if a document has exceptional continuation pages.
+   return [...groups,...schedules];
+ }
+ function pages(cert,schema,settings={}){
+   if(cert.type==='eic')return eicPages(cert,schema,settings);
    const orientation=isLandscape(cert.type)?'landscape':'portrait',out=[];
    const parts=schema?.sections||[];
    for(const part of parts){
@@ -143,24 +210,36 @@
    const port=document.querySelector('.cv-viewport');
    if(port){port.scrollTop=0;port.scrollLeft=0;}
  }
- function render(cert,schema){
-   const sheets=pages(cert,schema),p=Math.max(0,Math.min(persisted.page,sheets.length-1));
+ function render(cert,schema,settings={}){
+   const sheets=pages(cert,schema,settings),p=Math.max(0,Math.min(persisted.page,sheets.length-1));
    persisted.page=p;
    const page=sheets[p],land=page.orientation==='landscape';
-   const nav='<div class="cv-toolbar"><button class="btn" data-action="cv-pages">☷ Select Pages</button>'+
-      '<button class="btn" data-action="cv-page-prev"'+(p===0?' disabled':'')+'>← Previous</button>'+
-      '<strong>Page '+(p+1)+' / '+sheets.length+'</strong>'+
-      '<button class="btn" data-action="cv-page-next"'+(p===sheets.length-1?' disabled':'')+'>Next →</button>'+
-      '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">−</button>'+
-      '<span data-cv-zoom-label>'+Math.round(persisted.zoom*100)+'%</span>'+
-      '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">＋</button>'+
-      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">100%</button><button class="btn" data-action="cv-next-empty">Next Empty</button></div>';
-   const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select Pages</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
-   return '<section class="cv-shell" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
+   const nav='<div class="cv-toolbar" role="toolbar" aria-label="Certificate page navigation">'+
+     '<div class="cv-page-steps"><button class="btn" data-action="cv-page-prev" aria-label="Previous certificate page"'+(p===0?' disabled':'')+'>‹</button>'+
+     '<span class="cv-page-count">Page '+(p+1)+' of '+sheets.length+'</span>'+
+     '<button class="btn" data-action="cv-page-next" aria-label="Next certificate page"'+(p===sheets.length-1?' disabled':'')+'>›</button></div>'+
+     '<details class="cv-menu"><summary aria-label="Certificate options" title="Certificate options">☰</summary>'+
+     '<div class="cv-menu-panel" role="group" aria-label="Certificate actions">'+
+     '<button class="btn" data-action="cv-pages">Select pages</button>'+
+     '<button class="btn" data-action="cv-fit">Fit full page</button>'+
+     '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">Zoom in +</button>'+
+     '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">Zoom out −</button>'+
+     '<span data-cv-zoom-label class="cv-menu-zoom">'+Math.round(persisted.zoom*100)+'%</span>'+
+     '<button class="btn" data-action="cv-reset">Actual size (100%)</button>'+
+     '<button class="btn" data-action="cv-next-empty">Next empty field</button>'+
+     '<button class="btn" data-action="switch-entry">Quick Entry</button>'+
+     '<button class="btn" data-action="edit-undo">Undo</button>'+
+     '<button class="btn" data-action="edit-redo">Redo</button>'+
+     '<button class="btn" data-action="certificate-review">Review</button>'+
+     '<button class="btn primary" data-action="pdf">Save / open PDF</button>'+
+     '<button class="btn" data-action="home">Home</button>'+
+     '<button class="btn" data-action="open-new">New certificate</button>'+
+     '<button class="btn" data-action="open-library">My Certificates</button></div></details></div>';
+   const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select a page</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
+   return '<section class="cv-shell cv-immersive" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
      '<div class="cv-viewport" aria-label="Drag or swipe the certificate to pan; pinch to zoom" tabindex="0"><div class="cv-paper-wrap">'+
      '<article class="cv-paper '+(land?'cv-landscape':'cv-portrait')+'" aria-label="'+E(page.label)+'"><header class="cv-sheet-header"><strong>SPERIN SERVICES</strong><span>'+E(schema.name||'Certificate')+'</span><small>'+E(cert.number||'')+'</small></header>'+
-     '<div class="cv-sheet-content">'+page.html+'</div><footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer></article></div></div>'+
-     '<div class="cv-footnote">Editable certificate-layout workspace · every field autosaves · use the PDF button for the issued document</div></section>';
+     '<div class="cv-sheet-content">'+page.html+'</div><footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer></article></div></div></section>';
  }
  let gestureStart=null;
  function attachGestures(){
@@ -200,6 +279,7 @@
  function sizeViewport(){
    const port=document.querySelector('.cv-viewport'),toolbar=document.querySelector('.cv-toolbar');
    if(!port)return;
+   if(port.closest('.cv-immersive')){port.style.height='';return;}
    const dock=document.querySelector('.editor-dock');
    const dockTop=dock?.getBoundingClientRect().top;
    const bottomSpace=Number.isFinite(dockTop)?Math.max(0,window.innerHeight-dockTop):90;
