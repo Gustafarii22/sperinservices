@@ -29,7 +29,7 @@ android {
         targetSdk 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         versionCode = (project.findProperty('releaseVersionCode') ?: '200').toInteger()
-        versionName '1.9.7-dev'
+        versionName '1.9.8-dev'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
 
