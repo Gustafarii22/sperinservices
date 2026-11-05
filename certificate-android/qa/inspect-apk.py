@@ -1,17 +1,21 @@
 """Verify release contents byte-for-byte against this checkout, never just CI status."""
 import hashlib
 import pathlib
+import re
 import sys
 import zipfile
 apk=pathlib.Path(sys.argv[1])
 with zipfile.ZipFile(apk) as z:
-    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','ai-assistance.js','instrument-import.js','job-centre.js','speed-suite.js','live-editing.js','vendor/qrcode.min.js','vendor/QR-LICENSE.txt','app.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
+    for name in ['index.html','styles.css','scan-core.js','board-scan.js','team-workspace.js','ai-assistance.js','instrument-import.js','job-centre.js','speed-suite.js','live-editing.js','vendor/qrcode.min.js','vendor/QR-LICENSE.txt','app.js','certificate-view.js','iet-forms.js','manifest.webmanifest','icon.svg','vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js']:
         data=z.read('assets/certificates/'+name)
         assert data==pathlib.Path('public/certificates',name).read_bytes(), 'Stale bundled '+name
     app=z.read('assets/certificates/app.js').decode()
     index=z.read('assets/certificates/index.html').decode()
     assert '<title>Sperin Certificates</title>' in index
-    assert "const VERSION = '1.9.7-dev'" in app
+    gradle=pathlib.Path('certificate-android/app/build.gradle').read_text()
+    expected=re.search(r"versionName\s+'([^']+)'",gradle)
+    assert expected, 'Android versionName is missing'
+    assert f"const VERSION = '{expected.group(1)}'" in app, 'Bundled app version differs from native Android version'
     assert "const STORAGE_KEY = 'sperin-certificates-data-v1'" in app
     assert 'sperin-certificates-board-templates-v1' in app
     assert 'sperin-certificates-circuit-templates-v1' in app
