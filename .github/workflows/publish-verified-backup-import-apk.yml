@@ -1,0 +1,64 @@
+name: Publish validated Sperin Certificates backup-import fix APK
+on:
+  push:
+    branches: [fix/certificates-v197-data-safe-ux]
+    paths: ['.github/workflows/publish-verified-backup-import-apk.yml']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve verified, previously tested APK artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/sperin-release"
+          cd "$RUNNER_TEMP/sperin-release"
+          actual="$(gh api repos/Gustafarii22/sperinservices/actions/runs/42001333167 --jq '.head_sha')"
+          test "$actual" = 'cc2219f7837364ca46895ef542c6738fe822c7b2'
+          gh run download 42001333167 -R Gustafarii22/sperinservices \
+            --name Sperin-permanent-verified-candidates --dir .
+          test -s update.apk
+          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  update.apk\n' | sha256sum -c -
+          test -s upgrade-check.txt
+          test -s upgrade-reopened.txt
+          grep -q 'OK (1 test)' upgrade-check.txt
+          grep -q 'OK (1 test)' upgrade-reopened.txt
+      - name: Independently inspect APK identity and signature
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/sperin-release/update.apk"
+          SDK="$ANDROID_HOME/build-tools/35.0.0"
+          "$SDK/apksigner" verify --print-certs "$APK" > "$RUNNER_TEMP/signer.txt"
+          grep -Fi '200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1' "$RUNNER_TEMP/signer.txt"
+          "$SDK/aapt" dump badging "$APK" > "$RUNNER_TEMP/package.txt"
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='203' versionName='1.9.7-dev'" "$RUNNER_TEMP/package.txt"
+          test "$(stat -c %s "$APK")" -eq 46183658
+      - name: Publish direct APK GitHub release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG='certificates-v1.9.7-backup-import-fix-20261105'
+          ASSET="$RUNNER_TEMP/sperin-release/Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk"
+          cp "$RUNNER_TEMP/sperin-release/update.apk" "$ASSET"
+          printf '39dbf4837f4ac0bbb8bbb8b1f3b39b40227e108c3eecac2215c3fec2a8b11695  Sperin-Certificates-v1.9.7-Backup-Import-Fix.apk\n' > "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt"
+          if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
+            echo "::error::Release already exists; refusing to replace a published APK."
+            exit 1
+          fi
+          gh release create "$TAG" "$ASSET" "$RUNNER_TEMP/sperin-release/SHA256SUMS.txt" \
+            -R Gustafarii22/sperinservices \
+            --target 'cc2219f7837364ca46895ef542c6738fe822c7b2' \
+            --title 'Sperin Certificates 1.9.7 — backup import fix (verified signed APK)' \
+            --prerelease \
+            --notes 'Direct verified Android APK. Fix: when Restore finds no local backup on the new permanent installation, open the Android certificate JSON file picker; clarify Import certificate JSON vs signing-key BIN. Provenance: Actions run 42001333167 (regression, sign, install, upgrade and reopen tests passed). VersionCode 203, same permanent package and signing key as previous versionCode 202; safe in-place update preserves this new app data. The original old app remains separate and existing certificate data must be imported from its exported JSON file. Cloud and billing remain unverified.'
+          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \
+            --jq '.assets[] | [.name, .size, .digest, .url] | @tsv'
