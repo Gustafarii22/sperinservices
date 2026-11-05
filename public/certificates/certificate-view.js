@@ -279,7 +279,7 @@
  function sizeViewport(){
    const port=document.querySelector('.cv-viewport'),toolbar=document.querySelector('.cv-toolbar');
    if(!port)return;
-   if(port.closest('.cv-immersive')){port.style.height='';return;}
+   if(port.closest?.('.cv-immersive')){port.style.height='';return;}
    const dock=document.querySelector('.editor-dock');
    const dockTop=dock?.getBoundingClientRect().top;
    const bottomSpace=Number.isFinite(dockTop)?Math.max(0,window.innerHeight-dockTop):90;
