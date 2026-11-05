@@ -2,7 +2,11 @@ name: Verify permanent Sperin Certificates release candidate
 on:
   push:
     branches: [fix/certificates-v197-data-safe-ux]
-    paths: ['.github/workflows/certificate-apk.yml']
+    paths:
+      - '.github/workflows/certificate-apk.yml'
+      - 'public/certificates/**'
+      - 'certificate-android/qa/certificate.e2e.mjs'
+      - 'tests/certificates-v197-restore-routing.e2e.mjs'
   workflow_dispatch:
     inputs:
       first_version_code:
