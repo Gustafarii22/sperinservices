@@ -177,9 +177,6 @@ function OwnerReviews() {
             <Link to="/reviews" className="button-secondary">
               View public reviews
             </Link>
-            <Link to="/owner-leads" className="button-secondary">
-              HaMuch lead desk
-            </Link>
             <button
               className="button-secondary"
               onClick={async () => {

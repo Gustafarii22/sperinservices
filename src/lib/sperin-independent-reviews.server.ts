@@ -250,63 +250,6 @@ export async function independentReviewApi(req: Request): Promise<Response | nul
       if (!allowed) return json({ error: "Scan limit reached. Try again in 15 minutes." }, 429);
       return certificateScan(req);
     }
-    if (path === "/api/owner/hamuch/send") {
-      if (req.method !== "POST") return json({ error: "Use POST." }, 405);
-      const input: unknown = await req.json().catch(() => null);
-      if (!input || typeof input !== "object" || Array.isArray(input))
-        return json({ error: "Check the email details." }, 400);
-      const fields = input as Record<string, unknown>;
-      const email = typeof fields.email === "string" ? fields.email.trim() : "";
-      const subject = typeof fields.subject === "string" ? fields.subject.trim() : "";
-      const message = typeof fields.message === "string" ? fields.message.trim() : "";
-      if (
-        fields.approved !== true ||
-        email.length > 254 ||
-        !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) ||
-        subject.length < 6 ||
-        subject.length > 160 ||
-        /[\r\n]/.test(subject) ||
-        message.length < 20 ||
-        message.length > 5000 ||
-        !/haMuch/i.test(subject)
-      )
-        return json(
-          { error: "Review the recipient, subject, price and wording before approval." },
-          400,
-        );
-      const allowed = await rpc("sperin_auth_attempt", {
-        fingerprint: "owner-hamuch-sends",
-        max_attempts: 15,
-      });
-      if (!allowed)
-        return json({ error: "Too many email sends. Try again after 15 minutes." }, 429);
-      const escaped = message.replace(
-        /[&<>"']/g,
-        (character) =>
-          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!,
-      );
-      try {
-        const messageId = await sendSperinEmail(
-          email,
-          {
-            subject,
-            text: message,
-            html:
-              '<div style="font-family:Arial,sans-serif;max-width:650px;white-space:pre-line;color:#202428">' +
-              escaped +
-              "</div>",
-            reply_to: ownerEmail,
-          },
-          "sperin-hamuch-" + crypto.randomUUID(),
-        );
-        return json({ success: true, messageId });
-      } catch {
-        return json(
-          { error: "The email provider could not confirm sending. Nothing is marked as sent." },
-          503,
-        );
-      }
-    }
     if (path === "/api/owner/logout" && req.method === "POST") {
       const result = await auth("/sign-out", { method: "POST", body: "{}" }, sessionCookies);
       if (!result.ok) throw Error("Sign-out unavailable");
