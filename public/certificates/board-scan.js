@@ -112,8 +112,11 @@ function suggestDeviceTargets(result,cert,boardRef){
    if(!number||numbers.filter(n=>n===number).length!==1||device.target)return;
    const matches=existing.filter(c=>String(c.circuitNo)===number);
    if(matches.length>1)return;
-   device.target=matches.length?matches[0].id:'new';
+   // A written schedule may suggest a number, but it does NOT establish
+   // the identity of an existing tested circuit. Require manual selection.
+   device.target=matches.length?'':'new';
    device.number=number;
+   if(matches.length)result.warnings.push('Circuit '+number+' already exists. Inspect the board and explicitly select the matching circuit identity.');
    mapped++;
  });
  return mapped;
