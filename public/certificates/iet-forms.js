@@ -121,6 +121,7 @@
   }
   function labelValue(doc,label,value,x,y,w,opts={}){
     const labelW=opts.labelW||Math.min(w*.42,48);
+    if(doc.__editRegions&&opts.edit)doc.__editRegions.push({...opts.edit,page:doc.internal.getCurrentPageInfo().pageNumber,x:x+labelW,y:y-3,width:w-labelW,height:5});
     write(doc,label,x,y,w,{size:opts.size||6.4,bold:opts.boldLabel!==false,maxLines:opts.maxLabelLines||2});
     if(opts.checkboxChoices){
       let cx=x+labelW;
@@ -740,7 +741,10 @@
         const distributionType=board.distributionOcpdType||'';
         const distributionRating=board.distributionOcpdRating||'';
         const spdCertified=/^(?:T1|T2|T3|T1\s*\+\s*T2|T2\s*\+\s*T3|N\/A)$/i.test(String(board.spd||'').trim())?String(board.spd).trim():'';
-        doc.autoTable({startY:y+3,head:[],body:[
+        doc.autoTable({startY:y+3,head:[],editResolve:(r,c)=>{
+          const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
+          return cert.tables?.boards?.[bi]?[keys[r][c]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
+        },body:[
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
           ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
           ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
@@ -783,11 +787,11 @@
         pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
         labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12});
-        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25});
-        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
-        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
+        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'zdb'}:null});
+        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'ipf'}:null});
+        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'polarity'}:null});
+        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'phaseSequence'}:null});
+        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'spdOperational'}:null});
         const tcols=[
           ['17','Circuit number','circuitNo'],['18','r1 (line) Ω','r1'],['19','rn (neutral) Ω','rn'],['20','r2 (CPC) Ω','r2'],['21','(R1 + R2) Ω','r1r2'],['22','R2 (Ω)','r2only'],
           ['23','Test voltage (V)','irVoltage'],['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],['27','Maximum measured Zs (Ω)','zs'],
@@ -898,7 +902,7 @@
     });
   }
 
-  function build({cert,schema,settings={},worksheet=false}){
+  function build({cert,schema,settings={},worksheet=false,editable=false}){
     BRAND=String(settings.companyName||'Sperin Services').slice(0,58);
     const colour=/^#[0-9a-f]{6}$/i.test(settings.reportAccent||'')?settings.reportAccent:'#1869d3';
     const rgb=[parseInt(colour.slice(1,3),16),parseInt(colour.slice(3,5),16),parseInt(colour.slice(5,7),16)];
@@ -907,6 +911,7 @@
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
+    if(editable)window.SperinPdfEditMap?.install(doc,cert,schema);
     doc.__sperinWorksheet=!!worksheet;
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
     const logo=typeof settings.reportLogo==='string'?settings.reportLogo:'';

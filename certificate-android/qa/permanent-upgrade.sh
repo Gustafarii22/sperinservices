@@ -15,3 +15,5 @@ adb install -r certificate-android/dist/update.apk
 run_test check
 adb shell am force-stop "$pkg"
 run_test reopened
+adb shell am instrument -w -e class uk.co.sperinservices.certificates.CertificateOrientationTest "$pkg.test/androidx.test.runner.AndroidJUnitRunner" | tee certificate-android/dist/orientation-pdf-check.txt
+grep -F 'OK (1 test)' certificate-android/dist/orientation-pdf-check.txt

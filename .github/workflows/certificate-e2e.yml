@@ -68,6 +68,11 @@ jobs:
           cat /tmp/certificate-http.log
           exit 1
 
+      - name: Exact PDF regions and orientation navigation
+        run: |
+          node --test tests/certificates-pdf-regions.test.mjs
+          node tests/certificates-orientation-pdf.e2e.mjs
+
       - name: Verify new independent cloud and import script syntax
         run: |
           node --check public/certificates/team-workspace.js

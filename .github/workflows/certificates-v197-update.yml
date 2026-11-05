@@ -95,7 +95,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee certificate-android/dist/package.txt
           grep -F "name='uk.co.sperinservices.certificates.stable.preview.team.v197'" certificate-android/dist/package.txt
           grep -F "versionCode='200'" certificate-android/dist/package.txt
-          grep -F "versionName='1.9.7-dev'" certificate-android/dist/package.txt
+          grep -F "versionName='1.9.9-dev'" certificate-android/dist/package.txt
           sha256sum "$APK" > certificate-android/dist/SHA256SUMS.txt
       # Do not distribute this disposable debug-signed APK. User candidates must
       # use certificate-apk.yml and the backed-up permanent signing identity.

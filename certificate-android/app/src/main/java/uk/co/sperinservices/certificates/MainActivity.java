@@ -116,7 +116,21 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.clearCache(true);
         webView.setBackgroundColor(Color.WHITE);
-        setContentView(webView);
+        // Explicit insets are required with target SDK 35 edge-to-edge enforcement.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        android.widget.FrameLayout safeContent = new android.widget.FrameLayout(this);
+        safeContent.addView(webView, new android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(safeContent);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(safeContent, (view, insets) -> {
+            androidx.core.graphics.Insets safe = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                | androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                | androidx.core.view.WindowInsetsCompat.Type.ime());
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(safeContent);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -202,7 +216,7 @@ public class MainActivity extends Activity {
         String mime = "application/octet-stream";
         if (relative.endsWith(".html")) mime = "text/html";
         else if (relative.endsWith(".css")) mime = "text/css";
-        else if (relative.endsWith(".js")) mime = "application/javascript";
+        else if ((relative.endsWith(".js") || relative.endsWith(".mjs"))) mime = "application/javascript";
         else if (relative.endsWith(".svg")) mime = "image/svg+xml";
         else if (relative.endsWith(".webmanifest")) mime = "application/manifest+json";
 
@@ -1103,7 +1117,7 @@ public class MainActivity extends Activity {
                 try {
                     setRequestedOrientation(landscape
                         ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                        : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                        : ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
                 } catch (Exception ex) {
                     android.util.Log.w("SperinCertificates", "Could not change orientation", ex);
                 }

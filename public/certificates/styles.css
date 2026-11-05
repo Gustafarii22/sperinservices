@@ -976,3 +976,17 @@ body[data-entry-mode="certificate"] #speed-nav{display:none!important}
 .cv-immersive .cv-schedule-row .cv-field input,.cv-immersive .cv-schedule-row .cv-field select{height:23px;min-height:23px;font-size:11px}
 @media(max-width:720px){.cv-immersive .cv-viewport{min-height:0!important;padding:3px}.cv-menu-panel{width:min(320px,calc(100vw - 12px))}.cv-inspection-line{grid-template-columns:42px minmax(0,1fr) 90px}}
 @media print{.cv-menu,.cv-toolbar{display:none!important}}
+/* The PDF is the page: transparent form controls share its measured cells. */
+.cv-immersive .cv-exact-pdf{padding:0;position:relative}
+.cv-exact-pdf .cv-sheet-content{position:absolute;inset:0;padding:0;overflow:hidden}
+.cv-pdf-canvas{position:absolute;inset:0;width:100%;height:100%;background:white}
+.cv-pdf-fields{position:absolute;inset:0}
+.cv-pdf-field{position:absolute;overflow:visible}
+.cv-pdf-field .cv-field{display:block;width:100%;height:100%;margin:0;position:relative}
+.cv-pdf-field .cv-field>span,.cv-pdf-field .cv-field>small,.cv-pdf-field .cv-keyboard-toggle{display:none}
+.cv-immersive .cv-pdf-field input,.cv-immersive .cv-pdf-field select,.cv-immersive .cv-pdf-field textarea{width:100%;height:100%;min-height:0;border:1px solid transparent;border-radius:0;background:transparent;color:transparent;box-shadow:none;font-size:12px;padding:2px;resize:none;appearance:none}
+.cv-pdf-field input::placeholder,.cv-pdf-field textarea::placeholder{color:transparent}
+.cv-immersive .cv-pdf-field input:focus,.cv-immersive .cv-pdf-field select:focus,.cv-immersive .cv-pdf-field textarea:focus{background:white;color:#111;border:1px solid #1869d3;outline:1px solid #1869d3;z-index:2;position:relative}
+.cv-pdf-field:focus-within{z-index:3}
+.cv-exact-pdf .cv-sheet-content{flex:none}
+.cv-pdf-status{position:absolute;z-index:1;top:45%;left:10%;right:10%;text-align:center;background:white;color:#183c67;font-size:20px;padding:20px}

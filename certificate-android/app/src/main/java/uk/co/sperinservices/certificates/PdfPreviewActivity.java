@@ -60,8 +60,7 @@ public final class PdfPreviewActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setNavigationBarColor(Color.rgb(7,17,31));
         if(savedInstanceState != null) index = Math.max(0, savedInstanceState.getInt("page",0));
         try {
@@ -122,6 +121,14 @@ public final class PdfPreviewActivity extends Activity {
         layout.addView(pane,new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,0,1));
         setContentView(layout);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(layout, (view, insets) -> {
+            androidx.core.graphics.Insets safe = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(layout);
 
         zoomGesture=new ScaleGestureDetector(this,
             new ScaleGestureDetector.SimpleOnScaleGestureListener(){

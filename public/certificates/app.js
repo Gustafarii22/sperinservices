@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.8-dev';
+  const VERSION = '1.9.9-dev';
   const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196';
   let editMode = 'quick';
   let lastRequestedOrientation = '';
@@ -1651,7 +1651,7 @@
     document.body.appendChild(m);m.querySelector('button')?.focus();
   }
   function applyEntryOrientation(cert){
-    const value=editMode==='certificate' && window.SperinCertificateView?.isLandscape(cert?.type)?'landscape':'unspecified';
+    const value=view.page==='form' && view.circuitIndex===null && editMode==='certificate' && cert?'landscape':'unspecified';
     if(value===lastRequestedOrientation)return;
     lastRequestedOrientation=value;
     try{window.Android?.setCertificateOrientation?.(value);}catch(err){console.warn('Native orientation not available',err);}
@@ -1756,6 +1756,7 @@
     preserveRequestedAccordions=false;
     const root = document.getElementById('app');
     persistView();
+    applyEntryOrientation(getCurrent());
     document.body.dataset.page=view.page;
     document.body.dataset.entryMode=(view.page==='form'&&editMode==='certificate')?'certificate':'quick';
     try {
@@ -1764,6 +1765,7 @@
     } catch(err) {
       console.error('Certificate render failed',err);
       view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' };
+      applyEntryOrientation(null);
       root.innerHTML = `<div class="shell">${topbar()}<div class="card app-error"><h2>Certificate could not be opened</h2><p>A saved item contained older or damaged data. Your certificates have not been deleted.</p><button class="btn primary" data-action="home">Return to saved certificates</button></div></div>`;
     }
   }
@@ -3782,7 +3784,7 @@
       if(cert&&r)sortCircuitsByNumber(cert,r);
     }
     saveNow();
-    if(e.target.dataset.cvScope==='field'&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.cvKey))refreshCertificateView();
+    if(e.target.closest('.cv-exact-pdf') || e.target.dataset.cvScope==='field'&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.cvKey))refreshCertificateView();
   });
   document.addEventListener('focusout',e=>{
     if(e.target.matches?.('[data-cv-scope]'))saveNow();

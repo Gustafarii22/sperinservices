@@ -174,7 +174,44 @@
    // Never advertise false page numbers if a document has exceptional continuation pages.
    return [...groups,...schedules];
  }
+ let pdfBytes=null,pdfRevision=0;
+ function exactPages(cert,schema,settings){
+   const doc=window.SperinIetForms.build({cert,schema,settings,editable:true});
+   pdfBytes=doc.output('arraybuffer');pdfRevision++;
+   const fields=(schema.sections||[]).flatMap(p=>p.fields||[]);
+   const result=[];
+   for(let n=1;n<=doc.getNumberOfPages();n++){
+     doc.setPage(n);
+     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
+     const orientation=w>h?'landscape':'portrait',[pw,ph]=activePaperDimensions[orientation];
+     const regions=doc.__editRegions.filter(r=>r.page===n);
+     const html=regions.map(r=>{
+       const definition=r.scope==='field'?fields.find(f=>f.key===r.key):(schema.sections||[]).find(p=>p.key===r.kind)?.columns?.find(c=>c.key===r.key);
+       const value=r.scope==='field'?cert.fields?.[r.key]:cert.tables?.[r.kind]?.[r.index]?.[r.key];
+       return '<div class="cv-pdf-field" style="left:'+r.x/w*pw+'px;top:'+r.y/h*ph+'px;width:'+r.width/w*pw+'px;height:'+r.height/h*ph+'px">'+fieldInput(r.scope,r.key,value,definition||{label:r.key},r.index??-1,r.kind||'')+'</div>';
+     }).join('');
+     result.push({orientation,title:'Certificate page '+n,label:'Certificate page '+n,exact:true,html:'<span class="cv-pdf-status">Loading certificate…</span><canvas class="cv-pdf-canvas" aria-label="Actual PDF page '+n+'"></canvas><div class="cv-pdf-fields">'+html+'</div>'});
+   }
+   return result;
+ }
+ let pdfLibraryPromise=null,paintToken=0;
+ async function paintPdf(){
+   const canvas=document.querySelector('.cv-pdf-canvas');if(!canvas||!pdfBytes)return;
+   const token=++paintToken,revision=pdfRevision,bytes=pdfBytes.slice(0),number=persisted.page+1;
+   try{
+     pdfLibraryPromise ||= import('./vendor/pdf.min.mjs').then(lib=>{lib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.min.mjs',document.baseURI).href;return lib;});
+     const lib=await pdfLibraryPromise;
+     const pdf=await lib.getDocument({data:bytes,useSystemFonts:true}).promise;
+     if(token!==paintToken){await pdf.destroy();return;}
+     const page=await pdf.getPage(number),viewport=page.getViewport({scale:2});
+     canvas.width=viewport.width;canvas.height=viewport.height;
+     await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+     if(token===paintToken&&revision===pdfRevision){canvas.dataset.ready='true';canvas.parentElement.querySelector('.cv-pdf-status')?.remove();}
+     await pdf.destroy();
+   }catch(error){console.error('Certificate PDF display failed',error);const status=canvas.parentElement?.querySelector('.cv-pdf-status');if(status)status.textContent='Page could not load. Close and reopen Certificate View.';}
+ }
  function pages(cert,schema,settings={}){
+   if(['eic','eicr'].includes(cert.type)&&window.SperinPdfEditMap)return exactPages(cert,schema,settings);
    if(cert.type==='eic')return eicPages(cert,schema,settings);
    const orientation=isLandscape(cert.type)?'landscape':'portrait',out=[];
    const parts=schema?.sections||[];
@@ -238,14 +275,15 @@
    const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select a page</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
    return '<section class="cv-shell cv-immersive" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
      '<div class="cv-viewport" aria-label="Drag or swipe the certificate to pan; pinch to zoom" tabindex="0"><div class="cv-paper-wrap">'+
-     '<article class="cv-paper '+(land?'cv-landscape':'cv-portrait')+'" aria-label="'+E(page.label)+'"><header class="cv-sheet-header"><strong>SPERIN SERVICES</strong><span>'+E(schema.name||'Certificate')+'</span><small>'+E(cert.number||'')+'</small></header>'+
-     '<div class="cv-sheet-content">'+page.html+'</div><footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer></article></div></div></section>';
+     '<article class="cv-paper '+(land?'cv-landscape':'cv-portrait')+(page.exact?' cv-exact-pdf':'')+'" aria-label="'+E(page.label)+'">'+(page.exact?'':'<header class="cv-sheet-header"><strong>SPERIN SERVICES</strong><span>'+E(schema.name||'Certificate')+'</span><small>'+E(cert.number||'')+'</small></header>')+
+     '<div class="cv-sheet-content">'+page.html+'</div>'+(page.exact?'':'<footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer>')+'</article></div></div></section>';
  }
  let gestureStart=null;
  function attachGestures(){
    const port=document.querySelector('.cv-viewport');
    if(!port)return;
    applyViewport();
+   paintPdf();
    // One-finger drag on bare paper, two-finger pinch zoom; inputs retain normal touch interaction.
    port.addEventListener('pointerdown',e=>{
      if(e.target.closest('input,select,textarea,button,label'))return;
@@ -262,16 +300,18 @@
    port.addEventListener('pointercancel',()=>{gestureStart=null;});
    port.addEventListener('touchstart',e=>{
      if(e.touches.length===2){
+       gestureStart=null;
        const [a,b]=e.touches;
        port._cvPinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:persisted.zoom};
      }
    },{passive:true});
    port.addEventListener('touchmove',e=>{
      if(e.touches.length===2&&port._cvPinch){
+       e.preventDefault();
        const [a,b]=e.touches,dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
        setZoom(port._cvPinch.zoom*dist/Math.max(1,port._cvPinch.distance));
      }
-   },{passive:true});
+   },{passive:false});
    port.addEventListener('touchend',e=>{if(e.touches.length<2)port._cvPinch=null;});
  }
  function switchPage(next){persisted.page=Math.max(0,Number(next)||0);persisted.showPages=false;persisted.fitMode=true;}
