@@ -1240,7 +1240,7 @@ await page.locator('#speed-nav [data-speed="more"]').click();
 await page.locator('[data-tool="restore"]').click();
 await page.waitForSelector(".recovery-confirm-modal");
 assert(
-  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Restore latest backup?",
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Restore a backup made by this app?",
   "Restore first confirmation wording is unclear",
 );
 await page.locator('[data-action="recovery-confirm-next"]').click();
@@ -1288,7 +1288,7 @@ await page.waitForSelector(".profile-modal");
 await page.locator('[data-action="import-backup"]').click();
 await page.waitForSelector(".recovery-confirm-modal");
 assert(
-  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Import backup file?",
+  (await page.locator(".recovery-confirm-modal h2").textContent()) === "Import a Sperin Certificates .json backup?",
   "Import first confirmation missing",
 );
 await page.locator('[data-action="recovery-confirm-next"]').click();
