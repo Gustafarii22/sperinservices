@@ -50,7 +50,8 @@ public class PdfPreviewActivityTest {
     @Test public void opensLandscapePdfAsOneFittedPageWithNavigation() throws Exception{
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
         File file=new File(context.getCacheDir(),"qa-six-page-certificate.pdf");
-        try(PdfDocument pdf=new PdfDocument()){
+        PdfDocument pdf=new PdfDocument();
+        try {
             for(int i=1;i<=6;i++){
                 PdfDocument.PageInfo pageInfo=new PdfDocument.PageInfo.Builder(1122,794,i).create();
                 PdfDocument.Page page=pdf.startPage(pageInfo);
@@ -61,7 +62,7 @@ public class PdfPreviewActivityTest {
                 pdf.finishPage(page);
             }
             try(FileOutputStream out=new FileOutputStream(file)){pdf.writeTo(out);}
-        }
+        }finally{pdf.close();}
         Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",file);
         Intent intent=new Intent(context,PdfPreviewActivity.class);
         intent.setDataAndType(uri,"application/pdf");
