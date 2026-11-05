@@ -189,14 +189,18 @@ function numberFromMain(result,cert,boardRef){
    return d;
  };
  const original=result.circuits.filter(d=>deviceValue(d,'deviceKind')!=='Main switch');
- const main=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch')||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
+ const observedMain=result.circuits.find(d=>deviceValue(d,'deviceKind')==='Main switch');
+ const main=observedMain||entry('Main switch','MAIN SWITCH',boardValue('mainSwitch'));
  const spdValue=boardValue('spd');
  const spdExisting=result.circuits.find(d=>deviceValue(d,'deviceKind')==='SPD');
  const spdPresent=!!spdExisting || (!!spdValue && !/^(?:no|none|n\/a|not fitted|not present|absent)$/i.test(spdValue));
  // Keep photograph order for all identified RCDs, MCBs, RCBOs, blanks and SPDs.
  // If an SPD is known only from CU details, show it separately on the board rather
  // than inventing a physical way number.
- const arranged=[main,...original];
+ // If the camera actually placed the main switch within the rails, preserve
+ // that photographed position. Main-at-zero is only the legacy synthetic
+ // placeholder when NO physical main-switch candidate was supplied.
+ const arranged=observedMain?[...result.circuits]:[main,...original];
  const existing=(cert.tables?.circuits||[]).filter(c=>c.boardRef===boardRef&&!c._incomingFeed);
  const occupied=new Set();
  arranged.forEach((d,i)=>{
