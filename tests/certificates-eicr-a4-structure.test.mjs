@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 
 // Full report rendering: uses the same jsPDF libraries and EICR renderer as Android.
 const ctx=vm.createContext({console,TextEncoder,TextDecoder,Uint8Array,ArrayBuffer,atob,btoa,setTimeout,clearTimeout,navigator:{userAgent:'node'},document:{createElement:()=>({getContext:()=>({})})}});
@@ -37,6 +37,8 @@ const cert=sample(),snap=JSON.stringify(cert);
 const schema={standard:'BS 7671:2018+A4:2026',sections:[]};
 const plain=ctx.SperinIetForms.build({cert,schema});
 const editable=ctx.SperinIetForms.build({cert,schema,editable:true});
+mkdirSync('certificate-android/qa-output',{recursive:true});
+writeFileSync('certificate-android/qa-output/eicr-a4-model-qa.pdf',Buffer.from(plain.output('arraybuffer')));
 const drawing=plain.internal.pages.filter(Array.isArray).map(p=>p.join('\n')).join('\n');
 test('EICR PDF builds, is readable and does not mutate existing data',()=>{
   assert.equal(JSON.stringify(cert),snap);
