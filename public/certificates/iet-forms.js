@@ -661,9 +661,9 @@
               ['Item No.','Observation(s)','Classification code']],
         body:selected.length?selected.map(({row})=>[
           pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
-        ]):[['','',''],['','','']],
+        ]):[['','','']],
         margin:{left:x,right:10,top:26,bottom:14},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-        styles:{fontSize:7,cellPadding:1.5,minCellHeight:18,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+        styles:{fontSize:7,cellPadding:1.2,minCellHeight:12,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12,minCellHeight:6,fontSize:7},
         columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
         editResolve:(r,c)=>{
