@@ -999,7 +999,12 @@
         for(let r=0;r<12;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
-          trows.push(tcols.map(c=>worksheet?'':pdfText(merged[c[2]]??'')));
+          trows.push(tcols.map(col=>{
+            if(worksheet)return '';
+            const result=String(merged[col[2]]??'').trim();
+            if(cert.type==='eicr'&&['polarity','rcdButton','afddButton'].includes(col[2])&&/^(?:✓|✔|✕|✗|pass|fail|yes|no)$/i.test(result))return '';
+            return pdfText(result);
+          }));
         }
         doc.autoTable({
           startY:y+18,
@@ -1011,7 +1016,28 @@
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
           styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}}
+          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}},
+          didDrawCell:data=>{
+            if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
+            const record=chunk[data.row.index];
+            if(!record)return;
+            const key=tcols[data.column.index][2];
+            const raw=String(record.test?.[key]??record.detail?.[key]??'').trim();
+            const tick=/^(?:✓|✔|pass|yes)$/i.test(raw);
+            const cross=/^(?:✕|✗|fail|no)$/i.test(raw);
+            if(!tick&&!cross)return;
+            const cell=data.cell,cx=cell.x+cell.width/2,cy=cell.y+cell.height/2;
+            doc.setLineWidth(.45);
+            doc.setDrawColor(...(tick?BLUE:[170,35,35]));
+            if(tick){
+              doc.line(cx-2,cy,cx-.6,cy+1.5);
+              doc.line(cx-.6,cy+1.5,cx+2.6,cy-2);
+            }else{
+              doc.line(cx-2,cy-2,cx+2,cy+2);
+              doc.line(cx-2,cy+2,cx+2,cy-2);
+            }
+            doc.setLineWidth(.12);
+          }
         });
         const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
         const ff=cert.fields||{};
