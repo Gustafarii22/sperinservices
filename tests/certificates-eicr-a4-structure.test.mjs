@@ -37,7 +37,7 @@ const cert=sample(),snap=JSON.stringify(cert);
 const schema={standard:'BS 7671:2018+A4:2026',sections:[]};
 const plain=ctx.SperinIetForms.build({cert,schema});
 const editable=ctx.SperinIetForms.build({cert,schema,editable:true});
-const drawing=plain.internal.pages.map(p=>p.join('\n')).join('\n');
+const drawing=plain.internal.pages.filter(Array.isArray).map(p=>p.join('\n')).join('\n');
 test('EICR PDF builds, is readable and does not mutate existing data',()=>{
   assert.equal(JSON.stringify(cert),snap);
   assert(plain.output().startsWith('%PDF-'));
