@@ -71,6 +71,7 @@ jobs:
       - name: Exact PDF regions and orientation navigation
         run: |
           node --test tests/certificates-pdf-regions.test.mjs
+          node --test tests/certificates-eicr-a4-structure.test.mjs
           node tests/certificates-orientation-pdf.e2e.mjs
 
       - name: Verify new independent cloud and import script syntax
