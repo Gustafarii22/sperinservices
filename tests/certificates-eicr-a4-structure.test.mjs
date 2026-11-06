@@ -16,6 +16,7 @@ function sample(){
       clientName:'MODEL CLIENT',clientAddress:'HOUSE ADDRESS',
       installationAddress:'HOUSE ADDRESS',reason:'Periodic inspection',inspectionDates:'2026-11-06',
       premisesType:'Residential',overallAssessment:'Unsatisfactory',intakeNotified:'Y',
+      intakeServiceCable:'✓',intakeServiceHead:'✕',intakeEarthingArrangement:'N/V',intakeMeterTails:'N/A',intakeMeteringEquipment:'LIM',intakeMeansOfIsolation:'✓',
       earthElectrodeType:'Rod',earthElectrodeLocation:'Rear garden',earthElectrodeResistance:'72',bondingToWater:true,bondingToGas:true,
       generalCondition:'Deterioration identified',inspectedBy:'INSPECTOR',inspectorSignature:'Signed by inspector',
       authorisedBy:'AUTHORISER',authoriserSignature:'Signed by authoriser',standardAmendedTo:'2026-11-06',
@@ -71,6 +72,8 @@ test('All 66 current IET inspection outcomes map to exactly 66 editable PDF rows
   const inspection=editable.__editRegions.filter(r=>r.kind==='eicrInspection'&&r.key==='outcome');
   assert.equal(inspection.length,66);
   assert(new Set(inspection.map(r=>r.index)).size===66);
+  for(const key of ['intakeServiceCable','intakeServiceHead','intakeEarthingArrangement','intakeMeterTails','intakeMeteringEquipment','intakeMeansOfIsolation'])
+    assert.equal(editable.__editRegions.filter(r=>r.key===key).length,1,key+' lacks separate editable PDF outcome');
   for(const marker of ['INTAKE EQUIPMENT','EARTHING / BONDING','DISTRIBUTION / FINAL CIRCUITS','Person ordering inspection notified'])
     assert(drawing.includes(marker),marker+' omitted');
 });
