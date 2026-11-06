@@ -508,11 +508,11 @@
       A:['clientName','clientAddress'],
       B:['reason','inspectionDates'],
       C:['occupier','installationAddress','premisesType','age','additionsEvidence','additionsAge','recordsAvailable','lastInspection'],
-      D:['extentInspected','agreedLimitations','agreedWith','operationalLimitations','standardAmendedTo'],
+      D:['extentInspected','agreedLimitations','agreedWith','operationalLimitations','operationalLimitationsPage','standardAmendedTo'],
       E:['overallAssessment','generalCondition'],
       F:['nextInspectionDate','nextInspectionReason'],
       G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
-      H:['continuationSheets','inspectionSchedules','circuitSchedules'],
+      H:['continuationSheetCount','continuationSheetSections','inspectionSchedules','circuitSchedules'],
       I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
       J:['meansOfEarthing','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
     };
@@ -526,7 +526,7 @@
       inspectedBy:'Inspected and tested by (name)',authorisedBy:'Report authorised for issue by (name)',
       inspectorSignature:'Signature',inspectorCompany:'For/on behalf of',inspectorPosition:'Position',inspectorAddress:'Address',inspectorDate:'Date',
       authoriserSignature:'Signature',authoriserCompany:'For/on behalf of',authoriserPosition:'Position',authoriserAddress:'Address',authoriserDate:'Date',
-      continuationSheets:'Continuation sheets for section(s)',inspectionSchedules:'Schedules of Inspection',circuitSchedules:'Schedules of Circuit Details and Test Results',
+      operationalLimitationsPage:'Operational limitations (see page no.)',continuationSheetCount:'Continuation sheet(s)',continuationSheetSections:'For Section(s)',inspectionSchedules:'Schedules of Inspection',circuitSchedules:'Schedules of Circuit Details and Test Results',
       supplyDeviceBs:'Supply protective device BS (EN)',supplyDeviceType:'Supply protective device type',
       supplyDeviceRating:'Supply protective device rated current (A)',supplyBreakingCapacity:'Supply device breaking capacity (kA)',
       earthingConductorCsa:'Earthing conductor csa (mm2)',bondingCsa:'Bonding conductor csa (mm2)',
@@ -561,6 +561,7 @@
       const format=(key,def)=>{
         if(worksheet)return '';
         if(key==='maximumDemand')return display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet);
+        if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
@@ -610,8 +611,15 @@
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:8,bold:true});y+=6;
-    write(doc,observations.length?'The following observations are made (see below).':'No remedial action is required (no observations recorded).',x,y,w,{size:6.5});y+=5;
-    write(doc,'Refer to the attached inspection and test schedules and to the extent and limitations in Section D. Photographs or thermal images may support recorded observations.',x,y,w,{size:6});y+=7;
+    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
+    checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:6.3,labelWidth:95});
+    checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:6.3,labelWidth:130});
+    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
+    y+=7;
+    write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:6});
+    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-3,width:w,height:6});
+    y+=7;
+    write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:6});y+=7;
     for(const group of [
       {title:'C1 AND C2 OBSERVATIONS',codes:['C1','C2'],note:'C1: Danger present - immediate remedial action necessary. C2: Potentially dangerous - urgent remedial action necessary. These affect the overall assessment.'},
       {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
