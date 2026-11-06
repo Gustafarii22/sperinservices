@@ -1062,7 +1062,15 @@
         table('observations', 'K · Observations', [
           { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
         ], [{ item: '1' }]),
-        section('1.1 · Distributor/supplier intake equipment', [select('intakeNotified', 'Person ordering inspection notified of dangerous or potentially dangerous situations', ['Y', 'N/A'])]),
+        section('1.1 · Distributor/supplier intake equipment', [
+          select('intakeServiceCable', 'Service cable', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeServiceHead', 'Service head', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeEarthingArrangement', 'Earthing arrangement', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeterTails', 'Meter tails', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeteringEquipment', 'Metering equipment', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeansOfIsolation', 'Means of isolation (where present)', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeNotified', 'Person ordering inspection notified of dangerous or potentially dangerous situations', ['Y','N/A'])
+        ]),
         table('eicrInspection', 'Condition report schedule of inspection', [
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }
         ], eicrInspectionRows),
