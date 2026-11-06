@@ -123,3 +123,25 @@ test('PDF editing remains bound to original saved observations and checks',()=>{
     assert(regions.some(r=>r.key===key),key+' edit region lost');
   assert(regions.some(r=>r.kind==='eicrInspection'&&r.index===0&&r.key==='outcome'));
 });
+
+test('A4 print geometry is landscape and native printing preserves the vector PDF',()=>{
+  plain.setPage(1);
+  assert.equal(Math.round(plain.internal.pageSize.getWidth()),297);
+  assert.equal(Math.round(plain.internal.pageSize.getHeight()),210);
+  assert(plain.output().startsWith('%PDF-'));
+
+  const renderer=readFileSync('public/certificates/iet-forms.js','utf8');
+  assert(renderer.includes('const edge=4.5;'), 'PDF frame must remain inside normal laser-printer printable edges');
+  assert(renderer.includes('doc.rect(edge,edge,w-2*edge,h-2*edge)'), 'PDF border must track the media box');
+
+  const android=readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java','utf8');
+  const printer=readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java','utf8');
+  const preview=readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/PdfPreviewActivity.java','utf8');
+  assert(appText.includes("window.Android.printPdfBase64(doc.output('datauristring'),doc.getNumberOfPages(),landscape)"));
+  assert(android.includes('public boolean printPdfBase64(String dataUri, int pageCount, boolean landscape)'));
+  assert(printer.includes('PrintAttributes.MediaSize.ISO_A4.asLandscape()'));
+  assert(printer.includes('PrintAttributes.MediaSize.ISO_A4.asPortrait()'));
+  assert(printer.includes('PrintAttributes.Margins.NO_MARGINS'));
+  assert(printer.includes('new FileOutputStream(destination.getFileDescriptor())'));
+  assert(preview.includes('CertificatePdfPrinter.print(this, getIntent().getData(), renderer.getPageCount(), documentLandscape)'));
+});
