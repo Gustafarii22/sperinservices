@@ -21,7 +21,8 @@ function sample(){
       generalCondition:'Deterioration identified',inspectedBy:'INSPECTOR',inspectorSignature:'Signed by inspector',
       authorisedBy:'AUTHORISER',authoriserSignature:'Signed by authoriser',standardAmendedTo:'2026-11-06',
       clientPostcode:'SHOULD_NOT_PRINT_CLIENT_POSTCODE',issueDate:'SHOULD_NOT_PRINT_ISSUE_DATE',
-      installationPostcode:'SHOULD_NOT_PRINT_INSTALLATION_POSTCODE',maximumDemand:'38',maximumDemandUnit:'A'
+      installationPostcode:'SHOULD_NOT_PRINT_INSTALLATION_POSTCODE',maximumDemand:'38',maximumDemandUnit:'A',
+      testerMake:'EXTRA_MAKE_NOT_IN_IET',testerModel:'EXTRA_MODEL_NOT_IN_IET',testerSerial:'MFT12345'
     },
     tables:{
       observations:[{item:'1',observation:'DANGEROUS_TEST_FINDING',code:'C1',scheduleRef:'3.1'},
@@ -99,6 +100,15 @@ test('IET electrode and bonding choices, intake notification, and printed values
     assert(drawing.includes(required),required+' was not printed');
   for(const key of ['earthElectrodeLocation','earthElectrodeResistance','bondingToWater','bondingToGas','intakeNotified'])
     assert(editable.__editRegions.some(region=>region.key===key),key+' not editable on PDF');
+});
+test('IET test instrument section has only serial/asset number fields',()=>{
+  const instrument=schema.sections.find(p=>p.title?.startsWith('Test instruments used'));
+  const keys=instrument.fields.map(f=>f.key);
+  assert.deepEqual(Array.from(keys),['testerSerial','instrumentContinuity','instrumentInsulation','instrumentLoop','instrumentRcd','instrumentEarth','testedBy','testedDate']);
+  assert(drawing.includes('MFT12345'),'Multifunction serial/asset number missing');
+  assert(!drawing.includes('EXTRA_MAKE_NOT_IN_IET'),'Extra manufacturer printed');
+  assert(!drawing.includes('EXTRA_MODEL_NOT_IN_IET'),'Extra model printed');
+  assert(!schema.sections.find(p=>p.title?.startsWith('A ·')).fields.some(f=>f.key==='certificateNo'),'Duplicate unbound report number field');
 });
 test('private app metadata is not printed on the EICR and output keeps signatories',()=>{
   for(const banned of ['SHOULD_NOT_PRINT_CLIENT_POSTCODE','SHOULD_NOT_PRINT_ISSUE_DATE','SHOULD_NOT_PRINT_INSTALLATION_POSTCODE'])
