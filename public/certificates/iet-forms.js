@@ -626,6 +626,8 @@
   }
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
+    const canonicalRows=schema.sections?.find(part=>part.type==='table'&&part.key==='eicrInspection')?.defaultRows||[];
+    const canonicalDescription=new Map(canonicalRows.map(row=>[String(row.item||''),String(row.description||'')]));
     doc.addPage('a4','landscape');
     const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
     const drawPage=()=>pageFrame(doc,title,display(cert.number,worksheet,true),schema.standard);
@@ -650,7 +652,7 @@
         body.push([{content:group+'.0',styles:{fontStyle:'bold'}},{content:sections[group],styles:{fontStyle:'bold'}},{content:''}]);
         rowMap.push(-1);lastGroup=group;
       }
-      body.push([pdfText(r.item||''),pdfText(r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      body.push([pdfText(r.item||''),pdfText(canonicalDescription.get(String(r.item||''))||r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
       rowMap.push(index);
     });
     doc.autoTable({
