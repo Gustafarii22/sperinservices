@@ -2826,8 +2826,8 @@
         items.push({title:d.label+' needs a value check',key:rapidDescriptorId(d),note:d.section+': “'+v+'”. Confirm the reading, units or an explicit limitation; this value was not assessed numerically.'});
     }
     if(cert.type==='eicr'&&f.overallAssessment==='Satisfactory'){
-      const adverse=[...(cert.tables?.eicrInspection||[]),...(cert.tables?.observations||[])].some(r=>['C1','C2','FI'].includes(r.outcome||r.code||r.classification));
-      if(adverse)items.push({title:'Overall assessment conflicts with findings',note:'C1, C2 or FI is recorded. Review the Satisfactory assessment and observation classifications.',blocking:true});
+      const adverse=[...(cert.tables?.eicrInspection||[]),...(cert.tables?.observations||[])].some(r=>['C1','C2'].includes(r.outcome||r.code||r.classification));
+      if(adverse)items.push({title:'Overall assessment conflicts with findings',note:'C1 or C2 requires an UNSATISFACTORY assessment. C3 and FI are advisory under BS 7671:2018+A4:2026.',blocking:true});
     }
     const circuits=cert.type==='minor'?[{row:f,test:f,label:'Minor works'}]:(cert.tables?.circuits||[]).map((row,i)=>({row,test:cert.tables?.tests?.[i]||{},label:(row.boardRef||'DB1')+' · Circuit '+(row.circuitNo||i+1)}));
     for(const {row,test,label} of circuits){
