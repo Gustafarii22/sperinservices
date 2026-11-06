@@ -2503,6 +2503,26 @@
 
   function printCertificate() {
     saveNow();
+    const cert=getCurrent();
+    if(!cert)return;
+    // Print the vector certificate PDF, not the WebView's responsive input UI.
+    // The native adapter uses true A4 and does not add a second page margin.
+    if(window.Android && typeof window.Android.printPdfBase64==='function'){
+      try{
+        if(!window.SperinIetForms?.build)throw new Error('Certificate PDF renderer unavailable');
+        syncSingleSignatory(cert);persist();
+        const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
+        const landscape=['eic','eicr'].includes(cert.type);
+        if(window.Android.printPdfBase64(doc.output('datauristring'),doc.getNumberOfPages(),landscape)===false)
+          throw new Error('Android could not prepare the certificate PDF for printing');
+        return;
+      }catch(err){
+        console.error('Certificate PDF print failed',err);
+        alert('Certificate printing failed: '+(err?.message||err));
+        return;
+      }
+    }
+    // Keep compatibility with older installed app builds until a signed update is ready.
     if(window.Android && typeof window.Android.printPage==='function'){
       try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
     }
