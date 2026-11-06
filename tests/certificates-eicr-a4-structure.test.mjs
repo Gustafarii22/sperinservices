@@ -34,8 +34,19 @@ function sample(){
     }
   };
 }
-const cert=sample(),snap=JSON.stringify(cert);
-const schema={standard:'BS 7671:2018+A4:2026',sections:[]};
+const appText=readFileSync('public/certificates/app.js','utf8');
+const inspectStart=appText.indexOf('const eicrInspectionRows = [');
+const inspectEnd=appText.indexOf("].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));",inspectStart);
+assert(inspectStart>=0&&inspectEnd>inspectStart,'The IET A4 inspection manifest is missing');
+const inspectExpression=appText.slice(inspectStart,inspectEnd)+ "].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));";
+const inspectContext=vm.createContext({});
+vm.runInContext(inspectExpression+';globalThis.rows=eicrInspectionRows;',inspectContext);
+const fullInspection=Array.from(inspectContext.rows);
+assert.equal(fullInspection.length,66,'Every IET residential inspection item must be represented');
+const cert=sample();
+cert.tables.eicrInspection=fullInspection.map(row=>({...row,outcome:row.item==='1.1'?'✓':row.item==='3.1'?'C1':row.item==='4.1'?'FI':'N/A'}));
+const snap=JSON.stringify(cert);
+const schema={standard:'BS 7671:2018+A4:2026',sections:[{type:'table',key:'eicrInspection',defaultRows:fullInspection}]};
 const plain=ctx.SperinIetForms.build({cert,schema});
 const editable=ctx.SperinIetForms.build({cert,schema,editable:true});
 mkdirSync('certificate-android/qa-output',{recursive:true});
@@ -47,6 +58,10 @@ test('EICR PDF builds, is readable and does not mutate existing data',()=>{
   assert(plain.getNumberOfPages()>=7);
   assert.equal(editable.getNumberOfPages(),plain.getNumberOfPages());
   assert.deepEqual(editable.internal.pages,plain.internal.pages);
+});
+test('All 66 IET residential inspection items and their numbers are present',()=>{
+  for(const item of fullInspection)assert(drawing.includes(item.description.slice(0,35)),item.item+' lost from PDF');
+  assert(drawing.includes('Person ordering inspection notified'));
 });
 test('EICR contains every report section A to K and both IET observation categories',()=>{
   for(const c of 'ABCDEFGHIJK')assert(drawing.includes('SECTION '+c+':'),c+' missing');
