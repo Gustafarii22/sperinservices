@@ -1112,8 +1112,13 @@
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
+        // The instrument identity must include the saved make, model and
+        // serial/asset number. Omitting the model loses a recorded identifier
+        // from the issued EIC even when it is present in the entry screen.
+        const multifunctionInstrument=[ff.testerMake,ff.testerModel,ff.testerSerial]
+          .map(v=>display(v||'',worksheet)).filter(v=>String(v).trim()).join(' ');
         const instrumentDetails=[
-          'Multifunction: '+display(ff.testerSerial||'',worksheet),
+          'Multifunction: '+multifunctionInstrument,
           'Continuity: '+display(ff.testerLowOhm===false?'':ff.instrumentContinuity,worksheet),
           'Insulation resistance: '+display(ff.testerInsulation===false?'':ff.instrumentInsulation,worksheet),
           'Earth fault loop impedance: '+display(ff.testerLoop===false?'':ff.instrumentLoop,worksheet),
