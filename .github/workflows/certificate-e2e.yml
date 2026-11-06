@@ -242,8 +242,14 @@ jobs:
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
-          grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
+          # The IET model-form instrument field contains serial/asset information.
+          # Device make/model remain in the editable record and backup, not added as
+          # extra certificate fields.
           grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
+          if grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt; then
+            echo "Non-model instrument metadata leaked onto the issued EIC"
+            exit 1
+          fi
           # The issued Schedule of Circuit Details records the prescribed wiring code.
           # Containment descriptions remain internal, not appended to IET field 3.
           grep -E 'Circuit description|Type of wiring' certificate-android/qa-output/eic-regression.txt
