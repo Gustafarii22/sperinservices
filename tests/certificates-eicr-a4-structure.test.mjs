@@ -59,9 +59,12 @@ test('EICR PDF builds, is readable and does not mutate existing data',()=>{
   assert.equal(editable.getNumberOfPages(),plain.getNumberOfPages());
   assert.deepEqual(editable.internal.pages,plain.internal.pages);
 });
-test('All 66 IET residential inspection items and their numbers are present',()=>{
-  for(const item of fullInspection)assert(drawing.includes(item.description.slice(0,35)),item.item+' lost from PDF');
-  assert(drawing.includes('Person ordering inspection notified'));
+test('All 66 current IET inspection outcomes map to exactly 66 editable PDF rows',()=>{
+  const inspection=editable.__editRegions.filter(r=>r.kind==='eicrInspection'&&r.key==='outcome');
+  assert.equal(inspection.length,66);
+  assert(new Set(inspection.map(r=>r.index)).size===66);
+  for(const marker of ['INTAKE EQUIPMENT','EARTHING / BONDING','DISTRIBUTION / FINAL CIRCUITS','Person ordering inspection notified'])
+    assert(drawing.includes(marker),marker+' omitted');
 });
 test('EICR contains every report section A to K and both IET observation categories',()=>{
   for(const c of 'ABCDEFGHIJK')assert(drawing.includes('SECTION '+c+':'),c+' missing');
