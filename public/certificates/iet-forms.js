@@ -630,7 +630,7 @@
     const canonicalDescription=new Map(canonicalRows.map(row=>[String(row.item||''),String(row.description||'')]));
     doc.addPage('a4','landscape');
     const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
-    const drawPage=()=>pageFrame(doc,title,display(cert.number,worksheet,true),schema.standard);
+    const drawPage=()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard);
     drawPage();
     write(doc,'Outcomes: acceptable condition = tick; unacceptable = C1 or C2; improvement = C3; further investigation = FI; not verified = N/V; limitation = LIM; not applicable = N/A.',x,26,w,{size:5.6,maxLines:2});
     write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,31,w,{size:5.6});
