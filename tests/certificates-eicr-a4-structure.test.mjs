@@ -17,7 +17,7 @@ function sample(){
       installationAddress:'HOUSE ADDRESS',reason:'Periodic inspection',inspectionDates:'2026-11-06',
       premisesType:'Residential',overallAssessment:'Unsatisfactory',intakeNotified:'Y',
       intakeServiceCable:'✓',intakeServiceHead:'✕',intakeEarthingArrangement:'N/V',intakeMeterTails:'N/A',intakeMeteringEquipment:'LIM',intakeMeansOfIsolation:'✓',
-      earthElectrodeType:'Rod',earthElectrodeLocation:'Rear garden',earthElectrodeResistance:'72',bondingToWater:true,bondingToGas:true,
+      earthElectrodeType:'Rod',earthElectrodeLocation:'Rear garden',earthElectrodeMeasurementType:'RA',earthElectrodeResistance:'72',bondingToWater:true,bondingToGas:true,mainRcdType:'Other',mainRcdOther:'Custom type X',
       generalCondition:'Deterioration identified',inspectedBy:'INSPECTOR',inspectorSignature:'Signed by inspector',
       authorisedBy:'AUTHORISER',authoriserSignature:'Signed by authoriser',standardAmendedTo:'2026-11-06',
       clientPostcode:'SHOULD_NOT_PRINT_CLIENT_POSTCODE',issueDate:'SHOULD_NOT_PRINT_ISSUE_DATE',
@@ -96,9 +96,9 @@ test('Actual schema prints IET labels rather than raw internal field names',()=>
    assert(drawing.includes(label),label+' missing from customer PDF');
 });
 test('IET electrode and bonding choices, intake notification, and printed values survive to PDF',()=>{
-  for(const required of ['Rear garden','72','To water installation pipes','To gas installation pipes','Person ordering inspection notified','Rod'])
+  for(const required of ['Rear garden','RA = 72','Custom type X','To water installation pipes','To gas installation pipes','Person ordering inspection notified','Rod'])
     assert(drawing.includes(required),required+' was not printed');
-  for(const key of ['earthElectrodeLocation','earthElectrodeResistance','bondingToWater','bondingToGas','intakeNotified'])
+  for(const key of ['earthElectrodeLocation','earthElectrodeMeasurementType','earthElectrodeResistance','mainRcdOther','bondingToWater','bondingToGas','intakeNotified'])
     assert(editable.__editRegions.some(region=>region.key===key),key+' not editable on PDF');
 });
 test('IET test instrument section has only serial/asset number fields',()=>{
