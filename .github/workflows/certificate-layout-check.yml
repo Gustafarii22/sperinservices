@@ -1,7 +1,7 @@
 name: Focused certificate PDF layout check
 on:
   pull_request:
-    paths: ['public/certificates/**', 'tests/certificates-layout-matrix.test.mjs', '.github/workflows/certificate-layout-check.yml']
+    paths: ['public/certificates/**', 'tests/certificates-layout-matrix.test.mjs', 'tests/certificates-eicr-a4-structure.test.mjs', '.github/workflows/certificate-layout-check.yml']
   push:
     branches: [fix/certificates-v197-data-safe-ux]
     paths: ['.github/workflows/certificate-layout-check.yml', 'tests/certificates-orientation-pdf.e2e.mjs', 'public/certificates/**']
