@@ -89,7 +89,8 @@
     }
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?'Certificate/Report No.: '+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
+    const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);
     return 24;
   }
@@ -514,7 +515,7 @@
       G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
       H:['continuationSheetCount','continuationSheetSections','inspectionSchedules','circuitSchedules'],
       I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
-      J:['earthingDistributor','earthingElectrode','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceOther','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
+      J:['earthingDistributor','earthingElectrode','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
     };
     const labels={
       clientName:'Name',clientAddress:'Address',inspectionDates:'Date(s) on which inspection and testing was carried out',
