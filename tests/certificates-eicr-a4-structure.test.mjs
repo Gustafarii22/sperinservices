@@ -15,7 +15,8 @@ function sample(){
     fields:{
       clientName:'MODEL CLIENT',clientAddress:'HOUSE ADDRESS',
       installationAddress:'HOUSE ADDRESS',reason:'Periodic inspection',inspectionDates:'2026-11-06',
-      premisesType:'Residential',overallAssessment:'Unsatisfactory',
+      premisesType:'Residential',overallAssessment:'Unsatisfactory',intakeNotified:'Y',
+      earthElectrodeType:'Rod',earthElectrodeLocation:'Rear garden',earthElectrodeResistance:'72',bondingToWater:true,bondingToGas:true,
       generalCondition:'Deterioration identified',inspectedBy:'INSPECTOR',inspectorSignature:'Signed by inspector',
       authorisedBy:'AUTHORISER',authoriserSignature:'Signed by authoriser',standardAmendedTo:'2026-11-06',
       clientPostcode:'SHOULD_NOT_PRINT_CLIENT_POSTCODE',issueDate:'SHOULD_NOT_PRINT_ISSUE_DATE',
@@ -57,6 +58,12 @@ test('EICR contains every report section A to K and both IET observation categor
   assert(drawing.includes('CONDITION REPORT SCHEDULE OF INSPECTION'));
   assert(drawing.includes('GENERIC SCHEDULE OF CIRCUIT DETAILS'));
   assert(drawing.includes('GENERIC SCHEDULE OF TEST RESULTS'));
+});
+test('IET electrode and bonding choices, intake notification, and printed values survive to PDF',()=>{
+  for(const required of ['Rear garden','72','To water installation pipes','To gas installation pipes','Person ordering inspection notified','Rod'])
+    assert(drawing.includes(required),required+' was not printed');
+  for(const key of ['earthElectrodeLocation','earthElectrodeResistance','bondingToWater','bondingToGas','intakeNotified'])
+    assert(editable.__editRegions.some(region=>region.key===key),key+' not editable on PDF');
 });
 test('private app metadata is not printed on the EICR and output keeps signatories',()=>{
   for(const banned of ['SHOULD_NOT_PRINT_CLIENT_POSTCODE','SHOULD_NOT_PRINT_ISSUE_DATE','SHOULD_NOT_PRINT_INSTALLATION_POSTCODE'])
