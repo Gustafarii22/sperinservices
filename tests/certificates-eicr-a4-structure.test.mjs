@@ -145,3 +145,32 @@ test('A4 print geometry is landscape and native printing preserves the vector PD
   assert(printer.includes('new FileOutputStream(destination.getFileDescriptor())'));
   assert(preview.includes('CertificatePdfPrinter.print(this, getIntent().getData(), renderer.getPageCount(), documentLandscape)'));
 });
+
+test('Section J is a vertical, individually editable list with no missing particulars',()=>{
+  const keys=[
+    'earthingDistributor','earthingElectrode','maximumDemand',
+    'earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance',
+    'earthingConductorMaterial','earthingConductorCsa','earthingContinuity',
+    'bondingMaterial','bondingCsa','bondingContinuity',
+    'bondingToWater','bondingToGas','bondingToOil','bondingToSteel',
+    'bondingToLightning','bondingToOtherChecked','bondingToOther',
+    'mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent',
+    'mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting',
+    'mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay',
+    'mainRcdTime','mainRcdBreaking'
+  ];
+  const regions=editable.__editRegions||[];
+  let previous=null;
+  for(const key of keys){
+    const matching=regions.filter(r=>r.scope==='field'&&r.key===key);
+    assert.equal(matching.length,1,'Section J particular must remain editable exactly once: '+key);
+    const region=matching[0];
+    assert(region.width>10&&region.height>0,'Empty editing area: '+key);
+    if(previous){
+      assert(region.page>previous.page ||
+        (region.page===previous.page && region.y>previous.y),
+        'Section J must read top-to-bottom: '+key);
+    }
+    previous=region;
+  }
+});
