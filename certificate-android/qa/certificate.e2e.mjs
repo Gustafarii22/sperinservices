@@ -885,7 +885,7 @@ assert(
 const printDownloadPromise = page.waitForEvent("download");
 await page.locator('[data-action="print"]').click();
 const printDownload = await printDownloadPromise;
-assert(/\\.pdf$/i.test(printDownload.suggestedFilename()), "Browser Print did not download a PDF");
+assert(/\.pdf$/i.test(printDownload.suggestedFilename()), "Browser Print did not download a PDF");
 const printPdfBytes = fs.readFileSync(await printDownload.path());
 assert(printPdfBytes.subarray(0, 5).toString("latin1") === "%PDF-", "Print download is not a PDF");
 await page.locator('[data-action="pdf-dismiss"]').click();
@@ -908,7 +908,7 @@ await page.evaluate(() => {
 });
 await page.locator('[data-action="print"]').click();
 const nativePrint = await page.evaluate(() => window.__nativePrint);
-assert(/^data:application\\/pdf[^,]*;base64,JVBER/.test(nativePrint?.header || ""),
+assert(/^data:application\/pdf[^,]*;base64,JVBER/.test(nativePrint?.header || ""),
        "Native Print did not receive vector PDF data");
 assert(nativePrint.pages >= 1 && nativePrint.landscape === true,
        "Native Print did not receive landscape A4 PDF metadata");
