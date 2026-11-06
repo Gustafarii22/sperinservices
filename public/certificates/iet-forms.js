@@ -595,7 +595,7 @@
       {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
     ]){
       if(y>160)fresh();
-      const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()));
+      const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
         head:[[{content:group.title+' (include relevant schedule reference)',colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
