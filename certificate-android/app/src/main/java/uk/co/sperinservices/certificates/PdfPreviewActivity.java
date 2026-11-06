@@ -34,6 +34,7 @@ public final class PdfPreviewActivity extends Activity {
     private Button previous;
     private Button next;
     private int index = 0;
+    private boolean documentLandscape = false;
     private float zoom = 1f;
     private float moveX = 0f;
     private float moveY = 0f;
@@ -70,7 +71,8 @@ public final class PdfPreviewActivity extends Activity {
             renderer = new PdfRenderer(descriptor);
             if(renderer.getPageCount()<=0) throw new IllegalStateException("PDF is empty");
             try(PdfRenderer.Page first=renderer.openPage(0)) {
-                if(first.getWidth()>first.getHeight()) {
+                documentLandscape=first.getWidth()>first.getHeight();
+                if(documentLandscape) {
                     if(getRequestedOrientation()!=ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
                         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
                 } else {
@@ -102,11 +104,13 @@ public final class PdfPreviewActivity extends Activity {
         counter.setTextSize(14);
         counter.setTypeface(null,android.graphics.Typeface.BOLD);
         Button fit=control("Fit");
+        Button print=control("Print");
         Button close=control("✕");
         nav.addView(previous,new LinearLayout.LayoutParams(dp(50),dp(49)));
         nav.addView(counter,new LinearLayout.LayoutParams(0,dp(49),1));
         nav.addView(next,new LinearLayout.LayoutParams(dp(50),dp(49)));
         nav.addView(fit,new LinearLayout.LayoutParams(dp(60),dp(49)));
+        nav.addView(print,new LinearLayout.LayoutParams(dp(70),dp(49)));
         nav.addView(close,new LinearLayout.LayoutParams(dp(50),dp(49)));
         layout.addView(nav,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(55)));
 
@@ -159,6 +163,14 @@ public final class PdfPreviewActivity extends Activity {
         previous.setOnClickListener(v -> showPage(index-1));
         next.setOnClickListener(v -> showPage(index+1));
         fit.setOnClickListener(v -> resetZoom());
+        print.setOnClickListener(v -> {
+            try {
+                CertificatePdfPrinter.print(this, getIntent().getData(), renderer.getPageCount(), documentLandscape);
+            } catch (Exception error) {
+                android.widget.Toast.makeText(this, "Could not print PDF: " + error.getMessage(),
+                    android.widget.Toast.LENGTH_LONG).show();
+            }
+        });
         close.setOnClickListener(v -> finish());
         pane.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or_,ob) -> {
             if((r-l)!=(or_-ol)||(b-t)!=(ob-ot)) showPage(index);
