@@ -679,6 +679,14 @@
       '8':'PROSUMER’S LOW VOLTAGE ELECTRICAL INSTALLATION(S)'
     };
     const body=[],rowMap=[];
+    const intakeRows=[
+      ['intakeServiceCable','Service cable'],
+      ['intakeServiceHead','Service head'],
+      ['intakeEarthingArrangement','Earthing arrangement'],
+      ['intakeMeterTails','Meter tails'],
+      ['intakeMeteringEquipment','Metering equipment'],
+      ['intakeMeansOfIsolation','Means of isolation (where present)']
+    ];
     let lastGroup='';
     rows.forEach((r,index)=>{
       const group=String(r.item||'').split('.')[0];
@@ -686,9 +694,19 @@
         body.push([{content:group+'.0',styles:{fontStyle:'bold'}},{content:sections[group],styles:{fontStyle:'bold'}},{content:''}]);
         rowMap.push(-1);lastGroup=group;
       }
-      body.push([pdfText(r.item||''),pdfText(canonicalDescription.get(String(r.item||''))||r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      const isIntake=String(r.item||'')==='1.1';
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
       rowMap.push(index);
-      if(String(r.item||'')==='1.1'){
+      if(isIntake){
+        intakeRows.forEach(([key,description],subIndex)=>{
+          const raw=String(cert.fields?.[key]||'').trim();
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw)]);
+          rowMap.push(-3-subIndex);
+        });
+        body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
+        rowMap.push(-9);
+        body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
+        rowMap.push(-10);
         const notification=String(cert.fields?.intakeNotified||'');
         body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
         rowMap.push(-2);
@@ -703,12 +721,18 @@
       styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
-      editResolve:(r,c)=>rowMap[r]===-2?(c===2?[{scope:'field',key:'intakeNotified'}]:[]):rowMap[r]>=0?[{scope:'table',kind:'eicrInspection',index:rowMap[r],key:['item','description','outcome'][c]}]:[],
+      editResolve:(r,c)=>{
+        const row=rowMap[r];
+        if(row===-2)return c===2?[{scope:'field',key:'intakeNotified'}]:[];
+        if(row<=-3&&row>=-8)return c===2?[{scope:'field',key:intakeRows[-3-row][0]}]:[];
+        return row>=0?[{scope:'table',kind:'eicrInspection',index:row,key:['item','description','outcome'][c]}]:[];
+      },
       didDrawPage:drawPage,
       didDrawCell:data=>{
         if(worksheet||data.section!=='body'||data.column.index!==2)return;
         const i=rowMap[data.row.index];
-        if(i===undefined||i<0||String(rows[i]?.outcome||'').trim()!=='✓')return;
+        const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
+        if(i===undefined||String(outcome||'').trim()!=='✓')return;
         const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
         doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
         doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
