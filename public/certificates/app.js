@@ -137,6 +137,27 @@
     { key:'spdOperational', label:'SPD operational', type:'select', options:OPTIONS.yesNoNA }
   ];
 
+  // Model-form board particulars required by IET A4 circuit and test schedules.
+  // Legacy 'mainSwitch' and 'rcd' data remain in saved certificate records.
+  const eicrBoardColumns=[
+    {key:'ref',label:'DB/CU reference'},
+    {key:'location',label:'Location'},
+    {key:'suppliedFrom',label:'Supplied from'},
+    {key:'distributionOcpdBs',label:'Distribution circuit OCPD BS (EN)'},
+    {key:'distributionOcpdType',label:'Distribution circuit OCPD type'},
+    {key:'distributionOcpdRating',label:'Distribution circuit OCPD rating/setting (A)'},
+    {key:'spd',label:'SPD type(s) T1, T2, T3 or N/A'},
+    {key:'rcdBs',label:'RCD BS (EN)'},
+    {key:'rcdType',label:'RCD type'},
+    {key:'rcdRating',label:'RCD rating (A)'},
+    {key:'rcdIdn',label:'RCD IΔn (mA)'},
+    {key:'zdb',label:'Zdb (Ω)'},
+    {key:'ipf',label:'Ipf (kA)'},
+    {key:'polarity',label:'Correct polarity',type:'select',options:OPTIONS.yesNoNA},
+    {key:'phaseSequence',label:'Phase sequence',type:'select',options:OPTIONS.yesNoNA},
+    {key:'spdOperational',label:'SPD operational status',type:'select',options:OPTIONS.yesNoNA}
+  ];
+
   const circuitColumns = [
     { key: 'boardRef', label: 'Board ref.' },
     { key: 'circuitNo', label: 'Circuit no.' },
@@ -1041,7 +1062,7 @@
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }
         ], eicrInspectionRows),
         section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
-        table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
+        table('boards', 'Distribution board / consumer unit register', eicrBoardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         section('Test instrument', instrumentFields())
