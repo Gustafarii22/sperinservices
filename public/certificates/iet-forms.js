@@ -79,8 +79,11 @@
   }
   function pageFrame(doc,title,number,standard){
     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
-    doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(5,5,w-10,h-10);
-    doc.setFillColor(...BLUE);doc.rect(5,5,1.8,h-10,'F');
+    // Reserve only the laser-printer safe edge: the PDF must not be shrunken by
+    // a second print-layout margin. Border remains inside the A4 media box.
+    const edge=4.5;
+    doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
+    doc.setFillColor(...BLUE);doc.rect(edge,edge,1.8,h-2*edge,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
     doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
     if(doc.__sperinLogo){
