@@ -690,12 +690,12 @@
     let lastGroup='';
     rows.forEach((r,index)=>{
       const group=String(r.item||'').split('.')[0];
-      if(sections[group]&&group!==lastGroup){
+      if(sections[group]&&group!==lastGroup&&!(group==='2'&&String(r.item||'')==='2.0')){
         body.push([{content:group+'.0',styles:{fontStyle:'bold'}},{content:sections[group],styles:{fontStyle:'bold'}},{content:''}]);
         rowMap.push(-1);lastGroup=group;
       }
       const isIntake=String(r.item||'')==='1.1';
-      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
       rowMap.push(index);
       if(isIntake){
         intakeRows.forEach(([key,description],subIndex)=>{
@@ -732,7 +732,7 @@
         if(worksheet||data.section!=='body'||data.column.index!==2)return;
         const i=rowMap[data.row.index];
         const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
-        if(i===undefined||String(outcome||'').trim()!=='✓')return;
+        if(i===undefined||(i>=0&&String(rows[i]?.item||'')==='1.1')||String(outcome||'').trim()!=='✓')return;
         const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
         doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
         doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
