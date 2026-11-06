@@ -13,6 +13,7 @@ on:
       - 'tests/certificates-immersive-pages.e2e.mjs'
       - 'tests/certificates-v196-view.e2e.mjs'
       - 'tests/certificates-v197-restore-routing.e2e.mjs'
+      - 'tests/certificates-eicr-a4-structure.test.mjs'
   workflow_dispatch:
     inputs:
       first_version_code:
