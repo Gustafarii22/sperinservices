@@ -180,6 +180,8 @@
     { key: 'rcdRating', label: 'RCD A', type: 'select', options: OPTIONS.ocpdRating }
   ];
 
+  const eicrCircuitColumns=circuitColumns.filter(col=>!['installMethod','deviceKind'].includes(col.key));
+
   const testColumns = [
     { key: 'circuitNo', label: 'Circuit no.' },
     { key: 'r1', label: 'r1 Ω' },
@@ -1061,11 +1063,10 @@
         table('eicrInspection', 'Condition report schedule of inspection', [
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }
         ], eicrInspectionRows),
-        section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
         table('boards', 'Distribution board / consumer unit register', eicrBoardColumns, [{ ref:'DB1' }]),
-        table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        table('circuits', 'Schedule of circuit details', eicrCircuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', instrumentFields())
+        section('Test instrument', instrumentFields().filter(field=>!['testerVoltage','voltageMake','voltageModel','instrumentVoltage'].includes(field.key)))
       ]
     },
 
