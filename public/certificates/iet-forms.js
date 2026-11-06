@@ -626,19 +626,65 @@
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
     doc.addPage('a4','landscape');
+    const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
+    const drawPage=()=>pageFrame(doc,title,display(cert.number,worksheet,true),schema.standard);
+    drawPage();
+    write(doc,'Outcomes: acceptable condition = tick; unacceptable = C1 or C2; improvement = C3; further investigation = FI; not verified = N/V; limitation = LIM; not applicable = N/A.',x,26,w,{size:5.6,maxLines:2});
+    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,31,w,{size:5.6});
+    const sections={
+      '1':'INTAKE EQUIPMENT (VISUAL INSPECTION ONLY)',
+      '2':'PRESENCE OF ADEQUATE ARRANGEMENTS FOR OTHER SOURCES SUCH AS MICROGENERATORS',
+      '3':'EARTHING / BONDING ARRANGEMENTS',
+      '4':'CONSUMER UNIT(S) / DISTRIBUTION BOARD(S)',
+      '5':'DISTRIBUTION / FINAL CIRCUITS',
+      '6':'LOCATION(S) CONTAINING A BATH OR SHOWER',
+      '7':'OTHER PART 7 SPECIAL INSTALLATIONS OR LOCATIONS',
+      '8':'PROSUMER’S LOW VOLTAGE ELECTRICAL INSTALLATION(S)'
+    };
+    const body=[],rowMap=[];
+    let lastGroup='';
+    rows.forEach((r,index)=>{
+      const group=String(r.item||'').split('.')[0];
+      if(sections[group]&&group!==lastGroup){
+        body.push([{content:group+'.0',styles:{fontStyle:'bold'}},{content:sections[group],styles:{fontStyle:'bold'}},{content:''}]);
+        rowMap.push(-1);lastGroup=group;
+      }
+      body.push([pdfText(r.item||''),pdfText(r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      rowMap.push(index);
+    });
     doc.autoTable({
-      startY:30,
-      head:[[{content:'CONDITION REPORT SCHEDULE OF INSPECTION',colSpan:3,styles:{fontStyle:'bold',fontSize:8}}],
+      startY:36,
+      head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:7}}],
             ['Item No.','Description','Outcome']],
-      body:rows.map(r=>[pdfText(r.item||''),pdfText(r.description||''),worksheet?'':pdfText(r.outcome||'')]),
+      body,
       margin:{left:x,right:10,top:29,bottom:15},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
       styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
-      didDrawPage:()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard)
+      editResolve:(r,c)=>rowMap[r]>=0?[{scope:'table',kind:'eicrInspection',index:rowMap[r],key:['item','description','outcome'][c]}]:[],
+      didDrawPage:drawPage,
+      didDrawCell:data=>{
+        if(worksheet||data.section!=='body'||data.column.index!==2)return;
+        const i=rowMap[data.row.index];
+        if(i===undefined||i<0||String(rows[i]?.outcome||'').trim()!=='✓')return;
+        const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
+        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
+        doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
+        doc.line(cx+.55,cy-1,cx+1.25,cy-.3);
+        doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
+        doc.setLineWidth(.18);
+      }
     });
+    const lastY=doc.lastAutoTable.finalY;
+    if(lastY<178){
+      const f=cert.fields||{};
+      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,lastY+7,w,{size:6});
+    }else{
+      doc.addPage('a4','landscape');drawPage();
+      const f=cert.fields||{};
+      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,33,w,{size:6});
+    }
   }
-
   function renderEicr(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
     doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
