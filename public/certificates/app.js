@@ -200,6 +200,8 @@
     { key: 'remarks', label: 'Remarks' }
   ];
 
+  const eicrTestColumns=testColumns.map(col=>['polarity','rcdButton','afddButton'].includes(col.key)?{...col,type:'select',options:['✓','✕','LIM','N/A']}:col);
+
 
 
   const CIRCUIT_DETAIL_GROUPS = [
@@ -1066,7 +1068,7 @@
         ], eicrInspectionRows),
         table('boards', 'Distribution board / consumer unit register', eicrBoardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', eicrCircuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        table('tests', 'Schedule of test results', eicrTestColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         section('Test instrument', instrumentFields().filter(field=>!['testerVoltage','voltageMake','voltageModel','instrumentVoltage'].includes(field.key)))
       ]
     },
