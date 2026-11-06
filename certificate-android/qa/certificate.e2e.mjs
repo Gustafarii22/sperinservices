@@ -880,19 +880,41 @@ assert(
   "Site worksheet first page is not landscape like the certificate",
 );
 
-// Print browser fallback.
+// Printing must preserve the vector PDF. In a browser, the Print button
+// downloads an A4 PDF rather than printing the WebView's input controls.
+const printDownloadPromise = page.waitForEvent("download");
+await page.locator('[data-action="print"]').click();
+const printDownload = await printDownloadPromise;
+assert(/\\.pdf$/i.test(printDownload.suggestedFilename()), "Browser Print did not download a PDF");
+const printPdfBytes = fs.readFileSync(await printDownload.path());
+assert(printPdfBytes.subarray(0, 5).toString("latin1") === "%PDF-", "Print download is not a PDF");
+await page.locator('[data-action="pdf-dismiss"]').click();
+console.log("PRINT_BROWSER_VECTOR_PDF_PASS");
+
+// Android must receive the vector PDF bytes and original landscape page
+// dimensions, not a WebView print adapter call.
 await page.evaluate(() => {
-  window.__printCalled = false;
-  window.print = () => {
-    window.__printCalled = true;
+  window.__nativePrint = null;
+  window.Android = {
+    printPdfBase64(data, pages, landscape) {
+      window.__nativePrint = {
+        header: String(data).slice(0, 40),
+        pages,
+        landscape
+      };
+      return true;
+    }
   };
 });
 await page.locator('[data-action="print"]').click();
-assert(
-  await page.evaluate(() => window.__printCalled === true),
-  "Print button did not invoke print route",
-);
-console.log("PRINT_PASS");
+const nativePrint = await page.evaluate(() => window.__nativePrint);
+assert(nativePrint?.header?.startsWith("data:application/pdf;filename=generated.pdf;base64,JVBER") ||
+       /^data:application\\/pdf.*;base64,JVBER/.test(nativePrint?.header || ""),
+       "Native Print did not receive vector PDF data");
+assert(nativePrint.pages >= 1 && nativePrint.landscape === true,
+       "Native Print did not receive landscape A4 PDF metadata");
+await page.evaluate(() => { delete window.Android; });
+console.log("PRINT_NATIVE_VECTOR_PDF_PASS");
 
 // App Back logic: circuit -> circuit list -> home, without exiting.
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
