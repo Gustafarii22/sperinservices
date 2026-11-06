@@ -110,6 +110,7 @@
     }
     doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
     doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7,{align:'center'});
+    if(doc.__issueLabel){doc.setFontSize(5);doc.text(pdfText(doc.__issueLabel),10,h-7);}
   }
   function box(doc,x,y,w,h,title,opts={}){
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);doc.rect(x,y,w,h);
@@ -1190,6 +1191,7 @@
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     if(editable)window.SperinPdfEditMap?.install(doc,cert,schema);
     doc.__sperinWorksheet=!!worksheet;
+    doc.__issueLabel=worksheet?'':cert.issueMetadata?(cert.status==='Complete'?'ISSUED REVISION '+cert.issueMetadata.revision+' · '+cert.issueMetadata.issuedAt.slice(0,10):'DRAFT REVISION · previous issue '+cert.issueMetadata.revision):cert.status==='Draft'?'DRAFT - REVIEW BEFORE ISSUE':'';
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
     const logo=typeof settings.reportLogo==='string'?settings.reportLogo:'';
     const m=/^data:image\/(png|jpeg);base64,/.exec(logo);

@@ -29,3 +29,4 @@ jobs:
           node --test tests/certificates-layout-matrix.test.mjs tests/certificates-eicr-a4-structure.test.mjs tests/certificates-pdf-regions.test.mjs tests/certificates-v197-preservation.test.mjs
           node tests/certificates-orientation-pdf.e2e.mjs
           node tests/certificates-complete-backup.e2e.mjs
+          node tests/certificates-issued-records.e2e.mjs

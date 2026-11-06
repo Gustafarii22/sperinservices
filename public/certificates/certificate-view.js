@@ -269,6 +269,7 @@
      '<button class="btn" data-action="edit-undo">Undo</button>'+
      '<button class="btn" data-action="edit-redo">Redo</button>'+
      '<button class="btn" data-action="certificate-review">Review</button>'+
+     '<button class="btn" data-action="issued-history">Issued PDFs</button>'+
      '<button class="btn primary" data-action="pdf">Save / open PDF</button>'+
      '<button class="btn" data-action="home">Home</button>'+
      '<button class="btn" data-action="open-new">New certificate</button>'+

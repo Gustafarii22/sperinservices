@@ -1410,6 +1410,10 @@
   ]));
 
   try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
+  // Optional provisions retain a distinct blank and explicit N/A; no saved value is defaulted.
+  for(const field of SCHEMAS.eicr.sections.find(p=>p.title?.startsWith('J ·')).fields){
+    if(field.type==='select'&&!['maximumDemandUnit'].includes(field.key)&&!field.options.includes('N/A'))field.options=[...field.options,'N/A'];
+  }
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
@@ -1571,7 +1575,10 @@
   function persist() {
     if (view.currentId) {
       const c = getCurrent();
-      if (c) c.updatedAt = new Date().toISOString();
+      if (c) {
+        if(c.issuedContent&&window.SperinIssuedRecords?.content(c)!==c.issuedContent)c.status='Draft';
+        c.updatedAt = new Date().toISOString();
+      }
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     persistView();
@@ -1582,12 +1589,12 @@
     return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
-  function flushNativeAutoBackup() {
+  async function flushNativeAutoBackup() {
     clearTimeout(nativeBackupTimer);
     nativeBackupTimer=null;
     if(!state.certificates.length) return;
     if(window.Android && typeof window.Android.saveAutoBackup==='function'){
-      try { window.Android.saveAutoBackup(autoBackupPayload()); } catch(err) { console.warn('Automatic recovery backup failed',err); }
+      try { const payload=await portableBackupPayload();clearTimeout(nativeBackupTimer);nativeBackupTimer=null;window.Android.saveAutoBackup(payload); } catch(err) { console.warn('Automatic recovery backup failed',err); }
     }
   }
 
@@ -1622,8 +1629,11 @@
   function certificateNumber(type) {
     const code = SCHEMAS[type].code;
     const date = TODAY.replaceAll('-', '');
-    const count = state.certificates.filter(c => c.type === type && String(c.number || '').includes(date)).length + 1;
-    return `SS-${code}-${date}-${String(count).padStart(3, '0')}`;
+    const existing=new Set(state.certificates.map(c=>c.number));
+    let count=1,number;
+    do{number=`SS-${code}-${date}-${String(count++).padStart(3,'0')}`;}while(existing.has(number));
+    return number;
+
   }
 
   function defaultFor(field) {
@@ -1924,7 +1934,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn" data-action="issued-history">Issued PDFs</button><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -2051,6 +2061,7 @@
 
   function boardControl(boardIndex,key,label,value,options=null,extra=''){
     const attrs=`data-board-input="${esc(key)}" data-board-index="${boardIndex}"`;
+    if(!['ref','location','suppliedFrom'].includes(key))options=[...new Set([...(options||[]),'N/A'])];
     const control=Array.isArray(options)
       ? comboControl(attrs,{key,label,options},value)
       : `<input ${attrs}${inputModeAttrs(key)} value="${esc(value??'')}" ${extra}/>`;
@@ -2283,6 +2294,7 @@
     const data=JSON.parse(backupPayload());
     data.backupSchema=2;
     data.jobPhotos=await window.SperinJobCentre.exportPhotos(data.jobs);
+    data.issuedReports=await window.SperinIssuedRecords.all();
     return JSON.stringify(data,null,2);
   }
 
@@ -2327,8 +2339,12 @@
 
   async function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
+    const issuedReports=(typeof json==='string'?JSON.parse(json):json).issuedReports;
+    if(issuedReports!==undefined)await window.SperinIssuedRecords.validate(issuedReports);
     // Keep a complete rollback copy before touching either storage system.
     if(preserveCurrent) localStorage.setItem(PRE_RESTORE_KEY,await portableBackupPayload());
+    // Add-only history: an import never deletes or overwrites a previously issued PDF.
+    if(issuedReports!==undefined)await window.SperinIssuedRecords.restore(issuedReports);
     // Photo imports use fresh IDs on collisions, preserving the rollback's bytes.
     prepared.jobs=prepared.jobs===undefined?undefined:clone(prepared.jobs);
     await window.SperinJobCentre.restorePhotos(prepared.jobPhotos||{},prepared.jobs||[]);
@@ -2503,7 +2519,7 @@
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function printCertificate() {
+  async function printCertificate() {
     saveNow();
     const cert=getCurrent();
     if(!cert)return;
@@ -2513,6 +2529,12 @@
       try{
         if(!window.SperinIetForms?.build)throw new Error('Certificate PDF renderer unavailable');
         syncSingleSignatory(cert);persist();
+        if(cert.status==='Complete'&&cert.issuedContent===window.SperinIssuedRecords?.content(cert)){
+          const record=(await window.SperinIssuedRecords.all()).find(r=>r.certificateId===cert.id&&r.revision===cert.issueMetadata?.revision);
+          if(!record)throw Error('Archived issued PDF is missing; restore its complete backup');
+          if(window.Android.printPdfBase64(record.pdf,record.pageCount,record.landscape)===false)throw Error('Android could not print archived PDF');
+          return;
+        }
         const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
         const landscape=['eic','eicr'].includes(cert.type);
         if(window.Android.printPdfBase64(doc.output('datauristring'),doc.getNumberOfPages(),landscape)===false)
@@ -2524,11 +2546,7 @@
         return;
       }
     }
-    // Keep compatibility with older installed app builds until a signed update is ready.
-    if(window.Android && typeof window.Android.printPage==='function'){
-      try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
-    }
-    window.print();
+    downloadPDF().then(ok=>{if(ok)toast('Open the downloaded PDF and print it at actual size on A4.');});
   }
 
   function pdfSafeName(cert) { return `${cert.number || SCHEMAS[cert.type].code}-${(cert.fields.installationAddress || cert.fields.premisesAddress || '').split('\n')[0] || 'certificate'}`.replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-'); }
@@ -2570,6 +2588,11 @@
     const cert=getCurrent(); if(!cert)return false;
     syncSingleSignatory(cert); persist();
     try{
+      if(cert.status==='Complete'&&cert.issuedContent===window.SperinIssuedRecords?.content(cert)){
+        const record=(await window.SperinIssuedRecords.all()).find(r=>r.certificateId===cert.id&&r.revision===cert.issueMetadata?.revision);
+        if(!record)throw Error('Archived issued PDF is missing; restore its complete backup');
+        saveIssuedPdf(record);return true;
+      }
       if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
       const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
       const pdfName=`${pdfSafeName(cert)}.pdf`;
@@ -2592,6 +2615,21 @@
     }
   }
 
+  async function showIssuedHistory(){
+    try{
+      const cert=getCurrent();if(!cert)return;
+      const rows=(await window.SperinIssuedRecords.all()).filter(r=>r.certificateId===cert.id).sort((a,b)=>b.revision-a.revision);
+      const modal=document.createElement('div');modal.className='modal-backdrop';
+      modal.innerHTML='<section class="card modal"><h2>Issued PDFs</h2><p>Original issued PDFs remain unchanged. Editing creates a draft for a new revision.</p>'+rows.map(r=>'<p>Revision '+r.revision+' · '+esc(r.issuedAt)+' <button class="btn" data-issued-download="'+esc(r.id)+'">Download original PDF</button></p>').join('')+(rows.length?'':'<p>No archived issue yet. Older PDF exports are not reconstructed automatically.</p>')+'<button class="btn" data-action="close-modal">Close</button></section>';
+      modal.querySelectorAll('[data-issued-download]').forEach(button=>button.onclick=()=>{const r=rows.find(r=>r.id===button.dataset.issuedDownload);saveIssuedPdf(r);});document.body.appendChild(modal);
+    }catch(error){alert('Could not read issued history: '+error.message);}
+  }
+  function saveIssuedPdf(record){
+    const name=pdfSafeName(record.snapshot)+'-R'+record.revision+'.pdf';
+    if(window.Android?.savePdfBase64){if(window.Android.savePdfBase64(record.pdf,name)===false)throw Error('PDF download failed; original remains in Issued PDFs');showPdfSaved(name);}
+    else {const bytes=Uint8Array.from(atob(record.pdf.split(',')[1]),x=>x.charCodeAt(0));if(lastPdfPreviewUrl)URL.revokeObjectURL(lastPdfPreviewUrl);lastPdfPreviewUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));const a=document.createElement('a');a.href=lastPdfPreviewUrl;a.download=name;a.click();showPdfSaved(name);}
+  }
+  let issueInProgress=false;
   async function completeAndCreatePdf(reviewed=false) {
     const cert=getCurrent(); if(!cert)return;
     if(['pat','ev','solar','commercialFire'].includes(cert.type)){
@@ -2601,12 +2639,14 @@
     if(!reviewed){openCertificateReview(true);return;}
     syncSingleSignatory(cert);
     saveNow();
-    const ok=await downloadPDF();
-    if(!ok)return;
-    cert.status='Complete';
-    saveNow();
-    render();
-    toast('Certificate completed');
+    if(issueInProgress)return;issueInProgress=true;
+    try{
+      const record=await window.SperinIssuedRecords.issue(cert,snapshot=>window.SperinIetForms.build({cert:snapshot,schema:SCHEMAS[snapshot.type],settings,worksheet:false}));
+      cert.issueMetadata={revision:record.revision,issuedAt:record.issuedAt};
+      cert.issuedContent=window.SperinIssuedRecords.content(record.snapshot);
+      cert.status='Complete';saveNow();render();saveIssuedPdf(record);toast('Issued revision '+record.revision+' retained');
+    }catch(error){alert('Could not complete issue: '+error.message);return;}
+    finally{issueInProgress=false;}
     if(window.Android?.openLatestPdf)window.Android.openLatestPdf();
     else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
   }
@@ -4199,6 +4239,7 @@
     else if(action==='pdf-dismiss')document.querySelector('.pdf-download-backdrop')?.remove();
     else if (action === 'pdf') downloadPDF();
     else if (action === 'complete-pdf') completeAndCreatePdf();
+    else if (action === 'issued-history') showIssuedHistory();
     else if (action === 'print') printCertificate();
     else if (action === 'status') { if (cert) { if(cert.status==='Complete'){cert.status='Draft';persist();render();toast('Marked draft');}else openCertificateReview(true); } }
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}
