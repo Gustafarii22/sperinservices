@@ -135,7 +135,7 @@
       });
       return;
     }
-    const display=opts.date?fmtDate(value):String(value||'');
+    const display=opts.date?fmtDate(value):String(value??'');
     if(display) write(doc,display,x+labelW,y,w-labelW,{size:opts.valueSize||6.5,maxLines:opts.maxLines||2,color:opts.valueColor||INK});
     else dotted(doc,x+labelW,y+.8,x+w-1);
   }
@@ -172,7 +172,8 @@
     if(role==='constructor')return {name:constructorName,company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
-  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
+  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value??'');}
+  function provision(value){return value===true?'Yes':value===false||value==null?'':String(value);}
   function safeRows(rows){return Array.isArray(rows)?rows:[];}
   function normaliseBoardRef(value){
     return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -387,7 +388,7 @@
         const raw=String(inspectionRows[data.row.index]?.outcome||'').trim();
         if(!(yes(raw,'✓')||['yes','pass','satisfactory','true'].includes(raw.toLowerCase())))return;
         const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
-        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
+        doc.setDrawColor(...LINE);doc.setLineWidth(.18);
         doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
         doc.line(cx+.55,cy-1.0,cx+1.25,cy-.3);
         doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
@@ -401,7 +402,7 @@
     ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
 
     const boards=boardRows(cert);
-    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/12)),0);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+planCircuitChunks(cert,schema,opts,b,bi).length,0);
     sectionTable('SECTION J: SCHEDULES',[
       [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
@@ -515,7 +516,7 @@
       D:['extentInspected','agreedLimitations','agreedWith','operationalLimitations','operationalLimitationsPage','standardAmendedTo'],
       E:['overallAssessment','generalCondition'],
       F:['nextInspectionDate','nextInspectionReason'],
-      G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
+      G:['inspectedBy','authorisedBy','inspectorSignature','authoriserSignature','inspectorCompany','authoriserCompany','inspectorPosition','authoriserPosition','inspectorAddress','authoriserAddress','inspectorDate','authoriserDate'],
       H:['continuationSheetCount','continuationSheetSections','inspectionSchedules','circuitSchedules'],
       I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
       J:['earthingDistributor','earthingElectrode','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
@@ -556,7 +557,7 @@
     const getPart=letter=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
     const fresh=()=>{doc.addPage('a4','landscape');y=frame();};
     const writeSection=letter=>{
-      if(y>170)fresh();
+      if(y>185)fresh();
       const part=getPart(letter);
       const definitions=part?.fields||[];
       const keys=fieldsBySection[letter]||[];
@@ -566,51 +567,55 @@
         if(worksheet)return '';
         if(key==='maximumDemand')return display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet);
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
-        if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
-        if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        if(key==='earthingDistributor')return Object.hasOwn(f,key)?provision(f[key]):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        if(key==='earthingElectrode')return Object.hasOwn(f,key)?provision(f[key]):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
         if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
         if(key==='earthElectrodeResistance')return (f.earthElectrodeMeasurementType?String(f.earthElectrodeMeasurementType)+' = ':'')+display(f.earthElectrodeResistance,worksheet);
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
-        if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
-        if(key==='bondingToOtherChecked')return f.bondingToOtherChecked||f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
+        if(matchLegacy[key])return Object.hasOwn(f,key)?provision(f[key]):matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(key==='bondingToOtherChecked')return Object.hasOwn(f,key)?provision(f[key]):f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
         if(key==='bondingToOther')return f.bondingToOther||(legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?f.bondingTo:'');
         const value=f[key];
         return def?.type==='date'?fmtDate(value):display(value,worksheet);
       };
-      for(let i=0;i<keys.length;i+=2){
-        const a=keys[i],b=keys[i+1];
+      const groups={earthingDistributor:'Means of Earthing',earthingConductorMaterial:'Earthing Conductor',bondingMaterial:'Main Protective Bonding',mainSwitchLocation:'Main Switch / Protective Device'};
+      for(let i=0;i<keys.length;){
+        const a=keys[i++];
+        if(letter==='J'&&groups[a]){
+          body.push([{content:groups[a],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,fontSize:7}}]);rowBindings.push([]);
+        }
+        // Never put unrelated groups in the same horizontal row.
+        const b=i<keys.length&&!(letter==='J'&&groups[keys[i]])?keys[i++]:null;
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
-          {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
-          pdfText(format(a,da)),
-          {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
-          b?pdfText(format(b,db)):''
+          {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},pdfText(format(a,da)),
+          {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},b?pdfText(format(b,db)):''
         ]);
         rowBindings.push([a,b]);
       }
       for(const note of notes[letter]||[]){
-        body.push([{content:pdfText(note),colSpan:4,styles:{fontStyle:'italic',fontSize:5.8}}]);
+        body.push([{content:pdfText(note),colSpan:4,styles:{fontStyle:'italic',fontSize:5.8,cellPadding:.45}}]);
         rowBindings.push([]);
       }
       doc.autoTable({
         startY:y,head:[[{content:titles[letter],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,textColor:INK,fontSize:7.2}}]],
         body,margin:{left:x,right:10,top:26,bottom:13},tableWidth:w,
         theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
-        styles:{fontSize:5.5,cellPadding:.65,minCellHeight:4.8,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        styles:{fontSize:6.4,cellPadding:.65,minCellHeight:4.6,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
         editResolve:(r,c)=>{
           if(c%2!==1)return [];
           const key=rowBindings[r]?.[(c-1)/2];
           if(!key)return [];
-          return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:key==='mainRcdType'?['mainRcdType','mainRcdOther']:key==='earthElectrodeResistance'?['earthElectrodeMeasurementType','earthElectrodeResistance']:[key]).map(k=>({scope:'field',key:k}));
+          return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:key==='mainRcdType'?['mainRcdType','mainRcdOther']:key==='earthElectrodeResistance'?['earthElectrodeMeasurementType','earthElectrodeResistance']:key==='maximumDemand'?['maximumDemand','maximumDemandUnit']:[key]).map(k=>({scope:'field',key:k}));
         },
         didDrawPage:()=>frame()
       });
-      y=doc.lastAutoTable.finalY+2.2;
+      y=doc.lastAutoTable.finalY+.4;
     };
     ['A','B','C','D','E','F','G'].forEach(writeSection);
     fresh();
@@ -620,7 +625,7 @@
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:8,bold:true});y+=6;
-    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
+    const observationsSelection=String(f.remedialActionStatus||'');
     checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:6.3,labelWidth:95});
     checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:6.3,labelWidth:130});
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
@@ -641,10 +646,10 @@
               ['Item No.','Observation(s)','Classification code']],
         body:selected.length?selected.map(({row})=>[
           pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
-        ]):[['','','']],
+        ]):[['','',''],['','','']],
         margin:{left:x,right:10,top:26,bottom:14},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-        styles:{fontSize:6,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
-        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+        styles:{fontSize:7,cellPadding:1.5,minCellHeight:18,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12,minCellHeight:6,fontSize:7},
         columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
         editResolve:(r,c)=>{
           const index=selected[r]?.index;
@@ -717,13 +722,16 @@
         rowMap.push(-2);
       }
     });
+    const signoff=cert.fields||{};
+    body.push([{content:pdfText('Inspected and tested by: '+display(signoff.inspectedBy,worksheet)+'     Signature: '+display(signoff.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(signoff.inspectorDate))),colSpan:3,styles:{minCellHeight:10,fontSize:6.5}}]);
+    rowMap.push(-11);
     doc.autoTable({
       startY:36,
       head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:7}}],
             ['Item No.','Description','Outcome']],
       body,
       margin:{left:x,right:10,top:29,bottom:15},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-      styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      styles:{fontSize:6.5,cellPadding:.7,minCellHeight:5.2,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
       editResolve:(r,c)=>{
@@ -739,22 +747,14 @@
         const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
         if(i===undefined||(i>=0&&String(rows[i]?.item||'')==='1.1')||String(outcome||'').trim()!=='✓')return;
         const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
-        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
+        doc.setDrawColor(...LINE);doc.setLineWidth(.18);
         doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
         doc.line(cx+.55,cy-1,cx+1.25,cy-.3);
         doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
         doc.setLineWidth(.18);
       }
     });
-    const lastY=doc.lastAutoTable.finalY;
-    if(lastY<178){
-      const f=cert.fields||{};
-      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,lastY+7,w,{size:6});
-    }else{
-      doc.addPage('a4','landscape');drawPage();
-      const f=cert.fields||{};
-      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,33,w,{size:6});
-    }
+
   }
   // The IET's Amendment 4 model specifies guidance for recipients to be
   // appended to the issued EICR. Do not append internal inspector notes.
@@ -946,16 +946,30 @@
     });
   }
 
+  function planCircuitChunks(cert,schema,opts,board,bi){
+    const all=circuitsForBoard(cert,board.ref||('DB'+(bi+1)),bi===0);
+    if(!all.length)return [[]];
+    const chunks=[];
+    for(let offset=0;offset<all.length;){
+      let accepted=1;
+      for(let count=1;count<=all.length-offset;count++){
+        const probe=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
+        renderCircuitSchedules(probe,cert,schema,{...opts,layoutProbe:{board,bi,chunks:[all.slice(offset,offset+count)]}});
+        if(probe.getNumberOfPages()>3||probe.__scheduleOverflow)break;
+        accepted=count;
+      }
+      chunks.push(all.slice(offset,offset+accepted));offset+=accepted;
+    }
+    return chunks;
+  }
   function renderCircuitSchedules(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet;
-    const boards=boardRows(cert);
-    boards.forEach((board,bi)=>{
+    const boards=opts.layoutProbe?[opts.layoutProbe.board]:boardRows(cert);
+    boards.forEach((board,boardIndex)=>{
+      const bi=opts.layoutProbe?opts.layoutProbe.bi:boardIndex;
       const ref=board.ref||('DB'+(bi+1));
       const circuits=circuitsForBoard(cert,ref,bi===0);
-      const chunks=[];
-      if(circuits.length){
-        for(let i=0;i<circuits.length;i+=12)chunks.push(circuits.slice(i,i+12));
-      }else chunks.push([]);
+      const chunks=opts.layoutProbe?opts.layoutProbe.chunks:planCircuitChunks(cert,schema,opts,board,bi);
       chunks.forEach((chunk,chunkIndex)=>{
         doc.addPage('a4','landscape');
         pageFrame(doc,'GENERIC SCHEDULE OF CIRCUIT DETAILS',display(cert.number,worksheet,true),schema.standard);
@@ -988,7 +1002,7 @@
           ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<Math.max(1,chunk.length);r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
@@ -1005,11 +1019,14 @@
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
             cols.map(c=>pdfText(c[1]))
           ],
-          body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          body:rows,margin:{left:x,right:10,top:26,bottom:28},theme:'grid',rowPageBreak:'avoid',
+          editResolve:(r,c)=>chunk[r]?[{scope:'circuit',kind:'circuits',index:chunk[r].index,key:cols[c][2]}]:[],
+          didDrawPage:()=>pageFrame(doc,'GENERIC SCHEDULE OF CIRCUIT DETAILS',display(cert.number,worksheet,true),schema.standard),
+          styles:{fontSize:6,cellPadding:.65,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:40,halign:'left'},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:14},5:{cellWidth:13},6:{cellWidth:13},7:{cellWidth:20},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:16},11:{cellWidth:17},12:{cellWidth:21},13:{cellWidth:12},14:{cellWidth:12},15:{cellWidth:12}}
+          columnStyles:{0:{cellWidth:9},1:{cellWidth:67,halign:'left'},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:14},5:{cellWidth:13},6:{cellWidth:13},7:{cellWidth:20},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:16},11:{cellWidth:17},12:{cellWidth:21},13:{cellWidth:12},14:{cellWidth:12},15:{cellWidth:12}}
         });
+        if(doc.lastAutoTable.finalY>182)doc.__scheduleOverflow=true;
         const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
         write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:5.8,bold:true});
         write(doc,'A Thermoplastic insulated/sheathed · B Thermoplastic in metallic conduit · C Thermoplastic in non-metallic conduit · D Thermoplastic in metallic trunking · E Thermoplastic in non-metallic trunking · F Thermoplastic SWA · G Thermosetting SWA · H Mineral insulated · O Other',x,ky+4,w,{size:4.8,maxLines:2});
@@ -1029,7 +1046,7 @@
           ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<Math.max(1,chunk.length);r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
           trows.push(tcols.map(col=>{
@@ -1046,10 +1063,12 @@
             [{content:'',colSpan:1},{content:'Continuity (Ohms)',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
             tcols.map(c=>pdfText(c[1]))
           ],
-          body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          body:trows,margin:{left:x,right:10,top:26,bottom:32},theme:'grid',rowPageBreak:'avoid',
+          editResolve:(r,c)=>chunk[r]?[{scope:'test',kind:'tests',index:chunk[r].index,key:tcols[c][2]}]:[],
+          didDrawPage:()=>pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard),
+          styles:{fontSize:6,cellPadding:.65,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}},
+          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:72,halign:'left'}},
           didDrawCell:data=>{
             if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
             const record=chunk[data.row.index];
@@ -1072,6 +1091,7 @@
             doc.setLineWidth(.12);
           }
         });
+        if(doc.lastAutoTable.finalY>178)doc.__scheduleOverflow=true;
         const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
