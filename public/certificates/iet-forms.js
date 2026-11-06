@@ -567,6 +567,8 @@
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
+        if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
+        if(key==='earthElectrodeResistance')return (f.earthElectrodeMeasurementType?String(f.earthElectrodeMeasurementType)+' = ':'')+display(f.earthElectrodeResistance,worksheet);
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
         if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
@@ -601,7 +603,7 @@
           if(c%2!==1)return [];
           const key=rowBindings[r]?.[(c-1)/2];
           if(!key)return [];
-          return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:[key]).map(k=>({scope:'field',key:k}));
+          return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:key==='mainRcdType'?['mainRcdType','mainRcdOther']:key==='earthElectrodeResistance'?['earthElectrodeMeasurementType','earthElectrodeResistance']:[key]).map(k=>({scope:'field',key:k}));
         },
         didDrawPage:()=>frame()
       });
