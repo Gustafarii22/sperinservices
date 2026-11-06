@@ -622,6 +622,7 @@
     }
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
+    if(!worksheet)renderEicrRecipientGuidance(doc,cert,schema);
   }
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
@@ -685,6 +686,42 @@
       write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,33,w,{size:6});
     }
   }
+  // The IET's Amendment 4 model specifies guidance for recipients to be
+  // appended to the issued EICR. Do not append internal inspector notes.
+  function renderEicrRecipientGuidance(doc,cert,schema){
+    const title='CONDITION REPORT - GUIDANCE FOR RECIPIENTS';
+    const frame=()=>pageFrame(doc,title,String(cert.number||''),schema.standard);
+    const guidance=[
+      'The purpose of this Report is to confirm, so far as reasonably practicable, whether the electrical installation is in a satisfactory condition for continued service at the date of inspection and testing (see Section E). The Report should identify any damage, deterioration, defects, dangerous conditions and/or non-compliances with the requirements of BS 7671, which might give rise to danger (see Section K).',
+      'This Report is only valid if accompanied by the Schedule(s) of Inspections and the Schedule(s) of Circuit Details and Schedule(s) of Test Results.',
+      'The person ordering the Report should have received the original Report and the inspector should have retained a duplicate.',
+      'The original Report should be retained in a safe place and be made available to any person inspecting or undertaking work on the electrical installation in the future. If the property is vacated, this Report will provide the new owner/occupier with details of the condition of the electrical installation at the time the Report was issued.',
+      'Section D (Extent and Limitations) should identify fully the extent of the installation covered by this Report and any limitations on the inspection and testing. The inspector should have agreed these aspects with the person ordering the Report and with other interested parties (licensing authority, insurance company, mortgage provider and the like) before the inspection was carried out.',
+      'Some operational limitations such as inability to gain access to parts of the installation or an item of equipment may have been encountered during the inspection. The inspector should have noted these in Section D.',
+      'For items classified in Section K as C1 (Danger present), the safety of those using the installation is at risk, and it is recommended that a skilled person or persons competent in electrical installation work undertakes the necessary remedial work immediately.',
+      'For items classified in Section K as C2 (Potentially dangerous), the safety of those using the installation may be at risk and it is recommended that a skilled person or persons competent in electrical installation work undertakes the necessary remedial work as a matter of urgency.',
+      'For items classified in Section K as C3 (Improvement recommended), in some cases remedial work may improve the safety of the installation. However, a C3 recommendation is advisory only and does not affect the overall assessment of the Report.',
+      'Where further investigation is advised in Section K, this is because the inspection and testing has identified a potential issue for which the inspector is unable to determine a classification code until further investigation has taken place. Further investigation is recommended to obtain the necessary information to reach an appropriate classification.',
+      'For safety reasons, the electrical installation should be re-inspected at appropriate intervals by a skilled person competent in such work. The recommended next inspection date is stated in Section F.',
+      'Where the installation includes a residual current device (RCD) it should be tested six-monthly by pressing the button marked T or Test. The device should switch off the supply and should then be switched on to restore supply. If it does not operate when the button is pressed, seek expert advice.',
+      'Where the installation includes an arc fault detection device (AFDD) with a manual test facility, it should be tested six-monthly by pressing the test button. Where an AFDD has both a test button and automatic test function, follow the manufacturer instructions for test button operation.',
+      'Where the installation includes a surge protective device (SPD), the status indicator should be checked to confirm it is operational in accordance with manufacturer information. If not operational, seek expert advice.',
+      'Where the installation includes alternative or additional sources of supply, warning notices should be found at the origin or meter position or, if remote from the origin, at the consumer unit or distribution board and at all points of isolation of all sources of supply.'
+    ];
+    doc.addPage('a4','landscape');frame();
+    write(doc,'This Report is an important and valuable document which should be retained for future reference.',10,29,277,{size:7.4,bold:true,maxLines:2});
+    doc.autoTable({
+      startY:36,
+      head:[[{content:'GUIDANCE FOR RECIPIENTS (to be appended to the Report)',colSpan:2,styles:{fontStyle:'bold',fillColor:PALE}}]],
+      body:guidance.map((item,i)=>[String(i+1)+'.',pdfText(item)]),
+      margin:{left:10,right:10,top:29,bottom:15},tableWidth:277,
+      theme:'plain',rowPageBreak:'avoid',
+      styles:{fontSize:6.8,cellPadding:1.6,minCellHeight:7.5,textColor:INK,overflow:'linebreak'},
+      columnStyles:{0:{cellWidth:12,fontStyle:'bold'},1:{cellWidth:265}},
+      didDrawPage:frame
+    });
+  }
+
   function renderEicr(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
     doc.setPage(1);let y=pageFrame(doc,'ELECTRICAL INSTALLATION CONDITION REPORT',display(cert.number,worksheet,true),schema.standard);
