@@ -514,7 +514,7 @@
       G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
       H:['continuationSheets','inspectionSchedules','circuitSchedules'],
       I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
-      J:['meansOfEarthing','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
+      J:['meansOfEarthing','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
     };
     const labels={
       clientName:'Name',clientAddress:'Address',inspectionDates:'Date(s) on which inspection and testing was carried out',
@@ -531,7 +531,7 @@
       supplyDeviceRating:'Supply protective device rated current (A)',supplyBreakingCapacity:'Supply device breaking capacity (kA)',
       earthingConductorCsa:'Earthing conductor csa (mm2)',bondingCsa:'Bonding conductor csa (mm2)',
       mainSwitchDeviceType:'Overcurrent device type',mainSwitchDeviceSetting:'Device rating / setting (A)',
-      bondingToWater:'To water installation pipes',bondingToGas:'To gas installation pipes',bondingToOil:'To oil installation pipes',bondingToSteel:'To structural steel',bondingToLightning:'To lightning protection system',bondingToOther:'To other (specify)'
+      bondingToWater:'To water installation pipes',bondingToGas:'To gas installation pipes',bondingToOil:'To oil installation pipes',bondingToSteel:'To structural steel',bondingToLightning:'To lightning protection system',bondingToOtherChecked:'To other',bondingToOther:'Specify other'
     };
     const notes={
       D:[
@@ -564,7 +564,8 @@
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
-        if(matchLegacy[key])return f[key]||matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(key==='bondingToOtherChecked')return f.bondingToOtherChecked||f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
         if(key==='bondingToOther')return f.bondingToOther||(legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?f.bondingTo:'');
         const value=f[key];
         return def?.type==='date'?fmtDate(value):display(value,worksheet);
