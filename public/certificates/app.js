@@ -1048,7 +1048,7 @@
       standard: 'BS 7671:2018+A4:2026',
       description: 'Periodic inspection and testing with observations, coding, schedules and overall assessment.',
       sections: [
-        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientAddress', 'Address', 'textarea', { span: 'full' }), f('certificateNo', 'Report number')]),
+        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientAddress', 'Address', 'textarea', { span: 'full' })]),
         section('B · Reason for producing this report', [f('reason', 'Reason for report', 'textarea', { span: 'full' }), f('inspectionDates', 'Date(s) inspection and testing carried out', 'text', { span: 'full' })]),
         section('C · Installation details', [f('occupier', 'Occupier'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), select('premisesType', 'Description of premises', ['Residential', 'Commercial', 'Industrial', 'Other']), f('premisesOther', 'Other description'), f('age', 'Estimated age of wiring system (years)'), select('additionsEvidence', 'Evidence of additions/alterations', ['Yes', 'Not apparent']), f('additionsAge', 'If yes, estimated age (years)'), select('recordsAvailable', 'Installation records available', OPTIONS.yesNo), f('lastInspection', 'Date of last inspection', 'date')]),
         section('D · Extent & limitations', [f('extentInspected', 'Parts of installation inspected and tested', 'textarea', { span: 'full' }), f('agreedLimitations', 'Agreed limitations including reasons', 'textarea', { span: 'full' }), f('agreedWith', 'Agreed with'), f('operationalLimitations', 'Operational limitations and reasons', 'textarea', { span: 'full' }), f('operationalLimitationsPage', 'Operational limitations (see page no.)'), f('standardAmendedTo', 'BS 7671:2018 amended to (date)', 'text', { placeholder: 'DD/MM/YYYY' })]),
@@ -1077,7 +1077,7 @@
         table('boards', 'Distribution board / consumer unit register', eicrBoardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', eicrCircuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', eicrTestColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', instrumentFields().filter(field=>!['testerVoltage','voltageMake','voltageModel','instrumentVoltage'].includes(field.key)))
+        section('Test instruments used (serial / asset numbers)', [f('testerSerial', 'Multifunction'), f('instrumentContinuity', 'Continuity'), f('instrumentInsulation', 'Insulation resistance'), f('instrumentLoop', 'Earth fault loop impedance'), f('instrumentRcd', 'RCD'), f('instrumentEarth', 'Earth electrode resistance'), f('testedBy', 'Tested by name (Capitals)'), f('testedDate', 'Date', 'date')])
       ]
     },
 
