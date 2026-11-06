@@ -25,6 +25,8 @@ jobs:
         run: python3 -m http.server 4173 -d public > /tmp/cert-server.log 2>&1 &
       - name: Scanner preservation tests
         run: node --test certificate-android/qa/scan-core.test.mjs certificate-android/qa/scan-row-isolation.test.mjs tests/certificates-v197-preservation.test.mjs tests/certificates-v197-fit.test.mjs
+      - name: Verify issued IET A4 EICR content and editable PDF bindings
+        run: node --test tests/certificates-eicr-a4-structure.test.mjs
       - name: Existing certificate view and PDF regression
         run: node tests/certificates-v196-view.e2e.mjs
       - name: Full-page EIC edit count matches exported PDF
