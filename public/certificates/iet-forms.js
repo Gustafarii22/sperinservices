@@ -588,8 +588,19 @@
         if(letter==='J'&&groups[a]){
           body.push([{content:groups[a],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,fontSize:7}}]);rowBindings.push([]);
         }
-        // Never put unrelated groups in the same horizontal row.
-        const b=i<keys.length&&!(letter==='J'&&groups[keys[i]])?keys[i++]:null;
+        // Section J must read naturally from top to bottom, one complete
+        // particular per line. The value occupies the right-hand half and is
+        // still mapped to the exact original field for Certificate View edits.
+        if(letter==='J'){
+          const da=definitions.find(q=>q.key===a);
+          body.push([
+            {content:pdfText(labels[a]||da?.label||a),colSpan:2,styles:{fontStyle:'bold'}},
+            {content:pdfText(format(a,da)),colSpan:2}
+          ]);
+          rowBindings.push([a,null]);
+          continue;
+        }
+        const b=i<keys.length?keys[i++]:null;
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},pdfText(format(a,da)),
@@ -609,8 +620,9 @@
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
         editResolve:(r,c)=>{
-          if(c%2!==1)return [];
-          const key=rowBindings[r]?.[(c-1)/2];
+          const key=letter==='J'
+            ?(c===2?rowBindings[r]?.[0]:null)
+            :(c%2===1?rowBindings[r]?.[(c-1)/2]:null);
           if(!key)return [];
           return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:key==='mainRcdType'?['mainRcdType','mainRcdOther']:key==='earthElectrodeResistance'?['earthElectrodeMeasurementType','earthElectrodeResistance']:key==='maximumDemand'?['maximumDemand','maximumDemandUnit']:[key]).map(k=>({scope:'field',key:k}));
         },
