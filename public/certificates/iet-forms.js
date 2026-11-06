@@ -615,7 +615,7 @@
       doc.autoTable({
         startY:y,head:[[{content:titles[letter],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,textColor:INK,fontSize:7.2}}]],
         body,margin:{left:x,right:10,top:26,bottom:13},tableWidth:w,
-        theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        theme:'grid',rowPageBreak:'avoid',pageBreak:letter==='J'?'auto':'avoid',
         styles:{fontSize:6.4,cellPadding:.65,minCellHeight:4.6,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
@@ -633,7 +633,9 @@
     ['A','B','C','D','E','F','G'].forEach(writeSection);
     fresh();
     ['H','I','J'].forEach(writeSection);
-    fresh();
+    // Section J may continue across pages: use the remaining page space for
+    // observations when enough room remains, rather than forcing a blank page.
+    if(y>110)fresh();
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
