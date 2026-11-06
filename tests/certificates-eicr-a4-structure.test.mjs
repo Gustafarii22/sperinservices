@@ -46,7 +46,15 @@ assert.equal(fullInspection.length,66,'Every IET residential inspection item mus
 const cert=sample();
 cert.tables.eicrInspection=fullInspection.map(row=>({...row,outcome:row.item==='1.1'?'✓':row.item==='3.1'?'C1':row.item==='4.1'?'FI':'N/A'}));
 const snap=JSON.stringify(cert);
-const schema={standard:'BS 7671:2018+A4:2026',sections:[{type:'table',key:'eicrInspection',defaultRows:fullInspection}]};
+// Evaluate only the app schema definitions, stopping before any user-data or UI initialization.
+const appPrefix=appText.slice(0,appText.indexOf('  let settings = loadSettings();'));
+assert(appPrefix.length>1000&&appPrefix.includes('const SCHEMAS = {'),'Real app schema not found');
+const schemaContext=vm.createContext({window:{},document:{},navigator:{},console,localStorage:{getItem:()=>null,setItem:()=>{}}});
+vm.runInContext(appPrefix+'\nwindow.__auditEicrSchema=SCHEMAS.eicr;\n})();',schemaContext);
+const schema=schemaContext.window.__auditEicrSchema;
+assert.equal(schema.standard,'BS 7671:2018+A4:2026');
+assert.equal(schema.sections.find(p=>p.key==='eicrInspection').defaultRows.length,66);
+
 const plain=ctx.SperinIetForms.build({cert,schema});
 const editable=ctx.SperinIetForms.build({cert,schema,editable:true});
 mkdirSync('certificate-android/qa-output',{recursive:true});
@@ -76,6 +84,12 @@ test('EICR contains every report section A to K and both IET observation categor
   assert(drawing.includes('CONDITION REPORT SCHEDULE OF INSPECTION'));
   assert(drawing.includes('GENERIC SCHEDULE OF CIRCUIT DETAILS'));
   assert(drawing.includes('GENERIC SCHEDULE OF TEST RESULTS'));
+});
+test('Actual schema prints IET labels rather than raw internal field names',()=>{
+ for(const raw of ['additionsEvidence','recordsAvailable','standardAmendedTo','generalCondition','earthingArrangement','bondingToOtherChecked'])
+   assert(!drawing.includes('('+raw+') Tj'),raw+' appeared as an unlabelled raw key');
+ for(const label of ['Evidence of additions/alterations','Installation records available','Earthing arrangement','General condition of the installation'])
+   assert(drawing.includes(label),label+' missing from customer PDF');
 });
 test('IET electrode and bonding choices, intake notification, and printed values survive to PDF',()=>{
   for(const required of ['Rear garden','72','To water installation pipes','To gas installation pipes','Person ordering inspection notified','Rod'])
