@@ -547,7 +547,7 @@
       G:['The persons responsible for inspection and testing declare that, having exercised reasonable skill and care, this report, the observations and the attached schedules accurately assess the installation within the extent and limitations in Section D.'],
       H:['The schedules and continuation sheets listed form part of this document. This report is valid only when those schedules are attached.'],
       I:['Nominal voltage and frequency: by enquiry. Prospective fault current and external earth fault loop impedance: by enquiry or measurement.'],
-      J:['Main switch: isolation device, switch-fuse, circuit-breaker or RCD as applicable. Record overcurrent protective device and RCD particulars where fitted.']
+      J:[]
     };
     const getPart=letter=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
     const fresh=()=>{doc.addPage('a4','landscape');y=frame();};
@@ -675,6 +675,11 @@
       }
       body.push([pdfText(r.item||''),pdfText(canonicalDescription.get(String(r.item||''))||r.description||''),worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
       rowMap.push(index);
+      if(String(r.item||'')==='1.1'){
+        const notification=String(cert.fields?.intakeNotified||'');
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
+        rowMap.push(-2);
+      }
     });
     doc.autoTable({
       startY:36,
@@ -685,7 +690,7 @@
       styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
-      editResolve:(r,c)=>rowMap[r]>=0?[{scope:'table',kind:'eicrInspection',index:rowMap[r],key:['item','description','outcome'][c]}]:[],
+      editResolve:(r,c)=>rowMap[r]===-2?(c===2?[{scope:'field',key:'intakeNotified'}]:[]):rowMap[r]>=0?[{scope:'table',kind:'eicrInspection',index:rowMap[r],key:['item','description','outcome'][c]}]:[],
       didDrawPage:drawPage,
       didDrawCell:data=>{
         if(worksheet||data.section!=='body'||data.column.index!==2)return;
