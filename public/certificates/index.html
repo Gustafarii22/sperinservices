@@ -9,6 +9,12 @@
   <title>Sperin Certificates</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css?v=1.9.9" />
+  <style>
+    /* EICR Section J: field order follows a clear top-to-bottom list. */
+    details.cert-accordion[data-accordion-key*=":J ·"] .fields > .field {
+      grid-column: 1 / -1;
+    }
+  </style>
   <script defer src="./vendor/jspdf.umd.min.js?v=1.9.9"></script>
   <script defer src="./vendor/jspdf.plugin.autotable.min.js?v=1.9.9"></script>
   <script defer src="./pdf-edit-map.js?v=1.9.9"></script>
