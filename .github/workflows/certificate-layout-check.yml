@@ -30,3 +30,14 @@ jobs:
           node tests/certificates-orientation-pdf.e2e.mjs
           node tests/certificates-complete-backup.e2e.mjs
           node tests/certificates-issued-records.e2e.mjs
+
+      - name: Retain synthetic EICR review PDFs (no customer information)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-EICR-Layout-Review-Synthetic
+          path: |
+            certificate-android/qa-output/eicr-a4-model-qa.pdf
+            certificate-android/qa-output/layout/*.pdf
+          retention-days: 30
+          if-no-files-found: warn
