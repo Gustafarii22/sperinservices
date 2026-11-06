@@ -898,7 +898,7 @@ await page.evaluate(() => {
   window.Android = {
     printPdfBase64(data, pages, landscape) {
       window.__nativePrint = {
-        header: String(data).slice(0, 40),
+        header: String(data).slice(0, 100),
         pages,
         landscape
       };
@@ -908,8 +908,7 @@ await page.evaluate(() => {
 });
 await page.locator('[data-action="print"]').click();
 const nativePrint = await page.evaluate(() => window.__nativePrint);
-assert(nativePrint?.header?.startsWith("data:application/pdf;filename=generated.pdf;base64,JVBER") ||
-       /^data:application\\/pdf.*;base64,JVBER/.test(nativePrint?.header || ""),
+assert(/^data:application\\/pdf[^,]*;base64,JVBER/.test(nativePrint?.header || ""),
        "Native Print did not receive vector PDF data");
 assert(nativePrint.pages >= 1 && nativePrint.landscape === true,
        "Native Print did not receive landscape A4 PDF metadata");
