@@ -175,7 +175,17 @@
   }
   function boardRows(cert){
     const source=safeRows(cert.tables?.boards);
-    const boards=source.map(row=>({...row}));
+    const boards=source.map((row,index)=>index===0?{
+      ...row,
+      location:row.location||cert.fields?.dbLocation||'',
+      suppliedFrom:row.suppliedFrom||cert.fields?.suppliedFrom||'',
+      spd:row.spd||cert.fields?.dbSpd||'',
+      zdb:row.zdb||cert.fields?.zdb||'',
+      ipf:row.ipf||cert.fields?.dbIpf||'',
+      polarity:row.polarity||cert.fields?.dbPolarity||'',
+      phaseSequence:row.phaseSequence||cert.fields?.phaseSequence||'',
+      spdOperational:row.spdOperational||cert.fields?.spdOperational||''
+    }:{...row});
     if(!boards.length && !cert.boardWorkflowVersion){
       boards.push({
         ref:cert.fields?.dbReference||'DB1',
@@ -497,18 +507,18 @@
     const fieldsBySection={
       A:['clientName','clientAddress'],
       B:['reason','inspectionDates'],
-      C:['occupier','installationAddress','premisesType','premisesOther','age','additionsEvidence','additionsAge','recordsAvailable','lastInspection'],
+      C:['occupier','installationAddress','premisesType','age','additionsEvidence','additionsAge','recordsAvailable','lastInspection'],
       D:['extentInspected','agreedLimitations','agreedWith','operationalLimitations','standardAmendedTo'],
       E:['overallAssessment','generalCondition'],
       F:['nextInspectionDate','nextInspectionReason'],
       G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
       H:['continuationSheets','inspectionSchedules','circuitSchedules'],
       I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
-      J:['meansOfEarthing','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingTo','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
+      J:['meansOfEarthing','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
     };
     const labels={
       clientName:'Name',clientAddress:'Address',inspectionDates:'Date(s) on which inspection and testing was carried out',
-      installationAddress:'Address',premisesType:'Description of premises',premisesOther:'Other premises description',
+      installationAddress:'Address',premisesType:'Description of premises',
       age:'Estimated age of wiring system (years)',lastInspection:'Date of last inspection',
       extentInspected:'Details of parts inspected and tested',agreedLimitations:'Agreed limitations including reasons',
       overallAssessment:'Overall assessment (suitability for continued service)',
@@ -520,7 +530,8 @@
       supplyDeviceBs:'Supply protective device BS (EN)',supplyDeviceType:'Supply protective device type',
       supplyDeviceRating:'Supply protective device rated current (A)',supplyBreakingCapacity:'Supply device breaking capacity (kA)',
       earthingConductorCsa:'Earthing conductor csa (mm2)',bondingCsa:'Bonding conductor csa (mm2)',
-      mainSwitchDeviceType:'Overcurrent device type',mainSwitchDeviceSetting:'Device rating / setting (A)'
+      mainSwitchDeviceType:'Overcurrent device type',mainSwitchDeviceSetting:'Device rating / setting (A)',
+      bondingToWater:'To water installation pipes',bondingToGas:'To gas installation pipes',bondingToOil:'To oil installation pipes',bondingToSteel:'To structural steel',bondingToLightning:'To lightning protection system',bondingToOther:'To other (specify)'
     };
     const notes={
       D:[
@@ -550,6 +561,11 @@
       const format=(key,def)=>{
         if(worksheet)return '';
         if(key==='maximumDemand')return display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet);
+        if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
+        const legacyBond=String(f.bondingTo||'').toLowerCase();
+        const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
+        if(matchLegacy[key])return f[key]||matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(key==='bondingToOther')return f.bondingToOther||(legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?f.bondingTo:'');
         const value=f[key];
         return def?.type==='date'?fmtDate(value):display(value,worksheet);
       };
@@ -575,7 +591,12 @@
         styles:{fontSize:5.5,cellPadding:.65,minCellHeight:4.8,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
-        editResolve:(r,c)=>c%2===1&&rowBindings[r]?.[(c-1)/2]?[{scope:'field',key:rowBindings[r][(c-1)/2]}]:[],
+        editResolve:(r,c)=>{
+          if(c%2!==1)return [];
+          const key=rowBindings[r]?.[(c-1)/2];
+          if(!key)return [];
+          return (key==='premisesType'?['premisesType','premisesOther']:[key]).map(k=>({scope:'field',key:k}));
+        },
         didDrawPage:()=>frame()
       });
       y=doc.lastAutoTable.finalY+2.2;
@@ -901,7 +922,9 @@
         const distributionBs=board.distributionOcpdBs||'';
         const distributionType=board.distributionOcpdType||'';
         const distributionRating=board.distributionOcpdRating||'';
-        const spdCertified=/^(?:T1|T2|T3|T1\s*\+\s*T2|T2\s*\+\s*T3|N\/A)$/i.test(String(board.spd||'').trim())?String(board.spd).trim():'';
+        const spdSource=String(board.spd||'').trim();
+        const spdMatch=spdSource.match(/\bType\s*([123])(?:\s*\+\s*(?:Type\s*)?([123]))?/i);
+        const spdCertified=/^No SPD\s*\/\s*N\/A$|^N\/A$/i.test(spdSource)?'N/A':spdMatch?'T'+spdMatch[1]+(spdMatch[2]?' + T'+spdMatch[2]:''):/^T[123](?:\s*\+\s*T[123])?$/i.test(spdSource)?spdSource:'';
         doc.autoTable({startY:y+3,head:[],editResolve:(r,c)=>{
           const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
           return cert.tables?.boards?.[bi]?[keys[r][c]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
