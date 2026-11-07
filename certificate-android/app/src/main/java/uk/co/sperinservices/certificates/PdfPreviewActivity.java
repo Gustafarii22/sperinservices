@@ -2,6 +2,12 @@ package uk.co.sperinservices.certificates;
 
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
+import android.util.Log;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
@@ -40,6 +46,10 @@ public final class PdfPreviewActivity extends Activity {
     private float moveY = 0f;
     private float downX, downY;
     private ScaleGestureDetector zoomGesture;
+    private final ExecutorService pdfRenderWorker = Executors.newSingleThreadExecutor();
+    private final AtomicInteger renderRequest = new AtomicInteger();
+    private volatile boolean closing = false;
+    private int pageCount = 0;
 
     private int dp(float value) {
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
@@ -69,17 +79,15 @@ public final class PdfPreviewActivity extends Activity {
             descriptor = getContentResolver().openFileDescriptor(getIntent().getData(),"r");
             if(descriptor==null) throw new IllegalStateException("Could not open PDF");
             renderer = new PdfRenderer(descriptor);
-            if(renderer.getPageCount()<=0) throw new IllegalStateException("PDF is empty");
+            pageCount = renderer.getPageCount();
+            if(pageCount<=0) throw new IllegalStateException("PDF is empty");
             try(PdfRenderer.Page first=renderer.openPage(0)) {
                 documentLandscape=first.getWidth()>first.getHeight();
-                if(documentLandscape) {
-                    if(getRequestedOrientation()!=ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                } else {
-                    if(getRequestedOrientation()!=ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT)
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                }
             }
+            // Do not force an orientation change inside onCreate. On Samsung
+            // this can recreate the Activity while it is opening its PDF and
+            // appear as a flicker, bounce or never-opening preview. ImageView
+            // FIT_CENTER displays all A4 pages correctly in either orientation.
         }catch(Exception error) {
             new android.app.AlertDialog.Builder(this)
                 .setTitle("Could not open PDF")
@@ -197,30 +205,62 @@ public final class PdfPreviewActivity extends Activity {
     }
 
     private void showPage(int requested) {
-        if(renderer==null||pageImage==null||pageImage.getWidth()==0||pageImage.getHeight()==0)return;
-        int total=renderer.getPageCount();
-        index=Math.max(0,Math.min(total-1,requested));
-        Bitmap nextBitmap=null;
-        try(PdfRenderer.Page page=renderer.openPage(index)) {
-            float fit=Math.min(pageImage.getWidth()/(float)page.getWidth(),
-                pageImage.getHeight()/(float)page.getHeight());
-            float density=Math.max(1f,Math.min(3f,fit*2f));
-            int width=Math.max(1,Math.min(2600,Math.round(page.getWidth()*density)));
-            int height=Math.max(1,Math.min(2600,Math.round(page.getHeight()*density)));
-            nextBitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
-            nextBitmap.eraseColor(Color.WHITE);
-            page.render(nextBitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-            pageImage.setImageBitmap(nextBitmap);
-            if(displayed!=null&&!displayed.isRecycled())displayed.recycle();
-            displayed=nextBitmap;
-            resetZoom();
-            counter.setText("Page "+(index+1)+" of "+total);
-            previous.setEnabled(index>0);
-            next.setEnabled(index<total-1);
-        }catch(Exception ex) {
-            if(nextBitmap!=null&&!nextBitmap.isRecycled())nextBitmap.recycle();
-            new android.app.AlertDialog.Builder(this).setTitle("PDF page unavailable")
-                .setMessage(ex.getMessage()).setPositiveButton("Close",(d,w)->finish()).show();
+        if(closing || renderer==null || pageImage==null ||
+           pageImage.getWidth()<=0 || pageImage.getHeight()<=0) return;
+        final int requestedPage=Math.max(0,Math.min(pageCount-1,requested));
+        index=requestedPage;
+        final int viewWidth=pageImage.getWidth();
+        final int viewHeight=pageImage.getHeight();
+        final int request=renderRequest.incrementAndGet();
+        // Show navigation state immediately; decoding never blocks the UI.
+        counter.setText("Loading page "+(requestedPage+1)+" of "+pageCount);
+        previous.setEnabled(requestedPage>0);
+        next.setEnabled(requestedPage<pageCount-1);
+        try {
+            pdfRenderWorker.execute(() -> {
+                Bitmap bitmap=null;
+                try(PdfRenderer.Page page=renderer.openPage(requestedPage)) {
+                    // Render at most 2200px on the long edge, on a dedicated
+                    // worker thread. Large EICRs must not block the UI or
+                    // allocate multiple full-resolution bitmaps during resize.
+                    float fit=Math.min(viewWidth/(float)page.getWidth(),
+                        viewHeight/(float)page.getHeight());
+                    float scale=Math.max(1f,Math.min(2.5f,fit*1.7f));
+                    scale=Math.min(scale,2200f/Math.max(page.getWidth(),page.getHeight()));
+                    int width=Math.max(1,Math.round(page.getWidth()*scale));
+                    int height=Math.max(1,Math.round(page.getHeight()*scale));
+                    bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+                    bitmap.eraseColor(Color.WHITE);
+                    page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                    final Bitmap ready=bitmap;
+                    runOnUiThread(() -> {
+                        if(closing || renderRequest.get()!=request || pageImage==null) {
+                            ready.recycle();
+                            return;
+                        }
+                        Bitmap old=displayed;
+                        pageImage.setImageBitmap(ready);
+                        displayed=ready;
+                        if(old!=null && old!=ready && !old.isRecycled())old.recycle();
+                        resetZoom();
+                        counter.setText("Page "+(requestedPage+1)+" of "+pageCount);
+                    });
+                }catch(Exception error) {
+                    if(bitmap!=null && !bitmap.isRecycled())bitmap.recycle();
+                    Log.e("SperinPdfPreview","Could not render page "+(requestedPage+1),error);
+                    runOnUiThread(() -> {
+                        if(closing || renderRequest.get()!=request) return;
+                        counter.setText("PDF page unavailable");
+                        new android.app.AlertDialog.Builder(this)
+                            .setTitle("PDF page unavailable")
+                            .setMessage("Page "+(requestedPage+1)+": "+error.getMessage())
+                            .setPositiveButton("Close",(dialog,which)->finish())
+                            .show();
+                    });
+                }
+            });
+        } catch(RejectedExecutionException ignored) {
+            // The user has closed the preview while a queued render was pending.
         }
     }
 
@@ -230,10 +270,23 @@ public final class PdfPreviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        closing=true;
+        renderRequest.incrementAndGet();
         if(pageImage!=null)pageImage.setImageDrawable(null);
         if(displayed!=null&&!displayed.isRecycled())displayed.recycle();
-        if(renderer!=null)renderer.close();
-        if(descriptor!=null)try{descriptor.close();}catch(Exception ignored){}
+        displayed=null;
+        // PdfRenderer must never be closed on the UI thread while a background
+        // render is using it. Enqueue closure after the last render request.
+        try {
+            pdfRenderWorker.execute(() -> {
+                if(renderer!=null)try{renderer.close();}catch(Exception e){Log.w("SperinPdfPreview","Close renderer",e);}
+                if(descriptor!=null)try{descriptor.close();}catch(Exception e){Log.w("SperinPdfPreview","Close descriptor",e);}
+            });
+        }catch(RejectedExecutionException e){
+            if(renderer!=null)try{renderer.close();}catch(Exception ignored){}
+            if(descriptor!=null)try{descriptor.close();}catch(Exception ignored){}
+        }
+        pdfRenderWorker.shutdown();
         super.onDestroy();
     }
 }
