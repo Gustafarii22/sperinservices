@@ -57,7 +57,7 @@
         for(const row of cert.tables?.circuits||[])if(row.boardRef&&!boards.some(b=>normal(b.ref)===normal(row.boardRef)))boards.push({ref:row.boardRef});
         boards.forEach((b,bi)=>{
           const all=Array.from({length:Math.max(cert.tables?.circuits?.length||0,cert.tables?.tests?.length||0)},(_,index)=>({index,d:cert.tables?.circuits?.[index]||{},t:cert.tables?.tests?.[index]||{}})).filter(q=>normal(q.d.boardRef||q.t.boardRef)===normal(b.ref)||(bi===0&&!normal(q.d.boardRef||q.t.boardRef))).sort((a,b)=>String(a.d.circuitNo??a.t.circuitNo??'').localeCompare(String(b.d.circuitNo??b.t.circuitNo??''),undefined,{numeric:true}));
-          for(let i=0;i<Math.max(1,all.length);i+=10)groups.push(all.slice(i,i+10));
+          for(let i=0;i<Math.max(1,all.length);i+=8)groups.push(all.slice(i,i+8));
         });
         const keys=title==='CIRCUIT DETAILS'?['circuitNo','description','wiringType','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','maxZs','rcdBs','rcdType','rcdIdn','rcdRating']:['circuitNo','r1','rn','r2','r1r2','r2only','irVoltage','irLL','irLE','polarity','zs','rcdTime','rcdButton','afddButton','remarks'];
         resolve=(r,c)=>groups[schedule]?.[r]?[table(title==='CIRCUIT DETAILS'?'circuits':'tests',groups[schedule][r].index,keys[c])]:[];

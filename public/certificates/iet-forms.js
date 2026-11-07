@@ -49,6 +49,38 @@
     lines.forEach((line,i)=>doc.text(line,x,y+i*lh,opts.align?{align:opts.align}:undefined));
     return y+Math.max(1,lines.length)*lh;
   }
+  // Mixed-weight inline printing, wrapped within its designated PDF cell.
+  // Write labels in bold and saved answers in normal weight without changing
+  // certificate data or relying on fake bold spaces in a single AutoTable cell.
+  function writeRuns(doc,runs,x,y,w,size=7.2,lineHeight=4.2,maxLines=3){
+    let xx=x, yy=y, lines=1;
+    const right=x+w;
+    for(const run of runs){
+      const src=pdfText(run.text??'');
+      if(!src)continue;
+      doc.setFont('helvetica',run.bold?'bold':'normal');
+      doc.setFontSize(size);doc.setTextColor(...INK);
+      const segments=[src];
+      // Preserve a complete label as one PDF text run where it fits.
+      if(doc.getTextWidth(src)>right-xx)segments.splice(0,1,...src.split(/(?<=\\s)/));
+      for(let part of segments){
+        if(!part)continue;
+        let width=doc.getTextWidth(part);
+        if(xx+width>right && xx>x+.01 && part.trim()){
+          if(lines>=maxLines)return yy;
+          xx=x;yy+=lineHeight;lines++;
+        }
+        if(xx===x&&!part.trim())continue;
+        width=doc.getTextWidth(part);
+        if(width>right-xx){
+          const clipped=doc.splitTextToSize(part,Math.max(2,right-xx))[0]||'';
+          part=clipped;width=doc.getTextWidth(part);
+        }
+        if(part){doc.text(part,xx,yy);xx+=width;}
+      }
+    }
+    return yy;
+  }
   function checkbox(doc,x,y,checked=false,label='',opts={}){
     const s=opts.size||3.2;
     doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(x,y-s+0.2,s,s);
@@ -85,12 +117,19 @@
     const edge=5.3;
     doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
     // Equal-width frame on all four edges; no asymmetric heavy left bar.
-    doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
-    doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
+    // Proportional, left-aligned logo inside the blue frame: never stretch a raster.
+    let brandX=10;
     if(doc.__sperinLogo){
-      try{const logo=doc.__sperinLogo;doc.addImage(logo.data,logo.format,w/2-9,6,18,6,undefined,'FAST');}
-      catch(err){console.warn('Unable to embed customer report logo',err);}
+      try{
+        const logo=doc.__sperinLogo, p=doc.getImageProperties(logo.data);
+        const maxW=20,maxH=8.1, scale=Math.min(maxW/p.width,maxH/p.height);
+        const logoW=p.width*scale,logoH=p.height*scale;
+        doc.addImage(logo.data,logo.format,9.0+(maxW-logoW)/2,5.7+(maxH-logoH)/2,logoW,logoH,undefined,'FAST');
+        brandX=31.5;
+      }catch(err){console.warn('Unable to embed customer report logo',err);}
     }
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
+    doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
     const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
@@ -174,7 +213,7 @@
     if(role==='constructor')return {name:constructorName,company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
-  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
+  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value??'');}
   function safeRows(rows){return Array.isArray(rows)?rows:[];}
   function normaliseBoardRef(value){
     return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -403,7 +442,7 @@
     ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
 
     const boards=boardRows(cert);
-    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/10)),0);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/8)),0);
     sectionTable('SECTION J: SCHEDULES',[
       [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
@@ -566,7 +605,7 @@
       const body=[];
       const format=(key,def)=>{
         if(worksheet)return '';
-        if(key==='maximumDemand')return display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet);
+        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
@@ -579,7 +618,11 @@
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
         if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
-        if(key==='earthElectrodeResistance')return (f.earthElectrodeMeasurementType?String(f.earthElectrodeMeasurementType)+' = ':'')+display(f.earthElectrodeResistance,worksheet);
+        if(key==='earthElectrodeResistance'){
+          const reading=String(f.earthElectrodeResistance??'').trim();
+          const method=String(f.earthElectrodeMeasurementType||'').trim();
+          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'N/A';
+        }
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
         if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
@@ -593,9 +636,9 @@
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
-          pdfText(format(a,da)),
+          pdfText(worksheet?'':String(format(a,da)??'').trim()||'N/A'),
           {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
-          b?pdfText(format(b,db)):''
+          b?pdfText(worksheet?'':String(format(b,db)??'').trim()||'N/A'):''
         ]);
         rowBindings.push([a,b]);
       }
@@ -622,13 +665,20 @@
       });
       y=doc.lastAutoTable.finalY+2.2;
     };
-    // Flow A-K continuously to avoid dedicating nearly blank sheets to G/H/K.
-    ['A','B','C','D','E','F','G','H','I','J'].forEach(writeSection);
-    if(y>166)fresh();
+    // Report layout contract: A-I on pages 1-2, J alone on page 3,
+    // K alone on page 4; the inspection/circuit schedules follow afterward.
+    ['A','B','C','D','E','F','G','H','I'].forEach(writeSection);
+    if(doc.getNumberOfPages()>2)throw new Error('EICR A-I exceed pages 1-2; cannot silently displace Section J');
+    // Fill out the two-page declaration without adding unrelated sections.
+    while(doc.getNumberOfPages()<2)fresh();
+    fresh();  // page 3, Section J only.
+    writeSection('J');
+    if(doc.getNumberOfPages()!==3)throw new Error('Section J exceeds its dedicated A4 page');
+    fresh();  // page 4, Section K only.
     y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
-      .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
+      .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim()||String(row.location||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
     const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
     checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
@@ -636,7 +686,7 @@
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
     const limitationsY=y;
-    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
     y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
     for(const group of [
@@ -647,23 +697,27 @@
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
-        head:[[{content:group.title+' (include relevant schedule reference)',colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
-              ['Item No.','Observation(s)','Classification code']],
+        head:[[{content:group.title,colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
+              ['Item No.','Observations','Location','Classification code']],
         // Keep the C1/C2 or C3/FI explanation with its observation table,
         // not alone on a new sheet after an automatic page break.
         body:(selected.length?selected.map(({row})=>[
-          pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
-        ]):[['','','']]).concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+          pdfText(String(row.item||'').trim()||'N/A'),
+          pdfText(String(row.observation||'').trim()||'N/A'),
+          pdfText(String(row.location||'').trim()||'N/A'),
+          pdfText(String(row.code||'').trim()||'N/A')
+        ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
-        columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
+        columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
         editResolve:(r,c)=>{
           const index=selected[r]?.index;
           if(index===undefined)return [];
           if(c===0)return [{scope:'table',kind:'observations',index,key:'item'}];
-          if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'},{scope:'table',kind:'observations',index,key:'scheduleRef'}];
-          if(c===2)return [{scope:'table',kind:'observations',index,key:'code'}];
+          if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'}];
+          if(c===2)return [{scope:'table',kind:'observations',index,key:'location'}];
+          if(c===3)return [{scope:'table',kind:'observations',index,key:'code'}];
           return [];
         },
         didDrawPage:()=>frame()
@@ -711,12 +765,12 @@
         rowMap.push(-1);lastGroup=group;
       }
       const isIntake=String(r.item||'')==='1.1';
-      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim()||'N/A')]);
       rowMap.push(index);
       if(isIntake){
         intakeRows.forEach(([key,description],subIndex)=>{
           const raw=String(cert.fields?.[key]||'').trim();
-          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw)]);
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw||'N/A')]);
           rowMap.push(-3-subIndex);
         });
         body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
@@ -724,7 +778,7 @@
         body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
         rowMap.push(-10);
         const notification=String(cert.fields?.intakeNotified||'');
-        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification||'N/A']);
         rowMap.push(-2);
       }
     });
@@ -749,11 +803,11 @@
         const i=rowMap[data.row.index];
         const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
         if(i===undefined||(i>=0&&String(rows[i]?.item||'')==='1.1')||String(outcome||'').trim()!=='✓')return;
-        const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
-        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
-        doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
-        doc.line(cx+.55,cy-1,cx+1.25,cy-.3);
-        doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
+        // Free-standing blue check: no surrounding square.
+        const cell=data.cell,cx=cell.x+cell.width/2,cy=cell.y+cell.height/2;
+        doc.setDrawColor(...BLUE);doc.setLineWidth(.65);
+        doc.line(cx-2,cy,cx-.6,cy+1.5);
+        doc.line(cx-.6,cy+1.5,cx+2.6,cy-2);
         doc.setLineWidth(.18);
       }
     });
@@ -960,7 +1014,7 @@
       const circuits=circuitsForBoard(cert,ref,bi===0);
       const chunks=[];
       if(circuits.length){
-        for(let i=0;i<circuits.length;i+=10)chunks.push(circuits.slice(i,i+10));
+        for(let i=0;i<circuits.length;i+=8)chunks.push(circuits.slice(i,i+8));
       }else chunks.push([]);
       chunks.forEach((chunk,chunkIndex)=>{
         doc.addPage('a4','landscape');
@@ -978,14 +1032,33 @@
         const spdSource=String(board.spd||'').trim();
         const spdMatch=spdSource.match(/\bType\s*([123])(?:\s*\+\s*(?:Type\s*)?([123]))?/i);
         const spdCertified=/^No SPD\s*\/\s*N\/A$|^N\/A$/i.test(spdSource)?'N/A':spdMatch?'T'+spdMatch[1]+(spdMatch[2]?' + T'+spdMatch[2]:''):/^T[123](?:\s*\+\s*T[123])?$/i.test(spdSource)?spdSource:'';
-        doc.autoTable({startY:y+3,head:[],editResolve:(r,c)=>{
-          const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
-          return cert.tables?.boards?.[bi]?[keys[r][c]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
-        },body:[
-          ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
-          ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
-          ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
-        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:7.7,cellPadding:2.1,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
+        const boardCells=[
+          [[['DB/CU reference: ',ref]],[['Location: ',board.location]],[['Supplied from: ',board.suppliedFrom]]],
+          [[['Distribution circuit OCPD - BS (EN): ',distributionBs]],[['Type: ',distributionType]],[['Rating / setting (A): ',distributionRating]]],
+          [[['SPD type(s): ',spdCertified]],[['RCD - BS (EN): ',board.rcdBs],['  Type: ',board.rcdType]],[['RCD rating (A): ',board.rcdRating],['  IΔn (mA): ',board.rcdIdn]]]
+        ];
+        doc.autoTable({
+          startY:y+3,head:[],
+          editResolve:(row,col)=>{
+            const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
+            return cert.tables?.boards?.[bi]?[keys[row][col]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
+          },
+          body:boardCells.map(row=>row.map(parts=>parts.map(pair=>pair.join('')).join(''))),
+          margin:{left:x,right:10},theme:'grid',
+          styles:{fontSize:7.2,cellPadding:2,minCellHeight:11.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+          columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}},
+          didParseCell:data=>{
+            if(data.section==='body')data.cell.text=[''];
+          },
+          didDrawCell:data=>{
+            if(data.section!=='body')return;
+            const parts=boardCells[data.row.index]?.[data.column.index]||[];
+            const runs=parts.flatMap(([label,value])=>[
+              {text:label,bold:true},{text:worksheet?'':String(value??''),bold:false}
+            ]);
+            writeRuns(doc,runs,data.cell.x+2,data.cell.y+4.9,data.cell.width-4,7.2,3.6,3);
+          }
+        });
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
@@ -994,7 +1067,7 @@
           ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
-        for(let r=0;r<10;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
@@ -1013,7 +1086,7 @@
           ],
           body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:10},1:{cellWidth:44,halign:'left'},2:{cellWidth:17},3:{cellWidth:15},4:{cellWidth:15},5:{cellWidth:14},6:{cellWidth:14},7:{cellWidth:22},8:{cellWidth:12},9:{cellWidth:12},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:23},13:{cellWidth:14},14:{cellWidth:15},15:{cellWidth:14}}
         });
         const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
@@ -1035,7 +1108,7 @@
           ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
-        for(let r=0;r<10;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
           trows.push(tcols.map(col=>{
@@ -1054,7 +1127,7 @@
           ],
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:10},1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},4:{cellWidth:16},5:{cellWidth:13},6:{cellWidth:15},7:{cellWidth:17},8:{cellWidth:17},9:{cellWidth:15},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:19},13:{cellWidth:19},14:{cellWidth:58,halign:'left'}},
           didDrawCell:data=>{
             if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
@@ -1083,18 +1156,36 @@
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
-        const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
+        const signatureLine=worksheet?'':String(testedSignature||'').trim()||'N/A';
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
-          'Multifunction: '+display(ff.testerSerial||'',worksheet),
-          'Continuity: '+display(ff.testerLowOhm===false?'':ff.instrumentContinuity,worksheet),
-          'Insulation resistance: '+display(ff.testerInsulation===false?'':ff.instrumentInsulation,worksheet),
-          'Earth fault loop impedance: '+display(ff.testerLoop===false?'':ff.instrumentLoop,worksheet),
-          'RCD: '+display(ff.testerRcd===false?'':ff.instrumentRcd,worksheet),
-          'Earth electrode resistance: '+display(ff.testerEarth===false?'':ff.instrumentEarth,worksheet)
+          ['Multifunction: ',ff.testerSerial],
+          ['Continuity: ',ff.instrumentContinuity],
+          ['Insulation resistance: ',ff.instrumentInsulation],
+          ['Earth fault loop impedance: ',ff.instrumentLoop],
+          ['RCD: ',ff.instrumentRcd],
+          ['Earth electrode resistance: ',ff.instrumentEarth]
         ];
-        write(doc,instrumentDetails.join('   '),x,ty+4.5,w,{size:6.1,maxLines:3,lineHeight:3.5});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+13.5,w,{size:7.0});
+        instrumentDetails.forEach(([label,value],idx)=>{
+          const col=idx%3,row=Math.floor(idx/3);
+          const xx=x+col*(w/3);
+          writeRuns(doc,[
+            {text:label,bold:true},
+            {text:worksheet?'':String(value??'').trim()||'N/A',bold:false}
+          ],xx,ty+5+row*5.1,w/3-3,6.7,3.5,2);
+        });
+        writeRuns(doc,[
+          {text:'Tested by name (Capitals): ',bold:true},
+          {text:worksheet?'':String(testedBy||'').trim().toUpperCase()||'N/A',bold:false}
+        ],x,ty+17,107,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Signature: ',bold:true},
+          {text:signatureLine,bold:false}
+        ],x+110,ty+17,95,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Date: ',bold:true},
+          {text:worksheet?'':fmtDate(testedDate)||'N/A',bold:false}
+        ],x+207,ty+17,w-207,7.2,4,2);
       });
     });
   }

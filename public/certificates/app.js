@@ -958,7 +958,7 @@
     return [...INSTRUMENTS.flatMap(([key,label,make,model,serial])=>[
       f(key,label,'checkbox',{span:'full'}),
       ...[[make,'Make'],[model,'Model'],[serial,'Serial number']].map(([k,l])=>f(k,l,'text',{showWhen:{key,value:true}}))
-    ]),f('testedBy','Tested by'),f('testedDate','Tested date','date')];
+    ]),f('testedBy','Tested by name (Capitals)'),f('testedDate','Tested date','date')];
   }
   function supplyDeviceDisplay(fields){
     const bs=String(fields.supplyDeviceBs||''),type=String(fields.supplyDeviceType||'');
@@ -1060,7 +1060,7 @@
         section('J · Installation particulars', [f('earthingDistributor', 'Distributor’s facility', 'checkbox'), f('earthingElectrode', 'Installation earth electrode', 'checkbox'), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingToWater', 'To water installation pipes', 'checkbox'), f('bondingToGas', 'To gas installation pipes', 'checkbox'), f('bondingToOil', 'To oil installation pipes', 'checkbox'), f('bondingToSteel', 'To structural steel', 'checkbox'), f('bondingToLightning', 'To lightning protection system', 'checkbox'), f('bondingToOtherChecked', 'To other', 'checkbox'), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         section('K · Observations', [f('limitationsReference', 'Extent and limitations reference'), select('remedialActionStatus', 'Observations', ['No remedial action is required', 'The following observations are made'])]),
         table('observations', 'K · Observations', [
-          { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
+          { key: 'item', label: 'Item No.' }, { key: 'observation', label: 'Observations' }, { key: 'location', label: 'Location' }, { key: 'code', label: 'Classification code', type: 'select', options: OPTIONS.observationCode }
         ], [{ item: '1' }]),
         section('1.1 · Distributor/supplier intake equipment', [
           select('intakeServiceCable', 'Service cable', ['✓','✕','N/V','LIM','N/A']),
@@ -3711,6 +3711,7 @@
     if (e.target.matches('[data-field]') && cert) {
       const key=e.target.dataset.field;
       const previousValue=cert.fields[key];
+      if(key==='testedBy'&&e.target.type!=='checkbox')e.target.value=String(e.target.value||'').toUpperCase();
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
       if(key==='supplyDeviceBs')setSupplyDevice(cert.fields,e.target.value);
       if(key==='certificateNo') cert.number=e.target.value;
@@ -3813,6 +3814,7 @@
     if(!dest||!Object.prototype.hasOwnProperty.call(dest,key) &&
       scope==='table' && !SCHEMAS[cert.type]?.sections?.some(p=>p.key===table&&p.columns?.some(c=>c.key===key)))return;
     let value=el.type==='checkbox'?el.checked:el.value;
+    if(scope==='field'&&key==='testedBy'&&typeof value==='string'){value=value.toUpperCase();el.value=value;}
     if(scope==='circuit'&&key==='circuitNo'&&cert.tables.circuits.some((r,j)=>j!==i&&r.boardRef===dest.boardRef&&String(r.circuitNo)===String(value))){
       el.setCustomValidity('Circuit number already exists on this consumer unit');el.reportValidity();return;
     }
