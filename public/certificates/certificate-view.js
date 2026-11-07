@@ -6,7 +6,9 @@
  const LANDSCAPE_TYPES=new Set(['eic','eicr']);
  const METHOD={A1:'Single-core in conduit within insulated wall',A2:'Multicore in conduit within insulated wall',B:'Conduit/trunking on wall',C:'Clipped direct',D1:'In underground duct',D2:'Direct buried',E:'Multicore in free air',F:'Single-core touching, free air',G:'Single-core spaced, free air',100:'Above insulated ceiling, up to 100 mm',101:'Above insulated ceiling, over 100 mm',102:'Inside insulated stud wall, touching inner face',103:'Inside insulated stud wall, not touching inner face'};
  const isLandscape=type=>LANDSCAPE_TYPES.has(type);
- const persisted={page:0,zoom:1,showPages:false};
+ const persisted={page:0,zoom:1,showPages:false,fitMode:true};
+ // The issued PDF renderer is the page-count authority; no artificial editor-only pages.
+ const activePaperDimensions={landscape:[1122,794],portrait:[794,1122]};
  const rowsPerPage=12;
  function fieldInput(scope,key,value,field={},row=-1,kind=''){
    const id='cv-'+scope+'-'+row+'-'+key;
@@ -26,11 +28,12 @@
    return '<label class="cv-field'+(field.span==='full'?' cv-wide':'')+'"><span title="'+E(label)+'">'+E(label)+'</span>'+control+(numeric&&field.type!=='select'&&!Array.isArray(field.options)?'<button class="cv-keyboard-toggle" type="button" data-action="cv-keyboard" aria-label="Toggle numeric and text keyboard">ABC</button>':'')+(['refMethod','referenceMethod'].includes(key)?'<small>'+E(METHOD[text]||'Check Appendix 4 / Table 4A2')+'</small>':'')+'</label>';
  }
  function sectionPage(title,fields,cert,orientation,label){
+   fields=fields.filter(f=>!f.showWhen||String(cert.fields?.[f.showWhen.key]||'')===String(f.showWhen.value));
    const max=orientation==='landscape'?18:13;
    const pages=[];
    for(let off=0;off<fields.length||off===0;off+=max){
      const chunk=fields.slice(off,off+max);
-     pages.push({title:title+(off?' · continued':''),label:label||title,orientation,html:'<div class="cv-titleline">'+E(title)+'</div><div class="cv-fields">'+chunk.map(f=>fieldInput('field',f.key,cert.fields?.[f.key],f)).join('')+'</div>'});
+     pages.push({title:title+(off?' · continued':''),label:label||title,orientation,html:'<div class="cv-titleline">'+E(title)+'</div><div class="cv-fields">'+chunk.map(f=>fieldInput('field',f.key,f.key==='supplyDeviceBs'?[cert.fields?.supplyDeviceBs,cert.fields?.supplyDeviceType?'Type '+cert.fields.supplyDeviceType:''].filter(Boolean).join(' '):cert.fields?.[f.key],f)).join('')+'</div>'});
      if(!fields.length)break;
    }
    return pages;
@@ -77,7 +80,7 @@
   {key:'zdb',label:'Zdb Ω'},{key:'ipf',label:'Ipf kA'},
   {key:'rcdBs',label:'RCD BS EN'},{key:'rcdType',label:'RCD type'},
   {key:'rcdRating',label:'RCD rating A'},{key:'rcdIdn',label:'RCD IΔn mA'},
-  {key:'spd',label:'SPD type'},{key:'spdBs',label:'SPD standard'}
+  {key:'spd',label:'SPD type'}
  ];
  function boardPages(cert){
    const boards=cert.tables?.boards||[];
@@ -107,7 +110,109 @@
    });
    return pages;
  }
- function pages(cert,schema){
+ function compactPart(part,cert,orientation){
+   if(part.type==='section'){
+     const fields=(part.fields||[]).filter(f=>!f.showWhen||String(cert.fields?.[f.showWhen.key]||'')===String(f.showWhen.value));
+     if(!fields.length)return '';
+     return '<div class="cv-titleline">'+E(part.title)+'</div><div class="cv-fields">'+fields.map(f=>fieldInput('field',f.key,cert.fields?.[f.key],f)).join('')+'</div>';
+   }
+   if(part.key==='eicInspection'){
+     const rows=cert.tables?.eicInspection||[];
+     return '<div class="cv-titleline">'+E(part.title)+'</div><div class="cv-inspection-grid">'+
+       rows.map((row,i)=>'<div class="cv-inspection-line"><span class="cv-inspection-code">'+E(row.item||'')+'</span><span class="cv-inspection-description">'+E(row.description||'')+'</span>'+
+         fieldInput('table','outcome',row.outcome,{label:'Inspection outcome',options:['✓','✕','N/A']},i,'eicInspection')+'</div>').join('')+'</div>';
+   }
+   if(part.type==='table')return tablePages(part.title,part.key,part.columns||[],cert.tables?.[part.key],orientation).map(x=>x.html).join('');
+   return '';
+ }
+ function pdfPageCount(cert,schema,settings){
+   try{
+     return window.SperinIetForms?.build({cert,schema,settings:settings||{},worksheet:false})?.getNumberOfPages()||0;
+   }catch(err){
+     console.warn('Could not determine PDF page count; keeping editable pages',err);
+     return 0;
+   }
+ }
+ function eicPages(cert,schema,settings){
+   const parts=schema.sections||[],find=key=>parts.find(p=>p.title?.startsWith(key));
+   const ab=[find('A ·'),find('B ·')].filter(Boolean),c=find('C ·'),d=find('D ·'),f=find('F ·'),g=find('G ·'),
+     h=parts.find(p=>p.key==='eicInspection'),i=find('I ·'),j=find('J ·');
+   const make=(title,list)=>({orientation:'landscape',title,label:title,html:list.filter(Boolean).map(p=>compactPart(p,cert,'landscape')).join('')});
+   const schedules=boardPages(cert);
+   const expected=pdfPageCount(cert,schema,settings);
+   // PDFs may have extra pages when certification declarations or annotations expand.
+   // Match their count without multiplying the number of data-entry screens.
+   const mainCount=Math.max(3,expected-schedules.length||3);
+   let groups;
+   if(mainCount<=3)groups=[
+     make('Client, installation and certification',[...ab,c]),
+     make('Inspection interval, supply and installation',[d,f,g]),
+     make('Inspection, comments and schedules',[h,i,j])
+   ];
+   else groups=[
+     make('Client and installation details',ab),
+     make('Certification and signatories',[c]),
+     make('Inspection interval, supply and installation',[d,f,g]),
+     make('Inspection, comments and schedules',[h,i,j])
+   ];
+   if(mainCount>4&&c){
+     const fields=(c.fields||[]).filter(x=>!x.showWhen||String(cert.fields?.[x.showWhen.key]||'')===String(x.showWhen.value));
+     const half=Math.max(1,Math.ceil(fields.length/2));
+     const first={...c,fields:fields.slice(0,half)},second={...c,title:c.title+' · continued',fields:fields.slice(half)};
+     groups.splice(1,1,make('Certification and signatories',[first]),make('Certification and signatories · continued',[second]));
+   }
+   if(mainCount>5&&g){
+     const idx=groups.findIndex(p=>p.title==='Inspection interval, supply and installation');
+     if(idx>=0)groups.splice(idx,1,make('Inspection interval and supply',[d,f]),make('Installation particulars',[g]));
+   }
+   // Extra PDF continuation sheets are representable, without dropping any editing fields.
+   while(groups.length<mainCount){
+     const idx=groups.findIndex(p=>p.title==='Inspection, comments and schedules');
+     if(idx<0)break;
+     groups.splice(idx,1,make('Inspection',[h]),make('Comments and schedules',[i,j]));
+   }
+   // Never advertise false page numbers if a document has exceptional continuation pages.
+   return [...groups,...schedules];
+ }
+ let pdfBytes=null,pdfRevision=0;
+ function exactPages(cert,schema,settings){
+   const doc=window.SperinIetForms.build({cert,schema,settings,editable:true});
+   pdfBytes=doc.output('arraybuffer');pdfRevision++;
+   const fields=(schema.sections||[]).flatMap(p=>p.fields||[]);
+   const result=[];
+   for(let n=1;n<=doc.getNumberOfPages();n++){
+     doc.setPage(n);
+     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
+     const orientation=w>h?'landscape':'portrait',[pw,ph]=activePaperDimensions[orientation];
+     const regions=doc.__editRegions.filter(r=>r.page===n);
+     const html=regions.map(r=>{
+       const definition=r.scope==='field'?fields.find(f=>f.key===r.key):(schema.sections||[]).find(p=>p.key===r.kind)?.columns?.find(c=>c.key===r.key);
+       const value=r.scope==='field'?cert.fields?.[r.key]:cert.tables?.[r.kind]?.[r.index]?.[r.key];
+       return '<div class="cv-pdf-field" style="left:'+r.x/w*pw+'px;top:'+r.y/h*ph+'px;width:'+r.width/w*pw+'px;height:'+r.height/h*ph+'px">'+fieldInput(r.scope,r.key,value,definition||{label:r.key},r.index??-1,r.kind||'')+'</div>';
+     }).join('');
+     result.push({orientation,title:'Certificate page '+n,label:'Certificate page '+n,exact:true,html:'<span class="cv-pdf-status">Loading certificate…</span><canvas class="cv-pdf-canvas" aria-label="Actual PDF page '+n+'"></canvas><div class="cv-pdf-fields">'+html+'</div>'});
+   }
+   return result;
+ }
+ let pdfLibraryPromise=null,paintToken=0;
+ async function paintPdf(){
+   const canvas=document.querySelector('.cv-pdf-canvas');if(!canvas||!pdfBytes)return;
+   const token=++paintToken,revision=pdfRevision,bytes=pdfBytes.slice(0),number=persisted.page+1;
+   try{
+     pdfLibraryPromise ||= import('./vendor/pdf.min.mjs').then(lib=>{lib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.min.mjs',document.baseURI).href;return lib;});
+     const lib=await pdfLibraryPromise;
+     const pdf=await lib.getDocument({data:bytes,useSystemFonts:true}).promise;
+     if(token!==paintToken){await pdf.destroy();return;}
+     const page=await pdf.getPage(number),viewport=page.getViewport({scale:2});
+     canvas.width=viewport.width;canvas.height=viewport.height;
+     await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+     if(token===paintToken&&revision===pdfRevision){canvas.dataset.ready='true';canvas.parentElement.querySelector('.cv-pdf-status')?.remove();}
+     await pdf.destroy();
+   }catch(error){console.error('Certificate PDF display failed',error);const status=canvas.parentElement?.querySelector('.cv-pdf-status');if(status)status.textContent='Page could not load. Close and reopen Certificate View.';}
+ }
+ function pages(cert,schema,settings={}){
+   if(['eic','eicr'].includes(cert.type)&&window.SperinPdfEditMap)return exactPages(cert,schema,settings);
+   if(cert.type==='eic')return eicPages(cert,schema,settings);
    const orientation=isLandscape(cert.type)?'landscape':'portrait',out=[];
    const parts=schema?.sections||[];
    for(const part of parts){
@@ -121,7 +226,7 @@
    if(isLandscape(cert.type))out.push(...boardPages(cert));
    return out.length?out:[{title:'Certificate details',label:'Details',orientation,html:'<p>No editable fields on this form.</p>'}];
  }
- function reset(){persisted.page=0;persisted.zoom=1;persisted.showPages=false;}
+ function reset(){persisted.page=0;persisted.zoom=1;persisted.showPages=false;persisted.fitMode=true;}
  function scalePage(){
    const paper=document.querySelector('.cv-paper'),wrap=document.querySelector('.cv-paper-wrap');
    if(!paper||!wrap)return;
@@ -131,39 +236,54 @@
    wrap.style.height=(h*persisted.zoom)+'px';
    document.querySelectorAll('[data-cv-zoom-label]').forEach(el=>el.textContent=Math.round(persisted.zoom*100)+'%');
  }
- function setZoom(n){
-   persisted.zoom=Math.min(2.25,Math.max(.24,Number(n)||1));
+ function setZoom(n,automatic=false){
+   persisted.fitMode=automatic;
+   persisted.zoom=Math.min(2.25,Math.max(.05,Number(n)||1));
    scalePage();
  }
  function applyViewport(){
-   scalePage();
+   sizeViewport();
+   if(persisted.fitMode)fit();else scalePage();
    const port=document.querySelector('.cv-viewport');
    if(port){port.scrollTop=0;port.scrollLeft=0;}
  }
- function render(cert,schema){
-   const sheets=pages(cert,schema),p=Math.max(0,Math.min(persisted.page,sheets.length-1));
+ function render(cert,schema,settings={}){
+   const sheets=pages(cert,schema,settings),p=Math.max(0,Math.min(persisted.page,sheets.length-1));
    persisted.page=p;
    const page=sheets[p],land=page.orientation==='landscape';
-   const nav='<div class="cv-toolbar"><button class="btn" data-action="cv-pages">☷ Select Pages</button>'+
-      '<button class="btn" data-action="cv-page-prev"'+(p===0?' disabled':'')+'>← Previous</button>'+
-      '<strong>Page '+(p+1)+' / '+sheets.length+'</strong>'+
-      '<button class="btn" data-action="cv-page-next"'+(p===sheets.length-1?' disabled':'')+'>Next →</button>'+
-      '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">−</button>'+
-      '<span data-cv-zoom-label>'+Math.round(persisted.zoom*100)+'%</span>'+
-      '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">＋</button>'+
-      '<button class="btn" data-action="cv-fit">Fit Page</button><button class="btn" data-action="cv-reset">Upper Left</button><button class="btn" data-action="cv-next-empty">Next Empty</button></div>';
-   const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select Pages</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
-   return '<section class="cv-shell" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
+   const nav='<div class="cv-toolbar" role="toolbar" aria-label="Certificate page navigation">'+
+     '<div class="cv-page-steps"><button class="btn" data-action="cv-page-prev" aria-label="Previous certificate page"'+(p===0?' disabled':'')+'>‹</button>'+
+     '<span class="cv-page-count">Page '+(p+1)+' of '+sheets.length+'</span>'+
+     '<button class="btn" data-action="cv-page-next" aria-label="Next certificate page"'+(p===sheets.length-1?' disabled':'')+'>›</button></div>'+
+     '<details class="cv-menu"><summary aria-label="Certificate options" title="Certificate options">☰</summary>'+
+     '<div class="cv-menu-panel" role="group" aria-label="Certificate actions">'+
+     '<button class="btn" data-action="cv-pages">Select pages</button>'+
+     '<button class="btn" data-action="cv-fit">Fit full page</button>'+
+     '<button class="btn" data-action="cv-zoom-in" aria-label="Zoom in">Zoom in +</button>'+
+     '<button class="btn" data-action="cv-zoom-out" aria-label="Zoom out">Zoom out −</button>'+
+     '<span data-cv-zoom-label class="cv-menu-zoom">'+Math.round(persisted.zoom*100)+'%</span>'+
+     '<button class="btn" data-action="cv-reset">Actual size (100%)</button>'+
+     '<button class="btn" data-action="cv-next-empty">Next empty field</button>'+
+     '<button class="btn" data-action="switch-entry">Quick Entry</button>'+
+     '<button class="btn" data-action="edit-undo">Undo</button>'+
+     '<button class="btn" data-action="edit-redo">Redo</button>'+
+     '<button class="btn" data-action="certificate-review">Review</button>'+
+     '<button class="btn primary" data-action="pdf">Save / open PDF</button>'+
+     '<button class="btn" data-action="home">Home</button>'+
+     '<button class="btn" data-action="open-new">New certificate</button>'+
+     '<button class="btn" data-action="open-library">My Certificates</button></div></details></div>';
+   const thumbs=persisted.showPages?'<div class="cv-page-picker" role="dialog" aria-label="Select certificate page"><div class="cv-picker-title"><strong>Select a page</strong><button class="btn" data-action="cv-pages">Close</button></div><div class="cv-page-grid">'+sheets.map((x,i)=>'<button class="cv-thumbnail'+(i===p?' active':'')+'" data-action="cv-select-page" data-cv-page="'+i+'" aria-label="Open page '+(i+1)+'"><div class="cv-mini-sheet '+(x.orientation==='landscape'?'landscape':'portrait')+'"><span>'+E(x.title)+'</span><i></i><i></i><i></i><i></i></div><strong>Page '+(i+1)+'</strong><small>'+E(x.label)+'</small></button>').join('')+'</div></div>':'';
+   return '<section class="cv-shell cv-immersive" aria-label="Editable certificate view" data-cv-orientation="'+page.orientation+'">'+nav+thumbs+
      '<div class="cv-viewport" aria-label="Drag or swipe the certificate to pan; pinch to zoom" tabindex="0"><div class="cv-paper-wrap">'+
-     '<article class="cv-paper '+(land?'cv-landscape':'cv-portrait')+'" aria-label="'+E(page.label)+'"><header class="cv-sheet-header"><strong>SPERIN SERVICES</strong><span>'+E(schema.name||'Certificate')+'</span><small>'+E(cert.number||'')+'</small></header>'+
-     '<div class="cv-sheet-content">'+page.html+'</div><footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer></article></div></div>'+
-     '<div class="cv-footnote">Editable certificate-layout workspace · every field autosaves · use the PDF button for the issued document</div></section>';
+     '<article class="cv-paper '+(land?'cv-landscape':'cv-portrait')+(page.exact?' cv-exact-pdf':'')+'" aria-label="'+E(page.label)+'">'+(page.exact?'':'<header class="cv-sheet-header"><strong>SPERIN SERVICES</strong><span>'+E(schema.name||'Certificate')+'</span><small>'+E(cert.number||'')+'</small></header>')+
+     '<div class="cv-sheet-content">'+page.html+'</div>'+(page.exact?'':'<footer class="cv-sheet-footer">SPERIN CERTIFICATES · '+E(schema.standard||'')+' <span>Page '+(p+1)+' of '+sheets.length+'</span></footer>')+'</article></div></div></section>';
  }
  let gestureStart=null;
  function attachGestures(){
    const port=document.querySelector('.cv-viewport');
    if(!port)return;
    applyViewport();
+   paintPdf();
    // One-finger drag on bare paper, two-finger pinch zoom; inputs retain normal touch interaction.
    port.addEventListener('pointerdown',e=>{
      if(e.target.closest('input,select,textarea,button,label'))return;
@@ -180,21 +300,45 @@
    port.addEventListener('pointercancel',()=>{gestureStart=null;});
    port.addEventListener('touchstart',e=>{
      if(e.touches.length===2){
+       gestureStart=null;
        const [a,b]=e.touches;
        port._cvPinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:persisted.zoom};
      }
    },{passive:true});
    port.addEventListener('touchmove',e=>{
      if(e.touches.length===2&&port._cvPinch){
+       e.preventDefault();
        const [a,b]=e.touches,dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
        setZoom(port._cvPinch.zoom*dist/Math.max(1,port._cvPinch.distance));
      }
-   },{passive:true});
+   },{passive:false});
    port.addEventListener('touchend',e=>{if(e.touches.length<2)port._cvPinch=null;});
  }
- function switchPage(next){persisted.page=Math.max(0,Number(next)||0);persisted.showPages=false;persisted.zoom=1;}
+ function switchPage(next){persisted.page=Math.max(0,Number(next)||0);persisted.showPages=false;persisted.fitMode=true;}
  function togglePages(){persisted.showPages=!persisted.showPages;}
- function fit(){const port=document.querySelector('.cv-viewport'),paper=document.querySelector('.cv-paper');if(!port||!paper)return;setZoom(Math.min((port.clientWidth-12)/(paper.classList.contains('cv-landscape')?1122:794),1.4));port.scrollTop=0;port.scrollLeft=0;}
+ function sizeViewport(){
+   const port=document.querySelector('.cv-viewport'),toolbar=document.querySelector('.cv-toolbar');
+   if(!port)return;
+   if(port.closest?.('.cv-immersive')){port.style.height='';return;}
+   const dock=document.querySelector('.editor-dock');
+   const dockTop=dock?.getBoundingClientRect().top;
+   const bottomSpace=Number.isFinite(dockTop)?Math.max(0,window.innerHeight-dockTop):90;
+   const reserved=(toolbar?.getBoundingClientRect().height||60)+bottomSpace+140;
+   port.style.height=Math.max(100,window.innerHeight-reserved)+'px';
+ }
+ function fit(){
+   const port=document.querySelector('.cv-viewport'),paper=document.querySelector('.cv-paper');
+   if(!port||!paper)return;
+   sizeViewport();
+   const landscape=paper.classList.contains('cv-landscape'),w=landscape?1122:794,h=landscape?794:1122;
+   // Include the paper's 12px margins on BOTH sides and fit both dimensions.
+   setZoom(Math.min(Math.max(1,port.clientWidth-24)/w,Math.max(1,port.clientHeight-24)/h,1),true);
+   port.scrollTop=0;port.scrollLeft=0;
+ }
+ window.addEventListener('resize',()=>{
+   if(document.activeElement?.matches?.('input,textarea,select'))return;
+   sizeViewport();if(persisted.fitMode)fit();
+ });
  function nextEmpty(){const inputs=[...document.querySelectorAll('.cv-paper input:not([type=checkbox]),.cv-paper textarea,.cv-paper select')],target=inputs.find(x=>!x.value);if(target){target.scrollIntoView({block:'center',inline:'center'});target.focus();return true;}return false;}
  window.SperinCertificateView={isLandscape,pages,render,reset,attachGestures,switchPage,togglePages,setZoom,fit,nextEmpty,state:persisted};
 })();

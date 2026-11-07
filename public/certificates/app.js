@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'sperin-certificates-settings-v1';
   const PRE_RESTORE_KEY = 'sperin-certificates-pre-restore-v1';
   const VIEW_KEY = 'sperin-certificates-view-v1';
-  const VERSION = '1.9.6-dev';
+  const VERSION = '1.9.9-dev';
   const EDIT_MODE_KEY = 'sperin-certificates-edit-mode-v196';
   let editMode = 'quick';
   let lastRequestedOrientation = '';
@@ -57,8 +57,8 @@
     conductorMaterial: ['Copper', 'Aluminium', 'Other'],
     poles: ['1', '2', '3', '4'],
     rcdIdn: ['10', '30', '100', '300', '500', 'Other'],
-    earthElectrodeType: ['Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
-    supplyDeviceBs: ['BS 88-2', 'BS88-3', 'BS 1361', 'BS EN 60898-1', 'BS EN 60947-2', 'BS EN 61009-1', 'Other'],
+    earthElectrodeType: ['N/A', 'Rod', 'Tape', 'Plate', 'Foundation earth electrode', 'Mesh', 'Other'],
+    supplyDeviceBs: ['BS 88-2', 'BS88-3', 'BS 1361', 'BS EN 60898-1 Type B', 'BS EN 60898-1 Type C', 'BS EN 60898-1 Type D', 'BS EN 60947-2', 'BS EN 61009-1 Type B', 'BS EN 61009-1 Type C', 'BS EN 61009-1 Type D', 'BS 3036', 'BS 1362', 'Other'],
     spdType: [
       'No SPD / N/A',
       'Type 1 — BS EN IEC 61643-11:2025+A11:2025',
@@ -137,6 +137,27 @@
     { key:'spdOperational', label:'SPD operational', type:'select', options:OPTIONS.yesNoNA }
   ];
 
+  // Model-form board particulars required by IET A4 circuit and test schedules.
+  // Legacy 'mainSwitch' and 'rcd' data remain in saved certificate records.
+  const eicrBoardColumns=[
+    {key:'ref',label:'DB/CU reference'},
+    {key:'location',label:'Location'},
+    {key:'suppliedFrom',label:'Supplied from'},
+    {key:'distributionOcpdBs',label:'Distribution circuit OCPD BS (EN)'},
+    {key:'distributionOcpdType',label:'Distribution circuit OCPD type'},
+    {key:'distributionOcpdRating',label:'Distribution circuit OCPD rating/setting (A)'},
+    {key:'spd',label:'SPD type(s) T1, T2, T3 or N/A'},
+    {key:'rcdBs',label:'RCD BS (EN)'},
+    {key:'rcdType',label:'RCD type'},
+    {key:'rcdRating',label:'RCD rating (A)'},
+    {key:'rcdIdn',label:'RCD IΔn (mA)'},
+    {key:'zdb',label:'Zdb (Ω)'},
+    {key:'ipf',label:'Ipf (kA)'},
+    {key:'polarity',label:'Correct polarity',type:'select',options:OPTIONS.yesNoNA},
+    {key:'phaseSequence',label:'Phase sequence',type:'select',options:OPTIONS.yesNoNA},
+    {key:'spdOperational',label:'SPD operational status',type:'select',options:OPTIONS.yesNoNA}
+  ];
+
   const circuitColumns = [
     { key: 'boardRef', label: 'Board ref.' },
     { key: 'circuitNo', label: 'Circuit no.' },
@@ -159,6 +180,8 @@
     { key: 'rcdRating', label: 'RCD A', type: 'select', options: OPTIONS.ocpdRating }
   ];
 
+  const eicrCircuitColumns=circuitColumns.filter(col=>!['installMethod','deviceKind'].includes(col.key));
+
   const testColumns = [
     { key: 'circuitNo', label: 'Circuit no.' },
     { key: 'r1', label: 'r1 Ω' },
@@ -177,6 +200,8 @@
     { key: 'remarks', label: 'Remarks' }
   ];
 
+  const eicrTestColumns=testColumns.map(col=>['polarity','rcdButton','afddButton'].includes(col.key)?{...col,type:'select',options:['✓','✕','LIM','N/A']}:col);
+
 
 
   const CIRCUIT_DETAIL_GROUPS = [
@@ -186,7 +211,6 @@
       { key:'description', label:'Circuit description', span:'full' },
       { key:'phaseAssociation', label:'Verified phase / line (L1, L2, L3 or TP&N)' },
       { key:'wiringType', label:'Type of wiring', options:OPTIONS.wiringType },
-      { key:'installMethod', label:'Installation / containment method', span:'full' },
       { key:'refMethod', label:'Reference method', options:OPTIONS.refMethod },
       { key:'points', label:'Number of points served' },
       { key:'liveCsa', label:'Live conductor csa (mm²)', options:OPTIONS.conductorCsa },
@@ -195,7 +219,6 @@
     { title: 'Overcurrent protective device', fields: [
       { key:'deviceKind', label:'Device type', options:OPTIONS.deviceKind },
       { key:'poleCount', label:'Number of poles (visually confirmed)', options:OPTIONS.poles },
-      { key:'testButtonVisual', label:'Photo shows test button (not electrical test)', options:['Visible','Not visible','Unclear'] },
       { key:'ocpdBs', label:'BS (EN)', options:OPTIONS.ocpdBs },
       { key:'ocpdType', label:'Type / curve', options:OPTIONS.ocpdType },
       { key:'ocpdRating', label:'Rating (A)', options:OPTIONS.ocpdRating },
@@ -213,7 +236,7 @@
   const CIRCUIT_TEST_GROUPS = [
     { title:'Continuity', fields:[
       { key:'r1', label:'r1 (line) Ω' }, { key:'rn', label:'rn (neutral) Ω' }, { key:'r2', label:'r2 (CPC) Ω' },
-      { key:'r1r2', label:'R1 + R2 (Ω)' }, { key:'r2only', label:'R2 (Ω)' }
+      { key:'continuityMethod', label:'Continuity test', options:['R1 + R2','R2','Both'] }, { key:'r1r2', label:'R1 + R2 (Ω)' }, { key:'r2only', label:'R2 (Ω)' }
     ]},
     { title:'Insulation resistance', fields:[
       { key:'irVoltage', label:'Test voltage (V)', options:['250','500','1000'] },
@@ -247,7 +270,7 @@
     spdOperational:'spdOperational'
   };
 
-  // Explicit allowlists: templates and linked feeds can never carry measured readings.
+  // Linked feeds and design-only templates exclude readings. Full templates require explicit opt-in.
   function circuitDesign(row){
     const keys=['deviceManufacturer','deviceModel','deviceKind','poleCount','phaseAssociation','testButtonVisual','description','wiringType','installMethod','refMethod','points','liveCsa','cpcCsa','ocpdBs','ocpdType','ocpdRating','breakingCapacity','rcdBs','rcdType','rcdIdn','rcdRating','afddBs','afddType','afddRating','spd'];
     return Object.fromEntries(keys.filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));
@@ -255,7 +278,7 @@
   function boardDesign(row){return Object.fromEntries(['mainSwitch','rcd','spd','manufacturer','model','ways','populated','spareWays','markings'].filter(k=>row[k]!==undefined).map(k=>[k,row[k]]));}
   function templateKey(kind){return kind==='board'?BOARD_TEMPLATES_KEY:CIRCUIT_TEMPLATES_KEY;}
   function cleanTemplate(kind,t){
-    return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):circuitDesign(t.design||{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
+    return {id:String(t.id||uid()),name:String(t.name||'Template').slice(0,80),design:kind==='board'?boardDesign(t.design||{}):(t.includeResults?JSON.parse(JSON.stringify(t.design||{})):circuitDesign(t.design||{})),...(kind==='circuit'&&t.includeResults?{includeResults:true,tests:JSON.parse(JSON.stringify(t.tests||{}))}:{}),...(kind==='board'?{circuits:(Array.isArray(t.circuits)?t.circuits:[]).filter(isRecord).map(circuitDesign)}:{})};
   }
   function reusableTemplates(kind){const list=readStore(templateKey(kind),[]);return Array.isArray(list)?list.filter(isRecord).map(t=>cleanTemplate(kind,t)):[];}
   function saveReusableTemplates(kind,list){localStorage.setItem(templateKey(kind),JSON.stringify(list.map(t=>cleanTemplate(kind,t))));}
@@ -305,6 +328,11 @@
   let templatePicker=null;
   function saveDesignTemplate(kind,cert,index){
     const row=kind==='board'?cert.tables.boards[index]:cert.tables.circuits[index];if(!row)return;
+    if(kind==='circuit'){
+      closeModal();
+      document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop"><div class="card modal" data-modal><h3>Save circuit template</h3><div class="field"><label>Template name</label><input data-template-name value="${esc(row.description||'Circuit')}"/></div><div class="actions"><button class="btn" data-action="template-save-choice" data-index="${index}" data-results="no">Details only</button><button class="btn primary" data-action="template-save-choice" data-index="${index}" data-results="yes">All information, including test results</button><button class="btn" data-action="close-modal">Cancel</button></div></div></div>`);
+      return;
+    }
     const name=prompt('Template name',kind==='board'?'Consumer unit':row.description||'Circuit');if(!name?.trim())return;
     const item={id:uid(),name:name.trim(),design:kind==='board'?boardDesign(row):circuitDesign(row)};
     if(kind==='board'&&confirm('Include the circuit design layout? Measured readings are always excluded.'))item.circuits=boardCircuitIndices(cert,row.ref).filter(i=>!cert.tables.circuits[i]._incomingFeed).map(i=>circuitDesign(cert.tables.circuits[i]));
@@ -326,8 +354,8 @@
     closeModal();
     if(kind==='board'){addBoard(cert,t);return;}
     if(boardIndexByRef(cert,boardRef)<0)return;
-    pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...circuitDesign(t.design),id:uid(),boardRef,circuitNo:no};
-    cert.tables.circuits.push(row);cert.tables.tests.push({boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,true);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
+    pushEditHistory('Insert circuit template');const no=nextCircuitNumber(cert,boardRef),row={...(t.includeResults?JSON.parse(JSON.stringify(t.design)):circuitDesign(t.design)),id:uid(),boardRef,circuitNo:no};
+    cert.tables.circuits.push(row);cert.tables.tests.push({...JSON.parse(JSON.stringify(t.tests||{})),boardRef,circuitNo:no});recalculateCircuitZs(cert,cert.tables.circuits.length-1,!t.includeResults);sortCircuitsByNumber(cert,row);view.circuitIndex=cert.tables.circuits.indexOf(row);view.circuitStep='details';saveNow();render();goTop();
   }
 
   function boardIndexByRef(cert,ref){
@@ -641,7 +669,7 @@
   function recalculateCircuitZs(cert,index,force=false) {
     const row=cert?.tables?.circuits?.[index]; if(!row) return;
     if(force) row.maxZsManual=false;
-    if(row.maxZsManual) return;
+    if(row.maxZsManual || (!force && String(row.maxZs||'').trim())) return;
     const calc=calculateMaxZs(row,cert);
     row.maxZs=calc||'';
   }
@@ -796,6 +824,10 @@
       f.testerMake=f.testerMake||'';
       f.testerModel=f.testerModel||'';
       f.testerSerial=f.testerSerial||f.instrumentMft||'';
+      if(!f.instrumentSelectionVersion){
+        INSTRUMENTS.forEach(([key,,make,model,serial])=>{if(f[make]||f[model]||f[serial])f[key]=true;});
+        f.instrumentSelectionVersion=1;
+      }
       if(f.testerMft===undefined) f.testerMft=Boolean(f.instrumentMft);
       ['testerLowOhm','testerInsulation','testerLoop','testerRcd','testerEarth','testerVoltage'].forEach(k=>{if(f[k]===undefined)f[k]=false;});
     }
@@ -815,28 +847,6 @@
 
   function restoreScroll(y){
     requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'}));
-  }
-
-  function goCircuitBottom(boardRef){
-    // Section J may expand asynchronously (e.g. after the editor and inspection
-    // accordions rebuild), so one immediate scroll calculation is insufficient.
-    // Keep retargeting the chosen board's Add Circuit button for a brief bounded
-    // period, without moving the viewport once the control is already visible.
-    const key=normaliseBoardKey(boardRef);
-    const exact='.consumer-unit-group[data-board-key="'+CSS.escape(key)+'"] .cu-circuits-accordion [data-board-add-circuit]';
-    const align=()=>{
-      if(view.page!=='form'||editMode==='certificate')return;
-      const target=document.querySelector(exact)||
-        document.querySelector('.cu-circuits-accordion [data-board-add-circuit]');
-      if(!target)return;
-      const rect=target.getBoundingClientRect();
-      const safeTop=92,safeBottom=window.innerHeight-126;
-      if(rect.top>=safeTop && rect.bottom<=safeBottom)return;
-      const desiredTop=Math.min(260,Math.max(safeTop,window.innerHeight*.31));
-      window.scrollBy({top:rect.top-desiredTop,left:0,behavior:'instant'});
-    };
-    requestAnimationFrame(()=>requestAnimationFrame(align));
-    [75,175,300].forEach(delay=>setTimeout(align,delay));
   }
 
   function goBoardCard(boardId){
@@ -863,74 +873,102 @@
     ['14.0', 'Prosumer’s low voltage electrical installation(s)']
   ].map(([item, description]) => ({ item, description, outcome: '' }));
 
+  // Item numbers and descriptions follow the IET BS 7671:2018+A4:2026
+  // condition report inspection schedule for premises with up to 100 A supply.
+  // Existing saved outcomes remain untouched; the PDF uses these model captions.
   const eicrInspectionRows = [
-    ['1.1', 'Distributor/supplier intake equipment — service cable, service head, earthing arrangement, meter tails, metering equipment and means of isolation'],
-    ['1.2', 'Consumer’s means of isolation (where present)'],
-    ['1.3', 'Consumer’s meter tails'],
-    ['2.0', 'Adequate arrangements for other sources such as microgenerators'],
-    ['3.1', 'Presence and condition of distributor’s earthing arrangement'],
-    ['3.2', 'Presence and condition of earth electrode connection where applicable'],
-    ['3.3', 'Provision of earthing/bonding labels at appropriate locations'],
-    ['3.4', 'Confirmation of earthing conductor size'],
-    ['3.5', 'Accessibility and condition of earthing conductor at MET'],
-    ['3.6', 'Confirmation of main protective bonding conductor sizes'],
-    ['3.7', 'Condition and accessibility of main protective bonding conductor connections'],
-    ['3.8', 'Accessibility and condition of other protective bonding connections'],
-    ['4.1', 'Adequacy of working space/accessibility to consumer unit/distribution board'],
-    ['4.2', 'Security of fixing'],
-    ['4.3', 'Condition of enclosure(s) in terms of IP rating'],
-    ['4.4', 'Condition of enclosure(s) in terms of fire rating'],
-    ['4.5', 'Enclosure not damaged/deteriorated so as to impair safety'],
-    ['4.6', 'Presence of main linked switch where required'],
-    ['4.7', 'Operation of main switch (functional check)'],
-    ['4.8', 'Manual operation of circuit-breakers and RCDs to prove disconnection'],
-    ['4.9', 'Correct identification of circuit details and protective devices'],
-    ['4.10', 'Presence of RCD six-monthly test notice where required'],
-    ['4.11', 'Presence of alternative supply warning notice at or near CU/DB'],
-    ['4.12', 'Presence of other required labelling'],
-    ['4.13', 'Compatibility of protective devices, bases and components; correct type/rating and no unacceptable thermal damage'],
-    ['4.14', 'Single-pole switching or protective devices in line conductor only'],
-    ['4.15', 'Protection against mechanical damage where cables enter CU/DB'],
-    ['4.16', 'Protection against electromagnetic effects where cables enter CU/DB/enclosures'],
-    ['4.17', 'RCDs provided for fault protection including RCBOs'],
-    ['4.18', 'RCDs provided for additional protection/requirements including RCBOs'],
-    ['4.19', 'Confirmation of indication that SPD is functional'],
-    ['4.20', 'Conductor connections correctly located in terminals and tight/secure'],
-    ['4.21', 'Adequate arrangements where generating set operates as switched alternative to public supply'],
-    ['4.22', 'Adequate arrangements where generating set operates in parallel with public supply'],
-    ['4.23', 'Confirmation of indication that AFDD(s) are operational'],
-    ['5.1', 'Identification of conductors'],
-    ['5.2', 'Cables correctly supported throughout their run'],
-    ['5.3', 'Condition of insulation of live parts'],
-    ['5.4', 'Non-sheathed cables protected by enclosure in conduit, ducting or trunking'],
-    ['5.5', 'Adequacy of cables for current-carrying capacity'],
-    ['5.6', 'Coordination between conductors and overload protective devices'],
-    ['5.7', 'Adequacy of protective devices: type and rated current for fault protection'],
-    ['5.8', 'Presence and adequacy of circuit protective conductors'],
-    ['5.9', 'Wiring system(s) appropriate for installation and external influences'],
-    ['5.10', 'Concealed cables installed in prescribed zones'],
-    ['5.11', 'Concealed cables adequately protected against damage'],
-    ['5.12', 'Additional RCD protection not exceeding 30 mA where required'],
-    ['5.13', 'Provision of fire barriers, sealing and protection against thermal effects'],
-    ['5.14', 'Band II cables segregated/separated from Band I cables'],
-    ['5.15', 'Cables segregated/separated from communications cabling'],
-    ['5.16', 'Cables segregated/separated from non-electrical services'],
-    ['5.17', 'Termination of cables at enclosures; sound connections, insulation enclosed and entry adequately protected'],
-    ['5.18', 'Condition of accessories including socket-outlets, switches and joint boxes'],
-    ['5.19', 'Suitability of accessories for external influences'],
-    ['5.20', 'Adequacy of working space/accessibility to equipment'],
-    ['5.21', 'Single-pole switching or protective devices in line conductors only'],
-    ['6.1', 'Bath/shower: additional protection for LV circuits by RCD not exceeding 30 mA'],
-    ['6.2', 'Bath/shower: SELV or PELV requirements where used'],
-    ['6.3', 'Bath/shower: shaver supply units comply with applicable standard'],
-    ['6.4', 'Bath/shower: supplementary bonding conductors present where required'],
-    ['6.5', 'Bath/shower: LV socket-outlets correctly sited'],
-    ['6.6', 'Bath/shower: suitability of equipment for external influences/IP rating'],
-    ['6.7', 'Bath/shower: suitability of accessories/controlgear for zone'],
-    ['6.8', 'Bath/shower: suitability of current-using equipment for position'],
-    ['7.1', 'Other Part 7 special installations or locations — separate details attached where applicable'],
-    ['8.1', 'Prosumer’s low voltage electrical installation(s) — Chapter 82 items recorded where applicable']
+    ['1.1','Distributor/supplier intake equipment: Service cable; Service head; Earthing arrangement; Meter tails; Metering equipment; Means of isolation (where present)'],
+    ['1.2','Consumer’s means of isolation (where present)'],
+    ['1.3','Consumer’s meter tails'],
+    ['2.0','Presence of adequate arrangements for other sources such as microgenerators (551.6; 551.7)'],
+    ['3.1','Presence and condition of distributor’s earthing arrangement (542.1.2.1; 542.1.2.2)'],
+    ['3.2','Presence and condition of earth electrode connection where applicable (542.1.2.3)'],
+    ['3.3','Provision of earthing/bonding labels at all appropriate locations (514.13.1)'],
+    ['3.4','Confirmation of earthing conductor size (542.3; 543.1.1)'],
+    ['3.5','Accessibility and condition of earthing conductor at MET (543.3.2)'],
+    ['3.6','Confirmation of main protective bonding conductor sizes (544.1)'],
+    ['3.7','Condition and accessibility of main protective bonding conductor connections (543.3.2; 544.1.2)'],
+    ['3.8','Accessibility and condition of other protective bonding connections (543.3.1; 543.3.2)'],
+    ['4.1','Adequacy of working space/accessibility to consumer unit/distribution board (132.12; 513.1)'],
+    ['4.2','Security of fixing (134.1.1)'],
+    ['4.3','Condition of enclosure(s) in terms of IP rating etc (416.2)'],
+    ['4.4','Condition of enclosure(s) in terms of fire rating etc (421.1.201; 526.5)'],
+    ['4.5','Enclosure not damaged/deteriorated so as to impair safety (651.2)'],
+    ['4.6','Presence of main linked switch (as required by 462.1.201)'],
+    ['4.7','Operation of main switch (functional check) (643.10)'],
+    ['4.8','Manual operation of circuit-breakers and RCDs to prove disconnection (643.10)'],
+    ['4.9','Correct identification of circuit details and protective devices (514.8.1; 514.9.1)'],
+    ['4.10','Presence of RCD six-monthly test notice, where required (514.12.2)'],
+    ['4.11','Presence of alternative supply warning notice at or near consumer unit/distribution board (514.15)'],
+    ['4.12','Presence of other required labelling (please specify) (Section 514)'],
+    ['4.13','Compatibility of protective devices, bases and other components; correct type and rating (No signs of unacceptable thermal damage, arcing or overheating) (411.3.2; 411.4; 411.5; 411.6; Sections 432, 433)'],
+    ['4.14','Single-pole switching or protective devices in line conductor only (132.14.1; 530.3.3)'],
+    ['4.15','Protection against mechanical damage where cables enter consumer unit/distribution board (522.8.1; 522.8.5; 522.8.11)'],
+    ['4.16','Protection against electromagnetic effects where cables enter consumer unit/distribution board/enclosures (521.5.1)'],
+    ['4.17','RCDs provided for fault protection - includes RCBOs (411.4.204; 411.5.2; 531.2)'],
+    ['4.18','RCDs provided for additional protection/requirements - includes RCBOs (411.3.3; 415.1)'],
+    ['4.19','Confirmation of indication that SPD is functional (651.4)'],
+    ['4.20','Confirmation that ALL conductor connections, including connections to busbars, are correctly located in terminals and are tight and secure (526.1)'],
+    ['4.21','Adequate arrangements where a generating set operates as a switched alternative to the public supply (551.6)'],
+    ['4.22','Adequate arrangements where a generating set operates in parallel with the public supply (551.7)'],
+    ['4.23','Confirmation of indication that AFDD(s) are operational (421.1.7; 532.6; 651.2(e))'],
+    ['5.1','Identification of conductors (514.3.1)'],
+    ['5.2','Cables correctly supported throughout their run (521.10.202; 522.8.5)'],
+    ['5.3','Condition of insulation of live parts (416.1)'],
+    ['5.4','Non-sheathed cables protected by enclosure in conduit, ducting or trunking (521.10.1). Include integrity of conduit and trunking systems (metallic and plastic)'],
+    ['5.5','Adequacy of cables for current-carrying capacity with regard for the type and nature of installation (Section 523)'],
+    ['5.6','Coordination between conductors and overload protective devices (433.1; 533.2.1)'],
+    ['5.7','Adequacy of protective devices: type and rated current for fault protection (411.3; 530.3.201)'],
+    ['5.8','Presence and adequacy of circuit protective conductors (411.3.1; Section 543)'],
+    ['5.9','Wiring system(s) appropriate for the types and nature of the installation and external influences (Section 522)'],
+    ['5.10','Concealed cables installed in prescribed zones (see Section D. Extent of limitations) (522.6.202)'],
+    ['5.11','Cables concealed under floors, above ceilings or in walls/partitions, adequately protected against damage (see Section D. Extent and limitations) (522.6.204)'],
+    ['5.12','Provision of additional requirements for protection by RCD not exceeding 30 mA: all socket-outlets not exceeding 32 A unless exception permitted; mobile equipment not exceeding 32 A outdoors; concealed cables less than 50 mm deep; walls with metal parts regardless of depth; final circuits supplying luminaires within domestic premises (411.3.3; 411.3.4; 522.6.202; Table 52.1)'],
+    ['5.13','Provision of fire barriers, sealing arrangements and protection against thermal effects (Section 527)'],
+    ['5.14','Band II cables segregated/separated from Band I cables (528.1)'],
+    ['5.15','Cables segregated/separated from communications cabling (528.2)'],
+    ['5.16','Cables segregated/separated from non-electrical services (528.3)'],
+    ['5.17','Termination of cables at enclosures - indicate extent and location of sampling in Section D (Section 526): connections sound and not under undue strain; no basic insulation outside enclosure; live conductors enclosed; adequately connected at point of entry'],
+    ['5.18','Condition of accessories including socket-outlets, switches and joint boxes (651.2(e))'],
+    ['5.19','Suitability of accessories for external influences (512.2)'],
+    ['5.20','Adequacy of working space/accessibility to equipment (132.12; 513.1)'],
+    ['5.21','Single-pole switching or protective devices in line conductors only (132.14.1; 530.3.3)'],
+    ['6.1','Additional protection for all low voltage (LV) circuits by RCD not exceeding 30 mA (701.411.3.3)'],
+    ['6.2','Where used as a protective measure, requirements for SELV or PELV (701.414.4.5)'],
+    ['6.3','Shaver supply units comply with BS EN 61558-2-5 formerly BS 3535 (701.512.3)'],
+    ['6.4','Presence of supplementary bonding conductors, where required (701.415.2)'],
+    ['6.5','Low voltage (e.g. 230 V) socket-outlets sited at least 2.5 m from zone 1 (701.512.3)'],
+    ['6.6','Suitability of equipment for external influences for installed location in terms of IP rating (701.512.2)'],
+    ['6.7','Suitability of accessories and controlgear etc. for a particular zone (701.512.3)'],
+    ['6.8','Suitability of current-using equipment for particular position within the location (701.55)'],
+    ['7.1','List all other special installations or locations present (record separately the results of particular inspections carried out and attach to report)'],
+    ['8.1','List all inspection items relating to Chapter 82 (record separately the results of particular inspections carried out and attach to report)']
   ].map(([item, description]) => ({ item, description, outcome: '', comment: '' }));
+
+  const INSTRUMENTS=[
+    ['testerMft','Multifunction tester','testerMake','testerModel','testerSerial'],
+    ['testerLowOhm','Low resistance ohmmeter','continuityMake','continuityModel','instrumentContinuity'],
+    ['testerInsulation','Insulation resistance','insulationMake','insulationModel','instrumentInsulation'],
+    ['testerLoop','Earth fault loop impedance','loopMake','loopModel','instrumentLoop'],
+    ['testerRcd','RCD','rcdInstrumentMake','rcdInstrumentModel','instrumentRcd'],
+    ['testerEarth','Earth electrode resistance','earthInstrumentMake','earthInstrumentModel','instrumentEarth'],
+    ['testerVoltage','Voltage indicator','voltageMake','voltageModel','instrumentVoltage']
+  ];
+  function instrumentFields(){
+    return [...INSTRUMENTS.flatMap(([key,label,make,model,serial])=>[
+      f(key,label,'checkbox',{span:'full'}),
+      ...[[make,'Make'],[model,'Model'],[serial,'Serial number']].map(([k,l])=>f(k,l,'text',{showWhen:{key,value:true}}))
+    ]),f('testedBy','Tested by name (Capitals)'),f('testedDate','Tested date','date')];
+  }
+  function supplyDeviceDisplay(fields){
+    const bs=String(fields.supplyDeviceBs||''),type=String(fields.supplyDeviceType||'');
+    return type&&!bs.includes('Type '+type)?bs+' Type '+type:bs;
+  }
+  function setSupplyDevice(fields,value){
+    const match=String(value).match(/^(.*?) Type (.+)$/);
+    fields.supplyDeviceBs=match?match[1]:value;
+    fields.supplyDeviceType=match?match[2]:'';
+  }
 
   const SCHEMAS = {
     eic: {
@@ -987,8 +1025,8 @@
           select('riskAssessmentAttached', 'Risk assessment attached', OPTIONS.yesNoNA)
         ]),
         section('D · Next inspection', [f('nextInspectionInterval', 'Recommended interval before next inspection (years/months)', 'text', { span: 'full' })]),
-        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('F · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('G · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), select('maximumDemandUnit', 'Maximum demand unit', ['A', 'kVA']), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), select('earthElectrodeLocation', 'Earth electrode location', ['N/A']), select('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)', ['N/A']), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main bonding to (water/gas/oil/steel/LPS/other)', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         table('eicInspection', 'H · Installation inspection checklist', [
           { key: 'item', label: 'Item', readonly: true },
           { key: 'description', label: 'Check', readonly: true },
@@ -999,22 +1037,7 @@
         table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
         table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
         table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', [
-          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
-          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
-          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
-          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
-          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
-          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
-          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
-          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
-          f('instrumentContinuity','Continuity instrument serial / asset number'),
-          f('instrumentInsulation','Insulation resistance instrument serial / asset number'),
-          f('instrumentLoop','Earth fault loop impedance instrument serial / asset number'),
-          f('instrumentRcd','RCD instrument serial / asset number'),
-          f('instrumentEarth','Earth electrode resistance instrument serial / asset number'),
-          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
-        ])
+        section('Test instrument', instrumentFields())
       ]
     },
 
@@ -1025,42 +1048,36 @@
       standard: 'BS 7671:2018+A4:2026',
       description: 'Periodic inspection and testing with observations, coding, schedules and overall assessment.',
       sections: [
-        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientPostcode', 'Postcode'), f('clientAddress', 'Address', 'textarea', { span: 'full' }), f('certificateNo', 'Report number'), f('issueDate', 'Report issue date', 'date')]),
+        section('A · Person ordering the report', [f('clientName', 'Name', 'text', { span: 'full' }), f('clientAddress', 'Address', 'textarea', { span: 'full' })]),
         section('B · Reason for producing this report', [f('reason', 'Reason for report', 'textarea', { span: 'full' }), f('inspectionDates', 'Date(s) inspection and testing carried out', 'text', { span: 'full' })]),
-        section('C · Installation details', [f('occupier', 'Occupier'), f('installationPostcode', 'Installation postcode'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), select('premisesType', 'Description of premises', OPTIONS.premises), f('premisesOther', 'Other description'), f('age', 'Estimated age of wiring system (years)'), select('additionsEvidence', 'Evidence of additions/alterations', ['Yes', 'Not apparent']), f('additionsAge', 'If yes, estimated age (years)'), select('recordsAvailable', 'Installation records available', OPTIONS.yesNo), f('lastInspection', 'Date of last inspection', 'date')]),
-        section('D · Extent & limitations', [f('extentInspected', 'Parts of installation inspected and tested', 'textarea', { span: 'full' }), f('agreedLimitations', 'Agreed limitations including reasons', 'textarea', { span: 'full' }), f('agreedWith', 'Agreed with'), f('operationalLimitations', 'Operational limitations and reasons', 'textarea', { span: 'full' }), f('standardAmendedTo', 'Inspection carried out to BS 7671 amended to', 'text', { placeholder: 'A4:2026' })]),
+        section('C · Installation details', [f('occupier', 'Occupier'), f('installationAddress', 'Installation address', 'textarea', { span: 'full' }), select('premisesType', 'Description of premises', ['Residential', 'Commercial', 'Industrial', 'Other']), f('premisesOther', 'Other description'), f('age', 'Estimated age of wiring system (years)'), select('additionsEvidence', 'Evidence of additions/alterations', ['Yes', 'Not apparent']), f('additionsAge', 'If yes, estimated age (years)'), select('recordsAvailable', 'Installation records available', OPTIONS.yesNo), f('lastInspection', 'Date of last inspection', 'date')]),
+        section('D · Extent & limitations', [f('extentInspected', 'Parts of installation inspected and tested', 'textarea', { span: 'full' }), f('agreedLimitations', 'Agreed limitations including reasons', 'textarea', { span: 'full' }), f('agreedWith', 'Agreed with'), f('operationalLimitations', 'Operational limitations and reasons', 'textarea', { span: 'full' }), f('operationalLimitationsPage', 'Operational limitations (see page no.)'), f('standardAmendedTo', 'BS 7671:2018 amended to (date)', 'text', { placeholder: 'DD/MM/YYYY' })]),
         section('E · Summary of condition', [select('overallAssessment', 'Overall assessment', OPTIONS.overall), f('generalCondition', 'General condition of the installation (electrical safety)', 'textarea', { span: 'full' })]),
         section('F · Recommendation for next inspection', [f('nextInspectionDate', 'Further inspection recommended before', 'date'), f('nextInspectionReason', 'Reason for recommended interval', 'textarea', { span: 'full' })]),
         section('G · Declaration', [f('inspectedBy', 'Inspected and tested by'), f('inspectorPosition', 'Position'), f('inspectorCompany', 'For/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea'), f('inspectorSignature', 'Inspector signature / typed name'), f('inspectorDate', 'Inspector date', 'date'), f('authorisedBy', 'Report authorised for issue by'), f('authoriserPosition', 'Authoriser position'), f('authoriserCompany', 'For/on behalf of'), f('authoriserAddress', 'Authoriser address', 'textarea'), f('authoriserSignature', 'Authoriser signature / typed name'), f('authoriserDate', 'Authoriser date', 'date')]),
-        section('H · Schedules attached', [f('continuationSheets', 'Continuation sheets / sections'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
-        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', OPTIONS.earthing), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), select('supplyDeviceType', 'Supply protective device type', OPTIONS.ocpdType), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('J · Installation particulars', [select('meansOfEarthing', 'Means of earthing', ['Distributor’s facility', 'Installation earth electrode', 'Both', 'Other']), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), select('earthElectrodeType', 'Earth electrode type', OPTIONS.earthElectrodeType), f('earthElectrodeLocation', 'Earth electrode location'), f('earthElectrodeResistance', 'Electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingTo', 'Main protective bonding to', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent device type / setting', OPTIONS.ocpdType), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('H · Schedules attached', [f('continuationSheetCount', 'Number of continuation sheets'), f('continuationSheetSections', 'For section(s)'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
+        section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', ['TN-C', 'TN-S', 'TN-C-S (PME)', 'TN-C-S (PNB)', 'TT', 'IT']), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), f('supplyDeviceType', 'Supply protective device type'), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
+        section('J · Installation particulars', [f('earthingDistributor', 'Distributor’s facility', 'checkbox'), f('earthingElectrode', 'Installation earth electrode', 'checkbox'), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingToWater', 'To water installation pipes', 'checkbox'), f('bondingToGas', 'To gas installation pipes', 'checkbox'), f('bondingToOil', 'To oil installation pipes', 'checkbox'), f('bondingToSteel', 'To structural steel', 'checkbox'), f('bondingToLightning', 'To lightning protection system', 'checkbox'), f('bondingToOtherChecked', 'To other', 'checkbox'), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('K · Observations', [f('limitationsReference', 'Extent and limitations reference'), select('remedialActionStatus', 'Observations', ['No remedial action is required', 'The following observations are made'])]),
         table('observations', 'K · Observations', [
-          { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
+          { key: 'item', label: 'Item No.' }, { key: 'observation', label: 'Observations' }, { key: 'location', label: 'Location' }, { key: 'code', label: 'Classification code', type: 'select', options: OPTIONS.observationCode }
         ], [{ item: '1' }]),
+        section('1.1 · Distributor/supplier intake equipment', [
+          select('intakeServiceCable', 'Service cable', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeServiceHead', 'Service head', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeEarthingArrangement', 'Earthing arrangement', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeterTails', 'Meter tails', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeteringEquipment', 'Metering equipment', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeMeansOfIsolation', 'Means of isolation (where present)', ['✓','✕','N/V','LIM','N/A']),
+          select('intakeNotified', 'Person ordering inspection notified of dangerous or potentially dangerous situations', ['Y','N/A'])
+        ]),
         table('eicrInspection', 'Condition report schedule of inspection', [
           { key: 'item', label: 'Item', readonly: true }, { key: 'description', label: 'Description', readonly: true }, { key: 'outcome', label: 'Outcome', type: 'select', options: OPTIONS.eicrOutcome }
         ], eicrInspectionRows),
-        section('Circuit schedule header', [f('dbReference', 'DB/CU reference'), f('dbLocation', 'DB/CU location'), f('suppliedFrom', 'Supplied from'), f('distributionOcpd', 'Distribution circuit OCPD'), f('dbRcd', 'DB RCD details'), select('dbSpd', 'SPD details / type(s)', OPTIONS.spdType), f('zdb', 'Zdb (Ω)'), f('dbIpf', 'DB Ipf (kA)'), select('dbPolarity', 'Correct polarity confirmed', OPTIONS.yesNoNA), select('phaseSequence', 'Phase sequence confirmed', OPTIONS.yesNoNA), select('spdOperational', 'SPD operational status confirmed', OPTIONS.yesNoNA)]),
-        table('boards', 'Distribution board / consumer unit register', boardColumns, [{ ref:'DB1' }]),
-        table('circuits', 'Schedule of circuit details', circuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        table('tests', 'Schedule of test results', testColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
-        section('Test instrument', [
-          f('testerMake', 'Make'), f('testerModel', 'Model'), f('testerSerial', 'Serial number'),
-          f('testerMft', 'Multifunction tester', 'checkbox', { span:'third' }),
-          f('testerLowOhm', 'Low resistance ohmmeter', 'checkbox', { span:'third' }),
-          f('testerInsulation', 'Insulation resistance', 'checkbox', { span:'third' }),
-          f('testerLoop', 'Earth fault loop impedance / Zs', 'checkbox', { span:'third' }),
-          f('testerRcd', 'RCD', 'checkbox', { span:'third' }),
-          f('testerEarth', 'Earth electrode resistance', 'checkbox', { span:'third' }),
-          f('testerVoltage', 'Voltage indicator', 'checkbox', { span:'third' }),
-          f('instrumentContinuity', 'Continuity instrument serial / asset number'),
-          f('instrumentInsulation', 'Insulation resistance instrument serial / asset number'),
-          f('instrumentLoop', 'Earth fault loop impedance instrument serial / asset number'),
-          f('instrumentRcd', 'RCD instrument serial / asset number'),
-          f('instrumentEarth', 'Earth electrode resistance instrument serial / asset number'),
-          f('testedBy', 'Tested by'), f('testedDate', 'Tested date', 'date')
-        ])
+        table('boards', 'Distribution board / consumer unit register', eicrBoardColumns, [{ ref:'DB1' }]),
+        table('circuits', 'Schedule of circuit details', eicrCircuitColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        table('tests', 'Schedule of test results', eicrTestColumns, [{ boardRef:'DB1', circuitNo: '1' }]),
+        section('Test instruments used (serial / asset numbers)', [f('testerSerial', 'Multifunction'), f('instrumentContinuity', 'Continuity'), f('instrumentInsulation', 'Insulation resistance'), f('instrumentLoop', 'Earth fault loop impedance'), f('instrumentRcd', 'RCD'), f('instrumentEarth', 'Earth electrode resistance'), f('testedBy', 'Tested by name (Capitals)'), f('testedDate', 'Date', 'date')])
       ]
     },
 
@@ -1562,7 +1579,7 @@
   }
 
   function autoBackupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] });
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
   function flushNativeAutoBackup() {
@@ -1654,7 +1671,7 @@
     if ('testedBy' in fields) fields.testedBy = settings.engineerName || '';
     if ('position' in fields && !fields.position) fields.position = settings.engineerPosition || '';
     if ('inspectorPosition' in fields && !fields.inspectorPosition) fields.inspectorPosition = settings.engineerPosition || '';
-    if ('testerMft' in fields) fields.testerMft = true;
+    if ('testerMft' in fields) fields.testerMft = Boolean(fields.testerMake||fields.testerModel||fields.testerSerial);
     const cert = { id: uid(), type, number: no, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fields, tables };
     migrateCertificate(cert);
     syncSingleSignatory(cert);
@@ -1671,7 +1688,7 @@
     document.body.appendChild(m);m.querySelector('button')?.focus();
   }
   function applyEntryOrientation(cert){
-    const value=editMode==='certificate' && window.SperinCertificateView?.isLandscape(cert?.type)?'landscape':'unspecified';
+    const value=view.page==='form' && view.circuitIndex===null && editMode==='certificate' && cert?'landscape':'unspecified';
     if(value===lastRequestedOrientation)return;
     lastRequestedOrientation=value;
     try{window.Android?.setCertificateOrientation?.(value);}catch(err){console.warn('Native orientation not available',err);}
@@ -1689,26 +1706,32 @@
     window.SperinCertificateView?.reset?.();
     view.circuitIndex=null;view.circuitStep='details';
     document.querySelector('.cv-opening')?.remove();
-    applyEntryOrientation(cert);render();goTop();
+    applyEntryOrientation(cert);render();
+    if(mode==='certificate')requestAnimationFrame(()=>document.querySelector('.cv-shell')?.scrollIntoView({block:'start',behavior:'instant'}));else goTop();
   }
   function certificateWorkspace(cert){
     const sheet=window.SperinCertificateView;
     if(!sheet)return '<div class="card app-error">Certificate View is unavailable. Switch to Quick Entry.</div>';
     const schema=SCHEMAS[cert.type];
     return '<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">'+esc(schema.standard)+'</div><h2>'+esc(schema.name)+'</h2><p>'+esc(cert.number)+' · '+esc(cert.status)+'</p></div></div>'+
-      sheet.render(cert,schema);
+      sheet.render(cert,schema,settings);
   }
+  let refreshingCertificateView=false;
   function refreshCertificateView(){
+    if(refreshingCertificateView)return;
     if(editMode!=='certificate')return;
     const port=document.querySelector('.cv-viewport');const cert=getCurrent();if(!cert)return;
-    const left=port?.scrollLeft||0,top=port?.scrollTop||0,zoom=window.SperinCertificateView.state.zoom;
+    const left=port?.scrollLeft||0,top=port?.scrollTop||0;
+    const fitting=window.SperinCertificateView.state.fitMode;
     const container=document.querySelector('.cv-shell');if(!container)return;
-    container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type]);
+    refreshingCertificateView=true;
+    try {
+    container.outerHTML=window.SperinCertificateView.render(cert,SCHEMAS[cert.type],settings);
     window.SperinCertificateView.attachGestures();
-    if(port?.isConnected!==true && (left||top)){
+    if(!fitting && port?.isConnected!==true && (left||top)){
       const target=document.querySelector('.cv-viewport');target.scrollLeft=left;target.scrollTop=top;
     }
-    window.SperinCertificateView.setZoom(zoom);
+    }finally{refreshingCertificateView=false;}
   }
 
   function openCertificate(id) {
@@ -1775,13 +1798,16 @@
     preserveRequestedAccordions=false;
     const root = document.getElementById('app');
     persistView();
+    applyEntryOrientation(getCurrent());
     document.body.dataset.page=view.page;
+    document.body.dataset.entryMode=(view.page==='form'&&editMode==='certificate')?'certificate':'quick';
     try {
-      root.innerHTML = `<div class="shell">${topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'?editorDock():''}</div>`;
+      root.innerHTML = `<div class="shell">${view.page==='form'&&editMode==='certificate'?'':topbar()}${view.page === 'home' ? homeView() : view.page === 'new' ? newCertificateListView() : view.page === 'library' ? certificateLibraryView() : formView()}${view.page==='form'&&editMode!=='certificate'?editorDock():''}</div>`;
       requestAnimationFrame(()=>{ try { decorateVoiceUI(); } catch(err) { console.error('Voice UI decoration failed',err); } if(editMode==='certificate'&&view.page==='form')window.SperinCertificateView?.attachGestures?.(); });
     } catch(err) {
       console.error('Certificate render failed',err);
       view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' };
+      applyEntryOrientation(null);
       root.innerHTML = `<div class="shell">${topbar()}<div class="card app-error"><h2>Certificate could not be opened</h2><p>A saved item contained older or damaged data. Your certificates have not been deleted.</p><button class="btn primary" data-action="home">Return to saved certificates</button></div></div>`;
     }
   }
@@ -1881,6 +1907,10 @@
     return '<div class="editor-dock" role="toolbar" aria-label="Certificate actions"><button class="btn cv-switch-button" data-action="switch-entry">'+(editMode==='certificate'?'☷ Quick Entry':'▤ Certificate View')+'</button>'+historyButtons()+'<button class="btn" data-action="certificate-review">Review</button><button class="btn primary" data-action="pdf">'+uiIcon('pdf')+' PDF</button></div>';
   }
 
+  function entryTools(contents){
+    return '<details class="entry-tools"><summary>More tools</summary><div class="entry-tools-panel" role="group" aria-label="Additional certificate tools">'+contents+'</div></details>';
+  }
+
   function formView() {
     const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
     migrateCertificate(cert);
@@ -1894,8 +1924,8 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3><button class="btn" data-action="jobs">📷 Linked job, photos &amp; handover</button>${cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">AI EICR observations review</button>':''}${['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester CSV</button>':''}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions">${cert.type==='minor'?boardScanButton(cert):''}<button class="btn rapid-entry-btn" data-action="rapid-entry">Voice</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy/convert</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="status">${cert.status === 'Complete' ? 'Draft' : 'Complete'}</button><button class="btn" data-action="print">Print</button></div></div><div class="entry-tools-explainer compact"><span><strong>Voice</strong> adds to long answers.</span><span><strong>Site sheet</strong> matches the issued PDF.</span></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -1992,6 +2022,7 @@
   }
 
   function renderField(field, value, cert) {
+    if(field.key==='supplyDeviceBs')value=supplyDeviceDisplay(cert.fields);
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
 
@@ -2010,7 +2041,7 @@
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
-    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
+    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs','earthElectrodeLocation','earthElectrodeResistance'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div>${['refMethod','referenceMethod'].includes(field.key)?refMethodHelp(value):''}</div>`;
@@ -2024,6 +2055,18 @@
     return `<div class="field"><label>${esc(label)}</label>${control}</div>`;
   }
 
+  function circuitSummaryActions(i,pos,count,row){
+    return [['circuit-move-up','↑','Move up',pos===0],['circuit-move-down','↓','Move down',pos===count-1],['circuit-delete','Delete','Delete circuit',false]].map(([action,text,label,disabled])=>'<button type="button" class="btn small" data-action="'+action+'" data-index="'+i+'" aria-label="'+label+'" '+(disabled||row._incomingFeed?'disabled':'')+'>'+text+'</button>').join('');
+  }
+  function alignAccordion(node){requestAnimationFrame(()=>requestAnimationFrame(()=>{if(node?.isConnected)node.scrollIntoView({block:'start',behavior:'instant'});}));}
+  function finishCircuit(cert,index){
+    const row=cert.tables.circuits[index];if(!row)return;
+    saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(row.boardRef);
+    accordionState.set('inline-circuit:'+cert.id+':'+row.id,false);
+    preserveRequestedAccordions=true;render();keepCircuitAccordionVisible(cert,row.boardRef);
+    const card=document.querySelector('[data-inline-index="'+index+'"]');
+    if(card){card.open=false;alignAccordion(card);}
+  }
   function renderBoardCircuits(cert,board,boardIndex){
     syncCircuitRows(cert);
     const indices=boardCircuitIndices(cert,board.ref);
@@ -2035,16 +2078,15 @@
       const key='inline-circuit:'+cert.id+':'+(row.id||i);
       return '<details class="inline-circuit cert-accordion" data-accordion-key="'+esc(key)+'" data-inline-index="'+i+'" '+(accordionOpen(key,false)?'open':'')+'>'+
         '<summary class="inline-circuit-summary"><strong>'+esc(row.deviceKind==='Main switch'?'Main switch':'Circuit '+number)+'</strong>'+
-        '<small>'+esc(details||'Enter details and measurements')+'</small><span class="cert-chevron">⌄</span></summary>'+
+        '<small>'+esc(details||'Enter details and measurements')+'</small><span class="circuit-summary-actions">'+circuitSummaryActions(i,pos,indices.length,row)+'</span><span class="cert-chevron">⌄</span></summary>'+
         '<div class="inline-circuit-fields" data-inline-body="'+i+'"></div>'+
         '<div class="inline-circuit-actions" role="group" aria-label="Circuit '+esc(number)+' actions">'+
-        '<button class="btn small primary inline-circuit-edit" data-action="circuit-open" data-index="'+i+'" aria-label="Edit circuit '+esc(number)+' in the full editor" title="Open complete circuit editor">✎ Edit</button>'+
         '<button class="btn small" data-action="circuit-move-up" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' up" title="Move circuit up" '+(pos===0||row._incomingFeed?'disabled':'')+'>↑ <span class="inline-action-word">Up</span></button>'+
         '<button class="btn small" data-action="circuit-move-down" data-index="'+i+'" aria-label="Move circuit '+esc(number)+' down" title="Move circuit down" '+(pos===indices.length-1||row._incomingFeed?'disabled':'')+'>↓ <span class="inline-action-word">Down</span></button>'+
         '<button class="btn small" data-action="circuit-duplicate" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Duplicate</button>'+
         '<button class="btn small" data-action="template-save-circuit" data-index="'+i+'" title="Save this circuit as a reusable template" '+(row._incomingFeed?'disabled':'')+'>＋ <span>Save Template</span></button>'+
         '<button class="btn small" data-action="template-open" data-kind="circuit" data-board-ref="'+esc(board.ref)+'" title="Insert a saved circuit template">↳ <span>Use Template</span></button>'+
-        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button></div></details>';
+        '<button class="btn small danger" data-action="circuit-delete" data-index="'+i+'" '+(row._incomingFeed?'disabled':'')+'>Delete</button><button class="btn primary" data-action="circuit-done" data-index="'+i+'">Done</button></div></details>';
     }).join('');
     return '<div class="board-circuit-list circuit-list">'+(cards||'<div class="empty">No circuits added.</div>')+'</div>'+
       '<div class="table-tools board-circuit-tools"><button class="btn primary" data-board-add-circuit data-action="circuit-add" data-board-ref="'+esc(board.ref)+'">＋ Add circuit</button>'+
@@ -2054,6 +2096,9 @@
     if(!details.open)return;
     const cert=getCurrent(),idx=Number(details.dataset.inlineIndex),body=details.querySelector('[data-inline-body]');
     if(!cert||!body||body.dataset.loaded==='true'||!Number.isInteger(idx)||!cert.tables.circuits?.[idx])return;
+    const previousMaxZs=cert.tables.circuits[idx].maxZs;
+    recalculateCircuitZs(cert,idx);
+    if(cert.tables.circuits[idx].maxZs!==previousMaxZs)saveNow();
     const renderGroups=(groups,scope,src)=>groups.map(g=>
       '<div class="inline-circuit-group"><h4>'+esc(g.title)+'</h4><div class="fields">'+
       g.fields.map(f=>editorInput(cert,scope,idx,f,src?.[f.key]??'')).join('')+'</div></div>').join('');
@@ -2100,7 +2145,6 @@
           ${boardControl(bi,'distributionOcpdType','Distribution circuit OCPD type',board.distributionOcpdType,OPTIONS.ocpdType)}
           ${boardControl(bi,'distributionOcpdRating','Distribution circuit OCPD rating / setting (A)',board.distributionOcpdRating)}
           ${boardControl(bi,'spd','SPD type(s)',board.spd,OPTIONS.spdType)}
-          ${boardControl(bi,'spdBs','SPD standard / BS EN (as marked)',board.spdBs||'')}
           ${boardControl(bi,'rcdBs','RCD BS (EN)',board.rcdBs)}
           ${boardControl(bi,'rcdType','RCD type',board.rcdType,OPTIONS.rcdType)}
           ${boardControl(bi,'rcdRating','RCD rating (A)',board.rcdRating,OPTIONS.ocpdRating)}
@@ -2131,6 +2175,11 @@
   }
 
   function editorInput(cert,scope,index,field,value){
+    const method=cert.tables.tests[index]?.continuityMethod || (cert.tables.tests[index]?.r2only?'Both':'R1 + R2');
+    if(field.key==='continuityMethod'&&!value)value=method;
+    if(field.key==='r2only' && method==='R1 + R2')return '';
+    if(field.key==='r1r2' && method==='R2')return '';
+
     const attrs=`data-circuit-input="${scope}" data-index="${index}" data-col="${field.key}"`;
     let control;
     if(field.key==='boardRef' || (scope==='details' && cert.tables.circuits[index]?._incomingFeed && field.key!=='maxZs')){
@@ -2165,7 +2214,7 @@
     const title=`Circuit ${esc(number)}`;
     const nav=step==='details'
       ? '<button class="btn primary" data-action="circuit-next">Next · Test results →</button>'
-      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Complete circuit</button>`;
+      : `<button class="btn" data-action="circuit-prev">← Circuit details</button><button class="btn primary" data-action="circuit-complete" data-board-ref="${esc(circuit.boardRef||'DB1')}">Done</button>`;
     return `<div class="form-head circuit-head"><button class="btn back" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">← Circuits</button><div class="form-title"><div class="eyebrow">${step==='details'?'1 of 2 · Circuit details':'2 of 2 · Test results'}</div><h2>${title}</h2><p>${esc(circuit.description||'')}</p></div><div class="actions">${boardScanButton(cert,circuit.boardRef)}<button class="btn small" data-action="job-evidence" data-ref="${esc(circuit.boardRef||'DB1')} / ${esc(number)}">📷 Circuit evidence</button><button class="btn small" data-action="speed-convert">Copy to new type</button><button class="btn small" data-action="template-save-circuit">Save template</button><span class="pill"><span data-save-state>Saved</span></span></div></div>${groups}<div class="circuit-page-nav">${nav}</div><div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · circuit autosaved</div><button class="btn small" data-action="circuit-list" data-board-ref="${esc(circuit.boardRef||'DB1')}">Circuits</button></div></div>`;
   }
 
@@ -2215,7 +2264,7 @@
       <div class="field"><label>Your signature image (PNG, JPEG, WebP or BMP · up to 8 MB)</label><input data-report-image="reportSignature" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" /></div></div>
       <button class="btn small" type="button" data-action="clear-brand-images">Clear logo and signature</button>
       </section>
-      <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">The app keeps an automatic recovery copy. Imports and destructive deletes save an undo snapshot first.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import file</button><button class="btn" data-action="restore">Restore latest</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
+      <section class="profile-section"><h3>Backup & recovery</h3><p class="profile-help">Moving certificates from your previous app? Tap <strong>Import certificate JSON</strong> and select its exported <strong>.json</strong> file. <strong>Restore this app</strong> only uses backups saved by this installation. Your encrypted signing-key .bin file is not a certificate backup. Your current data is saved to recovery before importing.</p><div class="toolbar recovery-toolbar"><button class="btn" data-action="backup">Backup</button><button class="btn primary" data-action="import-backup">Import certificate JSON</button><button class="btn" data-action="restore">Restore this app</button><button class="btn" data-action="undo-restore">Undo recovery</button><button class="btn" data-action="share-backup">Share</button></div></section>
       <div class="profile-footer"><button class="btn primary" data-action="save-settings">Save profile</button></div>
     </div></div>`;
     document.body.insertAdjacentHTML('beforeend',html);
@@ -2224,7 +2273,15 @@
   function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 
   function backupPayload() {
-    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
+    return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] }, null, 2);
+  }
+
+  async function portableBackupPayload() {
+    saveNow();
+    const data=JSON.parse(backupPayload());
+    data.backupSchema=2;
+    data.jobPhotos=await window.SperinJobCentre.exportPhotos(data.jobs);
+    return JSON.stringify(data,null,2);
   }
 
   function savePreRestoreSnapshot() {
@@ -2237,8 +2294,12 @@
   }
 
   function prepareBackupData(json) {
+    if(typeof json==='string' && !/^\s*\{/.test(json)) throw new Error('Select a Sperin Certificates .json backup exported from the old app. The encrypted signing-key .bin file is not a certificate backup.');
     const data=typeof json==='string'?JSON.parse(json):json;
-    if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates backup');
+    if(!isRecord(data) || !Array.isArray(data.certificates)) throw new Error('Not a Sperin Certificates certificate backup (.json).');
+    if(data.backupSchema!==undefined && data.backupSchema!==2) throw new Error('Unsupported backup schema; keep this file and update the app');
+    const ids=data.certificates.map(c=>c?.id).filter(Boolean);
+    if(new Set(ids).size!==ids.length) throw new Error('Duplicate certificate IDs in backup');
     const certificates=data.certificates.map((raw,index)=>{
       const copy=clone(raw);
       const migrated=migrateCertificate(copy);
@@ -2254,36 +2315,67 @@
         templates[kind]=data[key].map(t=>cleanTemplate(kind,t));
       }
     }
-    return {certificates,settings:importedSettings,templates,jobs:Array.isArray(data.jobs)?data.jobs:[]};
+    for(const key of ['jobs','sitePlans','siteTemplates']){
+      if(data[key]!==undefined && !Array.isArray(data[key])) throw new Error('Invalid '+key);
+    }
+    window.SperinJobCentre.validateBackup(data.jobs||[],data.jobPhotos,data.backupSchema);
+    return {certificates,settings:importedSettings,templates,jobs:data.jobs,jobPhotos:data.jobPhotos,
+      sitePlans:data.sitePlans,siteTemplates:data.siteTemplates};
   }
 
-  function applyBackupJson(json,preserveCurrent=true) {
+  async function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
-    if(preserveCurrent) savePreRestoreSnapshot();
-    Object.entries(prepared.templates).forEach(([kind,list])=>saveReusableTemplates(kind,list));
-    resetEditHistory();
-    state={certificates:prepared.certificates};
-    settings=prepared.settings;
-    if(prepared.jobs?.length)window.SperinJobCentre?.importMetadata?.(prepared.jobs);
-    view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
-    closeModal();
-    persist(); saveSettings(); scheduleNativeAutoBackup(); render(); goTop();
+    // Keep a complete rollback copy before touching either storage system.
+    if(preserveCurrent) localStorage.setItem(PRE_RESTORE_KEY,await portableBackupPayload());
+    // Photo imports use fresh IDs on collisions, preserving the rollback's bytes.
+    prepared.jobs=prepared.jobs===undefined?undefined:clone(prepared.jobs);
+    await window.SperinJobCentre.restorePhotos(prepared.jobPhotos||{},prepared.jobs||[]);
+    const keys=['sperin-certificate-jobs-v1',STORAGE_KEY,SETTINGS_KEY,VIEW_KEY,SHEET_PLANS_KEY,SHEET_TEMPLATES_KEY,templateKey('board'),templateKey('circuit')];
+    const previous=new Map(keys.map(k=>[k,localStorage.getItem(k)]));
+    const previousState=state,previousSettings=settings,previousView=view,previousJobs=window.SperinJobCentre.backup();
+    try{
+      if(prepared.sitePlans!==undefined) localStorage.setItem(SHEET_PLANS_KEY,JSON.stringify(prepared.sitePlans));
+      if(prepared.siteTemplates!==undefined) localStorage.setItem(SHEET_TEMPLATES_KEY,JSON.stringify(prepared.siteTemplates));
+      Object.entries(prepared.templates).forEach(([kind,list])=>saveReusableTemplates(kind,list));
+      state={certificates:prepared.certificates};settings=prepared.settings;
+      if(prepared.jobs!==undefined)window.SperinJobCentre.replaceMetadata(prepared.jobs);
+      view={page:'home',currentId:null,circuitIndex:null,circuitStep:'details'};
+      persist();saveSettings();
+    }catch(err){
+      state=previousState;settings=previousSettings;view=previousView;
+      // Remove new values first to release space before restoring old values.
+      keys.forEach(k=>localStorage.removeItem(k));
+      previous.forEach((v,k)=>{if(v!==null)localStorage.setItem(k,v);});
+      window.SperinJobCentre.replaceMetadata(previousJobs);
+      throw err;
+    }
+    resetEditHistory();closeModal();scheduleNativeAutoBackup();render();goTop();
+    if(prepared.jobPhotos===undefined && prepared.jobs?.some(j=>j.evidence?.length))
+      alert('This older backup contains photo references but no photo files. Keep the original app. Export each job handover ZIP there to preserve its photos before migrating.');
   }
 
-  function undoLastRestore(){
+  async function undoLastRestore(){
     const recovery=localStorage.getItem(PRE_RESTORE_KEY);
     if(!recovery){alert('No pre-restore recovery snapshot is available on this device.');return;}
     try{
-      const current=backupPayload();
-      applyBackupJson(recovery,false);
+      const current=await portableBackupPayload();
+      await applyBackupJson(recovery,false);
       localStorage.setItem(PRE_RESTORE_KEY,current);
       toast('Previous certificate data recovered');
     }catch(err){alert('Could not recover the previous data: '+err.message);}
   }
 
-  window.sperinRestoreBackup=function(json,error){
-    if(error){alert('Backup import/restore failed: '+error);return;}
-    try{applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
+  window.sperinRestoreBackup=async function(json,error){
+    if(error){
+      if(String(error).includes('No Sperin Certificates backup was found')){
+        toast('No backup in this app. Choose the certificate .json exported from your old app.');
+        performImportBackupFile();
+        return;
+      }
+      alert('Backup import/restore failed: '+error);
+      return;
+    }
+    try{await applyBackupJson(json,true);toast('Backup loaded — Undo Last Restore is available');}
     catch(err){alert('Could not load backup: '+err.message);}
   };
 
@@ -2297,17 +2389,17 @@
         finalLabel:'Backup now'
       },
       restore:{
-        firstTitle:'Restore latest backup?',
-        firstText:'This replaces the current certificate data with the latest backup. Your current data is saved to recovery first.',
+        firstTitle:'Restore a backup made by this app?',
+        firstText:'This searches backups saved by this installation. To move certificates from an old app, choose Import certificate JSON instead. Your current data is saved to recovery first.',
         secondTitle:'Confirm restore',
-        secondText:'This is the restore action. Press Restore now only if you want to replace the current data.',
+        secondText:'Restore this installation’s backup, or choose your exported JSON file if no local backup exists.',
         finalLabel:'Restore now'
       },
       import:{
-        firstTitle:'Import backup file?',
-        firstText:'This will load certificate data from a backup file. Your current data is saved to recovery first.',
+        firstTitle:'Import a Sperin Certificates .json backup?',
+        firstText:'Select the certificate .json file exported from your old app. The encrypted signing-key .bin is not a certificate backup. Your current data is saved to recovery first.',
         secondTitle:'Confirm import',
-        secondText:'Press Import now to choose and load the backup file.',
+        secondText:'Choose the certificate .json file to load; the existing app and its data stay untouched.',
         finalLabel:'Import now'
       }
     };
@@ -2328,8 +2420,9 @@
     document.body.insertAdjacentHTML('beforeend',html);
   }
 
-  function performBackup() {
-    const content=backupPayload();
+  async function performBackup() {
+    let content;
+    try{content=await portableBackupPayload();}catch(err){alert('Backup failed: '+err.message);return;}
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.saveBackup==='function'){
       try {
@@ -2355,7 +2448,7 @@
     input.onchange=()=>{
       const file=input.files?.[0]; if(!file)return;
       const reader=new FileReader();
-      reader.onload=()=>{try{applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
+      reader.onload=async()=>{try{await applyBackupJson(reader.result);toast('Import complete');}catch(err){alert('Could not import backup: '+err.message);}};
       reader.readAsText(file);
     };
     input.click();
@@ -2386,8 +2479,9 @@
     else if(pending.kind==='import') performImportBackupFile();
   }
 
-  function shareBackup() {
-    const content=backupPayload();
+  async function shareBackup() {
+    let content;
+    try{content=await portableBackupPayload();}catch(err){alert('Backup failed: '+err.message);return;}
     const filename=`sperin-certificates-backup-${TODAY}.json`;
     if(window.Android && typeof window.Android.shareBackup==='function'){
       try { window.Android.shareBackup(content,filename); return; } catch(err){console.warn(err);}
@@ -2409,6 +2503,26 @@
 
   function printCertificate() {
     saveNow();
+    const cert=getCurrent();
+    if(!cert)return;
+    // Print the vector certificate PDF, not the WebView's responsive input UI.
+    // The native adapter uses true A4 and does not add a second page margin.
+    if(window.Android && typeof window.Android.printPdfBase64==='function'){
+      try{
+        if(!window.SperinIetForms?.build)throw new Error('Certificate PDF renderer unavailable');
+        syncSingleSignatory(cert);persist();
+        const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
+        const landscape=['eic','eicr'].includes(cert.type);
+        if(window.Android.printPdfBase64(doc.output('datauristring'),doc.getNumberOfPages(),landscape)===false)
+          throw new Error('Android could not prepare the certificate PDF for printing');
+        return;
+      }catch(err){
+        console.error('Certificate PDF print failed',err);
+        alert('Certificate printing failed: '+(err?.message||err));
+        return;
+      }
+    }
+    // Keep compatibility with older installed app builds until a signed update is ready.
     if(window.Android && typeof window.Android.printPage==='function'){
       try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
     }
@@ -2491,8 +2605,14 @@
     saveNow();
     render();
     toast('Certificate completed');
-    if(window.Android?.openLatestPdf)window.Android.openLatestPdf();
-    else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
+    if(window.Android?.openLatestPdf){
+      try{
+        if(window.Android.openLatestPdf()===false)toast('PDF saved to Downloads. Preview could not open.');
+      }catch(err){
+        console.error('Could not open saved PDF',err);
+        toast('PDF saved to Downloads. Open it from Files.');
+      }
+    }else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
   }
 
   function formatPdfValue(field, value) {
@@ -2769,8 +2889,8 @@
         items.push({title:d.label+' needs a value check',key:rapidDescriptorId(d),note:d.section+': “'+v+'”. Confirm the reading, units or an explicit limitation; this value was not assessed numerically.'});
     }
     if(cert.type==='eicr'&&f.overallAssessment==='Satisfactory'){
-      const adverse=[...(cert.tables?.eicrInspection||[]),...(cert.tables?.observations||[])].some(r=>['C1','C2','FI'].includes(r.outcome||r.code||r.classification));
-      if(adverse)items.push({title:'Overall assessment conflicts with findings',note:'C1, C2 or FI is recorded. Review the Satisfactory assessment and observation classifications.',blocking:true});
+      const adverse=[...(cert.tables?.eicrInspection||[]),...(cert.tables?.observations||[])].some(r=>['C1','C2'].includes(r.outcome||r.code||r.classification));
+      if(adverse)items.push({title:'Overall assessment conflicts with findings',note:'C1 or C2 requires an UNSATISFACTORY assessment. C3 and FI are advisory under BS 7671:2018+A4:2026.',blocking:true});
     }
     const circuits=cert.type==='minor'?[{row:f,test:f,label:'Minor works'}]:(cert.tables?.circuits||[]).map((row,i)=>({row,test:cert.tables?.tests?.[i]||{},label:(row.boardRef||'DB1')+' · Circuit '+(row.circuitNo||i+1)}));
     for(const {row,test,label} of circuits){
@@ -3597,7 +3717,9 @@
     if (e.target.matches('[data-field]') && cert) {
       const key=e.target.dataset.field;
       const previousValue=cert.fields[key];
+      if(key==='testedBy'&&e.target.type!=='checkbox')e.target.value=String(e.target.value||'').toUpperCase();
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
+      if(key==='supplyDeviceBs')setSupplyDevice(cert.fields,e.target.value);
       if(key==='certificateNo') cert.number=e.target.value;
       if(key==='nominalVoltage' && previousValue!==cert.fields[key] && Array.isArray(cert.tables?.circuits)){
         cert.tables.circuits.forEach((_,i)=>{
@@ -3698,6 +3820,7 @@
     if(!dest||!Object.prototype.hasOwnProperty.call(dest,key) &&
       scope==='table' && !SCHEMAS[cert.type]?.sections?.some(p=>p.key===table&&p.columns?.some(c=>c.key===key)))return;
     let value=el.type==='checkbox'?el.checked:el.value;
+    if(scope==='field'&&key==='testedBy'&&typeof value==='string'){value=value.toUpperCase();el.value=value;}
     if(scope==='circuit'&&key==='circuitNo'&&cert.tables.circuits.some((r,j)=>j!==i&&r.boardRef===dest.boardRef&&String(r.circuitNo)===String(value))){
       el.setCustomValidity('Circuit number already exists on this consumer unit');el.reportValidity();return;
     }
@@ -3705,6 +3828,9 @@
     const old=dest[key];
     if(old===value)return;
     dest[key]=value;
+    if(scope==='field'&&key==='supplyDeviceBs')setSupplyDevice(cert.fields,value);
+    if(scope==='circuit'&&['ocpdBs','ocpdType','ocpdRating'].includes(key))recalculateCircuitZs(cert,i,true);
+    if(scope==='field'&&key==='nominalVoltage')cert.tables.circuits?.forEach((_,j)=>recalculateCircuitZs(cert,j,true));
     if(scope==='circuit'&&key==='circuitNo'&&cert.tables.tests[i])cert.tables.tests[i].circuitNo=value;
     if(scope==='circuit'&&key==='deviceKind'){
       const proposed={MCB:{ocpdBs:'BS EN 60898-1'},RCBO:{ocpdBs:'BS EN 61009-1',rcdBs:'BS EN 61009-1'},RCD:{rcdBs:'BS EN 61008-1'},RCCB:{rcdBs:'BS EN 61008-1'}};
@@ -3728,6 +3854,7 @@
       if(cert&&r)sortCircuitsByNumber(cert,r);
     }
     saveNow();
+    if(e.target.closest('.cv-exact-pdf') || e.target.dataset.cvScope==='field'&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.cvKey))refreshCertificateView();
   });
   document.addEventListener('focusout',e=>{
     if(e.target.matches?.('[data-cv-scope]'))saveNow();
@@ -3840,6 +3967,16 @@
     if(e.target.matches('[data-library-status]')){libraryStatus=e.target.value;render();}
     if(e.target.matches('[data-library-sort]')){librarySort=e.target.value;render();}
   });
+  document.addEventListener('change',e=>{
+    const cert=getCurrent();if(!cert)return;
+    if(e.target.matches('[data-field][type="checkbox"]')&&INSTRUMENTS.some(x=>x[0]===e.target.dataset.field)){
+      saveNow();const y=scrollY;render();restoreScroll(y);
+    }
+    if(e.target.matches('[data-circuit-input][data-col="continuityMethod"]')){
+      saveNow();const card=e.target.closest('.inline-circuit');
+      if(card){card.querySelector('[data-inline-body]').dataset.loaded='';populateInlineCircuit(card);}else{const y=scrollY;render();restoreScroll(y);}
+    }
+  });
   document.addEventListener('toggle',e=>{
     const node=e.target;
     if(node instanceof HTMLElement&&node.matches('details.inline-circuit')&&node.open)populateInlineCircuit(node);
@@ -3858,19 +3995,23 @@
     if(hint)hint.textContent=refMethodDescription(input.value);
   });
   document.addEventListener('click',e=>{
-    const summary=e.target.closest('.cert-accordion-head,.cu-summary');
-    if(!summary)return;
-    const current=summary.closest('details[data-accordion-key]');
-    if(!current||current.open)return;
-    const group=summary.matches('.cu-summary')?'cu-accordion':'cert-accordion';
-    document.querySelectorAll('#app details.'+group+'[open]').forEach(other=>{
-      if(other!==current)other.open=false;
-    });
+    const summary=e.target.closest('summary');
+    if(!summary||e.target.closest('[data-action]'))return;
+    const current=summary.parentElement;
+    if(!current.matches('details[data-accordion-key]')||current.open)return;
+    const peers=current.classList.contains('inline-circuit')?current.parentElement.querySelectorAll(':scope > details.inline-circuit'):
+      current.classList.contains('cu-accordion')||current.classList.contains('cu-circuits-accordion')?current.closest('.distribution-body').querySelectorAll('.cu-accordion,.cu-circuits-accordion'):
+      document.querySelectorAll('#app > .shell > details.cert-accordion');
+    const list=peers.length?peers:document.querySelectorAll('#app details.cert-accordion:not(.inline-circuit)');
+    list.forEach(other=>{if(other!==current&&!other.contains(current))other.open=false;});
+    alignAccordion(current);
   });
   document.addEventListener('click', e => {
     const button = e.target.closest('[data-action]'); if (!button) return;
     if(button.classList.contains('modal-backdrop') && e.target.closest('[data-modal]')) return;
+    if(button.closest('summary')){e.preventDefault();e.stopPropagation();}
     const action = button.dataset.action;
+    if(button.closest('.cv-menu-panel'))button.closest('.cv-menu')?.removeAttribute('open');
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
     if(action==='cv-keyboard'){const input=button.closest('.cv-field')?.querySelector('input');if(input){input.inputMode=input.inputMode==='decimal'?'text':'decimal';button.textContent=input.inputMode==='decimal'?'ABC':'123';input.focus();}}
@@ -3931,6 +4072,14 @@
     }
     else if(action==='board-add' && cert){addBoard(cert);}
     else if(action==='board-delete' && cert){deleteBoard(cert,Number(button.dataset.boardIndex));}
+    else if(action==='template-save-choice' && cert){
+      const index=Number(button.dataset.index),row=cert.tables.circuits[index],name=document.querySelector('[data-template-name]')?.value.trim();
+      if(!row||!name)return;
+      const includeResults=button.dataset.results==='yes';
+      const item={id:uid(),name,includeResults,design:includeResults?JSON.parse(JSON.stringify(row)):circuitDesign(row),...(includeResults?{tests:JSON.parse(JSON.stringify(cert.tables.tests[index]||{}))}:{})};
+      try{saveReusableTemplates('circuit',[...reusableTemplates('circuit'),item]);scheduleNativeAutoBackup();closeModal();toast('Template saved');}catch(err){alert('Template could not be saved: '+err.message);}
+    }
+    else if(action==='circuit-done' && cert){finishCircuit(cert,Number(button.dataset.index));}
     else if(action==='template-save-board' && cert){saveDesignTemplate('board',cert,Number(button.dataset.boardIndex));}
     else if(action==='template-save-circuit' && cert){saveDesignTemplate('circuit',cert,button.dataset.index!==undefined?Number(button.dataset.index):view.circuitIndex);}
     else if(action==='template-open'){openTemplatePicker(button.dataset.kind,button.dataset.boardRef);}
@@ -4049,9 +4198,15 @@
     else if (action === 'delete') deleteCertificate(button.dataset.id);
     else if (action === 'home') { saveNow();lastRequestedOrientation='';try{window.Android?.setCertificateOrientation?.('unspecified');}catch{} view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if(action==='pdf-open'){
-      if(window.Android?.openLatestPdf){if(window.Android.openLatestPdf()===false)alert('PDF unavailable. Re-download the file.');}
-      else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
-      document.querySelector('.pdf-download-backdrop')?.remove();
+      let opened=false;
+      try {
+        if(window.Android?.openLatestPdf)opened=window.Android.openLatestPdf()!==false;
+        else if(lastPdfPreviewUrl)opened=!!window.open(lastPdfPreviewUrl,'_blank','noopener');
+      } catch(err) {
+        console.error('PDF preview could not open',err);
+      }
+      if(opened)document.querySelector('.pdf-download-backdrop')?.remove();
+      else alert('The PDF was saved to Downloads, but the preview could not open. Please try again or open the file in My Files.');
     }
     else if(action==='pdf-dismiss')document.querySelector('.pdf-download-backdrop')?.remove();
     else if (action === 'pdf') downloadPDF();
@@ -4077,7 +4232,7 @@
       const source=cert.tables.circuits[i]||{};
       const no=nextCircuitNumber(cert,source.boardRef||'DB1');
       pushEditHistory('Duplicate circuit');
-      const c={...circuitDesign(source),id:uid(),boardRef:source.boardRef,circuitNo:no},t={boardRef:source.boardRef,circuitNo:no};
+      const c={...JSON.parse(JSON.stringify(source)),id:uid(),boardRef:source.boardRef,circuitNo:no},t={...JSON.parse(JSON.stringify(cert.tables.tests[i]||{})),boardRef:source.boardRef,circuitNo:no};
       cert.tables.circuits.push(c);cert.tables.tests.push(t);sortCircuitsByNumber(cert,c);view.circuitIndex=cert.tables.circuits.indexOf(c);view.circuitStep='details';persist();render();goTop();
     }
     else if(action==='circuit-delete' && cert){
@@ -4091,8 +4246,8 @@
     }
     else if(action==='circuit-next' && cert){saveNow();view.circuitStep='tests';render();goTop();}
     else if(action==='circuit-prev' && cert){saveNow();view.circuitStep='details';render();goTop();}
-    else if(action==='circuit-list' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
-    else if(action==='circuit-complete' && cert){saveNow();view.circuitIndex=null;view.circuitStep='details';openBoardAccordion(button.dataset.boardRef);render();goCircuitBottom(button.dataset.boardRef);}
+    else if(action==='circuit-list' && cert){finishCircuit(cert,view.circuitIndex);}
+    else if(action==='circuit-complete' && cert){finishCircuit(cert,view.circuitIndex);}
     else if (action === 'row-add') { if (!cert) return; const key = button.dataset.table; cert.tables[key] = cert.tables[key] || []; cert.tables[key].push({}); persist(); render(); }
     else if (action === 'row-delete') { if (!cert) return; const key = button.dataset.table; const ri = Number(button.dataset.row); savePreRestoreSnapshot(); cert.tables[key].splice(ri, 1); saveNow(); render(); toast('Row deleted · recovery saved'); }
     else if(action==='clear-brand-images'){if(confirm('Remove saved report images from this device?')){settings.reportLogo='';settings.reportSignature='';saveSettings();closeModal();openSettings();}}

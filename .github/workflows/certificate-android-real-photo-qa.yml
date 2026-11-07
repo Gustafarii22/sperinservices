@@ -3,14 +3,17 @@ on:
   push:
     branches:
       - release/sperin-certificates-v187-scanner-reviewed
+      - fix/certificates-v197-data-safe-ux
     paths:
       - "public/certificates/scan-core.js"
       - "public/certificates/board-scan.js"
       - "certificate-android/qa/run-native-ocr-qa.sh"
       - "certificate-android/app/src/androidTest/**"
+      - "certificate-android/app/src/main/java/**"
       - ".github/workflows/certificate-android-real-photo-qa.yml"
   pull_request:
     paths:
+      - "certificate-android/qa/run-native-ocr-qa.sh"
       - "certificate-android/app/src/androidTest/**"
       - "certificate-android/app/src/main/java/**"
       - "certificate-android/app/build.gradle"
@@ -35,6 +38,8 @@ jobs:
           gradle-version: "8.10.2"
       - name: Prepare genuine existing consumer-unit image for private test app
         run: |
+          mkdir -p certificate-android/app/src/main/assets/certificates
+          cp -a public/certificates/. certificate-android/app/src/main/assets/certificates/
           mkdir -p certificate-android/app/src/androidTest/assets
           cp public/projects/nursery-refurbishment/distribution-board.webp certificate-android/app/src/androidTest/assets/consumer-unit-qa.webp
       - name: Allow hardware accelerated Android emulator

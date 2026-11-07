@@ -1,0 +1,44 @@
+name: IET A4 EICR exact field and rendered PDF check
+on:
+  push:
+    branches: [fix/certificates-v197-data-safe-ux]
+    paths:
+      - 'public/certificates/app.js'
+      - 'public/certificates/iet-forms.js'
+      - 'public/certificates/pdf-edit-map.js'
+      - 'tests/certificates-eicr-a4-structure.test.mjs'
+      - '.github/workflows/eicr-iet-model-quick-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  eicr-model-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax and 16 plus 15 model schedule columns
+        run: |
+          node --check public/certificates/app.js
+          node --check public/certificates/iet-forms.js
+          node --test tests/iet-a4-model-form-audit.mjs
+      - name: Audit actual EICR PDF, 66 inspection rows and stored-data preservation
+        run: node --test tests/certificates-eicr-a4-structure.test.mjs
+      - name: Check PDF signature
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('certificate-android/qa-output/eicr-a4-model-qa.pdf')
+          assert p.is_file() and p.stat().st_size>10000, 'EICR PDF not produced'
+          assert p.read_bytes().startswith(b'%PDF-'), 'Invalid PDF'
+          print('IET_A4_EICR_PDF_STRUCTURE_PASS',p.stat().st_size)
+          PY
+      - name: Upload test PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: eicr-iet-a4-model-proof
+          path: certificate-android/qa-output/eicr-a4-model-qa.pdf
+          if-no-files-found: error

@@ -49,6 +49,38 @@
     lines.forEach((line,i)=>doc.text(line,x,y+i*lh,opts.align?{align:opts.align}:undefined));
     return y+Math.max(1,lines.length)*lh;
   }
+  // Mixed-weight inline printing, wrapped within its designated PDF cell.
+  // Write labels in bold and saved answers in normal weight without changing
+  // certificate data or relying on fake bold spaces in a single AutoTable cell.
+  function writeRuns(doc,runs,x,y,w,size=7.2,lineHeight=4.2,maxLines=3){
+    let xx=x, yy=y, lines=1;
+    const right=x+w;
+    for(const run of runs){
+      const src=pdfText(run.text??'');
+      if(!src)continue;
+      doc.setFont('helvetica',run.bold?'bold':'normal');
+      doc.setFontSize(size);doc.setTextColor(...INK);
+      const segments=[src];
+      // Preserve a complete label as one PDF text run where it fits.
+      if(doc.getTextWidth(src)>right-xx)segments.splice(0,1,...src.split(/(?<=\\s)/));
+      for(let part of segments){
+        if(!part)continue;
+        let width=doc.getTextWidth(part);
+        if(xx+width>right && xx>x+.01 && part.trim()){
+          if(lines>=maxLines)return yy;
+          xx=x;yy+=lineHeight;lines++;
+        }
+        if(xx===x&&!part.trim())continue;
+        width=doc.getTextWidth(part);
+        if(width>right-xx){
+          const clipped=doc.splitTextToSize(part,Math.max(2,right-xx))[0]||'';
+          part=clipped;width=doc.getTextWidth(part);
+        }
+        if(part){doc.text(part,xx,yy);xx+=width;}
+      }
+    }
+    return yy;
+  }
   function checkbox(doc,x,y,checked=false,label='',opts={}){
     const s=opts.size||3.2;
     doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(x,y-s+0.2,s,s);
@@ -79,17 +111,29 @@
   }
   function pageFrame(doc,title,number,standard){
     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
-    doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(5,5,w-10,h-10);
-    doc.setFillColor(...BLUE);doc.rect(5,5,1.8,h-10,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
-    doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
+    // The owner's HP M281fdw has 5 mm non-printable margins on every side.
+    // Keep the frame a fraction inside this limit, centred on the original
+    // ISO A4 media box. Android must print the original vector PDF at 100%.
+    const edge=5.3;
+    doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
+    // Equal-width frame on all four edges; no asymmetric heavy left bar.
+    // Proportional, left-aligned logo inside the blue frame: never stretch a raster.
+    let brandX=10;
     if(doc.__sperinLogo){
-      try{const logo=doc.__sperinLogo;doc.addImage(logo.data,logo.format,w/2-9,6,18,6,undefined,'FAST');}
-      catch(err){console.warn('Unable to embed customer report logo',err);}
+      try{
+        const logo=doc.__sperinLogo, p=doc.getImageProperties(logo.data);
+        const maxW=20,maxH=8.1, scale=Math.min(maxW/p.width,maxH/p.height);
+        const logoW=p.width*scale,logoH=p.height*scale;
+        doc.addImage(logo.data,logo.format,9.0+(maxW-logoW)/2,5.7+(maxH-logoH)/2,logoW,logoH,undefined,'FAST');
+        brandX=31.5;
+      }catch(err){console.warn('Unable to embed customer report logo',err);}
     }
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
+    doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?'Certificate/Report No.: '+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
+    const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);
     return 24;
   }
@@ -104,8 +148,9 @@
         doc.text('SPERIN SHEET '+doc.__sperinSheetId+' PAGE '+page,w-10,h-7,{align:'right'});
       }
     }
-    doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
-    doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7,{align:'center'});
+    // Footer stays within the printable edge but is legible on physical A4.
+    doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(...NAVY);
+    doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7.2,{align:'center'});
   }
   function box(doc,x,y,w,h,title,opts={}){
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);doc.rect(x,y,w,h);
@@ -121,6 +166,7 @@
   }
   function labelValue(doc,label,value,x,y,w,opts={}){
     const labelW=opts.labelW||Math.min(w*.42,48);
+    if(doc.__editRegions&&opts.edit)doc.__editRegions.push({...opts.edit,page:doc.internal.getCurrentPageInfo().pageNumber,x:x+labelW,y:y-3,width:w-labelW,height:5});
     write(doc,label,x,y,w,{size:opts.size||6.4,bold:opts.boldLabel!==false,maxLines:opts.maxLabelLines||2});
     if(opts.checkboxChoices){
       let cx=x+labelW;
@@ -167,14 +213,24 @@
     if(role==='constructor')return {name:constructorName,company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
-  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
+  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value??'');}
   function safeRows(rows){return Array.isArray(rows)?rows:[];}
   function normaliseBoardRef(value){
     return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   }
   function boardRows(cert){
     const source=safeRows(cert.tables?.boards);
-    const boards=source.map(row=>({...row}));
+    const boards=source.map((row,index)=>index===0?{
+      ...row,
+      location:row.location||cert.fields?.dbLocation||'',
+      suppliedFrom:row.suppliedFrom||cert.fields?.suppliedFrom||'',
+      spd:row.spd||cert.fields?.dbSpd||'',
+      zdb:row.zdb||cert.fields?.zdb||'',
+      ipf:row.ipf||cert.fields?.dbIpf||'',
+      polarity:row.polarity||cert.fields?.dbPolarity||'',
+      phaseSequence:row.phaseSequence||cert.fields?.phaseSequence||'',
+      spdOperational:row.spdOperational||cert.fields?.spdOperational||''
+    }:{...row});
     if(!boards.length && !cert.boardWorkflowVersion){
       boards.push({
         ref:cert.fields?.dbReference||'DB1',
@@ -386,7 +442,7 @@
     ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
 
     const boards=boardRows(cert);
-    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/12)),0);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/8)),0);
     sectionTable('SECTION J: SCHEDULES',[
       [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
@@ -473,6 +529,9 @@
   // v1.9.6: EICR uses LANDSCAPE A4 on every page. Do not mix portrait
   // declarations/inspection pages with landscape board and test schedules.
   // All values come from the same certificate fields consumed by Quick Entry.
+  // IET BS 7671:2018+A4:2026 Appendix 6 EICR model:
+  // Sections A-K, including the two distinct Section K classification groups.
+  // The issued form never prints app-only metadata fields; underlying saved data is unchanged.
   function renderEicrLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=doc.internal.pageSize.getWidth()-20;
     const heading='ELECTRICAL INSTALLATION CONDITION REPORT';
@@ -490,75 +549,314 @@
       I:'SECTION I: SUPPLY CHARACTERISTICS AND EARTHING ARRANGEMENTS',
       J:'SECTION J: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE'
     };
-    const getPart=(letter)=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
+    const fieldsBySection={
+      A:['clientName','clientAddress'],
+      B:['reason','inspectionDates'],
+      C:['occupier','installationAddress','premisesType','age','additionsEvidence','additionsAge','recordsAvailable','lastInspection'],
+      D:['extentInspected','agreedLimitations','agreedWith','operationalLimitations','operationalLimitationsPage','standardAmendedTo'],
+      E:['overallAssessment','generalCondition'],
+      F:['nextInspectionDate','nextInspectionReason'],
+      G:['inspectedBy','inspectorSignature','inspectorCompany','inspectorPosition','inspectorAddress','inspectorDate','authorisedBy','authoriserSignature','authoriserCompany','authoriserPosition','authoriserAddress','authoriserDate'],
+      H:['continuationSheetCount','continuationSheetSections','inspectionSchedules','circuitSchedules'],
+      I:['earthingArrangement','liveConductors','supplyACDC','nominalVoltage','frequency','ipf','ze','supplyDeviceBs','supplyDeviceType','supplyDeviceRating','supplyBreakingCapacity','supplyPolarity','otherSources'],
+      J:['earthingDistributor','earthingElectrode','maximumDemand','earthElectrodeType','earthElectrodeLocation','earthElectrodeResistance','earthingConductorMaterial','earthingConductorCsa','earthingContinuity','bondingMaterial','bondingCsa','bondingContinuity','bondingToWater','bondingToGas','bondingToOil','bondingToSteel','bondingToLightning','bondingToOtherChecked','bondingToOther','mainSwitchLocation','mainSwitchBs','mainSwitchPoles','mainSwitchCurrent','mainSwitchVoltage','mainSwitchDeviceType','mainSwitchDeviceSetting','mainSwitchBreaking','mainRcdType','mainRcdIdn','mainRcdDelay','mainRcdTime','mainRcdBreaking']
+    };
+    const labels={
+      clientName:'Name',clientAddress:'Address',inspectionDates:'Date(s) on which inspection and testing was carried out',
+      installationAddress:'Address',premisesType:'Description of premises',
+      age:'Estimated age of wiring system (years)',lastInspection:'Date of last inspection',
+      extentInspected:'Details of parts inspected and tested',agreedLimitations:'Agreed limitations including reasons',
+      overallAssessment:'Overall assessment (suitability for continued service)',
+      nextInspectionDate:'Further inspection and testing before',nextInspectionReason:'Reasons for recommendation',
+      inspectedBy:'Inspected and tested by (name)',authorisedBy:'Report authorised for issue by (name)',
+      inspectorSignature:'Signature',inspectorCompany:'For/on behalf of',inspectorPosition:'Position',inspectorAddress:'Address',inspectorDate:'Date',
+      authoriserSignature:'Signature',authoriserCompany:'For/on behalf of',authoriserPosition:'Position',authoriserAddress:'Address',authoriserDate:'Date',
+      operationalLimitationsPage:'Operational limitations (see page no.)',continuationSheetCount:'Continuation sheet(s)',continuationSheetSections:'For Section(s)',inspectionSchedules:'Schedules of Inspection',circuitSchedules:'Schedules of Circuit Details and Test Results',
+      supplyDeviceBs:'Supply protective device BS (EN)',supplyDeviceType:'Supply protective device type',
+      supplyDeviceRating:'Supply protective device rated current (A)',supplyBreakingCapacity:'Supply device breaking capacity (kA)',
+      earthingConductorCsa:'Earthing conductor csa (mm2)',bondingCsa:'Bonding conductor csa (mm2)',
+      earthingDistributor:'Distributor’s facility',earthingElectrode:'Installation earth electrode',mainSwitchDeviceType:'Overcurrent device type',mainSwitchDeviceOther:'Other device type (specify)',mainSwitchDeviceSetting:'Device rating / setting (A)',
+      bondingToWater:'To water installation pipes',bondingToGas:'To gas installation pipes',bondingToOil:'To oil installation pipes',bondingToSteel:'To structural steel',bondingToLightning:'To lightning protection system',bondingToOtherChecked:'To other',bondingToOther:'Specify other'
+    };
+    const notes={
+      D:[
+        'Unless agreed beforehand, concealed cables in trunking, conduits, under floors, in roof spaces, in the building fabric or underground have not been inspected.',
+        'No checks for safety alerts, corrective actions or product recalls for equipment forming part of the installation have been made. Accessible roof-space electrical equipment should be inspected.',
+        'The inspection and testing described in this report and its schedules was carried out in accordance with BS 7671:2018 as amended to the date shown above.'
+      ],
+      E:[
+        'UNSATISFACTORY indicates C1 (danger present) and/or C2 (potentially dangerous), for which remedial action is urgent.',
+        'C3 (improvement recommended) and FI (further investigation advised) are advisory and do not affect the overall assessment.'
+      ],
+      F:['Subject to any necessary remedial action being taken, the installation should be further inspected and tested before the recorded date.'],
+      G:['The persons responsible for inspection and testing declare that, having exercised reasonable skill and care, this report, the observations and the attached schedules accurately assess the installation within the extent and limitations in Section D.'],
+      H:['The schedules and continuation sheets listed form part of this document. This report is valid only when those schedules are attached.'],
+      I:['Nominal voltage and frequency: by enquiry. Prospective fault current and external earth fault loop impedance: by enquiry or measurement.'],
+      J:[]
+    };
+    const getPart=letter=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
     const fresh=()=>{doc.addPage('a4','landscape');y=frame();};
     const writeSection=letter=>{
+      if(y>181)fresh();
       const part=getPart(letter);
-      if(!part)return;
-      if(y>170)fresh();
-      const rows=[];
-      if(letter==='G')rows.push([{content:'I/We declare that the details in this report, observations and schedules give an accurate assessment of the installation within the recorded limitations.',colSpan:4,styles:{fontStyle:'italic'}}]);
-      const arr=part.fields||[];
-      for(let i=0;i<arr.length;i+=2){
-        const a=arr[i],b=arr[i+1];
-        const fmt=field=>{
-          if(!field)return '';
-          const v=f[field.key];
-          if(field.type==='date')return worksheet?'':fmtDate(v);
-          if(field.type==='checkbox')return worksheet?'':v?'Yes':'No';
-          return display(v,worksheet);
-        };
-        rows.push([
-          {content:pdfText(a.label),styles:{fontStyle:'bold'}},
-          pdfText(fmt(a)),
-          {content:b?pdfText(b.label):'',styles:{fontStyle:'bold'}},
-          b?pdfText(fmt(b)):''
+      const definitions=part?.fields||[];
+      const keys=fieldsBySection[letter]||[];
+      const rowBindings=[];
+      const body=[];
+      const format=(key,def)=>{
+        if(worksheet)return '';
+        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
+        if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
+        if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        // Section D of the IET model asks for the amendment DATE, while the
+        // certificate heading retains the edition ID. Do not alter saved data.
+        if(key==='standardAmendedTo'){
+          const ref=String(f.standardAmendedTo||'').trim();
+          if(/^BS\s*7671:2018\s*(?:\+\s*A4:2026|amendment\s*4\s*2026)$/i.test(ref))return '15/04/2026';
+        }
+        if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
+        if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
+        if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
+        if(key==='earthElectrodeResistance'){
+          const reading=String(f.earthElectrodeResistance??'').trim();
+          const method=String(f.earthElectrodeMeasurementType||'').trim();
+          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'N/A';
+        }
+        const legacyBond=String(f.bondingTo||'').toLowerCase();
+        const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
+        if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(key==='bondingToOtherChecked')return f.bondingToOtherChecked||f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
+        if(key==='bondingToOther')return f.bondingToOther||(legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?f.bondingTo:'');
+        const value=f[key];
+        return def?.type==='date'?fmtDate(value):display(value,worksheet);
+      };
+      for(let i=0;i<keys.length;i+=2){
+        const a=keys[i],b=keys[i+1];
+        const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
+        body.push([
+          {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
+          pdfText(worksheet?'':String(format(a,da)??'').trim()||'N/A'),
+          {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
+          b?pdfText(worksheet?'':String(format(b,db)??'').trim()||'N/A'):''
         ]);
+        rowBindings.push([a,b]);
+      }
+      for(const note of notes[letter]||[]){
+        body.push([{content:pdfText(note),colSpan:4,styles:{fontStyle:'italic',fontSize:6.8}}]);
+        rowBindings.push([]);
       }
       doc.autoTable({
         startY:y,head:[[{content:titles[letter],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,textColor:INK,fontSize:7.2}}]],
-        body:rows,margin:{left:x,right:10,top:26,bottom:13},tableWidth:w,
-        theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
-        styles:{fontSize:5.2,cellPadding:.55,minCellHeight:4.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        body,margin:{left:x,right:10,top:27,bottom:14},tableWidth:w,
+        // Let sections use the available A4 space instead of forcing entire
+        // sections to a new sheet and leaving a large blank area.
+        theme:'grid',rowPageBreak:'avoid',pageBreak:'auto',
+        styles:{fontSize:7.1,cellPadding:.82,minCellHeight:5.9,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
+        editResolve:(r,c)=>{
+          if(c%2!==1)return [];
+          const key=rowBindings[r]?.[(c-1)/2];
+          if(!key)return [];
+          return (key==='premisesType'?['premisesType','premisesOther']:key==='mainSwitchDeviceType'?['mainSwitchDeviceType','mainSwitchDeviceOther']:key==='mainRcdType'?['mainRcdType','mainRcdOther']:key==='earthElectrodeResistance'?['earthElectrodeMeasurementType','earthElectrodeResistance']:[key]).map(k=>({scope:'field',key:k}));
+        },
         didDrawPage:()=>frame()
       });
       y=doc.lastAutoTable.finalY+2.2;
     };
-    // A–G on compact landscape pages, retaining every declaration field.
-    ['A','B','C','D','E','F','G'].forEach(writeSection);
-    fresh();
-    ['H','I','J'].forEach(writeSection);
-    fresh();
-    const obs=safeRows(cert.tables?.observations);
-    doc.autoTable({
-      startY:y,
-      head:[[{content:'SECTION K: OBSERVATIONS',colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
-            ['Item No.','Observation(s)','Classification code','Schedule reference']],
-      body:obs.length?obs.map(r=>[display(r.item,worksheet),display(r.observation,worksheet),display(r.code,worksheet),display(r.scheduleRef,worksheet)]):[['','','','']],
-      margin:{left:10,right:10,top:26,bottom:12},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-      styles:{fontSize:6,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
-      headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
-      columnStyles:{0:{cellWidth:20},1:{cellWidth:w-97},2:{cellWidth:40},3:{cellWidth:37}},
-      didDrawPage:()=>frame()
-    });
+    // Report layout contract: A-I on pages 1-2, J alone on page 3,
+    // K alone on page 4; the inspection/circuit schedules follow afterward.
+    ['A','B','C','D','E','F','G','H','I'].forEach(writeSection);
+    if(doc.getNumberOfPages()>2)throw new Error('EICR A-I exceed pages 1-2; cannot silently displace Section J');
+    // Fill out the two-page declaration without adding unrelated sections.
+    while(doc.getNumberOfPages()<2)fresh();
+    fresh();  // page 3, Section J only.
+    writeSection('J');
+    if(doc.getNumberOfPages()!==3)throw new Error('Section J exceeds its dedicated A4 page');
+    fresh();  // page 4, Section K only.
+    y=Math.max(y,32);
+    const observations=safeRows(cert.tables?.observations)
+      .map((row,index)=>({row,index}))
+      .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim()||String(row.location||'').trim());
+    write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
+    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
+    checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
+    checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:7.3,labelWidth:130});
+    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
+    y+=7;
+    const limitationsY=y;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
+    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
+    y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
+    for(const group of [
+      {title:'C1 AND C2 OBSERVATIONS',codes:['C1','C2'],note:'C1: Danger present - immediate remedial action necessary. C2: Potentially dangerous - urgent remedial action necessary. These affect the overall assessment.'},
+      {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
+    ]){
+      if(y>164){fresh();y=Math.max(y,32);}
+      const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
+      doc.autoTable({
+        startY:y,
+        head:[[{content:group.title,colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
+              ['Item No.','Observations','Location','Classification code']],
+        // Keep the C1/C2 or C3/FI explanation with its observation table,
+        // not alone on a new sheet after an automatic page break.
+        body:(selected.length?selected.map(({row})=>[
+          pdfText(String(row.item||'').trim()||'N/A'),
+          pdfText(String(row.observation||'').trim()||'N/A'),
+          pdfText(String(row.location||'').trim()||'N/A'),
+          pdfText(String(row.code||'').trim()||'N/A')
+        ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+        // Reserve the lower strip for the outcomes legend on Section K, page 4.
+        // AutoTable must never flow into this strip.
+        margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+        columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
+        editResolve:(r,c)=>{
+          const index=selected[r]?.index;
+          if(index===undefined)return [];
+          if(c===0)return [{scope:'table',kind:'observations',index,key:'item'}];
+          if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'}];
+          if(c===2)return [{scope:'table',kind:'observations',index,key:'location'}];
+          if(c===3)return [{scope:'table',kind:'observations',index,key:'code'}];
+          return [];
+        },
+        didDrawPage:()=>frame()
+      });
+      y=doc.lastAutoTable.finalY+6;
+    }
+    // These notes belong to Section K on page 4, NOT the inspection
+    // schedule that starts on page 5. Reserve space above the print footer.
+    doc.setPage(4);
+    const legendY=182;
+    const outcomeLegend='Outcomes: Acceptable condition = Tick; Unacceptable = C1 or C2; Improvement = C3; Further investigation = FI; Not verified = N/V; Limitation = LIM; Not applicable = N/A.';
+    write(doc,outcomeLegend,x,legendY,w,{size:7.4,maxLines:2,lineHeight:4.4});
+    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,190,w,{size:7.4,maxLines:2});
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
+    if(!worksheet)renderEicrRecipientGuidance(doc,cert,schema);
   }
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
+    const canonicalRows=schema.sections?.find(part=>part.type==='table'&&part.key==='eicrInspection')?.defaultRows||[];
+    const canonicalDescription=new Map(canonicalRows.map(row=>[String(row.item||''),String(row.description||'')]));
     doc.addPage('a4','landscape');
+    const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
+    const drawPage=()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard);
+    drawPage();
+    // Outcome codes and Section K recording note are on page 4.
+    const sections={
+      '1':'INTAKE EQUIPMENT (VISUAL INSPECTION ONLY)',
+      '2':'PRESENCE OF ADEQUATE ARRANGEMENTS FOR OTHER SOURCES SUCH AS MICROGENERATORS',
+      '3':'EARTHING / BONDING ARRANGEMENTS',
+      '4':'CONSUMER UNIT(S) / DISTRIBUTION BOARD(S)',
+      '5':'DISTRIBUTION / FINAL CIRCUITS',
+      '6':'LOCATION(S) CONTAINING A BATH OR SHOWER',
+      '7':'OTHER PART 7 SPECIAL INSTALLATIONS OR LOCATIONS',
+      '8':'PROSUMER’S LOW VOLTAGE ELECTRICAL INSTALLATION(S)'
+    };
+    const body=[],rowMap=[];
+    const intakeRows=[
+      ['intakeServiceCable','Service cable'],
+      ['intakeServiceHead','Service head'],
+      ['intakeEarthingArrangement','Earthing arrangement'],
+      ['intakeMeterTails','Meter tails'],
+      ['intakeMeteringEquipment','Metering equipment'],
+      ['intakeMeansOfIsolation','Means of isolation (where present)']
+    ];
+    let lastGroup='';
+    rows.forEach((r,index)=>{
+      const group=String(r.item||'').split('.')[0];
+      if(sections[group]&&group!==lastGroup&&!(group==='2'&&String(r.item||'')==='2.0')){
+        body.push([{content:group+'.0',styles:{fontStyle:'bold'}},{content:sections[group],styles:{fontStyle:'bold'}},{content:''}]);
+        rowMap.push(-1);lastGroup=group;
+      }
+      const isIntake=String(r.item||'')==='1.1';
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim()||'N/A')]);
+      rowMap.push(index);
+      if(isIntake){
+        intakeRows.forEach(([key,description],subIndex)=>{
+          const raw=String(cert.fields?.[key]||'').trim();
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw||'N/A')]);
+          rowMap.push(-3-subIndex);
+        });
+        body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
+        rowMap.push(-9);
+        body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
+        rowMap.push(-10);
+        const notification=String(cert.fields?.intakeNotified||'');
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification||'N/A']);
+        rowMap.push(-2);
+      }
+    });
     doc.autoTable({
       startY:30,
-      head:[[{content:'CONDITION REPORT SCHEDULE OF INSPECTION',colSpan:3,styles:{fontStyle:'bold',fontSize:8}}],
+      head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:8.2}}],
             ['Item No.','Description','Outcome']],
-      body:rows.map(r=>[pdfText(r.item||''),pdfText(r.description||''),worksheet?'':pdfText(r.outcome||'')]),
-      margin:{left:x,right:10,top:29,bottom:15},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-      styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      body,
+      margin:{left:x,right:10,top:29,bottom:20},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:7.2,cellPadding:1.0,minCellHeight:6.8,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
-      didDrawPage:()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard)
+      editResolve:(r,c)=>{
+        const row=rowMap[r];
+        if(row===-2)return c===2?[{scope:'field',key:'intakeNotified'}]:[];
+        if(row<=-3&&row>=-8)return c===2?[{scope:'field',key:intakeRows[-3-row][0]}]:[];
+        return row>=0?[{scope:'table',kind:'eicrInspection',index:row,key:['item','description','outcome'][c]}]:[];
+      },
+      didDrawPage:drawPage,
+      didDrawCell:data=>{
+        if(worksheet||data.section!=='body'||data.column.index!==2)return;
+        const i=rowMap[data.row.index];
+        const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
+        if(i===undefined||(i>=0&&String(rows[i]?.item||'')==='1.1')||String(outcome||'').trim()!=='✓')return;
+        // Free-standing blue check: no surrounding square.
+        const cell=data.cell,cx=cell.x+cell.width/2,cy=cell.y+cell.height/2;
+        doc.setDrawColor(...BLUE);doc.setLineWidth(.65);
+        doc.line(cx-2,cy,cx-.6,cy+1.5);
+        doc.line(cx-.6,cy+1.5,cx+2.6,cy-2);
+        doc.setLineWidth(.18);
+      }
+    });
+    // Reserve the bottom strip for the inspector sign-off. Never generate
+    // a nearly blank additional sheet containing only this line.
+    const f=cert.fields||{};
+    write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,195,w,{size:8.0,bold:true});
+  }
+  // The IET's Amendment 4 model specifies guidance for recipients to be
+  // appended to the issued EICR. Do not append internal inspector notes.
+  function renderEicrRecipientGuidance(doc,cert,schema){
+    const title='CONDITION REPORT - GUIDANCE FOR RECIPIENTS';
+    const frame=()=>pageFrame(doc,title,String(cert.number||''),schema.standard);
+    const guidance=[
+      'The purpose of this Report is to confirm, so far as reasonably practicable, whether the electrical installation is in a satisfactory condition for continued service at the date of inspection and testing (see Section E). The Report should identify any damage, deterioration, defects, dangerous conditions and/or non-compliances with the requirements of BS 7671, which might give rise to danger (see Section K).',
+      'This Report is only valid if accompanied by the Schedule(s) of Inspections and the Schedule(s) of Circuit Details and Schedule(s) of Test Results.',
+      'The person ordering the Report should have received the original Report and the inspector should have retained a duplicate.',
+      'The original Report should be retained in a safe place and be made available to any person inspecting or undertaking work on the electrical installation in the future. If the property is vacated, this Report will provide the new owner/occupier with details of the condition of the electrical installation at the time the Report was issued.',
+      'Section D (Extent and Limitations) should identify fully the extent of the installation covered by this Report and any limitations on the inspection and testing. The inspector should have agreed these aspects with the person ordering the Report and with other interested parties (licensing authority, insurance company, mortgage provider and the like) before the inspection was carried out.',
+      'Some operational limitations such as inability to gain access to parts of the installation or an item of equipment may have been encountered during the inspection. The inspector should have noted these in Section D.',
+      'For items classified in Section K as C1 (Danger present), the safety of those using the installation is at risk, and it is recommended that a skilled person or persons competent in electrical installation work undertakes the necessary remedial work immediately.',
+      'For items classified in Section K as C2 (Potentially dangerous), the safety of those using the installation may be at risk and it is recommended that a skilled person or persons competent in electrical installation work undertakes the necessary remedial work as a matter of urgency.',
+      'For items classified in Section K as C3 (Improvement recommended), in some cases remedial work may improve the safety of the installation. However, a C3 recommendation is advisory only and does not affect the overall assessment of the Report.',
+      'Where further investigation is advised in Section K, this is because the inspection and testing has identified a potential issue for which the inspector is unable to determine a classification code until further investigation has taken place. Further investigation is recommended to obtain the necessary information to reach an appropriate classification.',
+      'For safety reasons, the electrical installation should be re-inspected at appropriate intervals by a skilled person competent in such work. The recommended next inspection date is stated in Section F.',
+      'Where the installation includes a residual current device (RCD) it should be tested six-monthly by pressing the button marked T or Test. The device should switch off the supply and should then be switched on to restore supply. If it does not operate when the button is pressed, seek expert advice.',
+      'Where the installation includes an arc fault detection device (AFDD) with a manual test facility, it should be tested six-monthly by pressing the test button. Where an AFDD has both a test button and automatic test function, follow the manufacturer instructions for test button operation.',
+      'Where the installation includes a surge protective device (SPD), the status indicator should be checked to confirm it is operational in accordance with manufacturer information. If not operational, seek expert advice.',
+      'Where the installation includes alternative or additional sources of supply, warning notices should be found at the origin or meter position or, if remote from the origin, at the consumer unit or distribution board and at all points of isolation of all sources of supply.'
+    ];
+    doc.addPage('a4','landscape');frame();
+    write(doc,'This Report is an important and valuable document which should be retained for future reference.',10,29,277,{size:8.5,bold:true,maxLines:2});
+    doc.autoTable({
+      startY:36,
+      head:[[{content:'GUIDANCE FOR RECIPIENTS (to be appended to the Report)',colSpan:2,styles:{fontStyle:'bold',fillColor:PALE}}]],
+      body:guidance.map((item,i)=>[String(i+1)+'.',pdfText(item)]),
+      margin:{left:10,right:10,top:29,bottom:15},tableWidth:277,
+      theme:'plain',rowPageBreak:'avoid',
+      styles:{fontSize:7.7,cellPadding:1.5,minCellHeight:7.5,textColor:INK,overflow:'linebreak'},
+      columnStyles:{0:{cellWidth:12,fontStyle:'bold'},1:{cellWidth:265}},
+      didDrawPage:frame
     });
   }
 
@@ -724,11 +1022,11 @@
       const circuits=circuitsForBoard(cert,ref,bi===0);
       const chunks=[];
       if(circuits.length){
-        for(let i=0;i<circuits.length;i+=12)chunks.push(circuits.slice(i,i+12));
+        for(let i=0;i<circuits.length;i+=8)chunks.push(circuits.slice(i,i+8));
       }else chunks.push([]);
       chunks.forEach((chunk,chunkIndex)=>{
         doc.addPage('a4','landscape');
-        pageFrame(doc,'GENERIC SCHEDULE OF CIRCUIT DETAILS',display(cert.number,worksheet,true),schema.standard);
+        pageFrame(doc,'SCHEDULE OF CIRCUIT DETAILS',display(cert.number,worksheet,true),schema.standard);
         const W=doc.internal.pageSize.getWidth(),x=10,w=W-20;
         const y=27;
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
@@ -739,13 +1037,50 @@
         const distributionBs=board.distributionOcpdBs||'';
         const distributionType=board.distributionOcpdType||'';
         const distributionRating=board.distributionOcpdRating||'';
-        const spdCertified=/^(?:T1|T2|T3|T1\s*\+\s*T2|T2\s*\+\s*T3|N\/A)$/i.test(String(board.spd||'').trim())?String(board.spd).trim():'';
-        doc.autoTable({startY:y+3,head:[],body:[
-          ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
-          ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
-          ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
-        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
-        const circuitStartY=doc.lastAutoTable.finalY+3;
+        const spdSource=String(board.spd||'').trim();
+        const spdMatch=spdSource.match(/\bType\s*([123])(?:\s*\+\s*(?:Type\s*)?([123]))?/i);
+        const spdCertified=/^No SPD\s*\/\s*N\/A$|^N\/A$/i.test(spdSource)?'N/A':spdMatch?'T'+spdMatch[1]+(spdMatch[2]?' + T'+spdMatch[2]:''):/^T[123](?:\s*\+\s*T[123])?$/i.test(spdSource)?spdSource:'';
+        const boardCells=[
+          [[['DB/CU reference: ',ref]],[['Location: ',board.location]],[['Supplied from: ',board.suppliedFrom]]],
+          [[['Distribution circuit OCPD - BS (EN): ',distributionBs]],[['Type: ',distributionType]],[['Rating / setting (A): ',distributionRating]]],
+          [[['SPD type(s): ',spdCertified]],[['RCD - BS (EN): ',board.rcdBs],['  Type: ',board.rcdType]],[['RCD rating (A): ',board.rcdRating],['  IΔn (mA): ',board.rcdIdn]]]
+        ];
+        // One shared board-details grid for both schedule pages: identical
+        // 3 columns x 3 rows, cell dimensions, borders and content origin.
+        // Using one renderer prevents the test schedule creeping upwards when
+        // its board characteristics are short or blank.
+        const drawScheduleBoardGrid=(cells,keys,kind)=>{
+          doc.autoTable({
+            startY:y+3,head:[],scheduleKind:kind,
+            editResolve:(row,col)=>{
+              const entry=keys[row]?.[col];
+              if(!cert.tables?.boards?.[bi]||!entry)return [];
+              return [entry].flat().map(key=>({scope:'board',kind:'boards',index:bi,key}));
+            },
+            body:cells.map(row=>row.map(parts=>parts.map(pair=>pair.join('')).join(''))),
+            margin:{left:x,right:10},tableWidth:w,theme:'grid',
+            styles:{fontSize:7.2,cellPadding:2,minCellHeight:11.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+            columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}},
+            didParseCell:data=>{
+              if(data.section==='body')data.cell.text=[''];
+            },
+            didDrawCell:data=>{
+              if(data.section!=='body')return;
+              const parts=cells[data.row.index]?.[data.column.index]||[];
+              const runs=parts.flatMap(([label,value])=>[
+                {text:label,bold:true},{text:worksheet?'':String(value??''),bold:false}
+              ]);
+              writeRuns(doc,runs,data.cell.x+2,data.cell.y+4.9,data.cell.width-4,7.2,3.6,3);
+            }
+          });
+          return doc.lastAutoTable.finalY+3;
+        };
+        const circuitBoardKeys=[
+          ['ref','location','suppliedFrom'],
+          ['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],
+          ['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]
+        ];
+        const circuitStartY=drawScheduleBoardGrid(boardCells,circuitBoardKeys,'circuit');
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],['8','BS (EN)','ocpdBs'],
@@ -753,7 +1088,7 @@
           ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
@@ -770,64 +1105,121 @@
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
             cols.map(c=>pdfText(c[1]))
           ],
-          body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:40,halign:'left'},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:14},5:{cellWidth:13},6:{cellWidth:13},7:{cellWidth:20},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:16},11:{cellWidth:17},12:{cellWidth:21},13:{cellWidth:12},14:{cellWidth:12},15:{cellWidth:12}}
+          // Reserve a fixed, printer-safe bottom strip for wiring codes on EVERY circuit page.
+          body:rows,margin:{left:x,right:10,bottom:39},theme:'grid',rowPageBreak:'avoid',
+          styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
+          columnStyles:{0:{cellWidth:10},1:{cellWidth:44,halign:'left'},2:{cellWidth:17},3:{cellWidth:15},4:{cellWidth:15},5:{cellWidth:14},6:{cellWidth:14},7:{cellWidth:22},8:{cellWidth:12},9:{cellWidth:12},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:23},13:{cellWidth:14},14:{cellWidth:15},15:{cellWidth:14}}
         });
-        const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
-        write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:5.8,bold:true});
-        write(doc,'A Thermoplastic insulated/sheathed · B Thermoplastic in metallic conduit · C Thermoplastic in non-metallic conduit · D Thermoplastic in metallic trunking · E Thermoplastic in non-metallic trunking · F Thermoplastic SWA · G Thermosetting SWA · H Mineral insulated · O Other',x,ky+4,w,{size:4.8,maxLines:2});
+        // Fixed bottom legend regardless of how many circuits were entered.
+        // Do not anchor it to finalY (which moves up/down between customers).
+        if(doc.lastAutoTable.finalY>177)throw new Error('Circuit rows overlap bottom wiring-type legend');
+        const ky=181;
+        write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:7.2,bold:true});
+        write(doc,'A Thermoplastic insulated/sheathed · B Thermoplastic in metallic conduit · C Thermoplastic in non-metallic conduit · D Thermoplastic in metallic trunking · E Thermoplastic in non-metallic trunking · F Thermoplastic SWA · G Thermosetting SWA · H Mineral insulated · O Other',x,ky+5,w,{size:6.6,maxLines:3,lineHeight:3.8});
 
         doc.addPage('a4','landscape');
-        pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
+        pageFrame(doc,'SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
-        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12});
-        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25});
-        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24});
-        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25});
+        const testBoardCells=[
+          [[['DB/CU reference: ',ref]],[['Location: ',board.location]],[['Supplied from: ',board.suppliedFrom]]],
+          [[['Zdb (Ohms): ',board.zdb]],[['Ipf (kA): ',board.ipf]],[['Correct polarity: ',board.polarity]]],
+          [[['Phase sequence: ',board.phaseSequence]],[['SPD operational: ',board.spdOperational]],[]]
+        ];
+        const testBoardKeys=[
+          ['ref','location','suppliedFrom'],
+          ['zdb','ipf','polarity'],
+          ['phaseSequence','spdOperational',null]
+        ];
+        const testStartY=drawScheduleBoardGrid(testBoardCells,testBoardKeys,'test');
+        if(Math.abs(testStartY-circuitStartY)>0.2)
+          throw new Error('Circuit and test board grid heights differ; circuit rows must align');
         const tcols=[
           ['17','Circuit number','circuitNo'],['18','r1 (line) Ω','r1'],['19','rn (neutral) Ω','rn'],['20','r2 (CPC) Ω','r2'],['21','(R1 + R2) Ω','r1r2'],['22','R2 (Ω)','r2only'],
           ['23','Test voltage (V)','irVoltage'],['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],['27','Maximum measured Zs (Ω)','zs'],
           ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
-          trows.push(tcols.map(c=>worksheet?'':pdfText(merged[c[2]]??'')));
+          trows.push(tcols.map(col=>{
+            if(worksheet)return '';
+            const result=String(merged[col[2]]??'').trim();
+            if(cert.type==='eicr'&&['polarity','rcdButton','afddButton'].includes(col[2])&&/^(?:✓|✔|✕|✗|pass|fail|yes|no)$/i.test(result))return '';
+            return pdfText(result);
+          }));
         }
         doc.autoTable({
-          startY:y+18,
+          startY:testStartY,
           head:[
             [{content:'TEST RESULTS',colSpan:15,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:1},{content:'Continuity (Ohms)',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
             tcols.map(c=>pdfText(c[1]))
           ],
-          body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}}
+          // Reserve a fixed bottom strip for instrument IDs and tester sign-off.
+          body:trows,margin:{left:x,right:10,bottom:39},theme:'grid',rowPageBreak:'avoid',
+          styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
+          columnStyles:{0:{cellWidth:10},1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},4:{cellWidth:16},5:{cellWidth:13},6:{cellWidth:15},7:{cellWidth:17},8:{cellWidth:17},9:{cellWidth:15},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:19},13:{cellWidth:19},14:{cellWidth:58,halign:'left'}},
+          didDrawCell:data=>{
+            if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
+            const record=chunk[data.row.index];
+            if(!record)return;
+            const key=tcols[data.column.index][2];
+            const raw=String(record.test?.[key]??record.detail?.[key]??'').trim();
+            const tick=/^(?:✓|✔|pass|yes)$/i.test(raw);
+            const cross=/^(?:✕|✗|fail|no)$/i.test(raw);
+            if(!tick&&!cross)return;
+            const cell=data.cell,cx=cell.x+cell.width/2,cy=cell.y+cell.height/2;
+            doc.setLineWidth(.45);
+            doc.setDrawColor(...(tick?BLUE:[170,35,35]));
+            if(tick){
+              doc.line(cx-2,cy,cx-.6,cy+1.5);
+              doc.line(cx-.6,cy+1.5,cx+2.6,cy-2);
+            }else{
+              doc.line(cx-2,cy-2,cx+2,cy+2);
+              doc.line(cx-2,cy+2,cx+2,cy-2);
+            }
+            doc.setLineWidth(.12);
+          }
         });
-        const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
+        if(doc.lastAutoTable.finalY>174)throw new Error('Test results overlap bottom instruments/sign-off strip');
+        const ty=177;
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
-        const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
-        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
+        const signatureLine=worksheet?'':String(testedSignature||'').trim()||'N/A';
+        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
-          'Multifunction: '+display((ff.testerMake||'')+' '+(ff.testerModel||'')+' '+(ff.testerSerial||''),worksheet),
-          'Continuity: '+display(ff.instrumentContinuity,worksheet),
-          'Insulation resistance: '+display(ff.instrumentInsulation,worksheet),
-          'Earth fault loop impedance: '+display(ff.instrumentLoop,worksheet),
-          'RCD: '+display(ff.instrumentRcd,worksheet),
-          'Earth electrode resistance: '+display(ff.instrumentEarth,worksheet)
+          ['Multifunction: ',ff.testerSerial],
+          ['Continuity: ',ff.instrumentContinuity],
+          ['Insulation resistance: ',ff.instrumentInsulation],
+          ['Earth fault loop impedance: ',ff.instrumentLoop],
+          ['RCD: ',ff.instrumentRcd],
+          ['Earth electrode resistance: ',ff.instrumentEarth]
         ];
-        write(doc,instrumentDetails.join('   '),x,ty+4,w,{size:4.7,maxLines:2});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+11,w,{size:5.2});
+        instrumentDetails.forEach(([label,value],idx)=>{
+          const col=idx%3,row=Math.floor(idx/3);
+          const xx=x+col*(w/3);
+          writeRuns(doc,[
+            {text:label,bold:true},
+            {text:worksheet?'':String(value??'').trim()||'N/A',bold:false}
+          ],xx,ty+5+row*5.1,w/3-3,6.7,3.5,2);
+        });
+        writeRuns(doc,[
+          {text:'Tested by name (Capitals): ',bold:true},
+          {text:worksheet?'':String(testedBy||'').trim().toUpperCase()||'N/A',bold:false}
+        ],x,ty+17,107,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Signature: ',bold:true},
+          {text:signatureLine,bold:false}
+        ],x+110,ty+17,95,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Date: ',bold:true},
+          {text:worksheet?'':fmtDate(testedDate)||'N/A',bold:false}
+        ],x+207,ty+17,w-207,7.2,4,2);
       });
     });
   }
@@ -898,7 +1290,7 @@
     });
   }
 
-  function build({cert,schema,settings={},worksheet=false}){
+  function build({cert,schema,settings={},worksheet=false,editable=false}){
     BRAND=String(settings.companyName||'Sperin Services').slice(0,58);
     const colour=/^#[0-9a-f]{6}$/i.test(settings.reportAccent||'')?settings.reportAccent:'#1869d3';
     const rgb=[parseInt(colour.slice(1,3),16),parseInt(colour.slice(3,5),16),parseInt(colour.slice(5,7),16)];
@@ -906,7 +1298,11 @@
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
+    // A4 print at 100% without opposite-side registration or double-sided
+    // binding offsets in PDF readers that honour PDF ViewerPreferences.
+    if(typeof doc.viewerPreferences==='function')doc.viewerPreferences({PrintScaling:'None',Duplex:'Simplex'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
+    if(editable)window.SperinPdfEditMap?.install(doc,cert,schema);
     doc.__sperinWorksheet=!!worksheet;
     doc.__sperinSheetId=worksheet?String(cert.siteSheetId||''):'';
     const logo=typeof settings.reportLogo==='string'?settings.reportLogo:'';

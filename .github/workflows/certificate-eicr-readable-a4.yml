@@ -1,0 +1,47 @@
+name: EICR A4 full-page and readable type visual QA
+on:
+  push:
+    branches: [fix/certificates-eicr-a4-readable-print-20261107, fix/certificates-v197-data-safe-ux, fix/eicr-page3-j-page4-k-branding-na-20261107, fix/certificates-v212-pdf-open-glitch, fix/certificates-matched-circuit-test-grid-v215]
+    paths:
+      - 'public/certificates/**'
+      - 'certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java'
+      - 'certificate-android/qa/verify-eicr-a4-layout.py'
+      - 'tests/certificates-eicr-readable-layout-fixtures.mjs'
+      - 'tests/certificates-eicr-a4-structure.test.mjs'
+      - '.github/workflows/certificate-eicr-readable-a4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-every-page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Source syntax and unmodified IET form/field contracts
+        run: |
+          node --check public/certificates/app.js
+          node --check public/certificates/iet-forms.js
+          node --test tests/certificates-eicr-a4-structure.test.mjs
+          node --test tests/certificates-pdf-regions.test.mjs
+      - name: Generate actual PDF samples across short and long reports
+        run: |
+          node tests/certificates-eicr-readable-layout-fixtures.mjs
+          grep -F 'PrintAttributes.DUPLEX_MODE_NONE' certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java
+      - name: Inspect every page of all generated samples for physical A4 geometry and clipping
+        run: |
+          python3 -m pip install --user pymupdf==1.26.5
+          for pdf in certificate-android/qa-output/a4-readable/*.pdf; do
+            echo "PAGE-BY-PAGE: $pdf"
+            python3 certificate-android/qa/verify-eicr-a4-layout.py "$pdf"
+          done
+      - name: Save all five rendered full-report PDFs for independent visual inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sperin-a4-readable-full-PDFs
+          path: certificate-android/qa-output/a4-readable/*.pdf
+          if-no-files-found: error

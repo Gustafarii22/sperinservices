@@ -35,3 +35,13 @@ dist-ssr
 
 # Generated certificate QA evidence
 certificate-android/qa-output/
+
+# Signing credentials must never enter git
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+signing-secrets*
+certificate-android/.gradle/
+certificate-android/**/build/

@@ -6,9 +6,15 @@ android {
     namespace 'uk.co.sperinservices.certificates'
     compileSdk 35
     // Android instruments the custom preview build type, not debug or release.
-    testBuildType 'preview'
+    testBuildType (project.findProperty('testVariant') ?: 'preview')
 
     signingConfigs {
+        permanent {
+            storeFile file(System.getenv('SPERIN_KEYSTORE_PATH') ?: 'SIGNING_KEY_NOT_CONFIGURED')
+            storePassword System.getenv('SPERIN_STORE_PASSWORD')
+            keyAlias System.getenv('SPERIN_KEY_ALIAS')
+            keyPassword System.getenv('SPERIN_KEY_PASSWORD')
+        }
         stable {
             storeFile file(System.getProperty("user.home") + "/.android/sperin-certificates-stable.jks")
             storePassword "android"
@@ -22,22 +28,30 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        versionCode 199
-        versionName '1.9.6-dev'
+        versionCode = (project.findProperty('releaseVersionCode') ?: '200').toInteger()
+        versionName '1.9.9-dev'
         manifestPlaceholders = [appLabel: 'Sperin Certificates']
     }
 
     buildTypes {
         preview {
             initWith release
-            applicationIdSuffix '.preview.team.v196'
+            applicationIdSuffix '.preview.team.v197'
             signingConfig signingConfigs.debug
             debuggable false
-            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.9.6']
+            manifestPlaceholders = [appLabel: 'Sperin Certificates 1.9.7']
+        }
+        permanent {
+            initWith release
+            applicationIdSuffix '.permanent'
+            signingConfig signingConfigs.permanent
+            debuggable false
+            manifestPlaceholders = [appLabel: 'Sperin Certificates']
         }
         debug {
+            applicationIdSuffix '.qa'
             debuggable true
-            signingConfig signingConfigs.stable
+            signingConfig signingConfigs.debug
         }
         release {
             minifyEnabled false
@@ -63,4 +77,33 @@ dependencies {
     androidTestImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}
+
+// Validate inside Gradle too: bypassing CI must never bypass signer identity checks.
+def verifySigner = { String variant, config, String expected ->
+    if (!expected || !(expected ==~ /[0-9a-fA-F]{64}/))
+        throw new GradleException("${variant}: approved SHA-256 signing fingerprint is not configured")
+    if (!config.storeFile?.isFile() || !config.storePassword || !config.keyAlias || !config.keyPassword)
+        throw new GradleException("${variant}: permanent signing material is missing; refusing to generate a key")
+    def ks = java.security.KeyStore.getInstance(config.storeType ?: 'JKS')
+    config.storeFile.withInputStream { ks.load(it, config.storePassword.toCharArray()) }
+    if (!ks.isKeyEntry(config.keyAlias)) throw new GradleException('Signing alias has no private key')
+    ks.getKey(config.keyAlias, config.keyPassword.toCharArray())
+    def cert = ks.getCertificate(config.keyAlias)
+    def actual = java.security.MessageDigest.getInstance('SHA-256').digest(cert.encoded).encodeHex().toString()
+    if (!actual.equalsIgnoreCase(expected)) throw new GradleException('Signing fingerprint mismatch; release blocked')
+    if (cert.subjectX500Principal.name.contains('Android Debug')) throw new GradleException('Debug certificates are forbidden for production')
+}
+tasks.register('verifyReleaseSigner') {
+    doLast { verifySigner('release', android.signingConfigs.stable, '68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573') }
+}
+tasks.register('verifyPermanentSigner') {
+    doLast {
+        def pin = rootProject.file('signing/permanent.sha256')
+        verifySigner('permanent', android.signingConfigs.permanent, pin.isFile() ? pin.text.trim() : '')
+    }
+}
+tasks.configureEach { t ->
+    if (t.name == 'preReleaseBuild') t.dependsOn('verifyReleaseSigner')
+    if (t.name == 'prePermanentBuild') t.dependsOn('verifyPermanentSigner')
 }

@@ -1,245 +1,195 @@
-name: Build Sperin Certificates APK
-
+name: Verify permanent Sperin Certificates release candidate
 on:
   push:
-    branches:
-      - main
-      - feature/v1712-consumer-unit-workflow
-      - feature/consumer-unit-photo-white-theme
+    branches: [fix/certificates-v197-data-safe-ux, fix/certificates-a4-true-size-print-20261106]
     paths:
-      - "public/certificates/**"
-      - "certificate-android/**"
-      - ".github/workflows/certificate-apk.yml"
+      - '.github/workflows/certificate-apk.yml'
+      - 'public/certificates/**'
+      - 'certificate-android/qa/certificate.e2e.mjs'
+      - 'certificate-android/qa/inspect-apk.py'
+      - 'certificate-android/app/src/main/**'
+      - 'certificate-android/app/src/androidTest/**'
+      - 'certificate-android/app/build.gradle'
+      - 'tests/certificates-immersive-pages.e2e.mjs'
+      - 'tests/certificates-v196-view.e2e.mjs'
+      - 'tests/certificates-v197-restore-routing.e2e.mjs'
+      - 'tests/certificates-eicr-a4-structure.test.mjs'
   workflow_dispatch:
-
+    inputs:
+      first_version_code:
+        description: 'Unused version code (upgrade proof uses this + 1)'
+        required: true
+        default: '214'
 permissions:
-  contents: write
-
+  contents: read
 concurrency:
-  group: sperin-certificates-apk-signing
+  group: sperin-permanent-release
   cancel-in-progress: true
-
 jobs:
-  build-apk:
+  regression:
+    uses: ./.github/workflows/certificate-e2e.yml
+  candidate:
+    needs: regression
+    environment: certificates-production
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-
+    timeout-minutes: 45
+    env:
+      SPERIN_KEYSTORE_PATH: ${{ github.workspace }}/../sperin-production.jks
+      SPERIN_STORE_PASSWORD: ${{ secrets.SPERIN_STORE_PASSWORD }}
+      SPERIN_KEY_PASSWORD: ${{ secrets.SPERIN_KEY_PASSWORD }}
+      SPERIN_KEY_ALIAS: ${{ secrets.SPERIN_KEY_ALIAS }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Certificate release regression guard
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const fail = (ok, msg) => { if (!ok) { console.error('::error::' + msg); process.exit(1); } };
-          const app = fs.readFileSync('public/certificates/app.js', 'utf8');
-          const iet = fs.readFileSync('public/certificates/iet-forms.js', 'utf8');
-          const gradle = fs.readFileSync('certificate-android/app/build.gradle', 'utf8');
-          const java = fs.readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java', 'utf8');
-          const e2e = fs.readFileSync('certificate-android/qa/certificate.e2e.mjs', 'utf8');
-          const e2eWorkflow = fs.readFileSync('.github/workflows/certificate-e2e.yml', 'utf8');
-          fail(app.includes("const VERSION = '1.8.0'"), 'Certificate UI version is not v1.8.0');
-          fail(gradle.includes('versionCode 184') && gradle.includes("versionName '1.8.0'"), 'Android version is not v1.8.0 / 184');
-          fail(java.includes('certificates-app'), 'Bundled certificate origin route missing');
-          fail(java.includes('shouldInterceptRequest'), 'Bundled certificate request interception missing');
-          fail(java.includes('WebResourceResponse'), 'Bundled certificate WebResourceResponse missing');
-          fail(java.includes('saveAutoBackup'), 'Native rolling recovery backup missing');
-          fail(java.includes('public boolean savePdfBase64'), 'Android PDF save result is not verified');
-          fail(java.includes('loadDataWithBaseURL'), 'Same-origin bundled fallback missing');
-          fail(java.includes('private static final String APP_PATH = "/certificates-app";'), 'Stable APP_PATH missing');
-          fail(java.includes('final String prefix = APP_PATH;'), 'Interceptor is not tied to APP_PATH');
-          fail(java.includes('loadBundledIndex();'), 'Android startup does not load bundled certificate UI');
-          fail(!java.includes('webView.loadUrl(APP_URL)') && !java.includes('webView.loadUrl(LIVE_URL)'), 'Android startup can still load the live website');
-          fail(!/certificates-app-v\d+/.test(java), 'Versioned certificate route remains in Android shell');
-          fail(!java.includes('file:///android_asset/certificates/index.html'), 'file:// fallback can hide origin-scoped certificate data');
-          fail(java.includes('auto-latest.json'), 'Automatic latest recovery file missing');
-          fail(!java.includes('recoverChamberlainFromWebViewStorage'), 'Retired Chamberlain auto-restore code remains');
-          fail(!java.includes('exportForensicRecoveryBundle'), 'Retired forensic export code remains');
-          fail(app.includes('prepareBackupData'), 'Validated backup import staging missing');
-          fail(app.includes('normaliseBoardKey'), 'Per-board circuit numbering guard missing');
-          fail(app.includes('scheduleNativeAutoBackup'), 'Automatic backup scheduling missing');
-          const ocpdOptions = (app.match(/ocpdBs:\s*\[([^\]]+)\]/)||[])[1]||'';
-          const supplyOptions = (app.match(/supplyDeviceBs:\s*\[([^\]]+)\]/)||[])[1]||'';
-          fail(ocpdOptions.includes("'BS88-3'"), 'Exact BS88-3 OCPD option missing');
-          fail(supplyOptions.includes("'BS88-3'"), 'Exact BS88-3 supply-device option missing');
-          fail(!ocpdOptions.includes('Type 3'), 'Old Type 3 wording remains in OCPD options');
-          fail(!supplyOptions.includes('Type 3'), 'Old Type 3 wording remains in supply-device options');
-          fail(app.includes('normaliseLegacyDeviceLabels'), 'Legacy BS88-3 migration missing');
-          fail(app.includes('Backup certificates?'), 'Backup first confirmation missing');
-          fail(app.includes('Confirm backup'), 'Backup second confirmation missing');
-          fail(app.includes('Restore latest backup?'), 'Restore first confirmation missing');
-          fail(app.includes('Confirm restore'), 'Restore second confirmation missing');
-          fail(app.includes('data-action="restore">Restore</button>'), 'Top-bar Restore text button missing');
-          fail(app.includes("select('ocpdBs', 'OCPD BS (EN)', OPTIONS.ocpdBs)"), 'Minor Works OCPD selector missing');
-          fail(app.includes("select('breakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity)"), 'Minor Works breaking-capacity selector missing');
-          fail(app.includes("field.key==='bondingTo' || field.key==='bondingPresent'"), 'Shared one-tap bonding controls missing');
-          fail(e2eWorkflow.includes('Audit pass 1 — forward order'), 'Forward certificate audit pass missing');
-          fail(e2eWorkflow.includes('Audit pass 2 — reverse order'), 'Reverse certificate audit pass missing');
-          fail(e2eWorkflow.includes('Audit pass 3 — mixed order'), 'Mixed certificate audit pass missing');
-          fail(iet.includes('function pdfText'), 'PDF glyph-safety normalizer missing');
-          fail(iet.includes('MARK ONE BOX WITH X'), 'Worksheet X-mark instruction missing');
-          fail(iet.includes('SPERIN SHEET'), 'Machine-readable worksheet identifier missing');
-          fail(!iet.includes("cols.map(c=>c[0]+' '+c[1])"), 'Circuit schedule numbering has returned');
-          fail(!iet.includes("tcols.map(c=>c[0]+' '+c[1])"), 'Test schedule numbering has returned');
-          fail(!iet.includes('Outcome ✓ / N/A'), 'Unsupported check glyph remains in PDF heading');
-          fail(iet.includes("orientation:cert.type==='eic'?'landscape':'portrait'"), 'EIC first page is not landscape');
-          fail(iet.includes('Client address'), 'Client address PDF mapping missing');
-          fail(iet.includes('Wiring / containment'), 'Circuit containment PDF mapping missing');
-          fail(iet.includes('normaliseBoardRef'), 'Circuit board-reference normalisation missing');
-          fail(iet.includes("return 'N/A'"), 'Inspection N/A rendering missing');
-          console.log('CERTIFICATE_RELEASE_REGRESSION_GUARD_PASS');
-          NODE
-
-      - name: Setup Node for certificate QA
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Test certificates before building
-        run: |
-          npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
-          node --check public/certificates/app.js
-          node --check public/certificates/iet-forms.js
-          npx eslint --config certificate-android/qa/eslint.config.mjs public/certificates/app.js public/certificates/iet-forms.js
-          python3 -m http.server 4173 -d public >/tmp/certificate-http.log 2>&1 &
-          for pass in forward reverse mixed; do
-            CERT_AUDIT_PASS="$pass" node certificate-android/qa/certificate.e2e.mjs
-          done
-          node certificate-android/qa/workflow.e2e.mjs
-          CERT_WORKFLOW_TYPE=eicr node certificate-android/qa/workflow.e2e.mjs
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
-
-      - name: Install Android 35
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install required SDK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
-          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.10.2"
-
-      # The original cache has expired. Only the ORIGINAL keystore can update users.
-      # Store the existing JKS as a protected encrypted GitHub Actions secret.
-      - name: Restore original signing key from encrypted secret
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Require retained key and separately verified backup
         env:
-          ORIGINAL_JKS_BASE64: ${{ secrets.SPERIN_CERTIFICATES_SIGNING_JKS_BASE64 }}
+          JKS: ${{ secrets.SPERIN_PERMANENT_JKS_BASE64 }}
+          BACKUP_VERIFIED_SHA256: ${{ secrets.SPERIN_BACKUP_VERIFIED_SHA256 }}
         run: |
           set -euo pipefail
-          if [ -z "$ORIGINAL_JKS_BASE64" ]; then
-            echo "::error::Original signing keystore unavailable. Configure SPERIN_CERTIFICATES_SIGNING_JKS_BASE64 with the exact original JKS from a trusted backup. Never replace it with a new keystore."
-            exit 1
-          fi
-          mkdir -p "$HOME/.android"
           umask 077
-          printf '%s' "$ORIGINAL_JKS_BASE64" | base64 --decode > "$HOME/.android/sperin-certificates-stable.jks"
-          test -s "$HOME/.android/sperin-certificates-stable.jks"
-          chmod 600 "$HOME/.android/sperin-certificates-stable.jks"
-
-      - name: Verify permanent signing fingerprint
+          test -s certificate-android/signing/permanent.sha256
+          test -n "$JKS" && test -n "$SPERIN_STORE_PASSWORD" && test -n "$SPERIN_KEY_PASSWORD" && test -n "$SPERIN_KEY_ALIAS"
+          test "$(cat certificate-android/signing/permanent.sha256)" = "$BACKUP_VERIFIED_SHA256"
+          printf '%s' "$JKS" | base64 --decode > "$SPERIN_KEYSTORE_PATH"
+          gradle -p certificate-android :app:verifyPermanentSigner --no-daemon
+      - name: Bundle exact source and build first permanent candidate
+        env:
+          FIRST: ${{ inputs.first_version_code || '214' }}
         run: |
-          EXPECTED="68:D9:F4:92:6E:DC:07:65:71:83:DE:10:03:9C:11:03:29:D8:94:D3:C6:87:4F:53:14:DF:CC:7C:D1:6B:F5:73"
-          ACTUAL="$(keytool -list -v -keystore "$HOME/.android/sperin-certificates-stable.jks" -storepass android -alias sperincertificates | awk '/SHA256:/{print $2; exit}')"
-          echo "Expected signer: $EXPECTED"
-          echo "Actual signer:   $ACTUAL"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Certificate signing key changed. Refusing to publish an incompatible APK."
-            exit 1
-          fi
-
-      - name: Bundle certificate web app
+          set -euo pipefail
+          [[ "$FIRST" =~ ^[0-9]+$ ]] && test "$FIRST" -gt 200
+          mkdir -p certificate-android/app/src/main/assets/certificates certificate-android/dist
+          cp -a public/certificates/. certificate-android/app/src/main/assets/certificates/
+          gradle -p certificate-android :app:assemblePermanent -PreleaseVersionCode="$FIRST" --no-daemon
+          cp certificate-android/app/build/outputs/apk/permanent/app-permanent.apk certificate-android/dist/first.apk
+      - name: Restore retained key again and build a later version
+        env:
+          FIRST: ${{ inputs.first_version_code || '214' }}
+          JKS: ${{ secrets.SPERIN_PERMANENT_JKS_BASE64 }}
         run: |
-          rm -rf certificate-android/app/src/main/assets/certificates
-          mkdir -p certificate-android/app/src/main/assets/certificates
-          cp public/certificates/index.html certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/styles.css certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/app.js certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/scan-core.js public/certificates/board-scan.js certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/iet-forms.js certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/manifest.webmanifest certificate-android/app/src/main/assets/certificates/
-          cp public/certificates/icon.svg certificate-android/app/src/main/assets/certificates/
-          mkdir -p certificate-android/app/src/main/assets/certificates/vendor
-          cp public/certificates/vendor/jspdf.umd.min.js certificate-android/app/src/main/assets/certificates/vendor/
-          cp public/certificates/vendor/jspdf.plugin.autotable.min.js certificate-android/app/src/main/assets/certificates/vendor/
-
-      - name: Build APK
-        run: gradle -p certificate-android :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Prepare APK
-        run: |
-          mkdir -p certificate-android/dist
-          cp certificate-android/app/build/outputs/apk/release/app-release.apk certificate-android/dist/Sperin-Certificates-v1.8.0.apk
-
-      - name: Inspect final signed APK
-        run: |
-          python3 certificate-android/qa/inspect-apk.py certificate-android/dist/Sperin-Certificates-v1.8.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs certificate-android/dist/Sperin-Certificates-v1.8.0.apk | tee certificate-android/dist/signing.txt
-          grep -i '68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573' certificate-android/dist/signing.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging certificate-android/dist/Sperin-Certificates-v1.8.0.apk | tee certificate-android/dist/package.txt
-          grep "name='uk.co.sperinservices.certificates.stable'.*versionCode='184'.*versionName='1.8.0'" certificate-android/dist/package.txt
-          grep "application-label:'Sperin Certificates'" certificate-android/dist/package.txt
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Sperin-Certificates-v1.8.0
-          path: certificate-android/dist/Sperin-Certificates-v1.8.0.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Enable KVM for Android verification
+          set -euo pipefail
+          rm "$SPERIN_KEYSTORE_PATH"
+          umask 077
+          printf '%s' "$JKS" | base64 --decode > "$SPERIN_KEYSTORE_PATH"
+          gradle -p certificate-android clean :app:assemblePermanent :app:assemblePermanentAndroidTest -PtestVariant=permanent -PreleaseVersionCode="$((FIRST+1))" --no-daemon
+          cp certificate-android/app/build/outputs/apk/permanent/app-permanent.apk certificate-android/dist/update.apk
+          for apk in certificate-android/dist/first.apk certificate-android/dist/update.apk; do
+            python3 certificate-android/qa/inspect-apk.py "$apk"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" > "$apk.signer.txt"
+            grep -Fi "$(cat certificate-android/signing/permanent.sha256)" "$apk.signer.txt"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > "$apk.package.txt"
+            grep -F "name='uk.co.sperinservices.certificates.stable.permanent'" "$apk.package.txt"
+          done
+      - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-
-      - name: Verify real APK installation and upgrade
+      - name: Install, seed, upgrade without uninstall, and reopen
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           arch: x86_64
           target: google_apis
-          profile: pixel_2
           disable-animations: true
-          script: bash certificate-android/qa/android-upgrade.sh
-
-      - name: Upload verification evidence
-        if: always()
+          script: bash certificate-android/qa/permanent-upgrade.sh
+      - name: Candidate checksum
+        run: sha256sum certificate-android/dist/*.apk > certificate-android/dist/SHA256SUMS.txt
+      - name: Retain verified candidates (not automatic production publication)
         uses: actions/upload-artifact@v4
         with:
-          name: Sperin-Certificates-v1.8.0-verification
-          path: certificate-android/qa-output/
-          if-no-files-found: warn
+          name: Sperin-permanent-verified-candidates
+          path: certificate-android/dist/
+          if-no-files-found: error
+      - name: Remove temporary signing file
+        if: always()
+        run: rm -f "$SPERIN_KEYSTORE_PATH"
 
-      - name: Publish direct APK release
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
+  # Future builds: distribute verified APKs from GitHub Releases rather than
+  # temporary chat/library attachments. Keep the release gated by the complete
+  # certificate E2E suite, retained signer, install/upgrade/reopen and PDF Open.
+  publish_verified_apk:
+    needs: candidate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/fix/certificates-v197-data-safe-ux' }}
+    environment: certificates-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download only the fully tested and signed APK from this build
+        uses: actions/download-artifact@v4
+        with:
+          name: Sperin-permanent-verified-candidates
+          path: release-artifact
+      - name: Gate publication on certificate identity, all upgrade tests and checksum
+        id: verify
         run: |
-          TAG="certificates-v1.8.0"
-          APK="certificate-android/dist/Sperin-Certificates-v1.8.0.apk"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
+          set -euo pipefail
+          cd release-artifact
+          test -s update.apk && test -s SHA256SUMS.txt
+          expected="$(awk '$2 ~ /update.apk$/ {print $1}' SHA256SUMS.txt)"
+          test "${#expected}" -eq 64
+          echo "$expected  update.apk" | sha256sum -c -
+          test "$(stat -c %s update.apk)" -gt 35000000
+          grep -Fi '200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1' update.apk.signer.txt
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent'" update.apk.package.txt
+          for report in upgrade-seed upgrade-check upgrade-reopened orientation-pdf-check pdf-open-check; do
+            grep -F 'OK (1 test)' "$report.txt"
+          done
+          code="$(sed -nE "s/.*versionCode='([0-9]+)'.*/\\1/p" update.apk.package.txt | head -1)"
+          [[ "$code" =~ ^[0-9]+$ ]]
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if (( code <= 213 )); then
+            echo 'v213 already has a separately verified GitHub release; skip duplicate'
+            echo "publish=no" >> "$GITHUB_OUTPUT"
           else
-            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "Sperin Certificates v1.8.0" --notes "Consumer-unit photo review and white interface. Cloud scanning requires the authenticated backend with server-side API configuration. See the pull request for exact test results and limitations."
+            echo "publish=yes" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Download and verify published artifact
-        if: github.ref == 'refs/heads/main'
+      - name: Publish permanent GitHub release asset only after complete verification
+        if: steps.verify.outputs.publish == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.verify.outputs.code }}
         run: |
-          mkdir -p /tmp/release-download
-          gh release download certificates-v1.8.0 --pattern '*.apk' --dir /tmp/release-download
-          cmp certificate-android/dist/Sperin-Certificates-v1.8.0.apk /tmp/release-download/Sperin-Certificates-v1.8.0.apk
-          python3 certificate-android/qa/inspect-apk.py /tmp/release-download/Sperin-Certificates-v1.8.0.apk
+          set -euo pipefail
+          cd release-artifact
+          TAG="certificates-v${CODE}-verified"
+          ASSET="Sperin-Certificates-v${CODE}-Verified.apk"
+          cp update.apk "$ASSET"
+          sha256sum "$ASSET" > release-SHA256SUMS.txt
+          if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
+            echo "::error::A release tag already exists; refusing to overwrite an APK"
+            exit 1
+          fi
+          cat > release-notes.txt <<EOF
+          Permanently signed Sperin Certificates v${CODE}. Download the attached APK
+          directly from GitHub instead of using a temporary ChatGPT Library file.
+          Verification: build ${GITHUB_RUN_ID}, complete regression, Android signing
+          key, in-place upgrade, certificate preservation, PDF Open/navigation.
+          Package: uk.co.sperinservices.certificates.stable.permanent.
+          Install over the current permanent version; do not uninstall the
+          existing app or clear its saved certificates.
+          EOF
+          gh release create "$TAG" "$ASSET" release-SHA256SUMS.txt \
+            -R Gustafarii22/sperinservices --target "$GITHUB_SHA" \
+            --title "Sperin Certificates v${CODE} — Signed & Verified APK" \
+            --prerelease --notes-file release-notes.txt
+          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \
+            --jq '.assets[] | [.name,.size,.digest,.url] | @tsv'

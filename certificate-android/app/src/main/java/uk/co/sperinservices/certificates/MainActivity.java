@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.content.ClipData;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.Environment;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
@@ -77,7 +78,7 @@ import java.util.zip.ZipOutputStream;
 public class MainActivity extends Activity {
     private static final String APP_PATH = "/certificates-app";
     private static final String BUNDLED_BASE_URL = "https://sperinservices.co.uk" + APP_PATH + "/";
-    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.9.2";
+    private static final String APP_URL = BUNDLED_BASE_URL + "?app=1.9.8";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int BACKUP_IMPORT_REQUEST = 1002;
     private static final int AUDIO_PERMISSION_REQUEST = 2001;
@@ -116,7 +117,21 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.clearCache(true);
         webView.setBackgroundColor(Color.WHITE);
-        setContentView(webView);
+        // Explicit insets are required with target SDK 35 edge-to-edge enforcement.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        android.widget.FrameLayout safeContent = new android.widget.FrameLayout(this);
+        safeContent.addView(webView, new android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(safeContent);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(safeContent, (view, insets) -> {
+            androidx.core.graphics.Insets safe = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                | androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                | androidx.core.view.WindowInsetsCompat.Type.ime());
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(safeContent);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -202,7 +217,7 @@ public class MainActivity extends Activity {
         String mime = "application/octet-stream";
         if (relative.endsWith(".html")) mime = "text/html";
         else if (relative.endsWith(".css")) mime = "text/css";
-        else if (relative.endsWith(".js")) mime = "application/javascript";
+        else if ((relative.endsWith(".js") || relative.endsWith(".mjs"))) mime = "application/javascript";
         else if (relative.endsWith(".svg")) mime = "image/svg+xml";
         else if (relative.endsWith(".webmanifest")) mime = "application/manifest+json";
 
@@ -1103,7 +1118,7 @@ public class MainActivity extends Activity {
                 try {
                     setRequestedOrientation(landscape
                         ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                        : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                        : ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
                 } catch (Exception ex) {
                     android.util.Log.w("SperinCertificates", "Could not change orientation", ex);
                 }
@@ -1113,29 +1128,61 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean savePdfBase64(String dataUri, String fileName) {
             try {
-                int comma = dataUri.indexOf(',');
-                String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
-                Uri uri = saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
-                if (uri != null) mostRecentPdfUri = uri;
-                return uri != null;
-            } catch (Exception ex) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
+                if(dataUri==null || dataUri.length()>34000000) return false;
+                int comma=dataUri.indexOf(',');
+                String payload=comma>=0 ? dataUri.substring(comma+1) : dataUri;
+                byte[] pdf=Base64.decode(payload,Base64.DEFAULT);
+                if(pdf.length<8 || pdf.length>25000000 ||
+                    pdf[0]!='%' || pdf[1]!='P' || pdf[2]!='D' || pdf[3]!='F' || pdf[4]!='-')
+                    throw new IllegalArgumentException("The generated PDF is invalid");
+                // Downloads remains the permanent customer-facing file.
+                Uri downloadUri=saveBytes(pdf,fileName,"application/pdf",true);
+                if(downloadUri==null)return false;
+                // A private cache copy avoids Samsung MediaStore resolver/ownership
+                // handoff issues when launching the built-in PDF preview.
+                // It is temporary and never replaces the exported Downloads copy.
+                try {
+                    File preview=new File(getCacheDir(),"sperin-latest-preview.pdf");
+                    File staging=new File(getCacheDir(),"sperin-latest-preview.tmp");
+                    try(FileOutputStream out=new FileOutputStream(staging)){out.write(pdf);out.getFD().sync();}
+                    if(!staging.renameTo(preview))throw new java.io.IOException("Could not refresh preview cache");
+                    mostRecentPdfUri=FileProvider.getUriForFile(MainActivity.this,
+                        getPackageName()+".fileprovider",preview);
+                }catch(Exception cacheError){
+                    android.util.Log.w("SperinCertificates","Private PDF preview cache unavailable; using Downloads",cacheError);
+                    mostRecentPdfUri=downloadUri;
+                }
+                return true;
+            }catch(Exception ex){
+                android.util.Log.e("SperinCertificates","PDF save failed",ex);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "PDF save failed: "+ex.getMessage(),Toast.LENGTH_LONG).show());
                 return false;
             }
         }
 
         @JavascriptInterface
         public boolean openLatestPdf() {
-            final Uri uri = mostRecentPdfUri;
-            if (uri == null) return false;
+            final Uri uri=mostRecentPdfUri;
+            if(uri==null)return false;
+            // Check the actual PDF bytes are accessible before telling the web
+            // button that opening succeeded. Fail visibly if the Uri has expired.
+            try(ParcelFileDescriptor probe=getContentResolver().openFileDescriptor(uri,"r")){
+                if(probe==null || probe.getStatSize()==0)return false;
+            }catch(Exception error){
+                android.util.Log.w("SperinCertificates","PDF preview URI inaccessible",error);
+                return false;
+            }
             runOnUiThread(() -> {
                 try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndType(uri, "application/pdf");
+                    Intent intent=new Intent(MainActivity.this,PdfPreviewActivity.class);
+                    intent.setDataAndType(uri,"application/pdf");
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(intent, "Open certificate PDF"));
-                } catch (Exception ex) {
-                    Toast.makeText(MainActivity.this, "No PDF viewer available", Toast.LENGTH_LONG).show();
+                    startActivity(intent);
+                }catch(Exception ex){
+                    android.util.Log.e("SperinCertificates","Could not start PDF viewer",ex);
+                    Toast.makeText(MainActivity.this,
+                        "Could not open PDF: "+ex.getMessage(),Toast.LENGTH_LONG).show();
                 }
             });
             return true;
@@ -1210,6 +1257,33 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> shareBackupFile(content, fileName));
         }
 
+        @JavascriptInterface
+        public boolean printPdfBase64(String dataUri, int pageCount, boolean landscape) {
+            try {
+                if (dataUri == null || dataUri.length() > 34000000 || pageCount < 1 || pageCount > 500)
+                    return false;
+                int comma = dataUri.indexOf(',');
+                if (comma < 0 || comma > 128 || !dataUri.substring(0, comma).startsWith("data:application/pdf;")
+                    || !dataUri.substring(0, comma).endsWith(";base64")) return false;
+                byte[] bytes = Base64.decode(dataUri.substring(comma + 1), Base64.DEFAULT);
+                if (bytes.length < 8 || bytes.length > 25000000 || bytes[0] != '%' || bytes[1] != 'P'
+                    || bytes[2] != 'D' || bytes[3] != 'F' || bytes[4] != '-') return false;
+                runOnUiThread(() -> {
+                    try {
+                        CertificatePdfPrinter.print(MainActivity.this, bytes, pageCount, landscape);
+                    } catch (Exception error) {
+                        Toast.makeText(MainActivity.this, "Could not print PDF: " + error.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    }
+                });
+                return true;
+            } catch (Exception error) {
+                android.util.Log.w("SperinCertificates", "Could not prepare certificate PDF for printing", error);
+                return false;
+            }
+        }
+
+        // Legacy fallback for old web code; the new Print button uses the vector PDF.
         @JavascriptInterface
         public void printPage() {
             runOnUiThread(MainActivity.this::printCurrentPage);

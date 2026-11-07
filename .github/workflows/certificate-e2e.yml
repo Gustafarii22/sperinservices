@@ -2,6 +2,7 @@ name: Certificate App E2E
 
 on:
   workflow_dispatch:
+  workflow_call:
   pull_request:
     paths:
       - "public/certificates/**"
@@ -12,11 +13,12 @@ on:
       - "tests/certificates-v194-ux.e2e.mjs"
       - "tests/certificates-v196-view.e2e.mjs"
       - "tests/certificates-v194-circuit-actions.e2e.mjs"
+      - "tests/certificates-v197-restore-routing.e2e.mjs"
       - "tests/certificates-iet-pat-model-v1-v6.audit.mjs"
       - "src/lib/certificates-live.server.ts"
       - ".github/workflows/certificate-e2e.yml"
   push:
-    branches: [main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux, feature/certificates-v196-quick-entry-certificate-view]
+    branches: [fix/certificates-v197-data-safe-ux, main, release/sperin-certificates-v187-scanner-reviewed, feature/certificates-multiuser-specialist-forms-20261021, feature/certificates-v191-job-evidence-handover, feature/certificates-v192-ux-speed-audit, feature/certificates-v193-specialist-collab-integrations, feature/certificates-v194-home-boards-scan-ux, feature/certificates-v196-quick-entry-certificate-view]
     paths:
       - "public/certificates/**"
       - "certificate-android/qa/**"
@@ -65,6 +67,12 @@ jobs:
           done
           cat /tmp/certificate-http.log
           exit 1
+
+      - name: Exact PDF regions and orientation navigation
+        run: |
+          node --test tests/certificates-pdf-regions.test.mjs
+          node --test tests/certificates-eicr-a4-structure.test.mjs
+          node tests/certificates-orientation-pdf.e2e.mjs
 
       - name: Verify new independent cloud and import script syntax
         run: |
@@ -116,6 +124,24 @@ jobs:
 
       - name: Quick/Certificate View, orientation and editing QA
         run: node tests/certificates-v196-view.e2e.mjs
+
+      - name: PDF-sized immersive EIC page count and floating menu regression
+        run: node tests/certificates-immersive-pages.e2e.mjs
+
+      - name: Complete portable backup, photos and recovery
+        run: |
+          node tests/certificates-v197-transfer.e2e.mjs
+          node tests/certificates-v197-restore-routing.e2e.mjs
+          node tests/certificates-complete-backup.e2e.mjs
+
+      - name: Export from actual retained v1.9.6 APK and import into new app
+        run: |
+          curl -fL --retry 2 https://github.com/Gustafarii22/sperinservices/releases/download/certificates-v1.9.6-integrated-dev/Sperin-Certificates-v1.9.6-INTEGRATED-DEV.apk -o /tmp/v196.apk
+          echo '5f6980a9f56173f482abb4ccf667c9c6f00a62878e99bcb89bc61b2f13323e9e  /tmp/v196.apk' | sha256sum -c -
+          mkdir -p /tmp/old-certificates
+          unzip -q /tmp/v196.apk 'assets/certificates/*' -d /tmp/old-certificates
+          python3 -m http.server 4174 -d /tmp/old-certificates/assets >/tmp/old-http.log 2>&1 &
+          CERT_SOURCE_URL=http://127.0.0.1:4174/certificates/ node tests/certificates-v197-transfer.e2e.mjs
 
       - name: Live concurrent editing with two independent engineers
         run: node tests/certificates-live-editing.e2e.mjs
@@ -188,16 +214,19 @@ jobs:
           pdftoppm -f 1 -l 2 -png -r 130 "$PDF" certificate-android/qa-output/eicr-renders/eicr
 
       - name: Audit pass 1 — forward order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: forward
         run: node certificate-android/qa/certificate.e2e.mjs
 
       - name: Audit pass 2 — reverse order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: reverse
         run: node certificate-android/qa/certificate.e2e.mjs
 
       - name: Audit pass 3 — mixed order
+        if: ${{ !cancelled() }}
         env:
           CERT_AUDIT_PASS: mixed
         run: node certificate-android/qa/certificate.e2e.mjs
@@ -213,7 +242,8 @@ jobs:
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
-          grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
+          # The IET instrument schedule records serial/asset numbers; a private
+          # tester model (such as MFT-X1) is deliberately not printed.
           grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
           # The issued Schedule of Circuit Details records the prescribed wiring code.
           # Containment descriptions remain internal, not appended to IET field 3.

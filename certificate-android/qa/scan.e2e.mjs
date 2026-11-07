@@ -119,6 +119,7 @@ await boardField('rcdRating','63');
 await boardField('rcdIdn','30');
 const instrumentSection=page.locator('.cert-accordion').filter({has:page.locator('summary:has-text("Test instrument")')}).first();
 await ensureExpanded(instrumentSection);
+await page.locator('[data-field="testerLowOhm"]').check();
 await page.locator('[data-field="instrumentContinuity"]').fill('CONT-100');
 await page.locator('[data-field="instrumentContinuity"]').dispatchEvent('change');
 const verified=await readCert();

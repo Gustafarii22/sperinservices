@@ -1,0 +1,27 @@
+name: Focused certificate PDF layout check
+on:
+  push:
+    branches: [fix/certificates-v197-data-safe-ux]
+    paths: ['.github/workflows/certificate-layout-check.yml', 'tests/certificates-orientation-pdf.e2e.mjs', 'public/certificates/**']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: sperin-certificates-playwright-1.56.1-chromium
+      - run: |
+          npm install --prefix /tmp/layout playwright@1.56.1
+          ln -s /tmp/layout/node_modules node_modules
+          /tmp/layout/node_modules/.bin/playwright install chromium
+          python3 -m http.server 4173 -d public > /tmp/layout-http.log 2>&1 &
+          sleep 1
+          node tests/certificates-orientation-pdf.e2e.mjs
