@@ -38,6 +38,7 @@ jobs:
             python3 certificate-android/qa/verify-eicr-a4-layout.py "$pdf"
           done
       - name: Save all five rendered full-report PDFs for independent visual inspection
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sperin-a4-readable-full-PDFs
