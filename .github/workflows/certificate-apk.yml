@@ -119,3 +119,77 @@ jobs:
       - name: Remove temporary signing file
         if: always()
         run: rm -f "$SPERIN_KEYSTORE_PATH"
+
+  # Future builds: distribute verified APKs from GitHub Releases rather than
+  # temporary chat/library attachments. Keep the release gated by the complete
+  # certificate E2E suite, retained signer, install/upgrade/reopen and PDF Open.
+  publish_verified_apk:
+    needs: candidate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/fix/certificates-v197-data-safe-ux' }}
+    environment: certificates-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download only the fully tested and signed APK from this build
+        uses: actions/download-artifact@v4
+        with:
+          name: Sperin-permanent-verified-candidates
+          path: release-artifact
+      - name: Gate publication on certificate identity, all upgrade tests and checksum
+        id: verify
+        run: |
+          set -euo pipefail
+          cd release-artifact
+          test -s update.apk && test -s SHA256SUMS.txt
+          expected="$(awk '$2 ~ /update.apk$/ {print $1}' SHA256SUMS.txt)"
+          test "${#expected}" -eq 64
+          echo "$expected  update.apk" | sha256sum -c -
+          test "$(stat -c %s update.apk)" -gt 35000000
+          grep -Fi '200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1' update.apk.signer.txt
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent'" update.apk.package.txt
+          for report in upgrade-seed upgrade-check upgrade-reopened orientation-pdf-check pdf-open-check; do
+            grep -F 'OK (1 test)' "$report.txt"
+          done
+          code="$(sed -nE "s/.*versionCode='([0-9]+)'.*/\\1/p" update.apk.package.txt | head -1)"
+          [[ "$code" =~ ^[0-9]+$ ]]
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if (( code <= 213 )); then
+            echo 'v213 already has a separately verified GitHub release; skip duplicate'
+            echo "publish=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish permanent GitHub release asset only after complete verification
+        if: steps.verify.outputs.publish == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.verify.outputs.code }}
+        run: |
+          set -euo pipefail
+          cd release-artifact
+          TAG="certificates-v${CODE}-verified"
+          ASSET="Sperin-Certificates-v${CODE}-Verified.apk"
+          cp update.apk "$ASSET"
+          sha256sum "$ASSET" > release-SHA256SUMS.txt
+          if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
+            echo "::error::A release tag already exists; refusing to overwrite an APK"
+            exit 1
+          fi
+          cat > release-notes.txt <<EOF
+          Permanently signed Sperin Certificates v${CODE}. Download the attached APK
+          directly from GitHub instead of using a temporary ChatGPT Library file.
+          Verification: build ${GITHUB_RUN_ID}, complete regression, Android signing
+          key, in-place upgrade, certificate preservation, PDF Open/navigation.
+          Package: uk.co.sperinservices.certificates.stable.permanent.
+          Install over the current permanent version; do not uninstall the
+          existing app or clear its saved certificates.
+          EOF
+          gh release create "$TAG" "$ASSET" release-SHA256SUMS.txt \\
+            -R Gustafarii22/sperinservices --target "$GITHUB_SHA" \\
+            --title "Sperin Certificates v${CODE} — Signed & Verified APK" \\
+            --prerelease --notes-file release-notes.txt
+          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \\
+            --jq '.assets[] | [.name,.size,.digest,.url] | @tsv'
