@@ -83,16 +83,46 @@ public class PdfPreviewActivityTest {
             }
             assertTrue("PDF reader did not show a fully fitted first page",opened);
             scenario.onActivity(activity->{
+                // The preview must not demand a Samsung screen rotation: the
+                // forced orientation in v211 recreated the activity on open.
+                assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
+                    activity.getRequestedOrientation());
                 Button next=(Button)findLabel(activity.getWindow().getDecorView(),"›");
                 assertNotNull("Next-page control missing",next);
                 next.performClick();
-                assertNotNull("Second page did not render",findLabel(activity.getWindow().getDecorView(),"Page 2 of 6"));
+            });
+            boolean secondReady=false;
+            for(int i=0;i<40;i++){
+                final boolean[] ready={false};
+                scenario.onActivity(activity->{
+                    View root=activity.getWindow().getDecorView();
+                    ready[0]=findLabel(root,"Page 2 of 6")!=null &&
+                        findImage(root)!=null && findImage(root).getDrawable()!=null;
+                });
+                if(ready[0]){secondReady=true;break;}
+                Thread.sleep(200);
+            }
+            assertTrue("Background PDF page 2 did not finish rendering",secondReady);
+            scenario.onActivity(activity->{
                 Button fit=(Button)findLabel(activity.getWindow().getDecorView(),"Fit");
                 assertNotNull(fit);
                 fit.performClick();
                 ImageView image=findImage(activity.getWindow().getDecorView());
                 assertEquals(1f,image.getScaleX(),0.01f);
+                // Rapid navigation should not crash or display a stale frame.
+                Button next=(Button)findLabel(activity.getWindow().getDecorView(),"›");
+                next.performClick();
+                next.performClick();
             });
+            boolean fourthReady=false;
+            for(int i=0;i<40;i++){
+                final boolean[] ready={false};
+                scenario.onActivity(activity->
+                    ready[0]=findLabel(activity.getWindow().getDecorView(),"Page 4 of 6")!=null);
+                if(ready[0]){fourthReady=true;break;}
+                Thread.sleep(200);
+            }
+            assertTrue("Rapid navigation displayed a stale or missing page",fourthReady);
         }finally{file.delete();}
     }
 }

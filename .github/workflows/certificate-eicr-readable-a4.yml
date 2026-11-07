@@ -1,12 +1,13 @@
 name: EICR A4 full-page and readable type visual QA
 on:
   push:
-    branches: [fix/certificates-eicr-a4-readable-print-20261107, fix/certificates-v197-data-safe-ux, fix/eicr-page3-j-page4-k-branding-na-20261107]
+    branches: [fix/certificates-eicr-a4-readable-print-20261107, fix/certificates-v197-data-safe-ux, fix/eicr-page3-j-page4-k-branding-na-20261107, fix/certificates-v212-pdf-open-glitch]
     paths:
       - 'public/certificates/**'
       - 'certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java'
       - 'certificate-android/qa/verify-eicr-a4-layout.py'
       - 'tests/certificates-eicr-readable-layout-fixtures.mjs'
+      - 'tests/certificates-eicr-a4-structure.test.mjs'
       - '.github/workflows/certificate-eicr-readable-a4.yml'
   workflow_dispatch:
 permissions:

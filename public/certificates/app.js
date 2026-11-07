@@ -2605,8 +2605,14 @@
     saveNow();
     render();
     toast('Certificate completed');
-    if(window.Android?.openLatestPdf)window.Android.openLatestPdf();
-    else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
+    if(window.Android?.openLatestPdf){
+      try{
+        if(window.Android.openLatestPdf()===false)toast('PDF saved to Downloads. Preview could not open.');
+      }catch(err){
+        console.error('Could not open saved PDF',err);
+        toast('PDF saved to Downloads. Open it from Files.');
+      }
+    }else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
   }
 
   function formatPdfValue(field, value) {
@@ -4192,9 +4198,15 @@
     else if (action === 'delete') deleteCertificate(button.dataset.id);
     else if (action === 'home') { saveNow();lastRequestedOrientation='';try{window.Android?.setCertificateOrientation?.('unspecified');}catch{} view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; render(); goTop(); }
     else if(action==='pdf-open'){
-      if(window.Android?.openLatestPdf){if(window.Android.openLatestPdf()===false)alert('PDF unavailable. Re-download the file.');}
-      else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
-      document.querySelector('.pdf-download-backdrop')?.remove();
+      let opened=false;
+      try {
+        if(window.Android?.openLatestPdf)opened=window.Android.openLatestPdf()!==false;
+        else if(lastPdfPreviewUrl)opened=!!window.open(lastPdfPreviewUrl,'_blank','noopener');
+      } catch(err) {
+        console.error('PDF preview could not open',err);
+      }
+      if(opened)document.querySelector('.pdf-download-backdrop')?.remove();
+      else alert('The PDF was saved to Downloads, but the preview could not open. Please try again or open the file in My Files.');
     }
     else if(action==='pdf-dismiss')document.querySelector('.pdf-download-backdrop')?.remove();
     else if (action === 'pdf') downloadPDF();

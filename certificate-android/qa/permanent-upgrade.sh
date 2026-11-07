@@ -17,3 +17,7 @@ adb shell am force-stop "$pkg"
 run_test reopened
 adb shell am instrument -w -e class uk.co.sperinservices.certificates.CertificateOrientationTest "$pkg.test/androidx.test.runner.AndroidJUnitRunner" | tee certificate-android/dist/orientation-pdf-check.txt
 grep -F 'OK (1 test)' certificate-android/dist/orientation-pdf-check.txt
+# Exercise actual built-in PDF Open, asynchronous page rendering and navigation
+# on the same newly installed permanent APK (not a mocked browser button).
+adb shell am instrument -w -e class uk.co.sperinservices.certificates.PdfPreviewActivityTest "$pkg.test/androidx.test.runner.AndroidJUnitRunner" | tee certificate-android/dist/pdf-open-check.txt
+grep -F 'OK (1 test)' certificate-android/dist/pdf-open-check.txt

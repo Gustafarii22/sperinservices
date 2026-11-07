@@ -86,8 +86,8 @@ test('EICR contains every report section A to K and both IET observation categor
   assert(drawing.includes('ADVISORY_TEST_FINDING'));
   assert(drawing.includes('GUIDANCE FOR RECIPIENTS'));
   assert(drawing.includes('CONDITION REPORT SCHEDULE OF INSPECTION'));
-  assert(drawing.includes('GENERIC SCHEDULE OF CIRCUIT DETAILS'));
-  assert(drawing.includes('GENERIC SCHEDULE OF TEST RESULTS'));
+  assert(drawing.includes('SCHEDULE OF CIRCUIT DETAILS'));
+  assert(drawing.includes('SCHEDULE OF TEST RESULTS'));
 });
 test('Actual schema prints IET labels rather than raw internal field names',()=>{
  for(const raw of ['additionsEvidence','recordsAvailable','standardAmendedTo','generalCondition','earthingArrangement','bondingToOtherChecked'])

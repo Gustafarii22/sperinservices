@@ -19,6 +19,32 @@ assert page4.index('Item No.') < page4.index('Observations') < page4.index('Loca
 assert 'CONT-2026-123' in ''.join(p.get_text() for p in doc), 'Actual instrument serial missing'
 assert 'AUGUSTINE SPERIN' in ''.join(p.get_text() for p in doc), 'Tester name not uppercase'
 assert 'augustine sperin' not in ''.join(p.get_text() for p in doc), 'Lowercase tester name leaked'
+# Section K footer text belongs at the bottom of page four, not on page five.
+assert 'Outcomes: Acceptable condition' in page4, 'Capitalised outcomes legend missing from Section K'
+assert 'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.' in page4, 'Inspection code note missing from Section K'
+page5=doc[4].get_text()
+assert 'Outcomes: Acceptable condition' not in page5 and 'C1, C2, C3 and FI coded inspection items are to be recorded' not in page5, 'Section K legend remains incorrectly on page five'
+def top_mm(page,phrase):
+    matches=page.search_for(phrase)
+    assert matches, (phrase,'not found')
+    return matches[0].y0/MM
+for legend in ('Outcomes: Acceptable condition','C1, C2, C3 and FI coded inspection items'):
+    y=top_mm(doc[3],legend)
+    assert 176 <= y <= 197, (legend,'not in Section K bottom strip',y)
+for number,page in enumerate(doc,1):
+    text=page.get_text()
+    if 'SCHEDULE OF CIRCUIT DETAILS' in text:
+        assert 'GENERIC SCHEDULE' not in text, ('Generic title still present',number)
+        y=top_mm(page,'CODES FOR TYPES OF WIRING')
+        assert 175<=y<=189, ('Wiring codes not near bottom',number,y)
+        assert 'A Thermoplastic insulated/sheathed' in text and 'O Other' in text, ('Wiring-code definitions missing',number)
+    if 'SCHEDULE OF TEST RESULTS' in text:
+        assert 'GENERIC SCHEDULE' not in text, ('Generic test title still present',number)
+        y=top_mm(page,'Details of test instruments used')
+        assert 170<=y<=184, ('Instrument details not near bottom',number,y)
+        sign=top_mm(page,'Tested by name (Capitals)')
+        assert 188<=sign<=198, ('Tester signoff not near bottom',number,sign)
+
 # Every page uses the same real-proportion logo in the top-left of the frame.
 for page in doc:
     image_rects=[rect for img in page.get_images(full=True) for rect in page.get_image_rects(img[0])]
