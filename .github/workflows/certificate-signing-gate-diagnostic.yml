@@ -31,3 +31,21 @@ jobs:
           set -euo pipefail
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/42320882175/pending_deployments" --jq 'length'
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/42320882175/approvals" --jq 'length'
+      - name: Read allowed release branch policy metadata (no secrets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "PROTECTED_ENVIRONMENT_POLICY_START"
+          if gh api "repos/$GITHUB_REPOSITORY/environments/certificates-production" \
+            --jq '{name: .name, deployment_branch_policy: .deployment_branch_policy, protection_rules: .protection_rules}' ; then
+            echo "ENVIRONMENT_METADATA_READ_SUCCESS"
+          else
+            echo "ENVIRONMENT_METADATA_REQUIRES_REPOSITORY_OWNER"
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/environments/certificates-production/deployment-branch-policies" \
+            --jq '[.branch_policies[] | {name, type}]' ; then
+            echo "BRANCH_POLICY_LIST_READ_SUCCESS"
+          else
+            echo "BRANCH_POLICY_LIST_REQUIRES_REPOSITORY_OWNER"
+          fi
