@@ -187,9 +187,9 @@ jobs:
           Install over the current permanent version; do not uninstall the
           existing app or clear its saved certificates.
           EOF
-          gh release create "$TAG" "$ASSET" release-SHA256SUMS.txt \\
-            -R Gustafarii22/sperinservices --target "$GITHUB_SHA" \\
-            --title "Sperin Certificates v${CODE} — Signed & Verified APK" \\
+          gh release create "$TAG" "$ASSET" release-SHA256SUMS.txt \
+            -R Gustafarii22/sperinservices --target "$GITHUB_SHA" \
+            --title "Sperin Certificates v${CODE} — Signed & Verified APK" \
             --prerelease --notes-file release-notes.txt
-          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \\
+          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets \
             --jq '.assets[] | [.name,.size,.digest,.url] | @tsv'
