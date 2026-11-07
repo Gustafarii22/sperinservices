@@ -45,6 +45,47 @@ for number,page in enumerate(doc,1):
         sign=top_mm(page,'Tested by name (Capitals)')
         assert 188<=sign<=198, ('Tester signoff not near bottom',number,sign)
 
+# Circuit Details and Test Results must have matching 3x3 metadata boxes,
+# exactly aligned first-circuit rows and identical 9 mm row grids. This catches
+# regressions that a generic A4 size check would miss.
+pairs=[]
+for i in range(len(doc)-1):
+    if 'SCHEDULE OF CIRCUIT DETAILS' not in doc[i].get_text():
+        continue
+    assert 'SCHEDULE OF TEST RESULTS' in doc[i+1].get_text(), (
+        i+1,'Circuit Details must be followed by its matching Test Results page'
+    )
+    details,results=doc[i],doc[i+1]
+    def first_rect(page,term):
+        matches=page.search_for(term)
+        assert matches, (i+1,term,'heading not found')
+        return matches[0]
+    for term in ('DB/CU reference:', 'Location:', 'Supplied from:', 'Circuit number'):
+        a,b=first_rect(details,term),first_rect(results,term)
+        assert abs(a.x0-b.x0)<0.3*MM and abs(a.y0-b.y0)<0.3*MM,(
+            i+1,term,'field/header misaligned',a,b
+        )
+    def row_grid(page):
+        # These are the first 10 mm circuit-number column rectangles, not
+        # the page border or the three large board-header cells.
+        result=[]
+        for drawing in page.get_drawings():
+            r=drawing['rect']
+            if (abs(r.x0/MM-10)<0.15 and abs(r.width/MM-10)<0.15
+                and 85<=r.y0/MM<=174 and r.y1/MM<=178):
+                result.append((r.y0,r.y1))
+        return sorted(set((round(a,2),round(b,2)) for a,b in result))
+    left,right=row_grid(details),row_grid(results)
+    assert len(left)>=8 and left==right,(
+        i+1,'Circuit number rows have different start positions/heights',left,right
+    )
+    # Ensure no overflow that sends the sign-off to a separate unframed page.
+    assert 'CODES FOR TYPES OF WIRING' in details.get_text()
+    assert 'Details of test instruments used' in results.get_text()
+    assert 'Tested by name (Capitals)' in results.get_text()
+    pairs.append(i+1)
+assert pairs, 'No circuit/test schedule pairs found for alignment testing'
+
 # Every page uses the same real-proportion logo in the top-left of the frame.
 for page in doc:
     image_rects=[rect for img in page.get_images(full=True) for rect in page.get_image_rects(img[0])]
