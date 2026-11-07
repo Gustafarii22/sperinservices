@@ -1127,29 +1127,61 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean savePdfBase64(String dataUri, String fileName) {
             try {
-                int comma = dataUri.indexOf(',');
-                String payload = comma >= 0 ? dataUri.substring(comma + 1) : dataUri;
-                Uri uri = saveBytes(Base64.decode(payload, Base64.DEFAULT), fileName, "application/pdf", true);
-                if (uri != null) mostRecentPdfUri = uri;
-                return uri != null;
-            } catch (Exception ex) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF save failed", Toast.LENGTH_LONG).show());
+                if(dataUri==null || dataUri.length()>34000000) return false;
+                int comma=dataUri.indexOf(',');
+                String payload=comma>=0 ? dataUri.substring(comma+1) : dataUri;
+                byte[] pdf=Base64.decode(payload,Base64.DEFAULT);
+                if(pdf.length<8 || pdf.length>25000000 ||
+                    pdf[0]!='%' || pdf[1]!='P' || pdf[2]!='D' || pdf[3]!='F' || pdf[4]!='-')
+                    throw new IllegalArgumentException("The generated PDF is invalid");
+                // Downloads remains the permanent customer-facing file.
+                Uri downloadUri=saveBytes(pdf,fileName,"application/pdf",true);
+                if(downloadUri==null)return false;
+                // A private cache copy avoids Samsung MediaStore resolver/ownership
+                // handoff issues when launching the built-in PDF preview.
+                // It is temporary and never replaces the exported Downloads copy.
+                try {
+                    File preview=new File(getCacheDir(),"sperin-latest-preview.pdf");
+                    File staging=new File(getCacheDir(),"sperin-latest-preview.tmp");
+                    try(FileOutputStream out=new FileOutputStream(staging)){out.write(pdf);out.getFD().sync();}
+                    if(!staging.renameTo(preview))throw new java.io.IOException("Could not refresh preview cache");
+                    mostRecentPdfUri=FileProvider.getUriForFile(MainActivity.this,
+                        getPackageName()+".fileprovider",preview);
+                }catch(Exception cacheError){
+                    android.util.Log.w("SperinCertificates","Private PDF preview cache unavailable; using Downloads",cacheError);
+                    mostRecentPdfUri=downloadUri;
+                }
+                return true;
+            }catch(Exception ex){
+                android.util.Log.e("SperinCertificates","PDF save failed",ex);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "PDF save failed: "+ex.getMessage(),Toast.LENGTH_LONG).show());
                 return false;
             }
         }
 
         @JavascriptInterface
         public boolean openLatestPdf() {
-            final Uri uri = mostRecentPdfUri;
-            if (uri == null) return false;
+            final Uri uri=mostRecentPdfUri;
+            if(uri==null)return false;
+            // Check the actual PDF bytes are accessible before telling the web
+            // button that opening succeeded. Fail visibly if the Uri has expired.
+            try(ParcelFileDescriptor probe=getContentResolver().openFileDescriptor(uri,"r")){
+                if(probe==null || probe.getStatSize()==0)return false;
+            }catch(Exception error){
+                android.util.Log.w("SperinCertificates","PDF preview URI inaccessible",error);
+                return false;
+            }
             runOnUiThread(() -> {
                 try {
-                    Intent intent = new Intent(MainActivity.this, PdfPreviewActivity.class);
-                    intent.setDataAndType(uri, "application/pdf");
+                    Intent intent=new Intent(MainActivity.this,PdfPreviewActivity.class);
+                    intent.setDataAndType(uri,"application/pdf");
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(intent);
-                } catch (Exception ex) {
-                    Toast.makeText(MainActivity.this, "No PDF viewer available", Toast.LENGTH_LONG).show();
+                }catch(Exception ex){
+                    android.util.Log.e("SperinCertificates","Could not start PDF viewer",ex);
+                    Toast.makeText(MainActivity.this,
+                        "Could not open PDF: "+ex.getMessage(),Toast.LENGTH_LONG).show();
                 }
             });
             return true;
