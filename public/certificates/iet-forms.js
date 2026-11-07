@@ -403,7 +403,7 @@
     ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
 
     const boards=boardRows(cert);
-    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/12)),0);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/10)),0);
     sectionTable('SECTION J: SCHEDULES',[
       [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
