@@ -49,6 +49,29 @@
     lines.forEach((line,i)=>doc.text(line,x,y+i*lh,opts.align?{align:opts.align}:undefined));
     return y+Math.max(1,lines.length)*lh;
   }
+  // Mixed-weight inline printing, wrapped within its designated PDF cell.
+  function writeRuns(doc,runs,x,y,w,size=7.2,lineHeight=4.2,maxLines=3){
+    let xx=x,yy=y,lines=1;
+    const right=x+w;
+    for(const run of runs){
+      const words=String(run.text??'').split(/(\s+)/).filter(Boolean);
+      doc.setFont('helvetica',run.bold?'bold':'normal');
+      doc.setFontSize(size);
+      doc.setTextColor(...INK);
+      for(const word of words){
+        const part=pdfText(word),ww=doc.getTextWidth(part);
+        if(xx+ww>right && xx>x+0.1 && part.trim()){
+          if(lines>=maxLines)return yy;
+          xx=x;yy+=lineHeight;lines++;
+        }
+        if(xx===x&&!part.trim())continue;
+        // Long single values are clipped rather than printed over the next cell.
+        const clipped=doc.splitTextToSize(part,Math.max(2,right-xx))[0]||'';
+        doc.text(clipped,xx,yy);xx+=doc.getTextWidth(clipped);
+      }
+    }
+    return yy;
+  }
   function checkbox(doc,x,y,checked=false,label='',opts={}){
     const s=opts.size||3.2;
     doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(x,y-s+0.2,s,s);
@@ -85,12 +108,19 @@
     const edge=5.3;
     doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
     // Equal-width frame on all four edges; no asymmetric heavy left bar.
-    doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
-    doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
+    // Proportional, left-aligned logo inside the blue frame: never stretch a raster.
+    let brandX=10;
     if(doc.__sperinLogo){
-      try{const logo=doc.__sperinLogo;doc.addImage(logo.data,logo.format,w/2-9,6,18,6,undefined,'FAST');}
-      catch(err){console.warn('Unable to embed customer report logo',err);}
+      try{
+        const logo=doc.__sperinLogo, p=doc.getImageProperties(logo.data);
+        const maxW=20,maxH=8.1, scale=Math.min(maxW/p.width,maxH/p.height);
+        const logoW=p.width*scale,logoH=p.height*scale;
+        doc.addImage(logo.data,logo.format,9.0+(maxW-logoW)/2,5.7+(maxH-logoH)/2,logoW,logoH,undefined,'FAST');
+        brandX=31.5;
+      }catch(err){console.warn('Unable to embed customer report logo',err);}
     }
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
+    doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
     const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
