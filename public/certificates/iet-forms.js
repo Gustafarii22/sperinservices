@@ -632,7 +632,9 @@
       y=doc.lastAutoTable.finalY+.4;
     };
     ['A','B','C','D','E','F','G'].forEach(writeSection);
-    fresh();
+    // Ordinary reports begin H on a new sheet. When unusually long fields
+    // already pushed G onto a sparse continuation, fill that sheet first.
+    if(doc.internal.getCurrentPageInfo().pageNumber===1 || y>115)fresh();
     ['H','I','J'].forEach(writeSection);
     // Section J may continue across pages: use the remaining page space for
     // observations when enough room remains, rather than forcing a blank page.
