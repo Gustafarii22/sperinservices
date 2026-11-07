@@ -25,16 +25,19 @@ for(const [count,repeat] of [[1,0],[10,0],[14,0],[30,0],[14,10]]){
   }
   const cert={
     type:'eicr',number:'A4-READABILITY-QA',
-    fields:{clientName:'Test customer',clientAddress:'Birmingham',reason:'Periodic inspection',inspectionDates:'2026-11-07',installationAddress:'Birmingham',premisesType:'Residential',inspectedBy:'Inspection Engineer',inspectorSignature:'Inspection Engineer',authorisedBy:'Inspection Engineer',authoriserSignature:'Inspection Engineer',overallAssessment:'Unsatisfactory',mainSwitchBs:'BS EN 60947-3',standardAmendedTo:'BS 7671:2018+A4:2026',remedialActionStatus:'The following observations are made'},
+    fields:{clientName:'Test customer',clientAddress:'Birmingham',reason:'Periodic inspection',inspectionDates:'2026-11-07',installationAddress:'Birmingham',premisesType:'Residential',inspectedBy:'Inspection Engineer',inspectorSignature:'Inspection Engineer',authorisedBy:'Inspection Engineer',authoriserSignature:'Inspection Engineer',overallAssessment:'Unsatisfactory',mainSwitchBs:'BS EN 60947-3',standardAmendedTo:'BS 7671:2018+A4:2026',remedialActionStatus:'The following observations are made',testedBy:'augustine sperin',instrumentContinuity:'CONT-2026-123',testerSerial:'MFT-12345',testedDate:'2026-11-07'},
     tables:{
-      observations:[{item:'1',observation:'C2 finding '+('Long defect description and circuit reference. ').repeat(repeat+1),code:'C2',scheduleRef:'4.7'},{item:'2',observation:'C3 finding '+('Improvement recommended. ').repeat(repeat+1),code:'C3',scheduleRef:'5.4'}],
+      observations:[{item:'1',observation:'C2 finding '+('Long defect description and circuit reference. ').repeat(repeat+1),code:'C2',location:'Kitchen',scheduleRef:'4.7'},{item:'2',observation:'C3 finding '+('Improvement recommended. ').repeat(repeat+1),code:'C3',location:'Consumer unit',scheduleRef:'5.4'}],
       eicrInspection:inspections.map(x=>({...x,outcome:'✓'})),
       boards:[{ref:'DB1',location:'Under stairs cupboard',distributionOcpdBs:'BS EN 60947-3',distributionOcpdRating:'80'}],
       circuits,tests
     }
   };
   const original=JSON.stringify(cert);
-  const pdf=ctx.SperinIetForms.build({cert,schema});
+  const pdf=ctx.SperinIetForms.build({cert,schema,settings:{
+    // 100x24 PNG proves the logo is placed at its native 25:6 ratio, not stretched.
+    reportLogo:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAYCAIAAACDYM+5AAAAe0lEQVR4nO3ZMQ5AMABGYZVuXIXD1TlczlkcwCARqQ59U4n3TWzNy29AGKbUqU7f+gBfYizAWEDM7vdtbXKO1xrn5bp2WUC+rNM95289HzKXBRgLMBZgLMBYgLEAYwHGAowFGAswFmAsoPwi7YeaIpcFBH9Y1HNZgLGAAy4QCdyhQ+PPAAAAAElFTkSuQmCC'
+  }});
   assert.equal(JSON.stringify(cert),original,'PDF generation mutated certificate data');
   assert(pdf.output().startsWith('%PDF-'));
   writeFileSync(output+'/eicr-'+count+'-circuits-obs-'+repeat+'.pdf',Buffer.from(pdf.output('arraybuffer')));
