@@ -46,7 +46,7 @@ android {
             applicationIdSuffix '.permanent'
             signingConfig signingConfigs.permanent
             debuggable false
-            manifestPlaceholders = [appLabel: 'Sperin Certificates']
+            manifestPlaceholders = [appLabel: 'Sperin Certificates NEW']
         }
         debug {
             applicationIdSuffix '.qa'
