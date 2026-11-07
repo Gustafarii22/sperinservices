@@ -84,7 +84,7 @@
     // ISO A4 media box. Android must print the original vector PDF at 100%.
     const edge=5.3;
     doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
-    doc.setFillColor(...BLUE);doc.rect(edge,edge,1.8,h-2*edge,'F');
+    // Equal-width frame on all four edges; no asymmetric heavy left bar.
     doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
     doc.setFont('helvetica','normal');doc.setFontSize(5.3);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',10,12.6);
     if(doc.__sperinLogo){
@@ -558,7 +558,7 @@
     const getPart=letter=>schema.sections.find(p=>p.type==='section'&&p.title.startsWith(letter+' ·'));
     const fresh=()=>{doc.addPage('a4','landscape');y=frame();};
     const writeSection=letter=>{
-      if(y>170)fresh();
+      if(y>181)fresh();
       const part=getPart(letter);
       const definitions=part?.fields||[];
       const keys=fieldsBySection[letter]||[];
@@ -600,14 +600,16 @@
         rowBindings.push([a,b]);
       }
       for(const note of notes[letter]||[]){
-        body.push([{content:pdfText(note),colSpan:4,styles:{fontStyle:'italic',fontSize:5.8}}]);
+        body.push([{content:pdfText(note),colSpan:4,styles:{fontStyle:'italic',fontSize:6.8}}]);
         rowBindings.push([]);
       }
       doc.autoTable({
         startY:y,head:[[{content:titles[letter],colSpan:4,styles:{fontStyle:'bold',fillColor:PALE,textColor:INK,fontSize:7.2}}]],
-        body,margin:{left:x,right:10,top:26,bottom:13},tableWidth:w,
-        theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
-        styles:{fontSize:5.5,cellPadding:.65,minCellHeight:4.8,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        body,margin:{left:x,right:10,top:27,bottom:14},tableWidth:w,
+        // Let sections use the available A4 space instead of forcing entire
+        // sections to a new sheet and leaving a large blank area.
+        theme:'grid',rowPageBreak:'avoid',pageBreak:'auto',
+        styles:{fontSize:7.1,cellPadding:.82,minCellHeight:5.9,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
         editResolve:(r,c)=>{
@@ -620,41 +622,40 @@
       });
       y=doc.lastAutoTable.finalY+2.2;
     };
-    ['A','B','C','D','E','F','G'].forEach(writeSection);
-    fresh();
-    ['H','I','J'].forEach(writeSection);
-    fresh();
-    // The report heading occupies y=20mm. Start Section K below it with
-    // generous separation, never against the heading or neighbouring frame.
+    // Flow A-K continuously to avoid dedicating nearly blank sheets to G/H/K.
+    ['A','B','C','D','E','F','G','H','I','J'].forEach(writeSection);
+    if(y>166)fresh();
     y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
-    write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:8,bold:true});y+=6;
+    write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
     const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
-    checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:6.3,labelWidth:95});
-    checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:6.3,labelWidth:130});
+    checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
+    checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:7.3,labelWidth:130});
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
     const limitationsY=y;
-    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:6,maxLines:6,lineHeight:3.5})+3;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
-    y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:6,lineHeight:3.5})+5;
+    y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
     for(const group of [
       {title:'C1 AND C2 OBSERVATIONS',codes:['C1','C2'],note:'C1: Danger present - immediate remedial action necessary. C2: Potentially dangerous - urgent remedial action necessary. These affect the overall assessment.'},
       {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
     ]){
-      if(y>153){fresh();y=Math.max(y,32);}
+      if(y>164){fresh();y=Math.max(y,32);}
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
         head:[[{content:group.title+' (include relevant schedule reference)',colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
               ['Item No.','Observation(s)','Classification code']],
-        body:selected.length?selected.map(({row})=>[
+        // Keep the C1/C2 or C3/FI explanation with its observation table,
+        // not alone on a new sheet after an automatic page break.
+        body:(selected.length?selected.map(({row})=>[
           pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
-        ]):[['','','']],
-        margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-        styles:{fontSize:6,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+        ]):[['','','']]).concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+        margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
         editResolve:(r,c)=>{
@@ -667,11 +668,7 @@
         },
         didDrawPage:()=>frame()
       });
-      y=doc.lastAutoTable.finalY+3;
-      // AutoTable may flow to another page. Keep the explanation with enough
-      // space above the printer-safe footer instead of drawing over a border.
-      if(y+9>doc.internal.pageSize.getHeight()-13){fresh();y=Math.max(y,32);}
-      y=write(doc,group.note,x,y,w,{size:5.7,maxLines:3,lineHeight:3.4})+6;
+      y=doc.lastAutoTable.finalY+6;
     }
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
@@ -685,8 +682,8 @@
     const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
     const drawPage=()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard);
     drawPage();
-    write(doc,'Outcomes: acceptable condition = tick; unacceptable = C1 or C2; improvement = C3; further investigation = FI; not verified = N/V; limitation = LIM; not applicable = N/A.',x,26,w,{size:5.6,maxLines:2});
-    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,31,w,{size:5.6});
+    write(doc,'Outcomes: acceptable condition = tick; unacceptable = C1 or C2; improvement = C3; further investigation = FI; not verified = N/V; limitation = LIM; not applicable = N/A.',x,27,w,{size:7.1,maxLines:2});
+    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,33,w,{size:7.0});
     const sections={
       '1':'INTAKE EQUIPMENT (VISUAL INSPECTION ONLY)',
       '2':'PRESENCE OF ADEQUATE ARRANGEMENTS FOR OTHER SOURCES SUCH AS MICROGENERATORS',
@@ -732,12 +729,12 @@
       }
     });
     doc.autoTable({
-      startY:36,
-      head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:7}}],
+      startY:39,
+      head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:8.2}}],
             ['Item No.','Description','Outcome']],
       body,
-      margin:{left:x,right:10,top:29,bottom:15},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
-      styles:{fontSize:5.7,cellPadding:.8,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      margin:{left:x,right:10,top:29,bottom:20},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:7.2,cellPadding:1.0,minCellHeight:6.8,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:19},1:{cellWidth:w-47},2:{cellWidth:28,halign:'center'}},
       editResolve:(r,c)=>{
@@ -760,15 +757,10 @@
         doc.setLineWidth(.18);
       }
     });
-    const lastY=doc.lastAutoTable.finalY;
-    if(lastY<178){
-      const f=cert.fields||{};
-      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,lastY+7,w,{size:6});
-    }else{
-      doc.addPage('a4','landscape');drawPage();
-      const f=cert.fields||{};
-      write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,33,w,{size:6});
-    }
+    // Reserve the bottom strip for the inspector sign-off. Never generate
+    // a nearly blank additional sheet containing only this line.
+    const f=cert.fields||{};
+    write(doc,'Inspected and tested by: '+display(f.inspectedBy,worksheet)+'     Signature: '+display(f.inspectorSignature,worksheet)+'     Date: '+(worksheet?'':fmtDate(f.inspectorDate)),x,195,w,{size:8.0,bold:true});
   }
   // The IET's Amendment 4 model specifies guidance for recipients to be
   // appended to the issued EICR. Do not append internal inspector notes.
@@ -793,14 +785,14 @@
       'Where the installation includes alternative or additional sources of supply, warning notices should be found at the origin or meter position or, if remote from the origin, at the consumer unit or distribution board and at all points of isolation of all sources of supply.'
     ];
     doc.addPage('a4','landscape');frame();
-    write(doc,'This Report is an important and valuable document which should be retained for future reference.',10,29,277,{size:7.4,bold:true,maxLines:2});
+    write(doc,'This Report is an important and valuable document which should be retained for future reference.',10,29,277,{size:8.5,bold:true,maxLines:2});
     doc.autoTable({
       startY:36,
       head:[[{content:'GUIDANCE FOR RECIPIENTS (to be appended to the Report)',colSpan:2,styles:{fontStyle:'bold',fillColor:PALE}}]],
       body:guidance.map((item,i)=>[String(i+1)+'.',pdfText(item)]),
       margin:{left:10,right:10,top:29,bottom:15},tableWidth:277,
       theme:'plain',rowPageBreak:'avoid',
-      styles:{fontSize:6.8,cellPadding:1.6,minCellHeight:7.5,textColor:INK,overflow:'linebreak'},
+      styles:{fontSize:7.7,cellPadding:1.5,minCellHeight:7.5,textColor:INK,overflow:'linebreak'},
       columnStyles:{0:{cellWidth:12,fontStyle:'bold'},1:{cellWidth:265}},
       didDrawPage:frame
     });
@@ -968,7 +960,7 @@
       const circuits=circuitsForBoard(cert,ref,bi===0);
       const chunks=[];
       if(circuits.length){
-        for(let i=0;i<circuits.length;i+=12)chunks.push(circuits.slice(i,i+12));
+        for(let i=0;i<circuits.length;i+=10)chunks.push(circuits.slice(i,i+10));
       }else chunks.push([]);
       chunks.forEach((chunk,chunkIndex)=>{
         doc.addPage('a4','landscape');
@@ -993,7 +985,7 @@
           ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
           ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
           ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
-        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:6.5,cellPadding:2,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
+        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:7.7,cellPadding:2.1,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
@@ -1002,7 +994,7 @@
           ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<10;r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
@@ -1019,14 +1011,14 @@
             [{content:'',colSpan:2},{content:'Conductor details',colSpan:5},{content:'Overcurrent protective device',colSpan:5},{content:'RCD',colSpan:4}],
             cols.map(c=>pdfText(c[1]))
           ],
-          body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',rowPageBreak:'avoid',
+          styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:9},1:{cellWidth:40,halign:'left'},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:14},5:{cellWidth:13},6:{cellWidth:13},7:{cellWidth:20},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:16},11:{cellWidth:17},12:{cellWidth:21},13:{cellWidth:12},14:{cellWidth:12},15:{cellWidth:12}}
         });
         const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
-        write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:5.8,bold:true});
-        write(doc,'A Thermoplastic insulated/sheathed · B Thermoplastic in metallic conduit · C Thermoplastic in non-metallic conduit · D Thermoplastic in metallic trunking · E Thermoplastic in non-metallic trunking · F Thermoplastic SWA · G Thermosetting SWA · H Mineral insulated · O Other',x,ky+4,w,{size:4.8,maxLines:2});
+        write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:7.2,bold:true});
+        write(doc,'A Thermoplastic insulated/sheathed · B Thermoplastic in metallic conduit · C Thermoplastic in non-metallic conduit · D Thermoplastic in metallic trunking · E Thermoplastic in non-metallic trunking · F Thermoplastic SWA · G Thermosetting SWA · H Mineral insulated · O Other',x,ky+4.5,w,{size:6.1,maxLines:3,lineHeight:3.4});
 
         doc.addPage('a4','landscape');
         pageFrame(doc,'GENERIC SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
@@ -1043,7 +1035,7 @@
           ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
-        for(let r=0;r<12;r++){
+        for(let r=0;r<10;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
           trows.push(tcols.map(col=>{
@@ -1060,8 +1052,8 @@
             [{content:'',colSpan:1},{content:'Continuity (Ohms)',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
             tcols.map(c=>pdfText(c[1]))
           ],
-          body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',
-          styles:{fontSize:4.8,cellPadding:.55,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
+          body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',rowPageBreak:'avoid',
+          styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}},
           didDrawCell:data=>{
@@ -1086,13 +1078,13 @@
             doc.setLineWidth(.12);
           }
         });
-        const ty=Math.min(doc.internal.pageSize.getHeight()-29,doc.lastAutoTable.finalY+4);
+        const ty=Math.min(doc.internal.pageSize.getHeight()-31,doc.lastAutoTable.finalY+3);
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
         const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
-        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:5.8,bold:true});
+        write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
           'Multifunction: '+display(ff.testerSerial||'',worksheet),
           'Continuity: '+display(ff.testerLowOhm===false?'':ff.instrumentContinuity,worksheet),
@@ -1101,8 +1093,8 @@
           'RCD: '+display(ff.testerRcd===false?'':ff.instrumentRcd,worksheet),
           'Earth electrode resistance: '+display(ff.testerEarth===false?'':ff.instrumentEarth,worksheet)
         ];
-        write(doc,instrumentDetails.join('   '),x,ty+4,w,{size:4.7,maxLines:2});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+11,w,{size:5.2});
+        write(doc,instrumentDetails.join('   '),x,ty+4.5,w,{size:6.1,maxLines:3,lineHeight:3.5});
+        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+13.5,w,{size:7.0});
       });
     });
   }
