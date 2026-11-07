@@ -990,3 +990,8 @@ body[data-entry-mode="certificate"] #speed-nav{display:none!important}
 .cv-pdf-field:focus-within{z-index:3}
 .cv-exact-pdf .cv-sheet-content{flex:none}
 .cv-pdf-status{position:absolute;z-index:1;top:45%;left:10%;right:10%;text-align:center;background:white;color:#183c67;font-size:20px;padding:20px}
+
+/* Professional entry hierarchy: groups precede their own related fields. */
+.installation-group { margin: 12px 0 0; padding: 10px 0 5px; border-bottom: 1px solid #94a3b8; font-weight: 700; }
+.field > label, .cv-field > span { font-weight: 700; }
+.field input, .field select, .field textarea { font-weight: 400; }

@@ -1,0 +1,51 @@
+name: Diagnose Sperin certificate protected release gate (no signing access)
+on:
+  push:
+    branches: [fix/eicr-professional-layout-20261106]
+    paths: ['.github/workflows/certificate-signing-gate-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  checks: read
+  actions: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read existing failed job annotations (no secrets or environment access)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for id in 128247400964 128246035976 128238636011; do
+            echo "FAILED_CANDIDATE_JOB_ID=$id"
+            gh api "repos/$GITHUB_REPOSITORY/check-runs/$id/annotations" \
+              --jq '.[] | {level: .annotation_level, title: .title, message: .message, path: .path}' \
+              || echo "ANNOTATIONS_UNAVAILABLE_FOR_JOB=$id"
+          done
+      - name: Check deployment metadata only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/42320882175/pending_deployments" --jq 'length'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/42320882175/approvals" --jq 'length'
+      - name: Read allowed release branch policy metadata (no secrets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "PROTECTED_ENVIRONMENT_POLICY_START"
+          if gh api "repos/$GITHUB_REPOSITORY/environments/certificates-production" \
+            --jq '{name: .name, deployment_branch_policy: .deployment_branch_policy, protection_rules: .protection_rules}' ; then
+            echo "ENVIRONMENT_METADATA_READ_SUCCESS"
+          else
+            echo "ENVIRONMENT_METADATA_REQUIRES_REPOSITORY_OWNER"
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/environments/certificates-production/deployment-branch-policies" \
+            --jq '[.branch_policies[] | {name, type}]' ; then
+            echo "BRANCH_POLICY_LIST_READ_SUCCESS"
+          else
+            echo "BRANCH_POLICY_LIST_REQUIRES_REPOSITORY_OWNER"
+          fi

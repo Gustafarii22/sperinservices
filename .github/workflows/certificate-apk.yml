@@ -1,7 +1,7 @@
 name: Verify permanent Sperin Certificates release candidate
 on:
   push:
-    branches: [fix/certificates-v197-data-safe-ux]
+    branches: [fix/certificates-v197-data-safe-ux, fix/eicr-professional-layout-20261106]
     paths:
       - '.github/workflows/certificate-apk.yml'
       - 'public/certificates/**'
@@ -72,7 +72,8 @@ jobs:
           FIRST: ${{ inputs.first_version_code || '206' }}
         run: |
           set -euo pipefail
-          [[ "$FIRST" =~ ^[0-9]+$ ]] && test "$FIRST" -gt 200
+          # Public permanent-package release versionCode 205 is already published.
+          [[ "$FIRST" =~ ^[0-9]+$ ]] && test "$FIRST" -gt 205
           mkdir -p certificate-android/app/src/main/assets/certificates certificate-android/dist
           cp -a public/certificates/. certificate-android/app/src/main/assets/certificates/
           gradle -p certificate-android :app:assemblePermanent -PreleaseVersionCode="$FIRST" --no-daemon
@@ -108,8 +109,49 @@ jobs:
           target: google_apis
           disable-animations: true
           script: bash certificate-android/qa/permanent-upgrade.sh
-      - name: Candidate checksum
-        run: sha256sum certificate-android/dist/*.apk > certificate-android/dist/SHA256SUMS.txt
+      - name: Signed candidate manifest, exact source, versions and checksums
+        env:
+          FIRST: ${{ inputs.first_version_code || '206' }}
+        run: |
+          set -euo pipefail
+          (cd certificate-android/dist && sha256sum first.apk update.apk > SHA256SUMS.txt)
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          root=Path('certificate-android/dist')
+          first=int(os.environ['FIRST'])
+          pin=Path('certificate-android/signing/permanent.sha256').read_text().strip().lower()
+          package='uk.co.sperinservices.certificates.stable.permanent'
+          candidates=[]
+          for filename,version_code in [('first.apk',first),('update.apk',first+1)]:
+              path=root/filename
+              badging=(root/(filename+'.package.txt')).read_text()
+              signer=(root/(filename+'.signer.txt')).read_text()
+              assert "name='"+package+"'" in badging, 'wrong Android package'
+              assert "versionCode='"+str(version_code)+"'" in badging, 'wrong upgrade version'
+              assert pin in signer.lower(), 'unexpected permanent signing certificate'
+              v=re.search(r"versionName='([^']+)'",badging)
+              assert v, 'missing versionName'
+              candidates.append({
+                  'filename':filename,
+                  'versionCode':version_code,
+                  'versionName':v.group(1),
+                  'sizeBytes':path.stat().st_size,
+                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest()
+              })
+          assert candidates[0]['versionName']==candidates[1]['versionName']
+          manifest={
+              'repository':os.environ['GITHUB_REPOSITORY'],
+              'sourceCommitSha':os.environ['GITHUB_SHA'],
+              'workflowRunId':os.environ['GITHUB_RUN_ID'],
+              'androidPackage':package,
+              'signingCertificateSha256':pin,
+              'candidates':candidates,
+              'validation':'Signed package, sequential upgrade versions and emulator checks must all succeed before distribution'
+          }
+          (root/'BUILD-MANIFEST.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print('SIGNED_CANDIDATE_PROVENANCE_VALIDATED',os.environ['GITHUB_SHA'])
+          PY
       - name: Retain verified candidates (not automatic production publication)
         uses: actions/upload-artifact@v4
         with:

@@ -13,6 +13,7 @@
  function fieldInput(scope,key,value,field={},row=-1,kind=''){
    const id='cv-'+scope+'-'+row+'-'+key;
    const label=String(field.label||key),numeric=/^(zs|ze|zdb|ipf|r1|r2|rn|r1r2|r2only|irLL|irLE|irVoltage|rcdTime|rcdIdn|rcdRating|ocpdRating|breakingCapacity|maxZs|circuitNo|points|cpcCsa|liveCsa|mainRcdIdn|nominalVoltage|frequency|poleCount|mainSwitchCurrent)$/i.test(key);
+   if(field.type==='select'&&typeof value==='boolean')value=value?'Yes':'';
    const text=String(value??'');
    const attr=' data-cv-scope="'+E(scope)+'" data-cv-key="'+E(key)+'" data-cv-index="'+row+'"'+(kind?' data-cv-table="'+E(kind)+'"':'');
    let control;
@@ -268,6 +269,7 @@
      '<button class="btn" data-action="edit-undo">Undo</button>'+
      '<button class="btn" data-action="edit-redo">Redo</button>'+
      '<button class="btn" data-action="certificate-review">Review</button>'+
+     '<button class="btn" data-action="issued-history">Issued PDFs</button>'+
      '<button class="btn primary" data-action="pdf">Save / open PDF</button>'+
      '<button class="btn" data-action="home">Home</button>'+
      '<button class="btn" data-action="open-new">New certificate</button>'+

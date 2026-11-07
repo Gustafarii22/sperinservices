@@ -1,5 +1,7 @@
 name: Focused certificate PDF layout check
 on:
+  pull_request:
+    paths: ['public/certificates/**', 'tests/certificates-layout-matrix.test.mjs', 'tests/certificates-eicr-a4-structure.test.mjs', '.github/workflows/certificate-layout-check.yml']
   push:
     branches: [fix/certificates-v197-data-safe-ux]
     paths: ['.github/workflows/certificate-layout-check.yml', 'tests/certificates-orientation-pdf.e2e.mjs', 'public/certificates/**']
@@ -8,7 +10,7 @@ permissions:
 jobs:
   layout:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,4 +26,18 @@ jobs:
           /tmp/layout/node_modules/.bin/playwright install chromium
           python3 -m http.server 4173 -d public > /tmp/layout-http.log 2>&1 &
           sleep 1
+          node --test tests/certificates-layout-matrix.test.mjs tests/certificates-eicr-a4-structure.test.mjs tests/certificates-pdf-regions.test.mjs tests/certificates-v197-preservation.test.mjs
           node tests/certificates-orientation-pdf.e2e.mjs
+          node tests/certificates-complete-backup.e2e.mjs
+          node tests/certificates-issued-records.e2e.mjs
+
+      - name: Retain synthetic EICR review PDFs (no customer information)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-EICR-Layout-Review-Synthetic
+          path: |
+            certificate-android/qa-output/eicr-a4-model-qa.pdf
+            certificate-android/qa-output/layout/*.pdf
+          retention-days: 30
+          if-no-files-found: warn

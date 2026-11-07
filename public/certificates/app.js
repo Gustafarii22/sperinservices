@@ -1057,7 +1057,7 @@
         section('G · Declaration', [f('inspectedBy', 'Inspected and tested by'), f('inspectorPosition', 'Position'), f('inspectorCompany', 'For/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea'), f('inspectorSignature', 'Inspector signature / typed name'), f('inspectorDate', 'Inspector date', 'date'), f('authorisedBy', 'Report authorised for issue by'), f('authoriserPosition', 'Authoriser position'), f('authoriserCompany', 'For/on behalf of'), f('authoriserAddress', 'Authoriser address', 'textarea'), f('authoriserSignature', 'Authoriser signature / typed name'), f('authoriserDate', 'Authoriser date', 'date')]),
         section('H · Schedules attached', [f('continuationSheetCount', 'Number of continuation sheets'), f('continuationSheetSections', 'For section(s)'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
         section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', ['TN-C', 'TN-S', 'TN-C-S (PME)', 'TN-C-S (PNB)', 'TT', 'IT']), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), f('supplyDeviceType', 'Supply protective device type'), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('J · Installation particulars', [f('earthingDistributor', 'Distributor’s facility', 'checkbox'), f('earthingElectrode', 'Installation earth electrode', 'checkbox'), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingToWater', 'To water installation pipes', 'checkbox'), f('bondingToGas', 'To gas installation pipes', 'checkbox'), f('bondingToOil', 'To oil installation pipes', 'checkbox'), f('bondingToSteel', 'To structural steel', 'checkbox'), f('bondingToLightning', 'To lightning protection system', 'checkbox'), f('bondingToOtherChecked', 'To other', 'checkbox'), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('J · Installation particulars', [select('earthingDistributor', 'Distributor’s facility', OPTIONS.yesNoNA), select('earthingElectrode', 'Installation earth electrode', OPTIONS.yesNoNA), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), select('bondingToWater', 'To water installation pipes', OPTIONS.yesNoNA), select('bondingToGas', 'To gas installation pipes', OPTIONS.yesNoNA), select('bondingToOil', 'To oil installation pipes', OPTIONS.yesNoNA), select('bondingToSteel', 'To structural steel', OPTIONS.yesNoNA), select('bondingToLightning', 'To lightning protection system', OPTIONS.yesNoNA), select('bondingToOtherChecked', 'To other', OPTIONS.yesNoNA), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         section('K · Observations', [f('limitationsReference', 'Extent and limitations reference'), select('remedialActionStatus', 'Observations', ['No remedial action is required', 'The following observations are made'])]),
         table('observations', 'K · Observations', [
           { key: 'item', label: 'Item' }, { key: 'observation', label: 'Observation / defect' }, { key: 'code', label: 'Code', type: 'select', options: OPTIONS.observationCode }, { key: 'scheduleRef', label: 'Schedule ref.' }
@@ -1410,6 +1410,10 @@
   ]));
 
   try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
+  // Optional provisions retain a distinct blank and explicit N/A; no saved value is defaulted.
+  for(const field of SCHEMAS.eicr.sections.find(p=>p.title?.startsWith('J ·')).fields){
+    if(field.type==='select'&&!['maximumDemandUnit'].includes(field.key)&&!field.options.includes('N/A'))field.options=[...field.options,'N/A'];
+  }
   let settings = loadSettings();
   let state = loadState();
   let view = loadView();
@@ -1571,7 +1575,10 @@
   function persist() {
     if (view.currentId) {
       const c = getCurrent();
-      if (c) c.updatedAt = new Date().toISOString();
+      if (c) {
+        if(c.issuedContent&&window.SperinIssuedRecords?.content(c)!==c.issuedContent)c.status='Draft';
+        c.updatedAt = new Date().toISOString();
+      }
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     persistView();
@@ -1582,12 +1589,12 @@
     return JSON.stringify({ version: VERSION, exportedAt: new Date().toISOString(), settings, boardTemplates: reusableTemplates('board'), circuitTemplates: reusableTemplates('circuit'), certificates: state.certificates, sitePlans:sitePlans(), siteTemplates:siteTemplates(), jobs:window.SperinJobCentre?.backup?.()||[] });
   }
 
-  function flushNativeAutoBackup() {
+  async function flushNativeAutoBackup() {
     clearTimeout(nativeBackupTimer);
     nativeBackupTimer=null;
     if(!state.certificates.length) return;
     if(window.Android && typeof window.Android.saveAutoBackup==='function'){
-      try { window.Android.saveAutoBackup(autoBackupPayload()); } catch(err) { console.warn('Automatic recovery backup failed',err); }
+      try { const payload=await portableBackupPayload();clearTimeout(nativeBackupTimer);nativeBackupTimer=null;window.Android.saveAutoBackup(payload); } catch(err) { console.warn('Automatic recovery backup failed',err); }
     }
   }
 
@@ -1622,8 +1629,11 @@
   function certificateNumber(type) {
     const code = SCHEMAS[type].code;
     const date = TODAY.replaceAll('-', '');
-    const count = state.certificates.filter(c => c.type === type && String(c.number || '').includes(date)).length + 1;
-    return `SS-${code}-${date}-${String(count).padStart(3, '0')}`;
+    const existing=new Set(state.certificates.map(c=>c.number));
+    let count=1,number;
+    do{number=`SS-${code}-${date}-${String(count++).padStart(3,'0')}`;}while(existing.has(number));
+    return number;
+
   }
 
   function defaultFor(field) {
@@ -1924,7 +1934,7 @@
       if(part.type==='section') return renderSection(part,cert);
       return renderTable(part,cert);
     }).join('');
-    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
+    const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn" data-action="issued-history">Issued PDFs</button><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
     return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
@@ -1934,7 +1944,8 @@
   }
 
   function renderSection(part, cert) {
-    const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
+    const groups=part.title.startsWith('J ·')?{earthingDistributor:'Means of Earthing',earthingConductorMaterial:'Earthing Conductor',bondingMaterial:'Main Protective Bonding',mainSwitchLocation:'Main Switch / Protective Device'}:{};
+    const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => (groups[field.key]?'<h3 class="field full installation-group">'+groups[field.key]+'</h3>':'')+renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
       : '';
@@ -2023,6 +2034,7 @@
 
   function renderField(field, value, cert) {
     if(field.key==='supplyDeviceBs')value=supplyDeviceDisplay(cert.fields);
+    if(field.type==='select'&&typeof value==='boolean')value=value?'Yes':'';
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
 
@@ -2041,7 +2053,7 @@
     let control = '';
     if(field.type==='checkbox') control=`<label class="checkline compact-check"><input ${attrs} type="checkbox" ${value?'checked':''}/><span>Yes</span></label>`;
     else if (field.type === 'textarea') control = `<textarea ${attrs} placeholder="${esc(field.placeholder || '')}">${esc(value)}</textarea>`;
-    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs','earthElectrodeLocation','earthElectrodeResistance'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${(field.options || []).map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
+    else if (field.type === 'select') control = NUMERIC_INPUT_KEYS.has(field.key)||['ocpdBs','ocpdType','supplyDeviceBs','earthElectrodeLocation','earthElectrodeResistance'].includes(field.key) ? comboControl(attrs,field,value) : `<select ${attrs}><option value="">Select…</option>${[...new Set([...(field.options || []),...(value!==''&&value!=null?[String(value)]:[])])].map(o => `<option value="${esc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${esc(refMethodOption(o,field.key))}</option>`).join('')}</select>`;
     else control = `<input ${attrs} type="${field.type || 'text'}"${field.type==='date'?'':inputModeAttrs(field.key)} value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" />`;
     const postcodeButton=POSTCODE_TARGETS[field.key] ? `<button class="btn postcode-find" type="button" data-action="postcode-find" data-postcode-key="${esc(field.key)}">Find address</button>` : '';
     return `<div class="field ${span}"><label>${esc(field.label)}</label><div class="voice-control">${control}<button class="voice-mic" type="button" data-action="voice-one" aria-label="Speak answer for ${esc(field.label)}">🎙 <span>Speak</span></button>${postcodeButton}</div>${['refMethod','referenceMethod'].includes(field.key)?refMethodHelp(value):''}</div>`;
@@ -2049,6 +2061,7 @@
 
   function boardControl(boardIndex,key,label,value,options=null,extra=''){
     const attrs=`data-board-input="${esc(key)}" data-board-index="${boardIndex}"`;
+    if(!['ref','location','suppliedFrom'].includes(key))options=[...new Set([...(options||[]),'N/A'])];
     const control=Array.isArray(options)
       ? comboControl(attrs,{key,label,options},value)
       : `<input ${attrs}${inputModeAttrs(key)} value="${esc(value??'')}" ${extra}/>`;
@@ -2281,6 +2294,7 @@
     const data=JSON.parse(backupPayload());
     data.backupSchema=2;
     data.jobPhotos=await window.SperinJobCentre.exportPhotos(data.jobs);
+    data.issuedReports=await window.SperinIssuedRecords.all();
     return JSON.stringify(data,null,2);
   }
 
@@ -2325,8 +2339,12 @@
 
   async function applyBackupJson(json,preserveCurrent=true) {
     const prepared=prepareBackupData(json);
+    const issuedReports=(typeof json==='string'?JSON.parse(json):json).issuedReports;
+    if(issuedReports!==undefined)await window.SperinIssuedRecords.validate(issuedReports);
     // Keep a complete rollback copy before touching either storage system.
     if(preserveCurrent) localStorage.setItem(PRE_RESTORE_KEY,await portableBackupPayload());
+    // Add-only history: an import never deletes or overwrites a previously issued PDF.
+    if(issuedReports!==undefined)await window.SperinIssuedRecords.restore(issuedReports);
     // Photo imports use fresh IDs on collisions, preserving the rollback's bytes.
     prepared.jobs=prepared.jobs===undefined?undefined:clone(prepared.jobs);
     await window.SperinJobCentre.restorePhotos(prepared.jobPhotos||{},prepared.jobs||[]);
@@ -2501,12 +2519,34 @@
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function printCertificate() {
+  async function printCertificate() {
     saveNow();
-    if(window.Android && typeof window.Android.printPage==='function'){
-      try { window.Android.printPage(); return; } catch(err) { console.warn('Android print failed',err); }
+    const cert=getCurrent();
+    if(!cert)return;
+    // Print the vector certificate PDF, not the WebView's responsive input UI.
+    // The native adapter uses true A4 and does not add a second page margin.
+    if(window.Android && typeof window.Android.printPdfBase64==='function'){
+      try{
+        if(!window.SperinIetForms?.build)throw new Error('Certificate PDF renderer unavailable');
+        syncSingleSignatory(cert);persist();
+        if(cert.status==='Complete'&&cert.issuedContent===window.SperinIssuedRecords?.content(cert)){
+          const record=(await window.SperinIssuedRecords.all()).find(r=>r.certificateId===cert.id&&r.revision===cert.issueMetadata?.revision);
+          if(!record)throw Error('Archived issued PDF is missing; restore its complete backup');
+          if(window.Android.printPdfBase64(record.pdf,record.pageCount,record.landscape)===false)throw Error('Android could not print archived PDF');
+          return;
+        }
+        const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
+        const landscape=['eic','eicr'].includes(cert.type);
+        if(window.Android.printPdfBase64(doc.output('datauristring'),doc.getNumberOfPages(),landscape)===false)
+          throw new Error('Android could not prepare the certificate PDF for printing');
+        return;
+      }catch(err){
+        console.error('Certificate PDF print failed',err);
+        alert('Certificate printing failed: '+(err?.message||err));
+        return;
+      }
     }
-    window.print();
+    downloadPDF().then(ok=>{if(ok)toast('Open the downloaded PDF and print it at actual size on A4.');});
   }
 
   function pdfSafeName(cert) { return `${cert.number || SCHEMAS[cert.type].code}-${(cert.fields.installationAddress || cert.fields.premisesAddress || '').split('\n')[0] || 'certificate'}`.replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-'); }
@@ -2548,6 +2588,11 @@
     const cert=getCurrent(); if(!cert)return false;
     syncSingleSignatory(cert); persist();
     try{
+      if(cert.status==='Complete'&&cert.issuedContent===window.SperinIssuedRecords?.content(cert)){
+        const record=(await window.SperinIssuedRecords.all()).find(r=>r.certificateId===cert.id&&r.revision===cert.issueMetadata?.revision);
+        if(!record)throw Error('Archived issued PDF is missing; restore its complete backup');
+        saveIssuedPdf(record);return true;
+      }
       if(!window.SperinIetForms?.build) throw new Error('Certificate form renderer unavailable');
       const doc=window.SperinIetForms.build({cert,schema:SCHEMAS[cert.type],settings,worksheet:false});
       const pdfName=`${pdfSafeName(cert)}.pdf`;
@@ -2570,6 +2615,21 @@
     }
   }
 
+  async function showIssuedHistory(){
+    try{
+      const cert=getCurrent();if(!cert)return;
+      const rows=(await window.SperinIssuedRecords.all()).filter(r=>r.certificateId===cert.id).sort((a,b)=>b.revision-a.revision);
+      const modal=document.createElement('div');modal.className='modal-backdrop';
+      modal.innerHTML='<section class="card modal"><h2>Issued PDFs</h2><p>Original issued PDFs remain unchanged. Editing creates a draft for a new revision.</p>'+rows.map(r=>'<p>Revision '+r.revision+' · '+esc(r.issuedAt)+' <button class="btn" data-issued-download="'+esc(r.id)+'">Download original PDF</button></p>').join('')+(rows.length?'':'<p>No archived issue yet. Older PDF exports are not reconstructed automatically.</p>')+'<button class="btn" data-action="close-modal">Close</button></section>';
+      modal.querySelectorAll('[data-issued-download]').forEach(button=>button.onclick=()=>{const r=rows.find(r=>r.id===button.dataset.issuedDownload);saveIssuedPdf(r);});document.body.appendChild(modal);
+    }catch(error){alert('Could not read issued history: '+error.message);}
+  }
+  function saveIssuedPdf(record){
+    const name=pdfSafeName(record.snapshot)+'-R'+record.revision+'.pdf';
+    if(window.Android?.savePdfBase64){if(window.Android.savePdfBase64(record.pdf,name)===false)throw Error('PDF download failed; original remains in Issued PDFs');showPdfSaved(name);}
+    else {const bytes=Uint8Array.from(atob(record.pdf.split(',')[1]),x=>x.charCodeAt(0));if(lastPdfPreviewUrl)URL.revokeObjectURL(lastPdfPreviewUrl);lastPdfPreviewUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));const a=document.createElement('a');a.href=lastPdfPreviewUrl;a.download=name;a.click();showPdfSaved(name);}
+  }
+  let issueInProgress=false;
   async function completeAndCreatePdf(reviewed=false) {
     const cert=getCurrent(); if(!cert)return;
     if(['pat','ev','solar','commercialFire'].includes(cert.type)){
@@ -2579,12 +2639,14 @@
     if(!reviewed){openCertificateReview(true);return;}
     syncSingleSignatory(cert);
     saveNow();
-    const ok=await downloadPDF();
-    if(!ok)return;
-    cert.status='Complete';
-    saveNow();
-    render();
-    toast('Certificate completed');
+    if(issueInProgress)return;issueInProgress=true;
+    try{
+      const record=await window.SperinIssuedRecords.issue(cert,snapshot=>window.SperinIetForms.build({cert:snapshot,schema:SCHEMAS[snapshot.type],settings,worksheet:false}));
+      cert.issueMetadata={revision:record.revision,issuedAt:record.issuedAt};
+      cert.issuedContent=window.SperinIssuedRecords.content(record.snapshot);
+      cert.status='Complete';saveNow();render();saveIssuedPdf(record);toast('Issued revision '+record.revision+' retained');
+    }catch(error){alert('Could not complete issue: '+error.message);return;}
+    finally{issueInProgress=false;}
     if(window.Android?.openLatestPdf)window.Android.openLatestPdf();
     else if(lastPdfPreviewUrl)window.open(lastPdfPreviewUrl,'_blank','noopener');
   }
@@ -4177,6 +4239,7 @@
     else if(action==='pdf-dismiss')document.querySelector('.pdf-download-backdrop')?.remove();
     else if (action === 'pdf') downloadPDF();
     else if (action === 'complete-pdf') completeAndCreatePdf();
+    else if (action === 'issued-history') showIssuedHistory();
     else if (action === 'print') printCertificate();
     else if (action === 'status') { if (cert) { if(cert.status==='Complete'){cert.status='Draft';persist();render();toast('Marked draft');}else openCertificateReview(true); } }
     else if(action==='circuit-open' && cert){view.circuitIndex=Number(button.dataset.index);view.circuitStep='details';persist();render();goTop();}

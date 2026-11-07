@@ -59,3 +59,11 @@ test("EIC and EICR include required main switch and signatory information",()=>{
  for(const key of ["designer2","designer2Signature","designer2Date","designer2Company","designer2Address","designer2Postcode","designer2Phone"])
   assert.ok(app.includes("'"+key+"'"),key+" missing EIC optional second designer");
 });
+
+test("Official Amendment 4 Section G declaration is retained in full",()=>{
+ assert.ok(pdf.includes("I/We, being the person(s) responsible for the inspection and testing of the electrical installation"));
+ assert.ok(pdf.includes("having exercised reasonable skill and care when carrying out the inspection and testing"));
+ assert.ok(pdf.includes("including the observations and the attached schedules"));
+ assert.ok(pdf.includes("taking into account the stated extent and limitations in section D of this report."));
+ assert.ok(!pdf.includes("The persons responsible for inspection and testing declare that, having exercised reasonable skill and care"));
+});

@@ -1,11 +1,11 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
-const CACHE="sperin-certificates-v1-9-9-exact-pdf";
+const CACHE="sperin-certificates-v1-9-9-professional-eicr";
 const SHELL=[
  "./","./index.html","./styles.css?v=1.9.9",
  "./vendor/jspdf.umd.min.js?v=1.9.9",
  "./vendor/jspdf.plugin.autotable.min.js?v=1.9.9",
  "./iet-forms.js?v=1.9.9","./scan-core.js?v=1.9.9",
- "./board-scan.js?v=1.9.9",
+ "./board-scan.js?v=1.9.9","./issued-records.js?v=1.9.9",
  "./team-workspace.js?v=1.9.9","./ai-assistance.js?v=1.9.9",
  "./instrument-import.js?v=1.9.9","./vendor/qrcode.min.js?v=1.9.9",
  "./job-centre.js?v=1.9.9","./speed-suite.js?v=1.9.9",
