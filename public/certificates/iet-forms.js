@@ -1049,9 +1049,9 @@
         // 3 columns x 3 rows, cell dimensions, borders and content origin.
         // Using one renderer prevents the test schedule creeping upwards when
         // its board characteristics are short or blank.
-        const drawScheduleBoardGrid=(cells,keys)=>{
+        const drawScheduleBoardGrid=(cells,keys,kind)=>{
           doc.autoTable({
-            startY:y+3,head:[],
+            startY:y+3,head:[],scheduleKind:kind,
             editResolve:(row,col)=>{
               const entry=keys[row]?.[col];
               if(!cert.tables?.boards?.[bi]||!entry)return [];
@@ -1080,7 +1080,7 @@
           ['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],
           ['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]
         ];
-        const circuitStartY=drawScheduleBoardGrid(boardCells,circuitBoardKeys);
+        const circuitStartY=drawScheduleBoardGrid(boardCells,circuitBoardKeys,'circuit');
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],['8','BS (EN)','ocpdBs'],
@@ -1131,7 +1131,7 @@
           ['zdb','ipf','polarity'],
           ['phaseSequence','spdOperational',null]
         ];
-        const testStartY=drawScheduleBoardGrid(testBoardCells,testBoardKeys);
+        const testStartY=drawScheduleBoardGrid(testBoardCells,testBoardKeys,'test');
         if(Math.abs(testStartY-circuitStartY)>0.2)
           throw new Error('Circuit and test board grid heights differ; circuit rows must align');
         const tcols=[
