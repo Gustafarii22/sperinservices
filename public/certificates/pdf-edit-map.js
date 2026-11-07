@@ -47,7 +47,9 @@
       }
       if(section==='K'&&cert.type==='eicr')resolve=(r,c)=>cert.tables?.observations?.[r]?[table('observations',r,['item','observation','code','scheduleRef'][c])]:[];
       if(title==='CONDITION REPORT SCHEDULE OF INSPECTION')resolve=(r,c)=>[table('eicrInspection',r,['item','description','outcome'][c])];
-      if(!title&&content(options.body?.[0]?.[0]).startsWith('DB/CU reference:'))schedule++;
+      // Count each paired circuit/test page once. Both headers now contain the
+      // DB/CU reference, so the old text heuristic would skip/edit wrong circuits.
+      if(options.scheduleKind==='circuit'||(!options.scheduleKind&&!title&&content(options.body?.[0]?.[0]).startsWith('DB/CU reference:')))schedule++;
       if(title==='CIRCUIT DETAILS'||title==='TEST RESULTS'){
         // Match the renderer's board grouping and numeric sort, including unassigned circuits.
         const normal=v=>String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
