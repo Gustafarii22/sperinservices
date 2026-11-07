@@ -4,6 +4,27 @@ import fitz
 MM = 72 / 25.4
 doc = fitz.open(sys.argv[1])
 assert len(doc) >= 7, "unexpectedly short EICR"
+# Exact page placement and field semantics, checked on the actual generated PDF.
+page3=doc[2].get_text()
+page4=doc[3].get_text()
+assert 'SECTION J: PARTICULARS OF INSTALLATION' in page3, 'Section J not on page 3'
+assert 'SECTION K: OBSERVATIONS' not in page3, 'Section K leaked onto page 3'
+assert 'SECTION K: OBSERVATIONS' in page4, 'Section K not on page 4'
+assert 'SECTION J: PARTICULARS OF INSTALLATION' not in page4, 'Section J leaked onto page 4'
+assert 'Earth electrode resistance/impedance (Ohms)' in page3
+assert 'N/A =' not in page3 and 'N/A =' not in page4, 'Invalid electrode formatting'
+for label in ('Item No.','Observations','Location','Classification code','Kitchen','Consumer unit'):
+    assert label in page4,(label,'observation column/entry absent')
+assert page4.index('Item No.') < page4.index('Observations') < page4.index('Location') < page4.index('Classification code'), 'Observation column order'
+assert 'CONT-2026-123' in ''.join(p.get_text() for p in doc), 'Actual instrument serial missing'
+assert 'AUGUSTINE SPERIN' in ''.join(p.get_text() for p in doc), 'Tester name not uppercase'
+assert 'augustine sperin' not in ''.join(p.get_text() for p in doc), 'Lowercase tester name leaked'
+# Every page uses the same real-proportion logo in the top-left of the frame.
+for page in doc:
+    image_rects=[rect for img in page.get_images(full=True) for rect in page.get_image_rects(img[0])]
+    assert image_rects, 'Logo image missing on a page'
+    assert any(3.8 < rect.width/rect.height < 4.5
+               and rect.x0 < 31*MM and rect.y0 < 14*MM for rect in image_rects), 'Logo stretched or not top-left'
 has_k = False
 for index, page in enumerate(doc, 1):
     width, height = page.rect.width, page.rect.height
