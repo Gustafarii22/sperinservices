@@ -23,10 +23,23 @@ for index, page in enumerate(doc, 1):
     for s in foot:
         assert abs((s['bbox'][0]+s['bbox'][2])/2-width/2)<5, (index,"footer off centre")
         assert s['bbox'][3] < height-5*MM, (index,"footer in nonprintable area")
+    # A 100-character page is a release blocker even if it has a valid border:
+    # prior builds created a standalone page for the inspection signature or
+    # a C3/FI explanatory note.
+    page_text = page.get_text()
+    assert len(page_text.strip()) >= 400, (index, "nearly empty page", len(page_text))
+    for span in spans:
+        text = span["text"].strip()
+        if not text:
+            continue
+        left, top, right, bottom = span["bbox"]
+        assert left >= 4 and top >= 4 and right <= width-4 and bottom <= height-4, (index, "clipped text", text[:50])
+        if text.startswith(("Lighting and socket circuit", "Condition report", "Main earthing")):
+            assert span["size"] >= 6.0, (index, "tiny body text", span["size"])
     k = [s for s in spans if 'SECTION K: OBSERVATIONS' in s['text']]
     if k:
         has_k=True
         h = [s for s in spans if s['text'].strip()=='ELECTRICAL INSTALLATION CONDITION REPORT']
         assert h and min(s['bbox'][1] for s in k)>max(s['bbox'][3] for s in h)+10, (index,"K overlaps heading")
 assert has_k, "Section K absent"
-print(f"PDF_LAYOUT_PASS: {len(doc)} pages; 5.3 mm centred frame; 7.2 pt footer; Section K clear")
+print(f"PDF_LAYOUT_PASS: {len(doc)} pages; equal 5.3mm borders, no near-empty pages, readable text, Section K clear")
