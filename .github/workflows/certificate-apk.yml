@@ -1,7 +1,7 @@
 name: Verify permanent Sperin Certificates release candidate
 on:
   push:
-    branches: [fix/certificates-v197-data-safe-ux]
+    branches: [fix/certificates-v197-data-safe-ux, fix/certificates-a4-true-size-print-20261106]
     paths:
       - '.github/workflows/certificate-apk.yml'
       - 'public/certificates/**'

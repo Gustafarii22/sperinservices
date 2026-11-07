@@ -1225,6 +1225,33 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public boolean printPdfBase64(String dataUri, int pageCount, boolean landscape) {
+            try {
+                if (dataUri == null || dataUri.length() > 34000000 || pageCount < 1 || pageCount > 500)
+                    return false;
+                int comma = dataUri.indexOf(',');
+                if (comma < 0 || comma > 128 || !dataUri.substring(0, comma).startsWith("data:application/pdf;")
+                    || !dataUri.substring(0, comma).endsWith(";base64")) return false;
+                byte[] bytes = Base64.decode(dataUri.substring(comma + 1), Base64.DEFAULT);
+                if (bytes.length < 8 || bytes.length > 25000000 || bytes[0] != '%' || bytes[1] != 'P'
+                    || bytes[2] != 'D' || bytes[3] != 'F' || bytes[4] != '-') return false;
+                runOnUiThread(() -> {
+                    try {
+                        CertificatePdfPrinter.print(MainActivity.this, bytes, pageCount, landscape);
+                    } catch (Exception error) {
+                        Toast.makeText(MainActivity.this, "Could not print PDF: " + error.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    }
+                });
+                return true;
+            } catch (Exception error) {
+                android.util.Log.w("SperinCertificates", "Could not prepare certificate PDF for printing", error);
+                return false;
+            }
+        }
+
+        // Legacy fallback for old web code; the new Print button uses the vector PDF.
+        @JavascriptInterface
         public void printPage() {
             runOnUiThread(MainActivity.this::printCurrentPage);
         }

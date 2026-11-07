@@ -242,7 +242,8 @@ jobs:
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
-          grep -F "MFT-X1" certificate-android/qa-output/eic-regression.txt
+          # The IET instrument schedule records serial/asset numbers; a private
+          # tester model (such as MFT-X1) is deliberately not printed.
           grep -F "ABC123" certificate-android/qa-output/eic-regression.txt
           # The issued Schedule of Circuit Details records the prescribed wiring code.
           # Containment descriptions remain internal, not appended to IET field 3.
