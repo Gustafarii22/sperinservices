@@ -1,0 +1,65 @@
+name: Publish v213 verified APK with permanent GitHub download
+on:
+  push:
+    branches: [fix/certificates-v197-data-safe-ux]
+    paths: ['.github/workflows/publish-verified-certificates-v213.yml']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish-verified-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve verified v213 APK from successful signed Android emulator build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          mkdir -p sperin-v213-release
+          cd sperin-v213-release
+          test "$(gh api repos/Gustafarii22/sperinservices/actions/runs/42365125349 --jq '.conclusion')" = "success"
+          test "$(gh api repos/Gustafarii22/sperinservices/actions/runs/42365125349 --jq '.head_sha')" = "a9bac9f8fb7a38b7b3c0812dd47f67c03d60d94b"
+          gh run download 42365125349 -R Gustafarii22/sperinservices --name Sperin-permanent-verified-candidates --dir .
+          test -s update.apk
+          echo "787103a2cb4391ba546fa89e5c33d7c44890b5a80c3c7347617e2448fc577fbf  update.apk" | sha256sum --check -
+          for name in upgrade-seed upgrade-check upgrade-reopened orientation-pdf-check pdf-open-check; do
+            grep -F 'OK (1 test)' "$name.txt"
+          done
+          test "$(stat -c %s update.apk)" = "46735116"
+          grep -Fi "200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1" update.apk.signer.txt
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='213'" update.apk.package.txt
+      - name: Independently verify Android APK signer and package before publication
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/sperin-v213-release/update.apk"
+          SDK="$ANDROID_HOME/build-tools/35.0.0"
+          "$SDK/apksigner" verify --print-certs "$APK" > "$RUNNER_TEMP/v213-apk.signer.txt"
+          grep -Fi "200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1" "$RUNNER_TEMP/v213-apk.signer.txt"
+          "$SDK/aapt" dump badging "$APK" > "$RUNNER_TEMP/v213-apk.package.txt"
+          grep -F "name='uk.co.sperinservices.certificates.stable.permanent' versionCode='213'" "$RUNNER_TEMP/v213-apk.package.txt"
+      - name: Publish permanent one-tap GitHub APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/sperin-v213-release"
+          TAG='certificates-v213-pdf-open-20261107'
+          ASSET='Sperin-Certificates-v213-PDF-Open-Fixed.apk'
+          if gh release view "$TAG" -R Gustafarii22/sperinservices >/dev/null 2>&1; then
+            echo "::error::Release already exists; refusing to overwrite a published APK"
+            exit 1
+          fi
+          cp update.apk "$ASSET"
+          sha256sum "$ASSET" > SHA256SUMS.txt
+          gh release create "$TAG" "$ASSET" SHA256SUMS.txt \
+            -R Gustafarii22/sperinservices \
+            --target a9bac9f8fb7a38b7b3c0812dd47f67c03d60d94b \
+            --title 'Sperin Certificates v213 — Fixed PDF Open and EICR layout' \
+            --prerelease \
+            --notes 'Direct permanent APK download. Permanently signed, versionCode 213, package uk.co.sperinservices.certificates.stable.permanent. Fixes PDF Open flicker via orientation-neutral background PDF renderer, and EICR Section K legend/page-four and wiring/test footer positioning. Independently checked against run 42365125349: full EICR/PDF regression, permanent signing key, Android install, upgrade without uninstall, saved certificate preservation, orientation and real six-page PDF preview test. SHA256 787103a2cb4391ba546fa89e5c33d7c44890b5a80c3c7347617e2448fc577fbf. Install as upgrade; do not uninstall the current application or clear its data. Real Samsung device print/view behavior is not verified by the emulator.'
+          gh release view "$TAG" -R Gustafarii22/sperinservices --json assets --jq '.assets[] | [.name,.size,.digest,.url] | @tsv'
