@@ -186,8 +186,9 @@
       location:row.location||cert.fields?.dbLocation||'',
       suppliedFrom:row.suppliedFrom||cert.fields?.suppliedFrom||'',
       spd:row.spd||cert.fields?.dbSpd||'',
-      zdb:row.zdb||cert.fields?.zdb||'',
-      ipf:row.ipf||cert.fields?.dbIpf||'',
+      // A measured numeric zero is a real reading, not a missing value.
+      zdb:row.zdb === 0 ? 0 : (row.zdb||cert.fields?.zdb||''),
+      ipf:row.ipf === 0 ? 0 : (row.ipf||cert.fields?.dbIpf||''),
       polarity:row.polarity||cert.fields?.dbPolarity||'',
       phaseSequence:row.phaseSequence||cert.fields?.phaseSequence||'',
       spdOperational:row.spdOperational||cert.fields?.spdOperational||''
