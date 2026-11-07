@@ -596,7 +596,7 @@
       const body=[];
       const format=(key,def)=>{
         if(worksheet)return '';
-        if(key==='maximumDemand')return display(f.maximumDemand,worksheet)+' '+display(f.maximumDemandUnit,worksheet);
+        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
@@ -609,7 +609,11 @@
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
         if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
-        if(key==='earthElectrodeResistance')return (f.earthElectrodeMeasurementType?String(f.earthElectrodeMeasurementType)+' = ':'')+display(f.earthElectrodeResistance,worksheet);
+        if(key==='earthElectrodeResistance'){
+          const reading=String(f.earthElectrodeResistance??'').trim();
+          const method=String(f.earthElectrodeMeasurementType||'').trim();
+          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'N/A';
+        }
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
         if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
@@ -623,9 +627,9 @@
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
-          pdfText(format(a,da)),
+          pdfText(worksheet?'':String(format(a,da)??'').trim()||'N/A'),
           {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
-          b?pdfText(format(b,db)):''
+          b?pdfText(worksheet?'':String(format(b,db)??'').trim()||'N/A'):''
         ]);
         rowBindings.push([a,b]);
       }
@@ -652,9 +656,16 @@
       });
       y=doc.lastAutoTable.finalY+2.2;
     };
-    // Flow A-K continuously to avoid dedicating nearly blank sheets to G/H/K.
-    ['A','B','C','D','E','F','G','H','I','J'].forEach(writeSection);
-    if(y>166)fresh();
+    // Report layout contract: A-I on pages 1-2, J alone on page 3,
+    // K alone on page 4; the inspection/circuit schedules follow afterward.
+    ['A','B','C','D','E','F','G','H','I'].forEach(writeSection);
+    if(doc.getNumberOfPages()>2)throw new Error('EICR A-I exceed pages 1-2; cannot silently displace Section J');
+    // Fill out the two-page declaration without adding unrelated sections.
+    while(doc.getNumberOfPages()<2)fresh();
+    fresh();  // page 3, Section J only.
+    writeSection('J');
+    if(doc.getNumberOfPages()!==3)throw new Error('Section J exceeds its dedicated A4 page');
+    fresh();  // page 4, Section K only.
     y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
@@ -666,7 +677,7 @@
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
     const limitationsY=y;
-    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
     y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
     for(const group of [
