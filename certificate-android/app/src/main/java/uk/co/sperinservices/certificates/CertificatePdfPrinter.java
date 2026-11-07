@@ -54,6 +54,9 @@ public final class CertificatePdfPrinter {
             // Do not stack software margins on top of the margins built into
             // the certificate. The physical printer still limits edge printing.
             .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+            // Landscape PDF pages must remain individually centred. Avoid
+            // automatic front/back duplex shifts reported with this HP printer.
+            .setDuplexMode(PrintAttributes.DUPLEX_MODE_NONE)
             .build();
 
         PrintDocumentAdapter adapter = new PrintDocumentAdapter() {
