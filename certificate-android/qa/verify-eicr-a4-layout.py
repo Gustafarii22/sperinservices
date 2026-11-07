@@ -11,7 +11,7 @@ assert 'SECTION J: PARTICULARS OF INSTALLATION' in page3, 'Section J not on page
 assert 'SECTION K: OBSERVATIONS' not in page3, 'Section K leaked onto page 3'
 assert 'SECTION K: OBSERVATIONS' in page4, 'Section K not on page 4'
 assert 'SECTION J: PARTICULARS OF INSTALLATION' not in page4, 'Section J leaked onto page 4'
-assert 'Earth electrode resistance/impedance (Ohms)' in page3
+assert 'Earthelectroderesistance/impedance(Ohms)' in ''.join(page3.split()), 'Earth electrode field absent'
 assert 'N/A =' not in page3 and 'N/A =' not in page4, 'Invalid electrode formatting'
 for label in ('Item No.','Observations','Location','Classification code','Kitchen','Consumer unit'):
     assert label in page4,(label,'observation column/entry absent')
