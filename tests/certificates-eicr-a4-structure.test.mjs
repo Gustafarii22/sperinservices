@@ -131,8 +131,10 @@ test('A4 print geometry is landscape and native printing preserves the vector PD
   assert(plain.output().startsWith('%PDF-'));
 
   const renderer=readFileSync('public/certificates/iet-forms.js','utf8');
-  assert(renderer.includes('const edge=4.5;'), 'PDF frame must remain inside normal laser-printer printable edges');
+  assert(renderer.includes('const edge=5.3;'), 'HP M281fdw requires 5mm printable margins plus border stroke clearance');
   assert(renderer.includes('doc.rect(edge,edge,w-2*edge,h-2*edge)'), 'PDF border must track the media box');
+  assert(renderer.includes("doc.setFontSize(7.2);doc.setTextColor(...NAVY)"), 'Physical A4 footer must be readable');
+  assert(renderer.includes('y=Math.max(y,32);'), 'Section K must begin beneath the report heading');
 
   const android=readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/MainActivity.java','utf8');
   const printer=readFileSync('certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java','utf8');
