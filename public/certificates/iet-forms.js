@@ -442,7 +442,7 @@
     ],{0:{cellWidth:35},1:{cellWidth:w-35}},{colSpan:2});
 
     const boards=boardRows(cert);
-    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/10)),0);
+    const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/8)),0);
     sectionTable('SECTION J: SCHEDULES',[
       [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
@@ -1014,7 +1014,7 @@
       const circuits=circuitsForBoard(cert,ref,bi===0);
       const chunks=[];
       if(circuits.length){
-        for(let i=0;i<circuits.length;i+=10)chunks.push(circuits.slice(i,i+10));
+        for(let i=0;i<circuits.length;i+=8)chunks.push(circuits.slice(i,i+8));
       }else chunks.push([]);
       chunks.forEach((chunk,chunkIndex)=>{
         doc.addPage('a4','landscape');
@@ -1067,7 +1067,7 @@
           ['13','BS (EN)','rcdBs'],['14','Type','rcdType'],['15','IΔn (mA)','rcdIdn'],['16','Rating (A)','rcdRating']
         ];
         const rows=[];
-        for(let r=0;r<10;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]?.detail||{};
           rows.push(cols.map(c=>{
             let z=item[c[2]];
@@ -1108,7 +1108,7 @@
           ['28','Disconnection time (ms)','rcdTime'],['29','Test button operation','rcdButton'],['30','Manual test button operation','afddButton'],['31','Remarks','remarks']
         ];
         const trows=[];
-        for(let r=0;r<10;r++){
+        for(let r=0;r<8;r++){
           const item=chunk[r]||{},d=item.detail||{},t=item.test||{};
           const merged={...d,...t};
           trows.push(tcols.map(col=>{
