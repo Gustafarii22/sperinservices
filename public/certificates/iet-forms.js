@@ -1032,14 +1032,33 @@
         const spdSource=String(board.spd||'').trim();
         const spdMatch=spdSource.match(/\bType\s*([123])(?:\s*\+\s*(?:Type\s*)?([123]))?/i);
         const spdCertified=/^No SPD\s*\/\s*N\/A$|^N\/A$/i.test(spdSource)?'N/A':spdMatch?'T'+spdMatch[1]+(spdMatch[2]?' + T'+spdMatch[2]:''):/^T[123](?:\s*\+\s*T[123])?$/i.test(spdSource)?spdSource:'';
-        doc.autoTable({startY:y+3,head:[],editResolve:(r,c)=>{
-          const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
-          return cert.tables?.boards?.[bi]?[keys[r][c]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
-        },body:[
-          ['DB/CU reference: '+display(ref,worksheet,true),'Location: '+display(board.location,worksheet,true),'Supplied from: '+display(board.suppliedFrom,worksheet)],
-          ['Distribution circuit OCPD — BS (EN): '+display(distributionBs,worksheet),'Type: '+display(distributionType,worksheet),'Rating / setting (A): '+display(distributionRating,worksheet)],
-          ['SPD type(s): '+display(spdCertified,worksheet),'RCD — BS (EN): '+display(board.rcdBs,worksheet)+'   Type: '+display(board.rcdType,worksheet),'RCD rating (A): '+display(board.rcdRating,worksheet)+'   IΔn (mA): '+display(board.rcdIdn,worksheet)]
-        ].map(row=>row.map(pdfText)),margin:{left:x,right:10},theme:'grid',styles:{fontSize:7.7,cellPadding:2.1,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}}});
+        const boardCells=[
+          [[['DB/CU reference: ',ref]],[['Location: ',board.location]],[['Supplied from: ',board.suppliedFrom]]],
+          [[['Distribution circuit OCPD - BS (EN): ',distributionBs]],[['Type: ',distributionType]],[['Rating / setting (A): ',distributionRating]]],
+          [[['SPD type(s): ',spdCertified]],[['RCD - BS (EN): ',board.rcdBs],['  Type: ',board.rcdType]],[['RCD rating (A): ',board.rcdRating],['  IΔn (mA): ',board.rcdIdn]]]
+        ];
+        doc.autoTable({
+          startY:y+3,head:[],
+          editResolve:(row,col)=>{
+            const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
+            return cert.tables?.boards?.[bi]?[keys[row][col]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
+          },
+          body:boardCells.map(row=>row.map(parts=>parts.map(pair=>pair.join('')).join(''))),
+          margin:{left:x,right:10},theme:'grid',
+          styles:{fontSize:7.2,cellPadding:2,minCellHeight:11.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+          columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}},
+          didParseCell:data=>{
+            if(data.section==='body')data.cell.text=[''];
+          },
+          didDrawCell:data=>{
+            if(data.section!=='body')return;
+            const parts=boardCells[data.row.index]?.[data.column.index]||[];
+            const runs=parts.flatMap(([label,value])=>[
+              {text:label,bold:true},{text:worksheet?'':String(value??''),bold:false}
+            ]);
+            writeRuns(doc,runs,data.cell.x+2,data.cell.y+4.9,data.cell.width-4,7.2,3.6,3);
+          }
+        });
         const circuitStartY=doc.lastAutoTable.finalY+3;
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
@@ -1067,7 +1086,7 @@
           ],
           body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:10},1:{cellWidth:44,halign:'left'},2:{cellWidth:17},3:{cellWidth:15},4:{cellWidth:15},5:{cellWidth:14},6:{cellWidth:14},7:{cellWidth:22},8:{cellWidth:12},9:{cellWidth:12},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:23},13:{cellWidth:14},14:{cellWidth:15},15:{cellWidth:14}}
         });
         const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
@@ -1108,7 +1127,7 @@
           ],
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
-          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
+          headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:10},1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},4:{cellWidth:16},5:{cellWidth:13},6:{cellWidth:15},7:{cellWidth:17},8:{cellWidth:17},9:{cellWidth:15},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:19},13:{cellWidth:19},14:{cellWidth:58,halign:'left'}},
           didDrawCell:data=>{
             if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
