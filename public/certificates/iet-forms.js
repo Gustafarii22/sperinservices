@@ -50,24 +50,33 @@
     return y+Math.max(1,lines.length)*lh;
   }
   // Mixed-weight inline printing, wrapped within its designated PDF cell.
+  // Write labels in bold and saved answers in normal weight without changing
+  // certificate data or relying on fake bold spaces in a single AutoTable cell.
   function writeRuns(doc,runs,x,y,w,size=7.2,lineHeight=4.2,maxLines=3){
-    let xx=x,yy=y,lines=1;
+    let xx=x, yy=y, lines=1;
     const right=x+w;
     for(const run of runs){
-      const words=String(run.text??'').split(/(\s+)/).filter(Boolean);
+      const src=pdfText(run.text??'');
+      if(!src)continue;
       doc.setFont('helvetica',run.bold?'bold':'normal');
-      doc.setFontSize(size);
-      doc.setTextColor(...INK);
-      for(const word of words){
-        const part=pdfText(word),ww=doc.getTextWidth(part);
-        if(xx+ww>right && xx>x+0.1 && part.trim()){
+      doc.setFontSize(size);doc.setTextColor(...INK);
+      const segments=[src];
+      // Preserve a complete label as one PDF text run where it fits.
+      if(doc.getTextWidth(src)>right-xx)segments.splice(0,1,...src.split(/(?<=\\s)/));
+      for(let part of segments){
+        if(!part)continue;
+        let width=doc.getTextWidth(part);
+        if(xx+width>right && xx>x+.01 && part.trim()){
           if(lines>=maxLines)return yy;
           xx=x;yy+=lineHeight;lines++;
         }
         if(xx===x&&!part.trim())continue;
-        // Long single values are clipped rather than printed over the next cell.
-        const clipped=doc.splitTextToSize(part,Math.max(2,right-xx))[0]||'';
-        doc.text(clipped,xx,yy);xx+=doc.getTextWidth(clipped);
+        width=doc.getTextWidth(part);
+        if(width>right-xx){
+          const clipped=doc.splitTextToSize(part,Math.max(2,right-xx))[0]||'';
+          part=clipped;width=doc.getTextWidth(part);
+        }
+        if(part){doc.text(part,xx,yy);xx+=width;}
       }
     }
     return yy;
