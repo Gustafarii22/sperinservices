@@ -213,7 +213,7 @@
     if(role==='constructor')return {name:constructorName,company:f.constructorCompany||'',address:f.constructorAddress||'',postcode:f.constructorPostcode||'',phone:f.constructorPhone||'',signature:f.constructorSignature||'',date:f.constructorDate||''};
     return {name:f.inspector||'',company:f.inspectorCompany||'',address:f.inspectorAddress||'',postcode:f.inspectorPostcode||'',phone:f.inspectorPhone||'',signature:f.inspectorSignature||'',date:f.inspectionDate||''};
   }
-  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value||'');}
+  function display(value,worksheet,keep=false){return worksheet&&!keep?'':String(value??'');}
   function safeRows(rows){return Array.isArray(rows)?rows:[];}
   function normaliseBoardRef(value){
     return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
