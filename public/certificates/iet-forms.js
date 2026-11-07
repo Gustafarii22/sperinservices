@@ -707,7 +707,9 @@
           pdfText(String(row.location||'').trim()||'N/A'),
           pdfText(String(row.code||'').trim()||'N/A')
         ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
-        margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        // Reserve the lower strip for the outcomes legend on Section K, page 4.
+        // AutoTable must never flow into this strip.
+        margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
@@ -724,6 +726,13 @@
       });
       y=doc.lastAutoTable.finalY+6;
     }
+    // These notes belong to Section K on page 4, NOT the inspection
+    // schedule that starts on page 5. Reserve space above the print footer.
+    doc.setPage(4);
+    const legendY=182;
+    const outcomeLegend='Outcomes: Acceptable condition = Tick; Unacceptable = C1 or C2; Improvement = C3; Further investigation = FI; Not verified = N/V; Limitation = LIM; Not applicable = N/A.';
+    write(doc,outcomeLegend,x,legendY,w,{size:7.4,maxLines:2,lineHeight:4.4});
+    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,190,w,{size:7.4,maxLines:2});
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
     if(!worksheet)renderEicrRecipientGuidance(doc,cert,schema);
@@ -736,8 +745,7 @@
     const title='CONDITION REPORT SCHEDULE OF INSPECTION FOR RESIDENTIAL AND SIMILAR PREMISES WITH UP TO 100 A SUPPLY';
     const drawPage=()=>pageFrame(doc,'CONDITION REPORT SCHEDULE OF INSPECTION',display(cert.number,worksheet,true),schema.standard);
     drawPage();
-    write(doc,'Outcomes: acceptable condition = tick; unacceptable = C1 or C2; improvement = C3; further investigation = FI; not verified = N/V; limitation = LIM; not applicable = N/A.',x,27,w,{size:7.1,maxLines:2});
-    write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,33,w,{size:7.0});
+    // Outcome codes and Section K recording note are on page 4.
     const sections={
       '1':'INTAKE EQUIPMENT (VISUAL INSPECTION ONLY)',
       '2':'PRESENCE OF ADEQUATE ARRANGEMENTS FOR OTHER SOURCES SUCH AS MICROGENERATORS',
@@ -783,7 +791,7 @@
       }
     });
     doc.autoTable({
-      startY:39,
+      startY:30,
       head:[[{content:title,colSpan:3,styles:{fontStyle:'bold',fontSize:8.2}}],
             ['Item No.','Description','Outcome']],
       body,
