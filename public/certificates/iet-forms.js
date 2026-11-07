@@ -756,12 +756,12 @@
         rowMap.push(-1);lastGroup=group;
       }
       const isIntake=String(r.item||'')==='1.1';
-      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(r.outcome||'')]);
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim()||'N/A')]);
       rowMap.push(index);
       if(isIntake){
         intakeRows.forEach(([key,description],subIndex)=>{
           const raw=String(cert.fields?.[key]||'').trim();
-          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw)]);
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw||'N/A')]);
           rowMap.push(-3-subIndex);
         });
         body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
@@ -769,7 +769,7 @@
         body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
         rowMap.push(-10);
         const notification=String(cert.fields?.intakeNotified||'');
-        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification||'N/A']);
         rowMap.push(-2);
       }
     });
@@ -794,11 +794,11 @@
         const i=rowMap[data.row.index];
         const outcome=i<=-3&&i>=-8?cert.fields?.[intakeRows[-3-i][0]]:i>=0?rows[i]?.outcome:'';
         if(i===undefined||(i>=0&&String(rows[i]?.item||'')==='1.1')||String(outcome||'').trim()!=='✓')return;
-        const cell=data.cell,s=3.4,cx=cell.x+cell.width/2-s/2,cy=cell.y+cell.height/2+s/2;
-        doc.setDrawColor(...LINE);doc.setLineWidth(.18);doc.rect(cx,cy-s,s,s);
-        doc.setDrawColor(...BLUE);doc.setLineWidth(.55);
-        doc.line(cx+.55,cy-1,cx+1.25,cy-.3);
-        doc.line(cx+1.25,cy-.3,cx+2.75,cy-2.15);
+        // Free-standing blue check: no surrounding square.
+        const cell=data.cell,cx=cell.x+cell.width/2,cy=cell.y+cell.height/2;
+        doc.setDrawColor(...BLUE);doc.setLineWidth(.65);
+        doc.line(cx-2,cy,cx-.6,cy+1.5);
+        doc.line(cx-.6,cy+1.5,cx+2.6,cy-2);
         doc.setLineWidth(.18);
       }
     });
