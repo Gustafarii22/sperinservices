@@ -1158,7 +1158,7 @@
             tcols.map(c=>pdfText(c[1]))
           ],
           // Reserve a fixed bottom strip for instrument IDs and tester sign-off.
-          body:trows,margin:{left:x,right:10,bottom:46},theme:'grid',rowPageBreak:'avoid',
+          body:trows,margin:{left:x,right:10,bottom:39},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:10},1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},4:{cellWidth:16},5:{cellWidth:13},6:{cellWidth:15},7:{cellWidth:17},8:{cellWidth:17},9:{cellWidth:15},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:19},13:{cellWidth:19},14:{cellWidth:58,halign:'left'}},
