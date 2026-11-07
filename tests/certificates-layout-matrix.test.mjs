@@ -33,6 +33,9 @@ test('long fields, observations and multiple boards retain all original bindings
  c.tables.observations=['C1','C2','C3','FI'].map((code,i)=>({item:String(i+1),observation:'Observation detail '.repeat(20),code,scheduleRef:'3.1'}));
  const before=JSON.stringify(c),d=ctx.SperinIetForms.build({cert:c,schema,editable:true});assert.equal(JSON.stringify(c),before);
  for(let i=0;i<24;i++)for(const [scope,key] of [['circuit','description'],['test','zs']])assert.equal(d.__editRegions.filter(r=>r.scope===scope&&r.index===i&&r.key===key).length,1);
+ const continuationPage=d.internal.pages[2]?.join('\\n')||'';
+ assert.match(continuationPage,/SECTION H: SCHEDULES AND CONTINUATION/, 'Continuation page for long fields must not waste an entire sheet on Section G alone');
+ assert.ok(d.getNumberOfPages()<=12, 'Long multi-board layout must avoid a mostly empty standalone declaration continuation');
  writeFileSync('certificate-android/qa-output/layout/long-multiboard.pdf',Buffer.from(d.output('arraybuffer')));
 });
 test('explicit No and N/A are printed; legacy unticked remains unanswered; zero survives',()=>{
