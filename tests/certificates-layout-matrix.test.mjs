@@ -40,3 +40,17 @@ test('explicit No and N/A are printed; legacy unticked remains unanswered; zero 
  const text=d.internal.pages.filter(Array.isArray).map(p=>p.join('\n')).join('\n');assert(text.includes('(No)'));assert(text.includes('(N/A)'));assert(text.includes('(0 A)'));
  for(const key of ['earthingDistributor','earthingElectrode','maximumDemandUnit','bondingToOil'])assert(d.__editRegions.some(r=>r.key===key),key);
 });
+
+test('numeric zero measured Zdb and Ipf survive PDF generation without substituting legacy fallback values',()=>{
+ const c=make(1);
+ c.fields.zdb='8.888';
+ c.fields.dbIpf='9.999';
+ c.tables.boards[0].zdb=0;
+ c.tables.boards[0].ipf=0;
+ const before=JSON.stringify(c),d=ctx.SperinIetForms.build({cert:c,schema,editable:true});
+ assert.equal(JSON.stringify(c),before,'PDF generation must not mutate original certificate');
+ const drawing=d.internal.pages.filter(Array.isArray).map(p=>p.join('\n')).join('\n');
+ assert.ok(!drawing.includes('(8.888)'), 'Zdb numeric zero was overwritten by fallback');
+ assert.ok(!drawing.includes('(9.999)'), 'Ipf numeric zero was overwritten by fallback');
+ assert.ok((drawing.match(/\(0\)/g)||[]).length>=2, 'Both measured numeric zeros must print');
+});
