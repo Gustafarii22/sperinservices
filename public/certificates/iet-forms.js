@@ -79,9 +79,10 @@
   }
   function pageFrame(doc,title,number,standard){
     const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
-    // Reserve only the laser-printer safe edge: the PDF must not be shrunken by
-    // a second print-layout margin. Border remains inside the A4 media box.
-    const edge=4.5;
+    // The owner's HP M281fdw has 5 mm non-printable margins on every side.
+    // Keep the frame a fraction inside this limit, centred on the original
+    // ISO A4 media box. Android must print the original vector PDF at 100%.
+    const edge=5.3;
     doc.setDrawColor(...BLUE);doc.setLineWidth(.55);doc.rect(edge,edge,w-2*edge,h-2*edge);
     doc.setFillColor(...BLUE);doc.rect(edge,edge,1.8,h-2*edge,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),10,9);
@@ -108,8 +109,9 @@
         doc.text('SPERIN SHEET '+doc.__sperinSheetId+' PAGE '+page,w-10,h-7,{align:'right'});
       }
     }
-    doc.setFont('helvetica','normal');doc.setFontSize(5.2);doc.setTextColor(...GREY);
-    doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7,{align:'center'});
+    // Footer stays within the printable edge but is legible on physical A4.
+    doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(...NAVY);
+    doc.text(BRAND+' - Page '+page+' of '+total,w/2,h-7.2,{align:'center'});
   }
   function box(doc,x,y,w,h,title,opts={}){
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);doc.rect(x,y,w,h);
@@ -568,6 +570,12 @@
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        // Section D of the IET model asks for the amendment DATE, while the
+        // certificate heading retains the edition ID. Do not alter saved data.
+        if(key==='standardAmendedTo'){
+          const ref=String(f.standardAmendedTo||'').trim();
+          if(/^BS\s*7671:2018\s*(?:\+\s*A4:2026|amendment\s*4\s*2026)$/i.test(ref))return '15/04/2026';
+        }
         if(key==='premisesType')return display(f.premisesType,worksheet)+(String(f.premisesType||'')==='Other'&&f.premisesOther?' ('+display(f.premisesOther,worksheet)+')':'');
         if(key==='mainSwitchDeviceType')return display(f.mainSwitchDeviceType,worksheet)+(String(f.mainSwitchDeviceType||'')==='Other'&&f.mainSwitchDeviceOther?' ('+display(f.mainSwitchDeviceOther,worksheet)+')':'');
         if(key==='mainRcdType')return display(f.mainRcdType,worksheet)+(String(f.mainRcdType||'')==='Other'&&f.mainRcdOther?' ('+display(f.mainRcdOther,worksheet)+')':'');
@@ -616,6 +624,9 @@
     fresh();
     ['H','I','J'].forEach(writeSection);
     fresh();
+    // The report heading occupies y=20mm. Start Section K below it with
+    // generous separation, never against the heading or neighbouring frame.
+    y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
@@ -625,15 +636,15 @@
     checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:6.3,labelWidth:130});
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
-    write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:6});
-    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-3,width:w,height:6});
-    y+=7;
-    write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:6});y+=7;
+    const limitationsY=y;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+display(f.limitationsReference,worksheet),x,y,w,{size:6,maxLines:6,lineHeight:3.5})+3;
+    if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
+    y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:6,lineHeight:3.5})+5;
     for(const group of [
       {title:'C1 AND C2 OBSERVATIONS',codes:['C1','C2'],note:'C1: Danger present - immediate remedial action necessary. C2: Potentially dangerous - urgent remedial action necessary. These affect the overall assessment.'},
       {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
     ]){
-      if(y>160)fresh();
+      if(y>153){fresh();y=Math.max(y,32);}
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
@@ -642,7 +653,7 @@
         body:selected.length?selected.map(({row})=>[
           pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
         ]):[['','','']],
-        margin:{left:x,right:10,top:26,bottom:14},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
+        margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',
         styles:{fontSize:6,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
@@ -657,7 +668,10 @@
         didDrawPage:()=>frame()
       });
       y=doc.lastAutoTable.finalY+3;
-      write(doc,group.note,x,y,w,{size:5.7,maxLines:2});y+=10;
+      // AutoTable may flow to another page. Keep the explanation with enough
+      // space above the printer-safe footer instead of drawing over a border.
+      if(y+9>doc.internal.pageSize.getHeight()-13){fresh();y=Math.max(y,32);}
+      y=write(doc,group.note,x,y,w,{size:5.7,maxLines:3,lineHeight:3.4})+6;
     }
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
