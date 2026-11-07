@@ -551,7 +551,7 @@
         'C3 (improvement recommended) and FI (further investigation advised) are advisory and do not affect the overall assessment.'
       ],
       F:['Subject to any necessary remedial action being taken, the installation should be further inspected and tested before the recorded date.'],
-      G:['The persons responsible for inspection and testing declare that, having exercised reasonable skill and care, this report, the observations and the attached schedules accurately assess the installation within the extent and limitations in Section D.'],
+      G:['I/We, being the person(s) responsible for the inspection and testing of the electrical installation (as indicated by my/our signatures below), particulars of which are described above, having exercised reasonable skill and care when carrying out the inspection and testing, hereby declare that the information in this report, including the observations and the attached schedules, provides an accurate assessment of the condition of the electrical installation taking into account the stated extent and limitations in section D of this report.'],
       H:['The schedules and continuation sheets listed form part of this document. This report is valid only when those schedules are attached.'],
       I:['Nominal voltage and frequency: by enquiry. Prospective fault current and external earth fault loop impedance: by enquiry or measurement.'],
       J:[]
