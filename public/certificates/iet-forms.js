@@ -1014,7 +1014,7 @@
           body:rows,margin:{left:x,right:10,bottom:28},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:40,halign:'left'},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:14},5:{cellWidth:13},6:{cellWidth:13},7:{cellWidth:20},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:16},11:{cellWidth:17},12:{cellWidth:21},13:{cellWidth:12},14:{cellWidth:12},15:{cellWidth:12}}
+          columnStyles:{0:{cellWidth:10},1:{cellWidth:44,halign:'left'},2:{cellWidth:17},3:{cellWidth:15},4:{cellWidth:15},5:{cellWidth:14},6:{cellWidth:14},7:{cellWidth:22},8:{cellWidth:12},9:{cellWidth:12},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:23},13:{cellWidth:14},14:{cellWidth:15},15:{cellWidth:14}}
         });
         const ky=Math.min(doc.internal.pageSize.getHeight()-18,doc.lastAutoTable.finalY+4);
         write(doc,'CODES FOR TYPES OF WIRING',x,ky,w,{size:7.2,bold:true});
@@ -1055,7 +1055,7 @@
           body:trows,margin:{left:x,right:10,bottom:32},theme:'grid',rowPageBreak:'avoid',
           styles:{fontSize:6.2,cellPadding:.72,minCellHeight:9,lineColor:LINE,lineWidth:.12,textColor:INK,halign:'center',valign:'middle',overflow:'linebreak'},
           headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'normal',lineColor:LINE,lineWidth:.12},
-          columnStyles:{0:{cellWidth:9},1:{cellWidth:13},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:15},5:{cellWidth:12},6:{cellWidth:14},7:{cellWidth:16},8:{cellWidth:16},9:{cellWidth:14},10:{cellWidth:16},11:{cellWidth:18},12:{cellWidth:18},13:{cellWidth:18},14:{cellWidth:57,halign:'left'}},
+          columnStyles:{0:{cellWidth:10},1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},4:{cellWidth:16},5:{cellWidth:13},6:{cellWidth:15},7:{cellWidth:17},8:{cellWidth:17},9:{cellWidth:15},10:{cellWidth:17},11:{cellWidth:19},12:{cellWidth:19},13:{cellWidth:19},14:{cellWidth:58,halign:'left'}},
           didDrawCell:data=>{
             if(worksheet||cert.type!=='eicr'||data.section!=='body'||![9,12,13].includes(data.column.index))return;
             const record=chunk[data.row.index];
