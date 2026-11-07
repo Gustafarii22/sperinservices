@@ -1156,18 +1156,36 @@
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
         const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
-        const signatureLine=worksheet||!testedSignature?'__________________________':pdfText(testedSignature);
+        const signatureLine=worksheet?'':String(testedSignature||'').trim()||'N/A';
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
-          'Multifunction: '+display(ff.testerSerial||'',worksheet),
-          'Continuity: '+display(ff.testerLowOhm===false?'':ff.instrumentContinuity,worksheet),
-          'Insulation resistance: '+display(ff.testerInsulation===false?'':ff.instrumentInsulation,worksheet),
-          'Earth fault loop impedance: '+display(ff.testerLoop===false?'':ff.instrumentLoop,worksheet),
-          'RCD: '+display(ff.testerRcd===false?'':ff.instrumentRcd,worksheet),
-          'Earth electrode resistance: '+display(ff.testerEarth===false?'':ff.instrumentEarth,worksheet)
+          ['Multifunction: ',ff.testerSerial],
+          ['Continuity: ',ff.instrumentContinuity],
+          ['Insulation resistance: ',ff.instrumentInsulation],
+          ['Earth fault loop impedance: ',ff.instrumentLoop],
+          ['RCD: ',ff.instrumentRcd],
+          ['Earth electrode resistance: ',ff.instrumentEarth]
         ];
-        write(doc,instrumentDetails.join('   '),x,ty+4.5,w,{size:6.1,maxLines:3,lineHeight:3.5});
-        write(doc,'Tested by name (Capitals): '+display(testedBy,worksheet)+'     Signature: '+signatureLine+'     Date: '+(worksheet?'':fmtDate(testedDate)),x,ty+13.5,w,{size:7.0});
+        instrumentDetails.forEach(([label,value],idx)=>{
+          const col=idx%3,row=Math.floor(idx/3);
+          const xx=x+col*(w/3);
+          writeRuns(doc,[
+            {text:label,bold:true},
+            {text:worksheet?'':String(value??'').trim()||'N/A',bold:false}
+          ],xx,ty+5+row*5.1,w/3-3,6.7,3.5,2);
+        });
+        writeRuns(doc,[
+          {text:'Tested by name (Capitals): ',bold:true},
+          {text:worksheet?'':String(testedBy||'').trim().toUpperCase()||'N/A',bold:false}
+        ],x,ty+17,107,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Signature: ',bold:true},
+          {text:signatureLine,bold:false}
+        ],x+110,ty+17,95,7.2,4,2);
+        writeRuns(doc,[
+          {text:'Date: ',bold:true},
+          {text:worksheet?'':fmtDate(testedDate)||'N/A',bold:false}
+        ],x+207,ty+17,w-207,7.2,4,2);
       });
     });
   }
