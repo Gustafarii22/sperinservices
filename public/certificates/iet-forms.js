@@ -1045,29 +1045,42 @@
           [[['Distribution circuit OCPD - BS (EN): ',distributionBs]],[['Type: ',distributionType]],[['Rating / setting (A): ',distributionRating]]],
           [[['SPD type(s): ',spdCertified]],[['RCD - BS (EN): ',board.rcdBs],['  Type: ',board.rcdType]],[['RCD rating (A): ',board.rcdRating],['  IΔn (mA): ',board.rcdIdn]]]
         ];
-        doc.autoTable({
-          startY:y+3,head:[],
-          editResolve:(row,col)=>{
-            const keys=[['ref','location','suppliedFrom'],['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]];
-            return cert.tables?.boards?.[bi]?[keys[row][col]].flat().map(key=>({scope:'board',kind:'boards',index:bi,key})):[];
-          },
-          body:boardCells.map(row=>row.map(parts=>parts.map(pair=>pair.join('')).join(''))),
-          margin:{left:x,right:10},theme:'grid',
-          styles:{fontSize:7.2,cellPadding:2,minCellHeight:11.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
-          columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}},
-          didParseCell:data=>{
-            if(data.section==='body')data.cell.text=[''];
-          },
-          didDrawCell:data=>{
-            if(data.section!=='body')return;
-            const parts=boardCells[data.row.index]?.[data.column.index]||[];
-            const runs=parts.flatMap(([label,value])=>[
-              {text:label,bold:true},{text:worksheet?'':String(value??''),bold:false}
-            ]);
-            writeRuns(doc,runs,data.cell.x+2,data.cell.y+4.9,data.cell.width-4,7.2,3.6,3);
-          }
-        });
-        const circuitStartY=doc.lastAutoTable.finalY+3;
+        // One shared board-details grid for both schedule pages: identical
+        // 3 columns x 3 rows, cell dimensions, borders and content origin.
+        // Using one renderer prevents the test schedule creeping upwards when
+        // its board characteristics are short or blank.
+        const drawScheduleBoardGrid=(cells,keys)=>{
+          doc.autoTable({
+            startY:y+3,head:[],
+            editResolve:(row,col)=>{
+              const entry=keys[row]?.[col];
+              if(!cert.tables?.boards?.[bi]||!entry)return [];
+              return [entry].flat().map(key=>({scope:'board',kind:'boards',index:bi,key}));
+            },
+            body:cells.map(row=>row.map(parts=>parts.map(pair=>pair.join('')).join(''))),
+            margin:{left:x,right:10},tableWidth:w,theme:'grid',
+            styles:{fontSize:7.2,cellPadding:2,minCellHeight:11.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+            columnStyles:{0:{cellWidth:w/3},1:{cellWidth:w/3},2:{cellWidth:w/3}},
+            didParseCell:data=>{
+              if(data.section==='body')data.cell.text=[''];
+            },
+            didDrawCell:data=>{
+              if(data.section!=='body')return;
+              const parts=cells[data.row.index]?.[data.column.index]||[];
+              const runs=parts.flatMap(([label,value])=>[
+                {text:label,bold:true},{text:worksheet?'':String(value??''),bold:false}
+              ]);
+              writeRuns(doc,runs,data.cell.x+2,data.cell.y+4.9,data.cell.width-4,7.2,3.6,3);
+            }
+          });
+          return doc.lastAutoTable.finalY+3;
+        };
+        const circuitBoardKeys=[
+          ['ref','location','suppliedFrom'],
+          ['distributionOcpdBs','distributionOcpdType','distributionOcpdRating'],
+          ['spd',['rcdBs','rcdType'],['rcdRating','rcdIdn']]
+        ];
+        const circuitStartY=drawScheduleBoardGrid(boardCells,circuitBoardKeys);
         const cols=[
           ['1','Circuit number','circuitNo'],['2','Circuit description','description'],['3','Type of wiring','wiringType'],['4','Reference method','refMethod'],
           ['5','Number of points served','points'],['6','Live (mm²)','liveCsa'],['7','CPC (mm²)','cpcCsa'],['8','BS (EN)','ocpdBs'],
@@ -1108,12 +1121,19 @@
         doc.addPage('a4','landscape');
         pageFrame(doc,'SCHEDULE OF TEST RESULTS',display(cert.number,worksheet,true),schema.standard);
         write(doc,'Distribution board/Consumer unit details',x,y,w,{size:7,bold:true});
-        labelValue(doc,'DB/CU reference',display(ref,worksheet,true),x,y+7,45,{labelW:23});
-        labelValue(doc,'Zdb Ω',display(board.zdb,worksheet),x+47,y+7,38,{labelW:20,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'zdb'}:null});
-        labelValue(doc,'Ipf kA',display(board.ipf,worksheet),x+87,y+7,38,{labelW:12,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'ipf'}:null});
-        labelValue(doc,'Correct polarity',display(board.polarity,worksheet),x+127,y+7,50,{labelW:25,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'polarity'}:null});
-        labelValue(doc,'Phase sequence',display(board.phaseSequence,worksheet),x+179,y+7,46,{labelW:24,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'phaseSequence'}:null});
-        labelValue(doc,'SPD operational',display(board.spdOperational,worksheet),x+227,y+7,w-227,{labelW:25,edit:cert.tables?.boards?.[bi]?{scope:'board',kind:'boards',index:bi,key:'spdOperational'}:null});
+        const testBoardCells=[
+          [[['DB/CU reference: ',ref]],[['Location: ',board.location]],[['Supplied from: ',board.suppliedFrom]]],
+          [[['Zdb (Ohms): ',board.zdb]],[['Ipf (kA): ',board.ipf]],[['Correct polarity: ',board.polarity]]],
+          [[['Phase sequence: ',board.phaseSequence]],[['SPD operational: ',board.spdOperational]],[]]
+        ];
+        const testBoardKeys=[
+          ['ref','location','suppliedFrom'],
+          ['zdb','ipf','polarity'],
+          ['phaseSequence','spdOperational',null]
+        ];
+        const testStartY=drawScheduleBoardGrid(testBoardCells,testBoardKeys);
+        if(Math.abs(testStartY-circuitStartY)>0.2)
+          throw new Error('Circuit and test board grid heights differ; circuit rows must align');
         const tcols=[
           ['17','Circuit number','circuitNo'],['18','r1 (line) Ω','r1'],['19','rn (neutral) Ω','rn'],['20','r2 (CPC) Ω','r2'],['21','(R1 + R2) Ω','r1r2'],['22','R2 (Ω)','r2only'],
           ['23','Test voltage (V)','irVoltage'],['24','Live - Live (MΩ)','irLL'],['25','Live - Earth (MΩ)','irLE'],['26','Polarity','polarity'],['27','Maximum measured Zs (Ω)','zs'],
@@ -1131,7 +1151,7 @@
           }));
         }
         doc.autoTable({
-          startY:y+18,
+          startY:testStartY,
           head:[
             [{content:'TEST RESULTS',colSpan:15,styles:{fontStyle:'bold',fontSize:7}}],
             [{content:'',colSpan:1},{content:'Continuity (Ohms)',colSpan:5},{content:'Insulation resistance',colSpan:3},{content:'',colSpan:2},{content:'RCD',colSpan:2},{content:'AFDD',colSpan:1},{content:'',colSpan:1}],
