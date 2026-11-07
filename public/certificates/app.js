@@ -958,7 +958,7 @@
     return [...INSTRUMENTS.flatMap(([key,label,make,model,serial])=>[
       f(key,label,'checkbox',{span:'full'}),
       ...[[make,'Make'],[model,'Model'],[serial,'Serial number']].map(([k,l])=>f(k,l,'text',{showWhen:{key,value:true}}))
-    ]),f('testedBy','Tested by'),f('testedDate','Tested date','date')];
+    ]),f('testedBy','Tested by name (Capitals)'),f('testedDate','Tested date','date')];
   }
   function supplyDeviceDisplay(fields){
     const bs=String(fields.supplyDeviceBs||''),type=String(fields.supplyDeviceType||'');
@@ -3711,6 +3711,7 @@
     if (e.target.matches('[data-field]') && cert) {
       const key=e.target.dataset.field;
       const previousValue=cert.fields[key];
+      if(key==='testedBy'&&e.target.type!=='checkbox')e.target.value=String(e.target.value||'').toUpperCase();
       cert.fields[key]=e.target.type==='checkbox' ? e.target.checked : e.target.value;
       if(key==='supplyDeviceBs')setSupplyDevice(cert.fields,e.target.value);
       if(key==='certificateNo') cert.number=e.target.value;
@@ -3813,6 +3814,7 @@
     if(!dest||!Object.prototype.hasOwnProperty.call(dest,key) &&
       scope==='table' && !SCHEMAS[cert.type]?.sections?.some(p=>p.key===table&&p.columns?.some(c=>c.key===key)))return;
     let value=el.type==='checkbox'?el.checked:el.value;
+    if(scope==='field'&&key==='testedBy'&&typeof value==='string'){value=value.toUpperCase();el.value=value;}
     if(scope==='circuit'&&key==='circuitNo'&&cert.tables.circuits.some((r,j)=>j!==i&&r.boardRef===dest.boardRef&&String(r.circuitNo)===String(value))){
       el.setCustomValidity('Circuit number already exists on this consumer unit');el.reportValidity();return;
     }
