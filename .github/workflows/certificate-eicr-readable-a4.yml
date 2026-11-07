@@ -1,7 +1,7 @@
 name: EICR A4 full-page and readable type visual QA
 on:
   push:
-    branches: [fix/certificates-eicr-a4-readable-print-20261107, fix/certificates-v197-data-safe-ux]
+    branches: [fix/certificates-eicr-a4-readable-print-20261107, fix/certificates-v197-data-safe-ux, fix/eicr-page3-j-page4-k-branding-na-20261107]
     paths:
       - 'public/certificates/**'
       - 'certificate-android/app/src/main/java/uk/co/sperinservices/certificates/CertificatePdfPrinter.java'
