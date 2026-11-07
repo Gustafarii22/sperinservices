@@ -669,7 +669,7 @@
     y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
-      .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim());
+      .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim()||String(row.location||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
     const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
     checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
@@ -688,23 +688,27 @@
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
-        head:[[{content:group.title+' (include relevant schedule reference)',colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
-              ['Item No.','Observation(s)','Classification code']],
+        head:[[{content:group.title,colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
+              ['Item No.','Observations','Location','Classification code']],
         // Keep the C1/C2 or C3/FI explanation with its observation table,
         // not alone on a new sheet after an automatic page break.
         body:(selected.length?selected.map(({row})=>[
-          pdfText(row.item),pdfText(String(row.observation||'')+(row.scheduleRef?' (Schedule ref: '+row.scheduleRef+')':'')),pdfText(row.code)
-        ]):[['','','']]).concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+          pdfText(String(row.item||'').trim()||'N/A'),
+          pdfText(String(row.observation||'').trim()||'N/A'),
+          pdfText(String(row.location||'').trim()||'N/A'),
+          pdfText(String(row.code||'').trim()||'N/A')
+        ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         margin:{left:x,right:10,top:32,bottom:16},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
-        columnStyles:{0:{cellWidth:22},1:{cellWidth:w-67},2:{cellWidth:45}},
+        columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
         editResolve:(r,c)=>{
           const index=selected[r]?.index;
           if(index===undefined)return [];
           if(c===0)return [{scope:'table',kind:'observations',index,key:'item'}];
-          if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'},{scope:'table',kind:'observations',index,key:'scheduleRef'}];
-          if(c===2)return [{scope:'table',kind:'observations',index,key:'code'}];
+          if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'}];
+          if(c===2)return [{scope:'table',kind:'observations',index,key:'location'}];
+          if(c===3)return [{scope:'table',kind:'observations',index,key:'code'}];
           return [];
         },
         didDrawPage:()=>frame()
