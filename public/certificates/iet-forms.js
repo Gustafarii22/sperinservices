@@ -1173,6 +1173,9 @@
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
+    // A4 print at 100% without opposite-side registration or double-sided
+    // binding offsets in PDF readers that honour PDF ViewerPreferences.
+    if(typeof doc.viewerPreferences==='function')doc.viewerPreferences({PrintScaling:'None',Duplex:'Simplex'});
     if(typeof doc.autoTable!=='function') throw new Error('PDF table engine unavailable');
     if(editable)window.SperinPdfEditMap?.install(doc,cert,schema);
     doc.__sperinWorksheet=!!worksheet;
