@@ -1,68 +1,81 @@
 import { rawGmail, type ProviderResult } from './channels';
 
-type Config = { gatewayKey?: string | undefined; gmailKey?: string | undefined; twilioKey?: string | undefined; smsFrom?: string | undefined; callbackUrl?: string | undefined; twilioAuthToken?: string | undefined };
-const BASE = 'https://connector-gateway.lovable.dev';
+type Config = { gmailClientId?: string; gmailClientSecret?: string; gmailRefreshToken?: string; twilioAccountSid?: string; twilioAuthToken?: string; smsFrom?: string; callbackUrl?: string };
 export function messagingConfig(): Config {
-  return { gatewayKey: process.env['LOVABLE_API_KEY'], gmailKey: process.env['GOOGLE_MAIL_API_KEY'], twilioKey: process.env['TWILIO_API_KEY'], smsFrom: process.env['TWILIO_FROM_NUMBER'], callbackUrl: process.env['TWILIO_STATUS_CALLBACK_URL'], twilioAuthToken: process.env['TWILIO_AUTH_TOKEN'] };
+  return {
+    gmailClientId: process.env['GMAIL_CLIENT_ID'],
+    gmailClientSecret: process.env['GMAIL_CLIENT_SECRET'],
+    gmailRefreshToken: process.env['GMAIL_REFRESH_TOKEN'],
+    twilioAccountSid: process.env['TWILIO_ACCOUNT_SID'],
+    twilioAuthToken: process.env['TWILIO_AUTH_TOKEN'],
+    smsFrom: process.env['TWILIO_FROM_NUMBER'],
+    callbackUrl: process.env['TWILIO_STATUS_CALLBACK_URL'],
+  };
 }
 export function missingConfig(channel: string, c: Config): string | null {
-  if (!c.gatewayKey) return 'Lovable connection key is missing.';
-  if (channel === 'gmail') return c.gmailKey ? null : 'Connect Gmail as info@sperinservices.co.uk in Setup.';
-  if (!c.twilioKey) return 'Connect Twilio in Setup.';
+  if (channel === 'gmail') return c.gmailClientId && c.gmailClientSecret && c.gmailRefreshToken ? null : 'Gmail OAuth credentials are not configured (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN).';
+  if (!c.twilioAccountSid || !/^AC[0-9a-f]{32}$/i.test(c.twilioAccountSid)) return 'Set TWILIO_ACCOUNT_SID.';
+  if (!c.twilioAuthToken) return 'Set TWILIO_AUTH_TOKEN.';
   if (!c.smsFrom || !/^\+[1-9]\d{7,14}$/.test(c.smsFrom)) return 'Set a valid TWILIO_FROM_NUMBER.';
-  if (!c.twilioAuthToken) return 'Set TWILIO_AUTH_TOKEN for signed delivery updates.';
-  try { if (!c.callbackUrl || new URL(c.callbackUrl).protocol !== 'https:' || new URL(c.callbackUrl).pathname !== '/api/public/twilio-status' || new URL(c.callbackUrl).search) return 'Set the exact HTTPS TWILIO_STATUS_CALLBACK_URL shown in Setup.'; } catch { return 'Set a valid TWILIO_STATUS_CALLBACK_URL.'; }
+  try {
+    const url = new URL(c.callbackUrl || '');
+    if (url.protocol !== 'https:' || url.pathname !== '/api/public/twilio-status' || url.search) return 'Set TWILIO_STATUS_CALLBACK_URL to the deployed HTTPS callback.';
+  } catch { return 'Set a valid TWILIO_STATUS_CALLBACK_URL.'; }
   return null;
 }
-
-async function providerResponse(response: Response): Promise<{ result?: ProviderResult; data?: Record<string, unknown> }> {
-  const text = await response.text();
+async function parseResponse(response: Response) {
   let data: Record<string, unknown> = {};
-  try { data = JSON.parse(text); } catch { /* Unparseable success is uncertain, never resend. */ }
-  if (!response.ok) {
-    const message = typeof data['message'] === 'string' ? data['message'] : typeof data['error'] === 'object' && data['error'] ? String((data['error'] as Record<string, unknown>)['message'] ?? 'Provider rejected the request') : 'Provider rejected the request';
-    // Do not persist raw gateway bodies: they may contain credentials or account details.
-    return { result: { status: response.status >= 500 || response.status === 408 ? 'unknown' : 'failed', error: `Provider HTTP ${response.status}: ${message.slice(0, 400)}` } };
-  }
-  return { data };
+  try { data = await response.json() as Record<string, unknown>; } catch { /* outcome may be uncertain */ }
+  return data;
 }
-
+async function gmailAccessToken(c: Config, fetcher: typeof fetch) {
+  const response = await fetcher('https://oauth2.googleapis.com/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: c.gmailClientId!, client_secret: c.gmailClientSecret!, refresh_token: c.gmailRefreshToken!, grant_type: 'refresh_token' }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const data = await parseResponse(response);
+  if (!response.ok || typeof data['access_token'] !== 'string') throw new Error('Gmail OAuth token refresh failed');
+  return data['access_token'];
+}
 export async function sendGmail(input: { to: string; subject: string; body: string; key: string }, c: Config, fetcher: typeof fetch = fetch): Promise<ProviderResult> {
   const missing = missingConfig('gmail', c);
   if (missing) return { status: 'failed', error: missing };
-  const headers = { Authorization: `Bearer ${c.gatewayKey}`, 'X-Connection-Api-Key': String(c.gmailKey) };
-  // A profile read is mandatory: Gmail must be the requested account, not another workspace inbox.
+  let token: string;
+  try { token = await gmailAccessToken(c, fetcher); } catch { return { status: 'failed', error: 'Unable to authenticate Gmail; no message sent.' }; }
   try {
-    const profile = await fetcher(`${BASE}/google_mail/gmail/v1/users/me/profile`, { headers, signal: AbortSignal.timeout(15000) });
-    const parsed = await providerResponse(profile);
-    if (parsed.result) return { ...parsed.result, status: 'failed' }; // no send was attempted
-    if (String(parsed.data?.['emailAddress']).toLowerCase() !== 'info@sperinservices.co.uk') return { status: 'failed', error: 'Gmail must be connected as info@sperinservices.co.uk; no email was sent.' };
-  } catch { return { status: 'failed', error: 'Unable to verify the Gmail account; no email was sent.' }; }
+    const profile = await fetcher('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
+    const data = await parseResponse(profile);
+    if (!profile.ok || String(data['emailAddress']).toLowerCase() !== 'info@sperinservices.co.uk') return { status: 'failed', error: 'Gmail account must be info@sperinservices.co.uk; no message sent.' };
+  } catch { return { status: 'failed', error: 'Unable to verify Gmail sender; no message sent.' }; }
   try {
-    const response = await fetcher(`${BASE}/google_mail/gmail/v1/users/me/messages/send`, {
-      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    const response = await fetcher('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ raw: rawGmail(input.to, input.subject, input.body, input.key) }), signal: AbortSignal.timeout(20000),
     });
-    const parsed = await providerResponse(response);
-    if (parsed.result) return parsed.result;
-    return typeof parsed.data?.['id'] === 'string' ? { status: 'sent', providerId: parsed.data['id'] } : { status: 'unknown', error: 'Gmail accepted the request but did not return a message ID. Check Gmail Sent before taking further action.' };
-  } catch { return { status: 'unknown', error: 'Gmail outcome is unknown. Check Gmail Sent; retry is blocked to avoid duplicates.' }; }
+    const data = await parseResponse(response);
+    if (!response.ok) return { status: response.status >= 500 || response.status === 408 ? 'unknown' : 'failed', error: `Gmail HTTP ${response.status}` };
+    return typeof data['id'] === 'string' ? { status: 'sent', providerId: data['id'] } : { status: 'unknown', error: 'Gmail response had no message ID; check Sent before retrying.' };
+  } catch { return { status: 'unknown', error: 'Gmail send outcome uncertain; check Sent before retrying.' }; }
 }
-
 export async function sendSms(input: { to: string; body: string; channelId: string; attempt: string }, c: Config, fetcher: typeof fetch = fetch): Promise<ProviderResult> {
   const missing = missingConfig('sms', c);
   if (missing) return { status: 'failed', error: missing };
   const callback = `${c.callbackUrl}?channel=${encodeURIComponent(input.channelId)}&attempt=${encodeURIComponent(input.attempt)}`;
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${c.twilioAccountSid}/Messages.json`;
   try {
-    const response = await fetcher(`${BASE}/twilio/Messages.json`, {
-      method: 'POST', headers: { Authorization: `Bearer ${c.gatewayKey}`, 'X-Connection-Api-Key': String(c.twilioKey), 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ To: input.to, From: String(c.smsFrom), Body: input.body, StatusCallback: callback }), signal: AbortSignal.timeout(20000),
+    const response = await fetcher(url, {
+      method: 'POST', headers: {
+        Authorization: `Basic ${btoa(`${c.twilioAccountSid}:${c.twilioAuthToken}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ To: input.to, From: c.smsFrom!, Body: input.body, StatusCallback: callback }),
+      signal: AbortSignal.timeout(20000),
     });
-    const parsed = await providerResponse(response);
-    if (parsed.result) return parsed.result;
-    const sid = parsed.data?.['sid'];
-    if (typeof sid !== 'string') return { status: 'unknown', error: 'Twilio returned no message ID; retry blocked to avoid duplicates.' };
-    const state = parsed.data?.['status'];
-    return { status: state === 'delivered' ? 'delivered' : ['failed','undelivered','canceled'].includes(String(state)) ? 'failed' : state === 'sent' ? 'sent' : 'sending', providerId: sid };
-  } catch { return { status: 'unknown', error: 'SMS outcome is unknown. Check Twilio message logs; retry is blocked to avoid duplicates.' }; }
+    const data = await parseResponse(response);
+    if (!response.ok) return { status: response.status >= 500 || response.status === 408 ? 'unknown' : 'failed', error: `Twilio HTTP ${response.status}` };
+    if (typeof data['sid'] !== 'string') return { status: 'unknown', error: 'Twilio returned no message SID; check message logs.' };
+    const status = String(data['status'] ?? '');
+    return { status: status === 'delivered' ? 'delivered' : ['failed','undelivered','canceled'].includes(status) ? 'failed' : status === 'sent' ? 'sent' : 'sending', providerId: data['sid'] };
+  } catch { return { status: 'unknown', error: 'SMS outcome uncertain; check Twilio logs before retrying.' }; }
 }
