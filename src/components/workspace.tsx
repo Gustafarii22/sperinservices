@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { approveAndSend, getWorkspace, retryChannel, saveDraft, createLeadFromText } from '@/lib/leads.functions';
-import { ukMobile } from '@/lib/server/channels';
+import { ukMobile } from '@/lib/leads/mobile';
 import { statusLabel } from '@/lib/leads/status';
 import type { Tables } from '@/integrations/supabase/types';
 
