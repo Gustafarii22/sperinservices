@@ -2,7 +2,7 @@ import { describe,it,expect,vi } from 'vitest';
 import { ukMobile, extractUkPhone, canClaim, rawGmail, summaryStatus, twilioSignature, verifyTwilio } from '@/lib/server/channels';
 import { sendGmail, sendSms } from '@/lib/server/providers.server';
 
-const config = { gatewayKey: 'mock-gateway', gmailKey: 'mock-gmail', twilioKey: 'mock-twilio', smsFrom: '+441213450000', callbackUrl: 'https://example.com/api/public/twilio-status', twilioAuthToken: 'mock-token' };
+const config = { gmailClientId: 'mock-client', gmailClientSecret: 'mock-secret', gmailRefreshToken: 'mock-refresh', twilioAccountSid: 'AC' + 'a'.repeat(32), smsFrom: '+441213450000', callbackUrl: 'https://example.com/api/public/twilio-status', twilioAuthToken: 'mock-token' };
 describe('approved multichannel sends (mocked only)', () => {
   it('normalizes UK mobiles and rejects landlines, missing and personal numbers', () => {
     expect(ukMobile('07700 900123')).toBe('+447700900123');
@@ -33,17 +33,17 @@ describe('approved multichannel sends (mocked only)', () => {
     expect(() => rawGmail('a@example.com\r\nBcc: b@example.com','x','text','id')).toThrow();
   });
   it('sends Gmail only after checking exact sender and retains provider ID', async () => {
-    const f = vi.fn().mockResolvedValueOnce(Response.json({ emailAddress: 'info@sperinservices.co.uk' })).mockResolvedValueOnce(Response.json({ id: 'gmail-id' }));
+    const f = vi.fn().mockResolvedValueOnce(Response.json({ access_token: 'mock-access' })).mockResolvedValueOnce(Response.json({ emailAddress: 'info@sperinservices.co.uk' })).mockResolvedValueOnce(Response.json({ id: 'gmail-id' }));
     expect(await sendGmail({ to:'a@example.com',subject:'Quote',body:'Approved reply',key:'k' },config,f)).toEqual({ status:'sent',providerId:'gmail-id' });
-    expect(f).toHaveBeenCalledTimes(2);
+    expect(f).toHaveBeenCalledTimes(3);
   });
   it('wrong Gmail account never sends', async () => {
-    const f = vi.fn().mockResolvedValue(Response.json({ emailAddress:'other@example.com' }));
+    const f = vi.fn().mockResolvedValueOnce(Response.json({ access_token: 'mock-access' })).mockResolvedValueOnce(Response.json({ emailAddress:'other@example.com' }));
     expect((await sendGmail({ to:'a@example.com',subject:'Quote',body:'Approved reply',key:'k' },config,f)).status).toBe('failed');
-    expect(f).toHaveBeenCalledTimes(1);
+    expect(f).toHaveBeenCalledTimes(2);
   });
   it('marks ambiguous send timeout unknown rather than safely retryable', async () => {
-    const f = vi.fn().mockResolvedValueOnce(Response.json({ emailAddress:'info@sperinservices.co.uk' })).mockRejectedValueOnce(new Error('timeout'));
+    const f = vi.fn().mockResolvedValueOnce(Response.json({ access_token: 'mock-access' })).mockResolvedValueOnce(Response.json({ emailAddress:'info@sperinservices.co.uk' })).mockRejectedValueOnce(new Error('timeout'));
     expect((await sendGmail({ to:'a@example.com',subject:'Quote',body:'Approved reply',key:'k' },config,f)).status).toBe('unknown');
   });
   it('SMS queues with provider ID and signed callback correlation', async () => {
