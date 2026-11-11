@@ -1,0 +1,4 @@
+- [ ] Preserve existing leads/history and add durable approval/channel claims.
+- [ ] Add Gmail sending, UK-mobile SMS, secure Twilio callbacks and failed-channel retries.
+- [ ] Add private review and newest-first Sent screens with configuration guidance.
+- [ ] Run mocked tests and authenticated browser checks; report configuration/deployment blockers.

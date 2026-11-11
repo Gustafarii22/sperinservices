@@ -4,53 +4,67 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { useEffect, type ReactNode } from "react";
+
 import appCss from "../styles.css?url";
-import { SiteLayout } from "@/components/SiteLayout";
-import { SITE } from "@/lib/site";
+import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <div className="font-mono text-sm text-electric">404 / NOT FOUND</div>
-        <h1 className="mt-4 text-5xl font-bold">That page has moved.</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Use the main navigation or go back to the Sperin Services homepage.
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or has been moved.
         </p>
-        <Link to="/" className="button-primary mt-6">
-          Go home
-        </Link>
+        <div className="mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Go home
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  useEffect(() => {
+    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+  }, [error]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <div className="font-mono text-sm text-electric">SITE ERROR</div>
-        <h1 className="mt-4 text-4xl font-bold">This page did not load correctly.</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Try the page again or return to the homepage.
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          This page didn't load
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Something went wrong on our end. You can try refreshing or head back home.
         </p>
-        <div className="mt-6 flex justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="button-primary"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
           </button>
-          <a href="/" className="button-secondary">
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
             Go home
           </a>
         </div>
@@ -63,46 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Sperin Services | Electrical Contractors, Birmingham & West Midlands" },
-      {
-        name: "description",
-        content:
-          "Domestic and commercial electrical work across Birmingham and the West Midlands. Rewires, consumer units, EICRs, EV charging, lighting, access control, maintenance and remedials.",
-      },
-      { name: "author", content: "Sperin Services" },
-      {
-        name: "robots",
-        content: "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
-      },
-      { name: "theme-color", content: "#ffffff" },
-      { property: "og:title", content: "Sperin Services | Electrical Contractors" },
-      {
-        property: "og:description",
-        content:
-          "Electrical work for homes, businesses and commercial premises across Birmingham and the West Midlands.",
-      },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "HaMuch Lead Assistant" },
+      { name: "description", content: "Sperin Services private lead workspace" },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: SITE.name },
-      { property: "og:locale", content: "en_GB" },
-      { property: "og:image", content: `${SITE.url}${SITE.socialImage}` },
-      { property: "og:image:alt", content: SITE.socialImageAlt },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Sperin Services | Electrical Contractors" },
-      {
-        name: "twitter:description",
-        content:
-          "Electrical work for homes, businesses and commercial premises across Birmingham and the West Midlands.",
-      },
-      { name: "twitter:image", content: `${SITE.url}${SITE.socialImage}` },
-      { name: "twitter:image:alt", content: SITE.socialImageAlt },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/sperin-logo.png" },
-      { rel: "apple-touch-icon", href: "/sperin-logo.png" },
-      { rel: "preconnect", href: "https://images.pexels.com" },
-      { rel: "preconnect", href: "https://images.unsplash.com" },
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
@@ -111,22 +97,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-function RootShell({ children }: { children: React.ReactNode }) {
+function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <meta name="color-scheme" content="only light" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t='light';try{if(localStorage.getItem('sperin-theme')==='dark')t='dark'}catch(e){}var d=t==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'only light';var m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=d?'dark':'only light';})();`,
-          }}
-        />
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=document.documentElement.classList.contains('dark')?'#192126':'#ffffff';})();`,
-          }}
-        />
       </head>
       <body>
         {children}
@@ -138,18 +113,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const status = useRouterState({ select: (state) => state.status });
-  const locationKey = useRouterState({ select: (state) => state.location.href });
+
   return (
     <QueryClientProvider client={queryClient}>
-      {status === "pending" ? (
-        <div className="route-progress" role="progressbar" aria-label="Loading page" />
-      ) : null}
-      <SiteLayout>
-        <div key={locationKey} className="page-enter">
-          <Outlet />
-        </div>
-      </SiteLayout>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
     </QueryClientProvider>
   );
 }
