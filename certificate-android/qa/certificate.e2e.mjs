@@ -868,6 +868,7 @@ console.log("EIC_LANDSCAPE_PDF_PASS");
 await page.locator('[data-action="pdf-dismiss"]').click();
 
 // Complete & PDF must create the file before the saved certificate is marked complete.
+await openSectionContaining(page,'[data-action="complete-pdf"]');
 const completePdfPromise = page.waitForEvent("download");
 await page.locator('[data-action="complete-pdf"]').click();
 await page.locator('[data-review-confirm]').check();

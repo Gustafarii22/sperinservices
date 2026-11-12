@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -36,10 +45,11 @@ await page.locator('#speed-nav [data-speed="new"]').click();
 assert.equal(await page.locator('.cert-launch').count(),9);
 await page.locator('.cert-launch[data-type="eic"]').click();
 await page.locator('.form-head').waitFor();
+await openSectionContaining(page,'.distribution-section');
 let j=page.locator('details.distribution-section');
 assert.equal(await j.count(),1,"Section J must exist");
 assert((await j.locator("summary").first().textContent()).includes("J · Distribution"));
-await j.locator("summary").first().click();
+if(!(await j.evaluate(el=>el.open))) await j.locator("summary").first().click();
 const board=page.locator(".consumer-unit-card").first(),circuits=page.locator(".cu-circuits-accordion").first();
 assert.equal(await circuits.count(),1);
 if(await board.evaluate(el=>el.open))await board.locator('summary').first().click();
@@ -69,9 +79,9 @@ assert(methodOptions.some(x=>x.includes("not touching")),"Reference method optio
 
 await circuits.locator("summary").first().click();
 assert(!(await circuits.evaluate(el=>el.open)),"Circuits tab must close");
-await j.locator("summary").first().click();
+if(!(await j.evaluate(el=>el.open))) await j.locator("summary").first().click();
 assert(!(await j.evaluate(el=>el.open)),"J must close");
-await j.locator("summary").first().click();
+if(!(await j.evaluate(el=>el.open))) await j.locator("summary").first().click();
 if(!(await circuits.evaluate(el=>el.open)))await circuits.locator("summary").first().click();
 await circuits.locator('[data-action="board-scan"]').first().click();
 assert((await page.locator(".board-scan-modal").textContent()).includes("Add to Certificate"));
