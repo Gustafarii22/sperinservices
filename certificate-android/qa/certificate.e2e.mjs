@@ -529,6 +529,7 @@ assert(await page.locator('[data-action="rapid-sheet"]').isVisible(), 'Site shee
 await page.locator('.form-head .entry-tools summary').click();
 
 // One-tap field helpers: same-client, bonding and signatory mode.
+await openSectionContaining(page,'[data-field="clientAddress"]');
 await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham");
 await page.locator('[data-field="clientPostcode"]').fill("B1 2AA");
 await openSectionContaining(page,'[data-action="copy-client-installation"]');
@@ -651,6 +652,7 @@ assert(
 console.log("POSTCODE_LOOKUP_PASS");
 
 // Autosave typed/dropdown.
+await openSectionContaining(page,'[data-field="clientName"]');
 await page.locator('[data-field="clientName"]').fill("Jane Smith Updated");
 await page.waitForTimeout(450);
 let stored = await page.evaluate(() =>
@@ -660,6 +662,7 @@ assert(
   stored.certificates?.[0]?.fields?.clientName === "Jane Smith Updated",
   "Typed field did not autosave",
 );
+await openSectionContaining(page,'[data-field="nominalVoltage"]');
 await page.locator('[data-field="nominalVoltage"]').fill("230/400");
 await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 await page.waitForTimeout(80);
@@ -823,15 +826,18 @@ await page.setViewportSize({ width: 1280, height: 900 });
 console.log("ROTATION_RELOAD_MOBILE_PASS");
 
 // Restore deliberately long PDF values after the quick-entry/postcode tests and verify tester mapping.
+await openSectionContaining(page,'[data-field="clientAddress"]');
 await page
   .locator('[data-field="clientAddress"]')
   .fill("Flat 12, Long Client Address House\n145 Very Long Client Street\nKings Heath\nBirmingham");
 await page.locator('[data-field="clientPostcode"]').fill("B14 7AA");
+await openSectionContaining(page,'[data-field="installationAddress"]');
 await page
   .locator('[data-field="installationAddress"]')
   .fill(
     "33 Chamberlain Road\nKings Heath\nBirmingham\nWest Midlands\nLONG INSTALLATION ADDRESS END",
   );
+await openSectionContaining(page,'[data-field="installationPostcode"]');
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
 // Instrument make/model/serial are only shown after enabling the multifunction tester.
 await openSectionContaining(page,'[data-field="testerMft"]');
@@ -1127,6 +1133,7 @@ assert(linkedAfter.tables.tests[0].rcdTime === "23.9", "RCD time went to wrong f
 assert(linkedAfter.autoMeta?.["circuit:0:cpcCsa"], "Derived CPC is not marked as auto-filled");
 console.log("FIXED_ORDER_VOICE_READBACK_PASS");
 
+await openSectionContaining(page,'[data-field="nominalVoltage"]');
 await page.locator('[data-field="nominalVoltage"]').fill("230");
 await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 

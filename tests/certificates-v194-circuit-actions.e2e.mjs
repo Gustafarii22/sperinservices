@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -37,6 +46,7 @@ if(!(await page.locator(".distribution-section").count())){
  await page.locator('#speed-nav [data-speed="certificates"]').click();
  await page.locator('.saved-cert-row').first().click();
 }
+await openSectionContaining(page,'.distribution-section');
 const section=page.locator("details.distribution-section");
 if(!(await section.evaluate(e=>e.open)))await section.locator("summary").first().click();
 let body=page.locator("details.cu-circuits-accordion").first();
