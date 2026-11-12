@@ -1057,7 +1057,7 @@
         section('G · Declaration', [f('inspectedBy', 'Inspected and tested by'), f('inspectorPosition', 'Position'), f('inspectorCompany', 'For/on behalf of'), f('inspectorAddress', 'Inspector address', 'textarea'), f('inspectorSignature', 'Inspector signature / typed name'), f('inspectorDate', 'Inspector date', 'date'), f('authorisedBy', 'Report authorised for issue by'), f('authoriserPosition', 'Authoriser position'), f('authoriserCompany', 'For/on behalf of'), f('authoriserAddress', 'Authoriser address', 'textarea'), f('authoriserSignature', 'Authoriser signature / typed name'), f('authoriserDate', 'Authoriser date', 'date')]),
         section('H · Schedules attached', [f('continuationSheetCount', 'Number of continuation sheets'), f('continuationSheetSections', 'For section(s)'), f('inspectionSchedules', 'No. of inspection schedules'), f('circuitSchedules', 'No. of circuit/test schedules')]),
         section('I · Supply characteristics & earthing', [select('earthingArrangement', 'Earthing arrangement', ['TN-C', 'TN-S', 'TN-C-S (PME)', 'TN-C-S (PNB)', 'TT', 'IT']), select('liveConductors', 'Number/type of live conductors', OPTIONS.liveConductors), select('supplyACDC', 'Supply', OPTIONS.acdc), select('nominalVoltage', 'Nominal voltage U/U0 (V)', OPTIONS.nominalVoltage), select('frequency', 'Nominal frequency (Hz)', OPTIONS.frequency), f('ipf', 'Prospective fault current Ipf (kA)'), f('ze', 'External earth fault loop impedance Ze (Ω)'), select('supplyDeviceBs', 'Supply protective device BS (EN)', OPTIONS.supplyDeviceBs), f('supplyDeviceType', 'Supply protective device type'), select('supplyDeviceRating', 'Rated current (A)', OPTIONS.ocpdRating), select('supplyBreakingCapacity', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('supplyPolarity', 'Supply polarity confirmed', OPTIONS.yesNoNA), select('otherSources', 'Other sources of supply present', OPTIONS.yesNo)]),
-        section('J · Installation particulars', [f('earthingDistributor', 'Distributor’s facility', 'checkbox'), f('earthingElectrode', 'Installation earth electrode', 'checkbox'), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), f('bondingToWater', 'To water installation pipes', 'checkbox'), f('bondingToGas', 'To gas installation pipes', 'checkbox'), f('bondingToOil', 'To oil installation pipes', 'checkbox'), f('bondingToSteel', 'To structural steel', 'checkbox'), f('bondingToLightning', 'To lightning protection system', 'checkbox'), f('bondingToOtherChecked', 'To other', 'checkbox'), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
+        section('J · Installation particulars', [select('earthingDistributor', 'Distributor’s facility', OPTIONS.yesNoNA), select('earthingElectrode', 'Installation earth electrode', OPTIONS.yesNoNA), f('maximumDemand', 'Maximum demand'), f('maximumDemandUnit', 'Unit', 'select', { options: ['A', 'kVA'] }), f('earthElectrodeType', 'Earth electrode type (rod(s), tape etc.)'), f('earthElectrodeLocation', 'Earth electrode location'), select('earthElectrodeMeasurementType', 'Earth electrode measurement', ['RA', 'Ze']), f('earthElectrodeResistance', 'Earth electrode resistance/impedance (Ω)'), select('earthingConductorMaterial', 'Earthing conductor material', OPTIONS.conductorMaterial), select('earthingConductorCsa', 'Earthing conductor csa (mm²)', OPTIONS.conductorCsa), select('earthingContinuity', 'Earthing conductor continuity verified', OPTIONS.yesNoNA), select('bondingMaterial', 'Main bonding conductor material', OPTIONS.conductorMaterial), select('bondingCsa', 'Main bonding conductor csa (mm²)', OPTIONS.conductorCsa), select('bondingContinuity', 'Bonding continuity verified', OPTIONS.yesNoNA), select('bondingToWater', 'To water installation pipes', OPTIONS.yesNoNA), select('bondingToGas', 'To gas installation pipes', OPTIONS.yesNoNA), select('bondingToOil', 'To oil installation pipes', OPTIONS.yesNoNA), select('bondingToSteel', 'To structural steel', OPTIONS.yesNoNA), select('bondingToLightning', 'To lightning protection system', OPTIONS.yesNoNA), select('bondingToOtherChecked', 'To other', OPTIONS.yesNoNA), f('bondingToOther', 'Specify other', 'text', { span: 'full' }), f('mainSwitchLocation', 'Main switch location'), f('mainSwitchBs', 'Main switch BS (EN)'), select('mainSwitchPoles', 'No. of poles', OPTIONS.poles), select('mainSwitchCurrent', 'Current rating (A)', OPTIONS.ocpdRating), select('mainSwitchVoltage', 'Voltage rating (V)', OPTIONS.nominalVoltage), select('mainSwitchDeviceType', 'Overcurrent protective device type', ['MCCB', 'ACB', 'Fuse(s)', 'Other']), f('mainSwitchDeviceOther', 'Other device type (specify)', 'text', { showWhen:{key:'mainSwitchDeviceType',value:'Other'} }), select('mainSwitchBreaking', 'Breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainRcdType', 'RCD main switch type', OPTIONS.rcdType), f('mainRcdOther', 'Other RCD type (specify)', 'text', { showWhen:{key:'mainRcdType',value:'Other'} }), select('mainRcdIdn', 'RCD IΔn (mA)', OPTIONS.rcdIdn), f('mainRcdDelay', 'RCD time delay (ms)'), f('mainRcdTime', 'Measured operating time (ms)'), select('mainRcdBreaking', 'RCD breaking capacity (kA)', OPTIONS.breakingCapacity), select('mainSwitchDeviceSetting', 'Main switch OCPD device rating/setting (A)', OPTIONS.ocpdRating)]),
         section('K · Observations', [f('limitationsReference', 'Extent and limitations reference'), select('remedialActionStatus', 'Observations', ['No remedial action is required', 'The following observations are made'])]),
         table('observations', 'K · Observations', [
           { key: 'item', label: 'Item No.' }, { key: 'observation', label: 'Observations' }, { key: 'location', label: 'Location' }, { key: 'code', label: 'Classification code', type: 'select', options: OPTIONS.observationCode }
@@ -1100,11 +1100,11 @@
       code: 'EL',
       name: 'Emergency Lighting Certificate',
       icon: '🟩',
-      standard: 'BS 5266:2025 · BS EN 1838:2024 · BS EN 50172:2024',
+      standard: 'BS 5266-1:2025 · BS EN 1838:2024 · BS EN 50172:2024',
       description: 'Completion, periodic inspection/test or small-installation record with design/installation/verification information.',
       sections: [
         section('Certificate & premises', [select('certificateType', 'Certificate type', OPTIONS.emergencyType), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / responsible person'), f('premisesName', 'Premises name'), f('premisesPostcode', 'Premises postcode'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), select('premisesType', 'Premises type', OPTIONS.premises), f('systemRef', 'System / drawing reference')]),
-        section('System design information', [f('standard', 'Standards applied', 'text', { span: 'full', defaultValue: 'BS 5266:2025; BS EN 1838:2024; BS EN 50172:2024' }), select('operatingMode', 'Emergency lighting operating mode', OPTIONS.emergencyMode), select('ratedDuration', 'Rated emergency duration', OPTIONS.testDuration), f('designIlluminance', 'Design illuminance / design criteria', 'textarea', { span: 'full' }), f('riskAssessmentRef', 'Fire risk assessment / design risk reference'), f('drawingRef', 'Emergency lighting layout drawing reference'), f('deviations', 'Variations / deviations from standards or design', 'textarea', { span: 'full' }), f('designerName', 'Designer name'), f('designerCompany', 'Designer company'), f('designerSignature', 'Design declaration signature / typed name'), f('designerDate', 'Design declaration date', 'date')]),
+        section('System design information', [f('standard', 'Standards applied', 'text', { span: 'full', defaultValue: 'BS 5266-1:2025; BS EN 1838:2024; BS EN 50172:2024' }), select('operatingMode', 'Emergency lighting operating mode', OPTIONS.emergencyMode), select('ratedDuration', 'Rated emergency duration', OPTIONS.testDuration), f('designIlluminance', 'Design illuminance / design criteria', 'textarea', { span: 'full' }), f('riskAssessmentRef', 'Fire risk assessment / design risk reference'), f('drawingRef', 'Emergency lighting layout drawing reference'), f('deviations', 'Variations / deviations from standards or design', 'textarea', { span: 'full' }), f('designerName', 'Designer name'), f('designerCompany', 'Designer company'), f('designerSignature', 'Design declaration signature / typed name'), f('designerDate', 'Design declaration date', 'date')]),
         section('Installation & supply', [f('installerName', 'Installer name'), f('installerCompany', 'Installer company'), f('supplyOrigin', 'Emergency lighting supply / distribution reference'), f('protectiveDevice', 'Protective device details'), f('testFacility', 'Test/key-switch/automatic test facility details', 'textarea', { span: 'full' }), f('installationNotes', 'Installation notes / cable / fire-resistance information', 'textarea', { span: 'full' }), f('installerSignature', 'Installation declaration signature / typed name'), f('installerDate', 'Installation declaration date', 'date')]),
         table('luminaires', 'Luminaire / sign / device schedule', [
           { key: 'ref', label: 'Ref.' }, { key: 'location', label: 'Location' }, { key: 'device', label: 'Luminaire / sign type' }, { key: 'mode', label: 'Mode', type: 'select', options: OPTIONS.emergencyMode }, { key: 'duration', label: 'Duration', type: 'select', options: OPTIONS.testDuration }, { key: 'battery', label: 'Battery / source' }, { key: 'result', label: 'Result', type: 'select', options: OPTIONS.testResult }, { key: 'remarks', label: 'Remarks' }
@@ -1409,6 +1409,17 @@
     f('logbookDelivery','Logbook, maintenance documentation and service arrangements')
   ]));
 
+  // Verified model-form gaps. Removing a schema prompt does not delete saved fields.
+  SCHEMAS.eic.sections.find(p=>p.title.startsWith('C ·')).fields =
+    SCHEMAS.eic.sections.find(p=>p.title.startsWith('C ·')).fields.filter(field=>field.key!=='singleSignatoryQualification');
+  SCHEMAS.minor.sections[0].fields.push(f('standardAmendedTo', 'BS 7671:2018 amended to (date)', 'text', {placeholder:'DD/MM/YYYY'}));
+  SCHEMAS.minor.sections[1].fields.push(f('bondingOther', 'Other bonded services — specify'));
+  addColumns(SCHEMAS.pat,'repairs',[{key:'description',label:'Equipment description'}]);
+  SCHEMAS.smoke.sections.find(p=>p.title==='System classification & design').fields.push(
+    f('ld2ProtectedAreas','LD2 — areas protected','textarea',{span:'full',showWhen:{key:'category',value:'LD2'}}));
+  SCHEMAS.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.push(
+    f('instructionsRecipient','Instructions supplied to'));
+
   try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
   let settings = loadSettings();
   let state = loadState();
@@ -1417,7 +1428,7 @@
   let preserveRequestedAccordions=false;
   const accordionOpen=(key,initial=false)=>accordionState.has(key)?accordionState.get(key):initial;
   function rememberAccordions(){document.querySelectorAll('#app details[data-accordion-key]').forEach(el=>accordionState.set(el.dataset.accordionKey,el.open));}
-  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){accordionState.set('section:'+cert.id+':J Distribution',true);
+  function openBoardAccordion(boardRef){rememberAccordions();const cert=getCurrent(),board=cert?.tables?.boards?.find(b=>normaliseBoardKey(b.ref)===normaliseBoardKey(boardRef));if(board){view.sectionIndex=quickEntryParts(cert).findIndex(p=>p.key==='boards');accordionState.set('section:'+cert.id+':J Distribution',true);
     accordionState.set('board-circuits:'+cert.id+':'+board.id,true);
     preserveRequestedAccordions=true;}}
   function keepCircuitAccordionVisible(cert,boardRef,circuitId=''){
@@ -1547,6 +1558,7 @@
       return {
         page:'form',
         currentId:saved.currentId,
+        sectionIndex:Number.isInteger(saved.sectionIndex)&&saved.sectionIndex>=0?saved.sectionIndex:0,
         circuitIndex:Number.isInteger(saved.circuitIndex)?saved.circuitIndex:null,
         circuitStep:saved.circuitStep==='tests'?'tests':'details'
       };
@@ -1911,21 +1923,31 @@
     return '<details class="entry-tools"><summary>More tools</summary><div class="entry-tools-panel" role="group" aria-label="Additional certificate tools">'+contents+'</div></details>';
   }
 
+  function quickEntryParts(cert){
+    return SCHEMAS[cert.type].sections.filter(part=>{
+      if(['eic','eicr'].includes(cert.type) && part.type==='section' && ['J · Schedule details','Circuit schedule header'].includes(part.title))return false;
+      return !['circuits','tests'].includes(part.key);
+    });
+  }
+
   function formView() {
     const cert = getCurrent(); if (!cert) { view = { page: 'home', currentId: null, circuitIndex:null, circuitStep:'details' }; return homeView(); }
     migrateCertificate(cert);
     if(view.circuitIndex!==null && (cert.type==='eic'||cert.type==='eicr')) return circuitEditorView(cert);
     const schema = SCHEMAS[cert.type];
     if(editMode==='certificate'){applyEntryOrientation(cert);return certificateWorkspace(cert);}
-    const sections = schema.sections.map(part => {
-      if(['eic','eicr'].includes(cert.type) && part.type==='section' && (part.title==='J · Schedule details' || part.title==='Circuit schedule header')) return '';
-      if(part.key==='boards' && ['eic','eicr'].includes(cert.type)) return renderBoardWorkflow(cert);
-      if(part.key==='circuits' || part.key==='tests') return '';
-      if(part.type==='section') return renderSection(part,cert);
-      return renderTable(part,cert);
-    }).join('');
+    const parts = quickEntryParts(cert);
+    const selected = Math.min(Math.max(Number(view.sectionIndex)||0,0),parts.length);
+    view.sectionIndex=selected;
+    const part=parts[selected];
+    let sections=part?(part.key==='boards' && ['eic','eicr'].includes(cert.type)?renderBoardWorkflow(cert):part.type==='section'?renderSection(part,cert):renderTable(part,cert)):'';
+    // The selected section is already a page; do not make the user open it again.
+    sections=sections.replace(/^(<details\b[^>]*?)(?: open)?(>)/,'$1 open$2');
+    const labels=parts.map(p=>p.key==='boards'?'Distribution boards & circuits':p.title).concat('Finish');
+    const nav='<nav class="section-pages" aria-label="Certificate sections">'+labels.map((label,i)=>'<button type="button" class="btn section-page-link" data-action="section-page" data-section-index="'+i+'" '+(i===selected?'aria-current="step"':'')+'>'+esc(label)+'</button>').join('')+'</nav>';
+    const pager='<div class="section-pager"><button class="btn" data-action="section-page" data-section-index="'+(selected-1)+'" '+(selected===0?'disabled':'')+'>← Previous</button><span>'+(selected+1)+' of '+labels.length+'</span><button class="btn primary" data-action="section-page" data-section-index="'+(selected+1)+'" '+(selected===parts.length?'disabled':'')+'>Next →</button></div>';
     const finish = `<section class="card form-section finish-panel"><h3>Finish</h3>${entryTools('<button class="btn" data-action="jobs">Job, photos &amp; handover</button>'+(cert.type==='eicr'?'<button class="btn" data-action="ai-eicr">Review observations with AI</button>':'')+(['eic','eicr','pat'].includes(cert.type)?'<button class="btn" data-action="instrument-import">Import tester results</button>':''))}<div class="finish-actions"><div><strong>Ready to issue?</strong><div class="meta">Save, complete and create the PDF.</div></div><label class="pdf-sign-consent"><input type="checkbox" data-sign-pdf ${cert.signatureApprovedAt?'checked':''}/> Apply my own saved signature to this certificate (optional)</label><button class="btn primary" data-action="complete-pdf">Complete and open PDF</button></div></section>`;
-    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${sections}${finish}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
+    return `<div class="form-head"><button class="btn back" data-action="home">← Home</button><div class="form-title"><div class="eyebrow">${esc(schema.standard)}</div><h2>${esc(schema.name)}</h2><p>${esc(cert.number)} · ${esc(cert.status)}</p></div><div class="actions form-primary-actions"><span class="pill"><span data-save-state>Saved</span></span>${cert.type==='minor'?boardScanButton(cert):''}${entryTools('<button class="btn" data-action="rapid-entry">Voice entry</button><button class="btn" data-action="rapid-sheet">Site sheet</button><button class="btn" data-action="speed-convert">Copy to another certificate type</button><button class="btn" data-action="speed-bulk">Bulk edit</button><button class="btn" data-action="print">Print</button>'+(cert.status==='Complete'?'<button class="btn" data-action="status">Return to draft</button>':''))}</div></div><div class="note warning">Sperin Services model-form layout. Complete only where competent and authorised.</div>${validationBanner(cert)}${nav}<main class="section-page-content" tabindex="-1">${selected===parts.length?finish:sections}</main>${pager}<div class="savebar"><div class="savebar-inner"><div class="meta"><span data-save-state>Saved</span> · on this device</div><button class="btn small" data-action="home">Home</button></div></div>`;
   }
 
   function fieldVisible(field,cert){
@@ -2023,6 +2045,7 @@
 
   function renderField(field, value, cert) {
     if(field.key==='supplyDeviceBs')value=supplyDeviceDisplay(cert.fields);
+    if(field.type==='select'&&field.options===OPTIONS.yesNoNA&&typeof value==='boolean')value=value?'Yes':'';
     const span = field.span === 'full' ? 'full' : field.span === 'third' ? 'third' : field.span === 'quarter' ? 'quarter' : '';
     const attrs = `data-field="${esc(field.key)}"`;
 
@@ -2905,6 +2928,7 @@
     const d=rapidDescriptors(getCurrent()).find(d=>rapidDescriptorId(d)===key);
     closeModal();if(!d){toast('Item has changed. Review its not-applicable status.');return;}
     view.circuitIndex=null;
+    view.sectionIndex=Math.max(0,quickEntryParts(getCurrent()).findIndex(p=>d.kind==='field'?p.fields?.some(f=>f.key===d.key):p.key===d.table));
     if(['circuits','tests'].includes(d.table)){view.circuitIndex=d.row;view.circuitStep=d.table==='tests'?'tests':'details';}
     render();
     requestAnimationFrame(()=>{
@@ -4015,6 +4039,7 @@
     const cert=getCurrent();
     if(cert && ['row-add','row-delete','inspection-outcome','inspection-bulk','bonding-toggle','signatory-mode','copy-client-installation','postcode-select'].includes(action))pushEditHistory();
     if(action==='cv-keyboard'){const input=button.closest('.cv-field')?.querySelector('input');if(input){input.inputMode=input.inputMode==='decimal'?'text':'decimal';button.textContent=input.inputMode==='decimal'?'ABC':'123';input.focus();}}
+    else if(action==='section-page'){if(!cert||button.disabled)return;saveNow();view.sectionIndex=Number(button.dataset.sectionIndex);render();document.querySelector('.section-pages')?.scrollIntoView({block:'start'});document.querySelector('.section-page-content')?.focus({preventScroll:true});}
     else if(action==='choose-entry'){chooseEntry(button.dataset.mode);}
     else if(action==='switch-entry'){chooseEntry(editMode==='quick'?'certificate':'quick');}
     else if(action==='cv-pages'){window.SperinCertificateView?.togglePages();refreshCertificateView();}

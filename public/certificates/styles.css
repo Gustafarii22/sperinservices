@@ -990,3 +990,13 @@ body[data-entry-mode="certificate"] #speed-nav{display:none!important}
 .cv-pdf-field:focus-within{z-index:3}
 .cv-exact-pdf .cv-sheet-content{flex:none}
 .cv-pdf-status{position:absolute;z-index:1;top:45%;left:10%;right:10%;text-align:center;background:white;color:#183c67;font-size:20px;padding:20px}
+
+/* One input section per page, with reachable navigation on narrow phones. */
+.section-pages{position:sticky;top:0;z-index:25;display:flex;gap:8px;overflow-x:auto;padding:12px 4px;background:#fff;border-bottom:1px solid #dbe2ea;scroll-margin-top:0}
+.section-pages .section-page-link{flex:0 0 auto;min-height:44px;white-space:nowrap}
+.section-pages [aria-current="step"]{background:#1869d3;color:#fff;border-color:#1869d3}
+.section-page-content{padding-top:16px;min-width:0;outline:none}
+.section-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 100px}
+.section-pager button{min-height:44px}
+.section-pager button:disabled{opacity:.4;cursor:default}
+@media print{.section-pages,.section-pager{display:none}}

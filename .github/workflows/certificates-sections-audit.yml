@@ -1,0 +1,35 @@
+name: Certificate sections and observation continuation checks
+on:
+  push:
+    branches: [fix/certificates-sections-audit-20261112]
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Source and model regression
+        run: |
+          node --check public/certificates/app.js
+          node --check public/certificates/iet-forms.js
+          node --test tests/iet-a4-model-form-audit.mjs tests/certificates-eicr-a4-structure.test.mjs tests/certificates-v197-preservation.test.mjs tests/certificates-v197-fit.test.mjs
+          node tests/certificates-all-form-layout.mjs
+      - name: Browser navigation, autosave and PDF view
+        run: |
+          python3 -m http.server 4173 -d public > /tmp/cert-server.log 2>&1 &
+          node tests/certificates-section-pages.e2e.mjs
+          node tests/certificates-immersive-pages.e2e.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: certificate-layout-review
+          path: certificate-android/qa-output/

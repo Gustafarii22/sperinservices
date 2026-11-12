@@ -131,9 +131,20 @@
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
     doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
+    doc.setFont('helvetica','bold');doc.setTextColor(...INK);
+    let titleSize=11;doc.setFontSize(titleSize);
+    while(doc.getTextWidth(String(title||''))>w-20 && titleSize>7){titleSize-=.25;doc.setFontSize(titleSize);}
+    doc.text(String(title||''),10,20);
     const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setTextColor(...GREY);
+    const headerRight=(text,y)=>{
+      let size=6.5;doc.setFontSize(size);
+      const available=w-brandX-75;
+      while(doc.getTextWidth(text)>available&&size>4){size-=.25;doc.setFontSize(size);}
+      doc.text(text,w-10,y,{align:'right'});
+    };
+    headerRight(number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'',9.4);
+    headerRight(String(standard||''),12.8);
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);
     return 24;
   }
@@ -176,8 +187,17 @@
       });
       return;
     }
-    const display=opts.date?fmtDate(value):String(value||'');
-    if(display) write(doc,display,x+labelW,y,w-labelW,{size:opts.valueSize||6.5,maxLines:opts.maxLines||2,color:opts.valueColor||INK});
+    const display=opts.date?fmtDate(value):String(value??'');
+    if(display){
+      const size=opts.valueSize||6.5,limit=opts.maxLines||2;
+      const lines=clip(doc,display,w-labelW,size);
+      if(lines.length>limit){
+        doc.__overflowValues ||= [];
+        const number=doc.__overflowValues.length+1;
+        doc.__overflowValues.push({number,label,value:display,page:doc.internal.getCurrentPageInfo().pageNumber});
+        write(doc,'See continuation item '+number,x+labelW,y,w-labelW,{size,maxLines:limit,color:opts.valueColor||INK});
+      }else write(doc,display,x+labelW,y,w-labelW,{size,maxLines:limit,color:opts.valueColor||INK});
+    }
     else dotted(doc,x+labelW,y+.8,x+w-1);
   }
   function multilineValue(doc,label,value,x,y,w,h,opts={}){
@@ -287,7 +307,6 @@
     doc.setPage(1);
     let y=frame();
     const W=doc.internal.pageSize.getWidth(),x=10,w=W-20;
-    const addLandscapePage=()=>{doc.addPage('a4','landscape');y=frame();};
 
     const sectionTable=(title,body,columnStyles,extra={})=>{
       doc.autoTable({
@@ -297,9 +316,9 @@
         margin:{left:x,right:10,top:27,bottom:14},
         tableWidth:w,
         theme:'grid',
-        pageBreak:'avoid',
+        pageBreak:'auto',
         rowPageBreak:'avoid',
-        styles:{fontSize:5.9,cellPadding:.9,minCellHeight:5.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
+        styles:{fontSize:7.2,cellPadding:1.2,minCellHeight:6.5,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
         columnStyles,
         didDrawPage:()=>frame(),
@@ -327,9 +346,9 @@
     ],{0:{cellWidth:58},1:{cellWidth:w-58}},{colSpan:2});
 
     const d=signatory(cert,'designer'),c=signatory(cert,'constructor'),i=signatory(cert,'inspector');
-    const declarationDesign='I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationConstruction='I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationInspection='I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const declarationDesign='I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with '+schema.standard+'.';
+    const declarationConstruction='I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with '+schema.standard+'.';
+    const declarationInspection='I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with '+schema.standard+'.';
     const sigCells=(party)=>[
       {content:'Signature\n'+display(party.signature,worksheet),styles:{fontStyle:'bold'}},
       {content:'Date\n'+(worksheet?'':fmtDate(party.date)),styles:{fontStyle:'bold'}},
@@ -354,7 +373,6 @@
     ];
     sectionTable('SECTION C: CERTIFICATION SIGNATORIES',cBody,{0:{cellWidth:92},1:{cellWidth:45},2:{cellWidth:w-137}},{colSpan:3});
 
-    addLandscapePage();
     sectionTable('SECTION D: NEXT INSPECTION',[
       [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
@@ -398,7 +416,6 @@
       ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'','']
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
-    addLandscapePage();
     const inspectionRows=safeRows(cert.tables?.eicInspection);
     const outcomeText=(value)=>{
       const raw=String(value||'').trim();
@@ -419,7 +436,7 @@
       tableWidth:w,
       theme:'grid',
       rowPageBreak:'avoid',
-      styles:{fontSize:5.8,cellPadding:1.05,minCellHeight:6.4,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
+      styles:{fontSize:7.2,cellPadding:1.2,minCellHeight:7.2,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
       columnStyles:{0:{cellWidth:18},1:{cellWidth:w-43},2:{cellWidth:25,halign:'center'}},
       didDrawPage:()=>frame(),
@@ -454,84 +471,39 @@
   }
 
   function renderMinor(doc,cert,schema,opts){
-    const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=190;
-    doc.setPage(1);let y=pageFrame(doc,'MINOR ELECTRICAL INSTALLATION WORKS CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
-    write(doc,'To be used only for minor electrical work which does not include the provision of a new circuit',10,y-1,190,{size:6.2});
-    y+=3;
-    let top=box(doc,x,y,w,48,'SECTION A: DESCRIPTION OF THE MINOR WORKS');
-    labelValue(doc,'Details of the Client',display(f.clientName,worksheet),x+2,top+6,105,{labelW:28});
-    labelValue(doc,'Date minor works completed',worksheet?'':fmtDate(f.completionDate),x+109,top+6,79,{labelW:39});
-    labelValue(doc,'Installation location/address',display(f.installationAddress,worksheet),x+2,top+13,w-4,{labelW:36,maxLines:2});
-    labelValue(doc,'Description of the minor works',display(f.description,worksheet),x+2,top+22,w-4,{labelW:39,maxLines:2});
-    labelValue(doc,'Departures from BS 7671',display(f.departures,worksheet),x+2,top+31,w-4,{labelW:31,maxLines:2});
-    labelValue(doc,'Permitted exceptions / risk assessment',display(f.permittedExceptions,worksheet),x+2,top+38,145,{labelW:46,maxLines:2});
-    checkbox(doc,x+w-42,top+38,yes(f.riskAssessmentAttached,'Yes')&&!worksheet,'Risk assessment attached',{fontSize:5.8,labelWidth:37});
-    labelValue(doc,'Comments / defects observed in existing installation',display(f.existingDefects,worksheet),x+2,top+45,w-4,{labelW:55,maxLines:1});
-    y+=49;
-
-    top=box(doc,x,y,w,39,'SECTION B: PRESENCE AND ADEQUACY OF INSTALLATION EARTHING AND BONDING ARRANGEMENTS');
-    labelValue(doc,'System earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+7,w-4,{labelW:36});
-    labelValue(doc,'Earth fault loop impedance at distribution board Zdb (Ω)',display(f.zdb,worksheet),x+2,top+16,w-4,{labelW:62});
-    labelValue(doc,'Adequate main protective conductors',display(f.earthingConductorAdequate,worksheet),x+2,top+25,w-4,{labelW:46});
-    labelValue(doc,'Main protective bonding conductor(s) to',display(f.bondingPresent,worksheet),x+2,top+33,w-4,{labelW:48});
-    y+=40;
-
-    top=box(doc,x,y,w,58,'SECTION C: CIRCUIT DETAILS');
-    labelValue(doc,'DB Reference No.',display(f.dbReference,worksheet),x+2,top+6,55,{labelW:24});
-    labelValue(doc,'DB Location and type',display(f.dbLocationType,worksheet),x+59,top+6,129,{labelW:32});
-    labelValue(doc,'Circuit No.',display(f.circuitNo,worksheet),x+2,top+14,38,{labelW:18});
-    labelValue(doc,'Circuit description',display(f.circuitDescription,worksheet),x+42,top+14,91,{labelW:28});
-    labelValue(doc,'Reference method',display(f.referenceMethod,worksheet),x+135,top+14,53,{labelW:26});
-    labelValue(doc,'Live csa mm²',display(f.liveCsa,worksheet),x+2,top+22,54,{labelW:22});
-    labelValue(doc,'CPC csa mm²',display(f.cpcCsa,worksheet),x+58,top+22,54,{labelW:22});
-    write(doc,'Circuit overcurrent protective device',x+2,top+31,56,{size:6.3,bold:true});
-    labelValue(doc,'BS (EN)',display(f.ocpdBs,worksheet),x+2,top+37,45,{labelW:14});
-    labelValue(doc,'Type',display(f.ocpdType,worksheet),x+49,top+37,34,{labelW:10});
-    labelValue(doc,'Rating A',display(f.ocpdRating,worksheet),x+85,top+37,35,{labelW:14});
-    labelValue(doc,'Breaking kA',display(f.breakingCapacity,worksheet),x+122,top+37,43,{labelW:19});
-    write(doc,'RCD',x+2,top+45,12,{size:6.2,bold:true});
-    labelValue(doc,'BS (EN)',display(f.rcdBs,worksheet),x+15,top+45,42,{labelW:14});
-    labelValue(doc,'Type',display(f.rcdType,worksheet),x+59,top+45,31,{labelW:10});
-    labelValue(doc,'Rating A',display(f.rcdRating,worksheet),x+92,top+45,31,{labelW:14});
-    labelValue(doc,'IΔn mA',display(f.rcdIdn,worksheet),x+125,top+45,31,{labelW:14});
-    labelValue(doc,'Delay ms',display(f.rcdDelay,worksheet),x+158,top+45,30,{labelW:15});
-    labelValue(doc,'AFDD BS (EN) / rating',display((f.afddBs||'')+' '+(f.afddRating||''),worksheet),x+2,top+53,92,{labelW:35});
-    labelValue(doc,'SPD BS (EN) / type',display((f.spdBs||'')+' '+(f.spdType||''),worksheet),x+96,top+53,92,{labelW:31});
-    y+=59;
-
-    top=box(doc,x,y,w,54,'SECTION D: TEST RESULTS FOR THE ALTERED OR EXTENDED CIRCUIT');
-    labelValue(doc,'Protective conductor continuity (R1 + R2) Ω',display(f.r1r2,worksheet),x+2,top+7,91,{labelW:53});
-    labelValue(doc,'or R2 Ω',display(f.r2,worksheet),x+95,top+7,43,{labelW:16});
-    labelValue(doc,'Ring r1-r1 Ω',display(f.ringR1,worksheet),x+2,top+15,48,{labelW:23});
-    labelValue(doc,'rn-rn Ω',display(f.ringRn,worksheet),x+52,top+15,43,{labelW:16});
-    labelValue(doc,'r2-r2 Ω',display(f.ringR2,worksheet),x+97,top+15,43,{labelW:16});
-    labelValue(doc,'IR test voltage V',display(f.irVoltage,worksheet),x+2,top+23,51,{labelW:25});
-    labelValue(doc,'Live-Live MΩ',display(f.irLL,worksheet),x+55,top+23,51,{labelW:23});
-    labelValue(doc,'Live-Earth MΩ',display(f.irLE,worksheet),x+108,top+23,51,{labelW:25});
-    labelValue(doc,'Polarity satisfactory',display(f.polarity,worksheet),x+2,top+31,57,{labelW:30});
-    labelValue(doc,'Maximum measured Zs Ω',display(f.zs,worksheet),x+61,top+31,64,{labelW:35});
-    labelValue(doc,'RCD disconnection time ms',display(f.rcdTime,worksheet),x+127,top+31,61,{labelW:37});
-    labelValue(doc,'RCD test button',display(f.rcdButton,worksheet),x+2,top+39,57,{labelW:25});
-    labelValue(doc,'AFDD test button',display(f.afddButton,worksheet),x+61,top+39,57,{labelW:28});
-    labelValue(doc,'SPD functionality',display(f.spdFunction,worksheet),x+120,top+39,68,{labelW:29});
-    y+=55;
-
-    top=box(doc,x,y,w,56,'SECTION E: DECLARATION');
-    write(doc,'I certify that the work covered by this certificate does not impair the safety of the existing installation and that the work has been designed, constructed, inspected and tested in accordance with BS 7671 except as recorded in Section A.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
-    labelValue(doc,'Name',display(f.engineerName,worksheet),x+2,top+23,91,{labelW:15});
-    labelValue(doc,'For/on behalf of',display(f.forOnBehalfOf,worksheet),x+95,top+23,93,{labelW:28});
-    labelValue(doc,'Address',display(f.address,worksheet),x+2,top+32,91,{labelW:18,maxLines:2});
-    labelValue(doc,'Position',display(f.position,worksheet),x+95,top+32,93,{labelW:18});
-    labelValue(doc,'Signature',display(f.signature,worksheet),x+2,top+45,91,{labelW:18});
-    labelValue(doc,'Date',worksheet?'':fmtDate(f.declarationDate),x+95,top+45,93,{labelW:12});
+    const worksheet=!!opts.worksheet;
+    const title='MINOR ELECTRICAL INSTALLATION WORKS CERTIFICATE';
+    const frame=()=>pageFrame(doc,title,display(cert.number,worksheet,true),schema.standard);
+    let y=frame();
+    y=write(doc,'For minor work on an existing circuit; not for the provision of a new circuit.',10,y,190,{size:7})+2;
+    for(const part of schema.sections){
+      if(part.type!=='section')continue;
+      const fields=part.fields.filter(f=>!['certificateNo','issueDate','installationPostcode'].includes(f.key));
+      const body=[];
+      if(part.title.startsWith('E'))body.push([{content:'I certify that the work described does not impair the safety of the existing installation and has been designed, constructed, inspected and tested in accordance with '+schema.standard+', except for departures recorded in Section A.',colSpan:4}]);
+      const value=field=>{
+        if(worksheet)return '';
+        const raw=cert.fields?.[field.key];
+        if(field.key==='installationAddress')return [raw,cert.fields?.installationPostcode].filter(Boolean).join('\n');
+        return field.type==='date'?fmtDate(raw):pdfText(raw??'');
+      };
+      for(let i=0;i<fields.length;){
+        const first=fields[i++];
+        if(first.type==='textarea')body.push([{content:pdfText(first.label),styles:{fontStyle:'bold'}},{content:value(first),colSpan:3}]);
+        else{
+          const second=fields[i]?.type!=='textarea'?fields[i++]:null;
+          body.push([{content:pdfText(first.label),styles:{fontStyle:'bold'}},value(first),{content:second?pdfText(second.label):'',styles:{fontStyle:'bold'}},second?value(second):'']);
+        }
+      }
+      doc.autoTable({startY:y,head:[[{content:pdfText(part.title),colSpan:4}]],body,
+        margin:{left:10,right:10,top:27,bottom:16},theme:'grid',rowPageBreak:'avoid',
+        styles:{fontSize:7.5,cellPadding:1.4,minCellHeight:8,lineColor:LINE,lineWidth:.12,overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+        columnStyles:{0:{cellWidth:50},1:{cellWidth:45},2:{cellWidth:50},3:{cellWidth:45}},
+        didDrawPage:()=>frame()});
+      y=doc.lastAutoTable.finalY+3;
+    }
   }
-
-  // v1.9.6: EICR uses LANDSCAPE A4 on every page. Do not mix portrait
-  // declarations/inspection pages with landscape board and test schedules.
-  // All values come from the same certificate fields consumed by Quick Entry.
-  // IET BS 7671:2018+A4:2026 Appendix 6 EICR model:
-  // Sections A-K, including the two distinct Section K classification groups.
-  // The issued form never prints app-only metadata fields; underlying saved data is unchanged.
   function renderEicrLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{},x=10,w=doc.internal.pageSize.getWidth()-20;
     const heading='ELECTRICAL INSTALLATION CONDITION REPORT';
@@ -603,12 +575,13 @@
       const keys=fieldsBySection[letter]||[];
       const rowBindings=[];
       const body=[];
+      const explicit=value=>value===true?'Yes':value===false?'':String(value??'');
       const format=(key,def)=>{
         if(worksheet)return '';
         if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
-        if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
-        if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        if(key==='earthingDistributor')return Object.hasOwn(f,key)?explicit(f[key]):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
+        if(key==='earthingElectrode')return Object.hasOwn(f,key)?explicit(f[key]):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
         // Section D of the IET model asks for the amendment DATE, while the
         // certificate heading retains the edition ID. Do not alter saved data.
         if(key==='standardAmendedTo'){
@@ -625,14 +598,17 @@
         }
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
-        if(matchLegacy[key])return Object.hasOwn(f,key)?(f[key]?'Yes':''):matchLegacy[key].test(legacyBond)?'Yes':'';
-        if(key==='bondingToOtherChecked')return f.bondingToOtherChecked||f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
+        if(matchLegacy[key])return Object.hasOwn(f,key)?explicit(f[key]):matchLegacy[key].test(legacyBond)?'Yes':'';
+        if(key==='bondingToOtherChecked')return Object.hasOwn(f,key)?explicit(f[key]):f.bondingToOther?'Yes':legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?'Yes':'';
         if(key==='bondingToOther')return f.bondingToOther||(legacyBond&&!/(water|gas|oil|steel|lightning)/.test(legacyBond)?f.bondingTo:'');
         const value=f[key];
         return def?.type==='date'?fmtDate(value):display(value,worksheet);
       };
-      for(let i=0;i<keys.length;i+=2){
-        const a=keys[i],b=keys[i+1];
+      for(let i=0;i<keys.length;){
+        const a=keys[i];
+        const vertical=letter==='J'&&a.startsWith('bondingTo');
+        const b=vertical?null:keys[i+1];
+        i+=vertical?1:2;
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
@@ -651,7 +627,7 @@
         body,margin:{left:x,right:10,top:27,bottom:14},tableWidth:w,
         // Let sections use the available A4 space instead of forcing entire
         // sections to a new sheet and leaving a large blank area.
-        theme:'grid',rowPageBreak:'avoid',pageBreak:'auto',
+        theme:'grid',rowPageBreak:'avoid',pageBreak:letter==='G'?'avoid':'auto',
         styles:{fontSize:7.1,cellPadding:.82,minCellHeight:5.9,lineColor:LINE,lineWidth:.12,textColor:INK,valign:'middle',overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:61},1:{cellWidth:78},2:{cellWidth:60},3:{cellWidth:w-199}},
@@ -666,15 +642,14 @@
       y=doc.lastAutoTable.finalY+2.2;
     };
     // Report layout contract: A-I on pages 1-2, J alone on page 3,
-    // K alone on page 4; the inspection/circuit schedules follow afterward.
+    // K starts on page 4; each classification group has its own pages.
     ['A','B','C','D','E','F','G','H','I'].forEach(writeSection);
-    if(doc.getNumberOfPages()>2)throw new Error('EICR A-I exceed pages 1-2; cannot silently displace Section J');
     // Fill out the two-page declaration without adding unrelated sections.
     while(doc.getNumberOfPages()<2)fresh();
     fresh();  // page 3, Section J only.
     writeSection('J');
-    if(doc.getNumberOfPages()!==3)throw new Error('Section J exceeds its dedicated A4 page');
-    fresh();  // page 4, Section K only.
+    fresh();  // Section K follows the complete declaration and installation details.
+    const observationsStartPage=doc.getNumberOfPages();
     y=Math.max(y,32);
     const observations=safeRows(cert.tables?.observations)
       .map((row,index)=>({row,index}))
@@ -689,11 +664,12 @@
     y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
     y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
+    let observationGroup=0;
     for(const group of [
       {title:'C1 AND C2 OBSERVATIONS',codes:['C1','C2'],note:'C1: Danger present - immediate remedial action necessary. C2: Potentially dangerous - urgent remedial action necessary. These affect the overall assessment.'},
       {title:'C3 AND FI OBSERVATIONS',codes:['C3','FI'],note:'C3: Improvement recommended. FI: Further investigation advised. These are advisory and do not affect the overall assessment.'}
     ]){
-      if(y>164){fresh();y=Math.max(y,32);}
+      if(observationGroup++>0){fresh();y=Math.max(y,32);}
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
@@ -702,14 +678,14 @@
         // Keep the C1/C2 or C3/FI explanation with its observation table,
         // not alone on a new sheet after an automatic page break.
         body:(selected.length?selected.map(({row})=>[
-          pdfText(String(row.item||'').trim()||'N/A'),
+          pdfText(String(row.item||'').trim()||String(observations.findIndex(entry=>entry.row===row)+1)),
           pdfText(String(row.observation||'').trim()||'N/A'),
           pdfText(String(row.location||'').trim()||'N/A'),
           pdfText(String(row.code||'').trim()||'N/A')
         ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         // Reserve the lower strip for the outcomes legend on Section K, page 4.
         // AutoTable must never flow into this strip.
-        margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
+        margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'auto',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
         columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
@@ -726,9 +702,9 @@
       });
       y=doc.lastAutoTable.finalY+6;
     }
-    // These notes belong to Section K on page 4, NOT the inspection
-    // schedule that starts on page 5. Reserve space above the print footer.
-    doc.setPage(4);
+    // Classification notes stay on the first observation page; schedule pages
+    // follow however many observation continuations were required.
+    doc.setPage(observationsStartPage);
     const legendY=182;
     const outcomeLegend='Outcomes: Acceptable condition = Tick; Unacceptable = C1 or C2; Improvement = C3; Further investigation = FI; Not verified = N/V; Limitation = LIM; Not applicable = N/A.';
     write(doc,outcomeLegend,x,legendY,w,{size:7.4,maxLines:2,lineHeight:4.4});
@@ -1230,8 +1206,8 @@
     const x=10,w=190;
     schema.sections.forEach(part=>{
       if(part.type==='section'){
-        const rows=part.fields.map(field=>{
-          const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||'');
+        const rows=part.fields.filter(field=>!field.showWhen || cert.fields?.[field.showWhen.key]===field.showWhen.value).map(field=>{
+          const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]??'');
           const value=worksheet && field.type==='select' && Array.isArray(field.options) && field.options.length<=8
             ? field.options.map(o=>'[ ] '+pdfText(o)).join('   ')
             : (worksheet?'':pdfText(current));
@@ -1247,7 +1223,7 @@
           body:rows,
           margin:{left:x,right:10,top:26,bottom:12},
           theme:'grid',rowPageBreak:'avoid',
-          styles:{fontSize:6.2,cellPadding:1.2,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK},
+          styles:{fontSize:7.2,cellPadding:1.3,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK},
           headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           columnStyles:{0:{cellWidth:75,fontStyle:'bold'},1:{cellWidth:115}},
           didDrawPage:()=>pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard)
@@ -1279,9 +1255,9 @@
         doc.autoTable({
           startY:y,
           head:[[...part.columns.map(c=>c.label)]],
-          body:rows.map(r=>part.columns.map(c=>worksheet?'':pdfText(r?.[c.key]||''))),
+          body:rows.map(r=>part.columns.map(c=>worksheet?'':pdfText(r?.[c.key]??''))),
           margin:{left:x,right:10,top:26,bottom:12},theme:'grid',rowPageBreak:'avoid',
-          styles:{fontSize:5.6,cellPadding:1,minCellHeight:6,lineColor:LINE,lineWidth:.12,textColor:INK},
+          styles:{fontSize:7,cellPadding:1.2,minCellHeight:7,lineColor:LINE,lineWidth:.12,textColor:INK},
           headStyles:{fillColor:PALE,textColor:INK,fontStyle:'bold',lineColor:LINE,lineWidth:.12},
           didDrawPage:()=>pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard)
         });
@@ -1338,6 +1314,18 @@
         doc.text('Applied to this certificate with explicit user approval on '+String(cert.signatureApprovedAt).slice(0,19),16,76);
         doc.text('The signatory remains responsible for independent verification of inspections and test results.',16,83);
       }
+    }
+    if(doc.__overflowValues?.length){
+      doc.addPage('a4','portrait');
+      const title='CONTINUATION: CERTIFICATE DETAILS';
+      const startY=pageFrame(doc,title,String(cert.number||''),schema.standard);
+      doc.autoTable({startY,head:[['Item / source','Full recorded information']],
+        body:doc.__overflowValues.map(r=>['Item '+r.number+' / page '+r.page+'\n'+pdfText(r.label),pdfText(r.value)]),
+        margin:{left:10,right:10,top:27,bottom:18},theme:'grid',rowPageBreak:'avoid',
+        styles:{fontSize:8,cellPadding:2,lineColor:LINE,lineWidth:.12,overflow:'linebreak'},
+        headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
+        columnStyles:{0:{cellWidth:58},1:{cellWidth:132}},
+        didDrawPage:()=>pageFrame(doc,title,String(cert.number||''),schema.standard)});
     }
     drawPageFooterAll(doc);
     return doc;
