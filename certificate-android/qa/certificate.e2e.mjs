@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -522,6 +531,7 @@ await page.locator('.form-head .entry-tools summary').click();
 // One-tap field helpers: same-client, bonding and signatory mode.
 await page.locator('[data-field="clientAddress"]').fill("1 Copy Road\nBirmingham");
 await page.locator('[data-field="clientPostcode"]').fill("B1 2AA");
+await openSectionContaining(page,'[data-action="copy-client-installation"]');
 await page.locator('[data-action="copy-client-installation"]').click();
 assert(
   (await page.locator('[data-field="installationAddress"]').inputValue()) ===
@@ -533,6 +543,7 @@ assert(
   "Same-as-client did not copy the postcode",
 );
 
+await openSectionContaining(page,'[data-field="bondingTo"]');
 const bondingField = page.locator('[data-field="bondingTo"]');
 await page.locator('[data-action="bonding-toggle"][data-value="Gas"]').click();
 assert((await bondingField.inputValue()) === "Water", "Gas bonding toggle did not remove Gas");
@@ -542,6 +553,7 @@ assert(
   "Gas bonding toggle did not restore Gas",
 );
 
+await openSectionContaining(page,'[data-action="signatory-mode"]');
 await page.locator('[data-action="signatory-mode"]').filter({ hasText: "Separate people" }).click();
 assert(
   (await page.locator('[data-field="designer1"]').count()) === 1,
@@ -551,6 +563,7 @@ assert(
   (await page.locator('[data-field="singleSignatoryName"]').count()) === 0,
   "Single signatory fields remained visible in separate mode",
 );
+await openSectionContaining(page,'[data-action="signatory-mode"]');
 await page.locator('[data-action="signatory-mode"]').filter({ hasText: "One person" }).click();
 assert(
   (await page.locator('[data-field="singleSignatoryName"]').count()) === 1,
@@ -559,6 +572,7 @@ assert(
 console.log("QUICK_ENTRY_CONTROLS_PASS");
 
 // Detailed EIC inspection checklist must be present and legacy row preserved.
+await openSectionContaining(page,'.inspection-section');
 const inspection = page
   .locator(".form-section")
   .filter({ hasText: "Installation inspection checklist" });
@@ -607,6 +621,7 @@ await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').cl
 console.log("INSPECTION_DIRECT_CONTROLS_PASS");
 
 // Postcode-first address lookup.
+await openSectionContaining(page,'[data-field="installationPostcode"]');
 const postcode = page.locator('[data-field="installationPostcode"]');
 assert((await postcode.count()) === 1, "Installation postcode field missing");
 await postcode.fill("b11aa");
@@ -655,6 +670,7 @@ assert(stored.certificates?.[0]?.fields?.nominalVoltage === "230/400", "Dropdown
 console.log("AUTOSAVE_PASS");
 
 // Circuit list: no copy-details, duplicate/delete present, reorder works.
+await openSectionContaining(page,'.circuit-list');
 const circuitList = page.locator(".circuit-list");
 assert((await circuitList.count()) === 1, "Circuit schedule missing");
 assert(
@@ -691,6 +707,7 @@ assert(
 );
 
 // Open reordered B32 circuit and verify max Zs, next/back save and return position.
+await openSectionContaining(page,'.inline-circuit');
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.waitForSelector('[data-circuit-input="details"][data-col="ocpdRating"]');
 await page.waitForTimeout(40);
@@ -759,6 +776,7 @@ assert(
 console.log("CIRCUIT_AUTOSORT_PASS");
 
 // Rotation/reload must preserve the active certificate, circuit page and autosaved data.
+await openSectionContaining(page,'.inline-circuit');
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 const continuityCombo = page.locator('.combo-field').filter({ has: page.locator('[data-circuit-input="tests"][data-col="continuityMethod"]') });
@@ -796,6 +814,7 @@ const mobileOverflow = await page.evaluate(
   () => document.documentElement.scrollWidth - window.innerWidth,
 );
 assert(mobileOverflow <= 2, "Mobile certificate page overflows horizontally by " + mobileOverflow);
+await openSectionContaining(page,'.inspection-section');
 const inspectionRight = await page
   .locator(".inspection-section")
   .evaluate((el) => el.getBoundingClientRect().right);
@@ -815,6 +834,7 @@ await page
   );
 await page.locator('[data-field="installationPostcode"]').fill("B13 0AA");
 // Instrument make/model/serial are only shown after enabling the multifunction tester.
+await openSectionContaining(page,'[data-field="testerMft"]');
 const instrumentSection = page.locator('details.form-section').filter({ has: page.locator('summary').filter({ hasText: 'Test instrument' }) }).first();
 if (!(await instrumentSection.evaluate(el => el.open))) await instrumentSection.locator('summary').first().click();
 await page.locator('[data-field="testerMft"]').check();
@@ -895,6 +915,7 @@ assert(
 console.log("PRINT_PASS");
 
 // App Back logic: circuit -> circuit list -> home, without exiting.
+await openSectionContaining(page,'.inline-circuit');
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 assert(
   (await page.evaluate(() => window.sperinHandleBack())) === true,
@@ -944,6 +965,7 @@ await page.waitForTimeout(50);
 await page.locator('#speed-nav [data-speed="new"]').click();
 await page.locator('.cert-launch[data-type="eic"]').click();
 // New certificate accordions start collapsed. Inspect defaults via the real section UI.
+await openSectionContaining(page,'[data-field="testerMft"]');
 const newInstrumentSection = page.locator('details.form-section').filter({ has: page.locator('summary').filter({ hasText: 'Test instrument' }) }).first();
 if (!(await newInstrumentSection.evaluate(el => el.open))) await newInstrumentSection.locator('summary').first().click();
 await page.waitForSelector('[data-field="testerMake"]');
@@ -1109,6 +1131,7 @@ await page.locator('[data-field="nominalVoltage"]').fill("230");
 await page.locator('[data-field="nominalVoltage"]').dispatchEvent("change");
 
 // Technical values remain as entered and a warning triangle explains a failure instead of changing it.
+await openSectionContaining(page,'.inline-circuit');
 await page.locator(".inline-circuit").first().locator('[data-action="circuit-open"]').click();
 await page.locator('[data-action="circuit-next"]').click();
 await page.locator('[data-circuit-input="tests"][data-col="zs"]').fill("2.00");
@@ -1385,6 +1408,7 @@ for (const type of certificateTypeOrder) {
   }
 
   if (["eic", "eicr", "minor"].includes(type)) {
+    await openSectionContaining(page,'option[value="BS88-3"], .combo-option[data-value="BS88-3"]');
     const bs883Options = page.locator('option[value="BS88-3"], .combo-option[data-value="BS88-3"]');
     assert(
       (await bs883Options.count()) >= 1,
@@ -1413,6 +1437,7 @@ for (const type of certificateTypeOrder) {
         .count()) === 1,
       "Minor Works missing 33 kA breaking capacity",
     );
+    await openSectionContaining(page,'[data-field="bondingPresent"]');
     await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();
     assert(
       (await page.locator('[data-field="bondingPresent"]').inputValue()).includes("Water"),
@@ -1421,6 +1446,7 @@ for (const type of certificateTypeOrder) {
   }
 
   if (type === "smoke") {
+    await openSectionContaining(page,'[data-table-input="alarms"]');
     const alarmRowsBefore = await page
       .locator('[data-table-input="alarms"][data-col="ref"]')
       .count();

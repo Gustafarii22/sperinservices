@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -30,6 +39,7 @@ for(const type of types){
     pat:"organisationName",ev:"rcdDcDetails",
     solar:"arrayLayout",commercialFire:"causeEffect"
   };
+  await openSectionContaining(page,'[data-field="'+proofFields[type]+'"]');
   const proof=page.locator('[data-field="'+proofFields[type]+'"]').first();
   assert(await proof.count()>0,type+" specialist audit field absent from form");
   await proof.fill("SPECIALIST QA FIELD "+type.toUpperCase());
@@ -52,6 +62,7 @@ for(const type of types){
 }
 await page.locator('[data-action="open-new"]').click();
 await page.locator('.cert-launch[data-type="eicr"]').click();
+await openSectionContaining(page,'[data-action="ai-eicr"]');
 assert(await page.locator('[data-action="ai-eicr"]').count()>0,"AI EICR review missing");
 assert(await page.locator('[data-action="instrument-import"]').count()>0,"EICR tester file import missing");
 await page.locator('[data-action="home"]').first().click();
