@@ -457,6 +457,7 @@ const outputPdfPath = process.env.CERT_WORKFLOW_TYPE==="eicr"
   : "certificate-android/qa-output/workflow.pdf";
 fs.writeFileSync(outputPdfPath, Buffer.from(pdf.data.split(",")[1], "base64"));
 // Board delete cancellation, real removal, undo/redo and no resurrection on reload.
+await openSectionContaining(page,'.distribution-section');
 cancel = true;
 await board(templated.ref).locator('[data-action="board-delete"]').click();
 cancel = false;
