@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -172,6 +181,7 @@ const click = async (sel) => {
   await page.waitForTimeout(350);
 };
 const change = async (sel, value) => {
+  await openSectionContaining(page,sel);
   const el = page.locator(sel);
   await el.evaluate(input=>{
     for(let details=input.closest('details[data-accordion-key]');details;details=details.parentElement?.closest('details[data-accordion-key]'))details.open=true;
@@ -181,6 +191,7 @@ const change = async (sel, value) => {
   await page.waitForTimeout(80);
 };
 assert.equal((await saved()).tables.boards[0].location, "Intake cupboard");
+await openSectionContaining(page,'.distribution-section');
 await board("CU1").locator('[data-action="circuit-open"]').last().click();
 await input("ocpdRating").click();
 assert(await input("ocpdRating").evaluate((el) => document.activeElement === el));
@@ -221,6 +232,7 @@ assert.equal(
   "1.43",
 );
 await change('[data-field="nominalVoltage"]', "230");
+await openSectionContaining(page,'.distribution-section');
 await board("CU1").locator('[data-action="circuit-open"]').last().click();
 await click('[data-action="circuit-next"]');
 await click('[data-action="circuit-complete"]');
@@ -337,6 +349,7 @@ for (const [i, c] of cert.tables.circuits.entries())
     assert(!cert.tables.tests[i].zs);
     assert(!cert.tables.tests[i].r1r2);
   }
+await openSectionContaining(page,'.distribution-section');
 await board("CU1").locator('[data-action="circuit-open"]').first().click();
 promptName = "32A ring";
 await click('[data-action="template-save-circuit"]');

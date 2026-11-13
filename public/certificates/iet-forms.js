@@ -495,7 +495,7 @@
           body.push([{content:pdfText(first.label),styles:{fontStyle:'bold'}},value(first),{content:second?pdfText(second.label):'',styles:{fontStyle:'bold'}},second?value(second):'']);
         }
       }
-      doc.autoTable({startY:y,head:[[{content:pdfText(part.title),colSpan:4}]],body,
+      doc.autoTable({startY:y,head:[[{content:pdfText(part.title.replace(/^([A-E]) · /,'SECTION $1: ')),colSpan:4}]],body,
         margin:{left:10,right:10,top:27,bottom:16},theme:'grid',rowPageBreak:'avoid',
         styles:{fontSize:7.5,cellPadding:1.4,minCellHeight:8,lineColor:LINE,lineWidth:.12,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
