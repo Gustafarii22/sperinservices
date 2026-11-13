@@ -238,7 +238,9 @@ jobs:
           test -s "$PDF"
           pdftotext -layout "$PDF" certificate-android/qa-output/eic-regression.txt
           grep -F "Long Client Address House" certificate-android/qa-output/eic-regression.txt
-          grep -F "LONG DESCRIPTION END" certificate-android/qa-output/eic-regression.txt
+          # Raw reading order keeps wrapped values together without interleaved label columns.
+          pdftotext -raw "$PDF" - | tr '\n\r' '  ' | tr -s '[:space:]' > certificate-android/qa-output/eic-reading-order.txt
+          grep -F "LONG DESCRIPTION END" certificate-android/qa-output/eic-reading-order.txt
           grep -F "EXTENT END" certificate-android/qa-output/eic-regression.txt
           grep -F "LONG INSTALLATION ADDRESS END" certificate-android/qa-output/eic-regression.txt
           grep -F "Augustine Sperin" certificate-android/qa-output/eic-regression.txt
