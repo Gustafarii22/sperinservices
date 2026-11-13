@@ -4,6 +4,7 @@ on:
     branches: [fix/certificates-v197-data-safe-ux, fix/certificates-a4-true-size-print-20261106, fix/certificates-sections-audit-20261112]
     paths:
       - '.github/workflows/certificate-apk.yml'
+      - '.github/workflows/certificate-e2e.yml'
       - 'public/certificates/**'
       - 'certificate-android/qa/**'
       - 'tests/certificates-*.mjs'
