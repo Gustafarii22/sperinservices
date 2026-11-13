@@ -533,6 +533,7 @@ assert.equal(cert.tables.boards.length, 1);
 assert.equal(cert.tables.boards[0].ref, "CU9");
 assert.equal(cert.tables.boards[0].location, "Legacy garage");
 assert.equal(cert.tables.boards[0].zdb, "0.27");
+await openSectionContaining(page,'.distribution-section');
 assert.equal(await page.locator('[data-board-input="polarity"]').inputValue(), "Pass");
 await change('[data-board-input="zdb"]', "");
 await page.reload();
