@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/certificate-apk.yml'
       - 'public/certificates/**'
-      - 'certificate-android/qa/certificate.e2e.mjs'
+      - 'certificate-android/qa/**'
+      - 'tests/certificates-*.mjs'
+      - '.github/workflows/certificates-sections-audit.yml'
       - 'certificate-android/qa/inspect-apk.py'
       - 'certificate-android/app/src/main/**'
       - 'certificate-android/app/src/androidTest/**'
