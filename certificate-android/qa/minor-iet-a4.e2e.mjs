@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -19,6 +28,7 @@ await page.goto(process.env.CERT_BASE_URL||"http://127.0.0.1:4173/certificates/"
 await page.locator('[data-action="open-new"]').click();
 await page.locator('.cert-launch[data-type="minor"]').click();
 const fill=async(key,value)=>{
+ await openSectionContaining(page,'[data-field="'+key+'"]');
  const el=page.locator('[data-field="'+key+'"]');
  assert.equal(await el.count(),1,key+" missing");
  await el.evaluate(input=>{
