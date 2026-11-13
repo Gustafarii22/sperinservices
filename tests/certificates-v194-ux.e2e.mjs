@@ -79,7 +79,7 @@ assert(methodOptions.some(x=>x.includes("not touching")),"Reference method optio
 
 await circuits.locator("summary").first().click();
 assert(!(await circuits.evaluate(el=>el.open)),"Circuits tab must close");
-if(!(await j.evaluate(el=>el.open))) await j.locator("summary").first().click();
+await j.locator("summary").first().click();
 assert(!(await j.evaluate(el=>el.open)),"J must close");
 if(!(await j.evaluate(el=>el.open))) await j.locator("summary").first().click();
 if(!(await circuits.evaluate(el=>el.open)))await circuits.locator("summary").first().click();

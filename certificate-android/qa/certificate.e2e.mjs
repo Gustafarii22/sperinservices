@@ -1096,6 +1096,7 @@ await page.locator("[data-sheet-read-text]").fill(spokenSheet);
 await page.locator('[data-action="sheet-read-process"]').click();
 await page.waitForTimeout(120);
 await page.locator('[data-action="sheet-read-open-cert"]').click();
+await openSectionContaining(page,'.circuit-list');
 await page.waitForSelector(".circuit-list");
 
 stored = await page.evaluate(() =>
@@ -1213,6 +1214,7 @@ assert(
   "Exact field-code OCR was not marked clear",
 );
 await page.locator('[data-action="scan-apply"]').click();
+await openSectionContaining(page,'.circuit-list');
 await page.waitForSelector(".circuit-list");
 stored = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
