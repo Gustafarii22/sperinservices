@@ -1416,6 +1416,7 @@
   SCHEMAS.minor.sections[1].fields.push(f('bondingOther', 'Other bonded services — specify'));
   addColumns(SCHEMAS.pat,'repairs',[{key:'description',label:'Equipment description'}]);
   SCHEMAS.smoke.sections.find(p=>p.title==='System classification & design').fields.push(
+    f('designerCompany','Design — for/on behalf of'),
     f('ld2ProtectedAreas','LD2 — areas protected','textarea',{span:'full',showWhen:{key:'category',value:'LD2'}}));
   SCHEMAS.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.push(
     f('instructionsRecipient','Instructions supplied to'));

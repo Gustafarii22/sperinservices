@@ -13,6 +13,7 @@ assert(schemas.minor.sections[0].fields.some(f=>f.key==='standardAmendedTo'));
 assert(schemas.minor.sections[1].fields.some(f=>f.key==='bondingOther'));
 assert(!schemas.eic.sections.flatMap(p=>p.fields||[]).some(f=>f.key==='singleSignatoryQualification'));
 assert(schemas.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.some(f=>f.key==='instructionsRecipient'));
+assert(schemas.smoke.sections.find(p=>p.title==='System classification & design').fields.some(f=>f.key==='designerCompany'));
 const output='certificate-android/qa-output/all-forms';mkdirSync(output,{recursive:true});
 for(const [type,schema] of Object.entries(schemaCtx.window.schemas)){
  const cert={type,number:'LAYOUT-QA-'+type,fields:{},tables:{}};
@@ -26,6 +27,7 @@ for(const [type,schema] of Object.entries(schemaCtx.window.schemas)){
  const before=JSON.stringify(cert);const doc=ctx.SperinIetForms.build({cert,schema,settings:{},editable:true});
  assert.equal(JSON.stringify(cert),before,'PDF changed saved data '+type);
  const pages=doc.internal.pages.slice(1).map(p=>p.join('\n'));const raw=pages.join('\n');
+ if(type==='smoke')assert(raw.includes('QA designerCompany'),'Domestic alarm design organisation missing from PDF');
  if(type==='minor'){assert(raw.includes('LONG_MINOR_END'));assert(doc.getNumberOfPages()>1);}
  if(type==='eicr'){
   assert(raw.includes('(No) Tj'));
