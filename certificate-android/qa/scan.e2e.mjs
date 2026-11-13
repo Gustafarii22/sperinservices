@@ -1,3 +1,12 @@
+async function openSectionContaining(page, selector) {
+  if (await page.locator(selector).count()) return;
+  const tabs=page.locator('.section-pages button');
+  for(let i=0;i<await tabs.count();i++) {
+    await tabs.nth(i).click();
+    if(await page.locator(selector).count()) return;
+  }
+  throw new Error('No input section contains '+selector);
+}
 async function autoChooseQuickEntry(page){
   await page.addInitScript(()=>{
     const choose=()=>document.querySelector('.cv-opening [data-action="choose-entry"][data-mode="quick"]')?.click();
@@ -22,19 +31,18 @@ await page.locator('.cert-launch[data-type="eic"]').click();
 const ensureExpanded=async(details)=>{
  if(!(await details.evaluate(el=>el.open)))await details.locator('summary').first().click();
 };
-const openSectionJ=()=>ensureExpanded(page.locator('details.distribution-section'));
+const openSectionJ=async()=>{await openSectionContaining(page,'.distribution-section');await ensureExpanded(page.locator('details.distribution-section'));};
 const openCircuits=async(index=0)=>{
  await openSectionJ();
  await ensureExpanded(page.locator('details.cu-circuits-accordion').nth(index));
 };
 await page.locator('[data-field="clientName"]').fill("Scanner regression customer");
-// Compact IET form sections: opening B closes A. Actual form labels remain unchanged.
-assert.ok(await page.locator('.cert-accordion').first().evaluate(el=>el.open));
-await page.locator('.cert-accordion').nth(1).locator('summary').click();
-assert.ok(await page.locator('.cert-accordion').nth(1).evaluate(el=>el.open));
-assert.ok(!await page.locator('.cert-accordion').first().evaluate(el=>el.open));
-await page.locator('.cert-accordion').first().locator('summary').click();
-assert.ok(!await page.locator('.cert-accordion').nth(1).evaluate(el=>el.open));
+// Section navigation replaces the former accordion-only long page.
+await page.locator('.section-pages button').nth(1).click();
+assert.equal(await page.locator('.section-page-content > .form-section').count(),1);
+assert.equal(await page.locator('[data-field="clientName"]').count(),0);
+await page.locator('.section-pages button').first().click();
+assert.equal(await page.locator('[data-field="clientName"]').inputValue(),'Scanner regression customer');
 await openCircuits();
 await page.locator('.cu-circuits-accordion').first().locator('[data-action="board-scan"]').click();
 assert.equal(await page.locator('.scan-board').count(),1);
@@ -117,6 +125,7 @@ await boardField('rcdBs','BS EN 61008-1');
 await boardField('rcdType','A');
 await boardField('rcdRating','63');
 await boardField('rcdIdn','30');
+await openSectionContaining(page,'[data-field="testerLowOhm"]');
 const instrumentSection=page.locator('.cert-accordion').filter({has:page.locator('summary:has-text("Test instrument")')}).first();
 await ensureExpanded(instrumentSection);
 await page.locator('[data-field="testerLowOhm"]').check();
