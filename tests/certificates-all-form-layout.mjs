@@ -21,13 +21,23 @@ for(const [type,schema] of Object.entries(schemaCtx.window.schemas)){
   if(p.type==='section')for(const f of p.fields)cert.fields[f.key]=f.defaultValue??(f.type==='date'?'2026-11-12':f.type==='checkbox'?false:f.type==='select'?(f.options?.[0]??''):'QA '+f.key);
   else cert.tables[p.key]=JSON.parse(JSON.stringify(p.defaultRows||[]));
  }
+ if(type==='smoke'){cert.fields.grade='Grade D1';cert.fields.standard='BS 5839-6:2019+A1:2020';}
  if(type==='minor')cert.fields.description='LONG_MINOR_START '+('Extended work description with important installation details. ').repeat(160)+' LONG_MINOR_END';
  if(type==='eicr'){cert.fields.earthingDistributor='No';cert.fields.bondingToGas='N/A';}
  if(type==='eicr')cert.tables.observations=Array.from({length:65},(_,i)=>({item:String(i+1),observation:'UNIQUE_FINDING_'+i+' '+('Detailed defect description to check wrapped rows and continuation pages. ').repeat(i===3?110:5),location:'Location '+i,code:i<40?'C1':i<50?'C2':i<60?'C3':'FI'}));
  const before=JSON.stringify(cert);const doc=ctx.SperinIetForms.build({cert,schema,settings:{},editable:true});
  assert.equal(JSON.stringify(cert),before,'PDF changed saved data '+type);
  const pages=doc.internal.pages.slice(1).map(p=>p.join('\n'));const raw=pages.join('\n');
- if(type==='smoke')assert(raw.includes('QA designerCompany'),'Domestic alarm design organisation missing from PDF');
+ if(type==='smoke'){
+  assert(raw.includes('QA designerCompany'),'Domestic alarm design organisation missing from PDF');
+  for(const role of ['design','installation','commissioning'])assert(raw.includes('By signing the '+role+' section'),'Missing scoped '+role+' declaration');
+  assert(raw.includes('23.3n'),'Missing commissioning testing reference');
+  for(const change of [{grade:'Grade A'},{standard:'BS 5839-6:2013'}]){
+   const historical=JSON.parse(JSON.stringify(cert));Object.assign(historical.fields,change);
+   const other=ctx.SperinIetForms.build({cert:historical,schema,settings:{}});
+   assert(!other.internal.pages.slice(1).flat().join('\n').includes('By signing the'),'Wrong declaration applied to unsupported grade/edition');
+  }
+ }
  if(type==='minor'){assert(raw.includes('LONG_MINOR_END'));assert(doc.getNumberOfPages()>1);}
  if(type==='eicr'){
   assert(raw.includes('(No) Tj'));

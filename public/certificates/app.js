@@ -1421,6 +1421,18 @@
   SCHEMAS.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.push(
     f('instructionsRecipient','Instructions supplied to'));
 
+  // Original wording based on the D/F Annex E-derived Aico Issue 8 model.
+  // Never apply these declarations to unverified grades or historical editions.
+  for(const [title,role] of [['System classification & design','design'],['Installation checks','installation'],['Commissioning & handover','commissioning']]){
+    const part=SCHEMAS.smoke.sections.find(p=>p.title===title);
+    part.declaration={
+      grades:['Grade D1','Grade D2','Grade F1','Grade F2'],
+      standard:'BS 5839-6:2019+A1:2020',
+      text:'By signing the '+role+' section, I certify the '+role+' work for which I am responsible for the system, premises, grade and category recorded in this certificate. That work meets the recommendations of BS 5839-6:2019+A1:2020, subject to the recorded variations.'+
+        (role==='commissioning'?' My commissioning certification includes satisfactory operation of the complete system tested under clause 23.3n, subject to recorded testing variations, and provision of clause 24 instructions to the named recipient.':'')
+    };
+  }
+
   try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
   let settings = loadSettings();
   let state = loadState();
@@ -1957,6 +1969,7 @@
   }
 
   function renderSection(part, cert) {
+    const declaration=part.declaration && part.declaration.grades.includes(cert.fields.grade) && cert.fields.standard===part.declaration.standard ? part.declaration.text : '';
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
@@ -1965,7 +1978,8 @@
       ? '<div class="signatory-summary"><strong>One signatory</strong><span>Design · Installation · Inspection & testing</span></div>'
       : '';
     const key='section:'+cert.id+':'+part.title;
-    return `<details class="card form-section cert-accordion" data-accordion-key="${esc(key)}" ${accordionOpen(key,part.title.startsWith('A ·'))?'open':''}><summary class="cert-accordion-head"><h3>${esc(part.title)}</h3><span class="cert-chevron">⌄</span></summary><div class="cert-accordion-body">${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}<div class="fields">${fields}</div></div></details>`;
+    const declarationNote=declaration ? `<div class="note certificate-declaration">${esc(declaration)}</div>` : '';
+    return `<details class="card form-section cert-accordion" data-accordion-key="${esc(key)}" ${accordionOpen(key,part.title.startsWith('A ·'))?'open':''}><summary class="cert-accordion-head"><h3>${esc(part.title)}</h3><span class="cert-chevron">⌄</span></summary><div class="cert-accordion-body">${part.note ? `<div class="note">${esc(part.note)}</div>` : ''}${sameClient}${signatorySummary}${declarationNote}<div class="fields">${fields}</div></div></details>`;
   }
 
   const POSTCODE_TARGETS={
