@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 
 const appText=readFileSync('public/certificates/app.js','utf8');
 const rendererText=readFileSync('public/certificates/iet-forms.js','utf8');
@@ -103,4 +103,15 @@ test('Domestic Grade C/D/F model includes Annex E roles and handover but rejects
  assert(text.includes('DECLARATION'),'Missing smoke alarm certificates declarations');
  assert(text.includes('GUIDANCE FOR OCCUPIERS AND LANDLORDS'),'Missing BS 5839-6 Annex F-style recipient guidance');
  assert.throws(()=>render(makeCert('smoke',{fields:{grade:'Grade A'}})),/Grade A requires separate/);
+});
+
+test('Archive blank and filled specialist PDF exemplars for independent visual review',()=>{
+ mkdirSync('certificate-android/qa-output',{recursive:true});
+ for(const type of ['emergency','smoke']){
+   for(const worksheet of [false,true]){
+     const {doc}=render(makeCert(type),worksheet);
+     const suffix=worksheet?'BLANK-TEMPLATE':'FICTIONAL-EXAMPLE';
+     writeFileSync('certificate-android/qa-output/'+type+'-'+suffix+'.pdf',Buffer.from(doc.output('arraybuffer')));
+   }
+ }
 });
