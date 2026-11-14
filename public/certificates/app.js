@@ -36,7 +36,7 @@
     emergencyType: ['Completion certificate', 'Small installation certificate', 'Verification of existing installation', 'Periodic inspection & test'],
     emergencyMode: ['Maintained', 'Non-maintained', 'Combined', 'Central battery', 'Static inverter', 'Other'],
     testDuration: ['1 hour', '3 hours', 'Other'],
-    smokeGrade: ['Grade A', 'Grade C', 'Grade D1', 'Grade D2', 'Grade F1', 'Grade F2', 'Other'],
+    smokeGrade: ['Grade C', 'Grade D1', 'Grade D2', 'Grade F1', 'Grade F2'],
     smokeCategory: ['LD1', 'LD2', 'LD3', 'PD1', 'PD2', 'Other'],
     alarmType: ['Optical smoke', 'Ionisation smoke', 'Heat', 'Multi-sensor', 'CO', 'Sounder', 'Strobe / visual alarm', 'Vibrating pad', 'Control / relay', 'Other'],
     interlink: ['Hard-wired', 'Radio-linked', 'Hybrid', 'Standalone', 'Other'],
