@@ -1,0 +1,64 @@
+name: Sperin Certificates isolated APK candidate (not production)
+on:
+  push:
+    branches:
+      - fix/certificates-model-form-completeness-20261114
+    paths:
+      - '.github/workflows/certificate-candidate-apk.yml'
+      - 'public/certificates/**'
+      - 'certificate-android/app/**'
+      - 'certificate-android/qa/**'
+      - 'tests/certificates-form-completeness-2026.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verified-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install Android SDK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Include exact committed web certificate assets and build isolated candidate
+        run: |
+          set -euo pipefail
+          mkdir -p certificate-android/app/src/main/assets/certificates certificate-android/dist
+          cp -a public/certificates/. certificate-android/app/src/main/assets/certificates/
+          gradle -p certificate-android :app:assemblePreview -PreleaseVersionCode=217 --no-daemon
+          cp certificate-android/app/build/outputs/apk/preview/app-preview.apk certificate-android/dist/Sperin-Certificates-v217-ISOLATED-TEST-ONLY.apk
+      - name: Verify APK signature, package and contents
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+          APK=certificate-android/dist/Sperin-Certificates-v217-ISOLATED-TEST-ONLY.apk
+          test -s "$APK"
+          python3 certificate-android/qa/inspect-apk.py "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" > certificate-android/dist/SIGNER.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > certificate-android/dist/PACKAGE.txt
+          grep -F "name='uk.co.sperinservices.certificates.stable.preview.team.v197'" certificate-android/dist/PACKAGE.txt
+          grep -F "Android Debug" certificate-android/dist/SIGNER.txt
+          unzip -l "$APK" | grep -F 'assets/certificates/iet-forms.js'
+          sha256sum "$APK" > certificate-android/dist/SHA256SUMS.txt
+          printf '%s\n' 'ISOLATED QA BUILD ONLY. Not approved as a certificate-issuing production app.' 'This Android Debug-signed candidate cannot be used as a guaranteed in-place update for any installed package.' 'Keep your old app installed. Never clear its data. Use the permanent production release only after signer and upgrade verification.' > certificate-android/dist/READ-ME-FIRST.txt
+      - name: Publish immutable QA APK for download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sperin-Certificates-v217-ISOLATED-TEST-ONLY
+          path: certificate-android/dist/
+          retention-days: 30
+          if-no-files-found: error
