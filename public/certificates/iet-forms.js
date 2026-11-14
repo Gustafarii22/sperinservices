@@ -281,6 +281,49 @@
     for(let i=1;i<=n;i++){doc.setPage(i);footer(doc,i,n);}
   }
 
+
+  // Customer guidance is appended to the issued certificate, as required by the
+  // Appendix 6 model forms. This is a fresh plain-English rendering, not an IET logo.
+  function renderElectricalRecipientGuidance(doc,cert,schema,kind){
+    const minor=kind==='minor';
+    const pageTitle=minor?'MINOR ELECTRICAL INSTALLATION WORKS CERTIFICATE':'ELECTRICAL INSTALLATION CERTIFICATE';
+    const guidance=minor?[
+      'This certificate confirms that the minor alteration or addition described in Section A has been designed, constructed, inspected and tested in accordance with BS 7671, subject to the recorded departures.',
+      'The certificate is intended for work on an existing circuit; it must not be used for a new circuit, consumer-unit replacement or a wider installation requiring an Electrical Installation Certificate. A separate Minor Works certificate is appropriate for each existing circuit affected.',
+      'Keep the certificate for the owner and pass it to the owner if you commissioned the work on another person’s behalf. The issuing contractor should keep a duplicate.',
+      'The person signing is responsible for the design, installation, inspection and testing work covered by the declaration. A certificate should be retained and shown to anyone later inspecting or altering the installation.',
+      'Arrange periodic inspection by a skilled person competent in this work.',
+      'Where an RCD has a user test button, operate it every six months in accordance with the manufacturer’s instructions. If it fails to trip, seek competent advice.',
+      'Where an AFDD has a manual test button, follow the manufacturer’s testing instructions, normally every six months. Consider its automatic test function when applicable.',
+      'Inspect any SPD status indicator as instructed by the manufacturer. If it indicates a failure, obtain competent advice.',
+      'Where another source of supply is present, check that suitable warning notices are provided at relevant origins, distribution boards and points of isolation.'
+    ]:[
+      'This certificate records the design, construction, inspection and testing of the new work described in Section B, subject to any departures stated in Section C.',
+      'The original certificate and all schedules should be given to the installation owner, and a copy retained by the issuing contractor. Keep them securely for future inspection, maintenance or property transfer.',
+      'For projects subject to the Construction (Design and Management) Regulations, retain the certificate and schedules with the project health and safety documentation.',
+      'The recommended interval before further inspection is stated in Section D. Arrange inspection and testing by a skilled person competent in the work.',
+      'This certificate covers a new installation, a new circuit, or an addition/alteration. It does not replace an Electrical Installation Condition Report for an assessment of an existing installation.',
+      'The certificate is only complete with its schedule of inspections, schedule(s) of circuit details and schedule(s) of test results, and any listed continuation sheets or risk assessments.',
+      'Test an RCD with a user test button every six months in accordance with the manufacturer’s instructions. If the device does not trip, seek competent advice.',
+      'Test any AFDD with a manual test facility as instructed by the manufacturer, normally every six months; account for automatic self-tests where fitted.',
+      'Inspect any SPD status indicator in accordance with the manufacturer’s information. If its indication is not satisfactory, obtain competent advice.',
+      'For alternative or additional sources of supply, warning notices should be displayed at the origin, distribution board and relevant points of isolation.'
+    ];
+    doc.addPage('a4',minor?'portrait':'landscape');
+    const title=()=>pageFrame(doc,pageTitle,display(cert.number,false,true),schema.standard);
+    title();
+    const width=doc.internal.pageSize.getWidth()-20;
+    doc.autoTable({
+      startY:31,
+      head:[[{content:'GUIDANCE FOR RECIPIENTS - APPEND TO THE CERTIFICATE',styles:{fontStyle:'bold',fillColor:PALE,textColor:INK}}]],
+      body:guidance.map((g,i)=>[String(i+1)+'. '+g]),
+      margin:{left:10,right:10,top:30,bottom:14},
+      tableWidth:width,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:minor?8.0:8.7,cellPadding:minor?2.5:3.1,minCellHeight:minor?9:11,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+      didDrawPage:title
+    });
+  }
+
   function renderEic(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{};
     const frame=()=>pageFrame(doc,'ELECTRICAL INSTALLATION CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
@@ -327,9 +370,10 @@
     ],{0:{cellWidth:58},1:{cellWidth:w-58}},{colSpan:2});
 
     const d=signatory(cert,'designer'),c=signatory(cert,'constructor'),i=signatory(cert,'inspector');
-    const declarationDesign='I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationConstruction='I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationInspection='I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const amended=worksheet?'...............':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'...............');
+    const declarationDesign='I/We certify that the design of the work described above has been carried out with reasonable skill and care, to the best of my/our knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
+    const declarationConstruction='I certify that the construction of the work described above has been carried out with reasonable skill and care, to the best of my knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
+    const declarationInspection='I certify that the inspection and testing of the work described above has been carried out with reasonable skill and care, to the best of my knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
     const sigCells=(party)=>[
       {content:'Signature\n'+display(party.signature,worksheet),styles:{fontStyle:'bold'}},
       {content:'Date\n'+(worksheet?'':fmtDate(party.date)),styles:{fontStyle:'bold'}},
@@ -338,18 +382,18 @@
     const cBody=[
       [{content:'FOR DESIGN',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationDesign,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.designDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
-      [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet)||(!worksheet?'N/A':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.designDepartures,worksheet),colSpan:2}],
+      [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet),colSpan:2}],
       [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
       sigCells(d),
       ...(f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
       [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationConstruction,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet),colSpan:2}],
       sigCells(c),
       [{content:'FOR INSPECTION AND TESTING',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationInspection,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.inspectionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.inspectionDepartures,worksheet),colSpan:2}],
       sigCells(i)
     ];
     sectionTable('SECTION C: CERTIFICATION SIGNATORIES',cBody,{0:{cellWidth:92},1:{cellWidth:45},2:{cellWidth:w-137}},{colSpan:3});
@@ -395,7 +439,7 @@
       ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
       ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
       ['Main switch OCPD rating/setting (A)',f.mainSwitchDeviceSetting,'Main RCD measured operating time (ms)',f.mainRcdTime],
-      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'','']
+      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'Protective device settings attachment (where applicable)',f.protectiveDeviceSettingsRef]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     addLandscapePage();
@@ -444,13 +488,14 @@
     const boards=boardRows(cert);
     const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/8)),0);
     sectionTable('SECTION J: SCHEDULES',[
-      [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
+      [{content:'Continuation sheet(s) / Section(s)',styles:{fontStyle:'bold'}},[display(f.continuationSheets,worksheet),display(f.continuationSheetSections,worksheet)].filter(Boolean).join(' / ')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
       [{content:'Schedule(s) of Circuit Details / Test Results',styles:{fontStyle:'bold'}},worksheet?'':String(Math.max(1,scheduleSets))],
       [{content:'Statement',styles:{fontStyle:'bold'}},'The schedules and continuation sheets listed form part of this certificate.']
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
     renderCircuitSchedules(doc,cert,schema,opts);
+    renderElectricalRecipientGuidance(doc,cert,schema,'eic');
   }
 
   function renderMinor(doc,cert,schema,opts){
@@ -463,7 +508,7 @@
     labelValue(doc,'Date minor works completed',worksheet?'':fmtDate(f.completionDate),x+109,top+6,79,{labelW:39});
     labelValue(doc,'Installation location/address',display(f.installationAddress,worksheet),x+2,top+13,w-4,{labelW:36,maxLines:2});
     labelValue(doc,'Description of the minor works',display(f.description,worksheet),x+2,top+22,w-4,{labelW:39,maxLines:2});
-    labelValue(doc,'Departures from BS 7671',display(f.departures,worksheet),x+2,top+31,w-4,{labelW:31,maxLines:2});
+    labelValue(doc,'Departures - BS 7671 amended '+(worksheet?'........':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'........'))+' (date)',display(f.departures,worksheet),x+2,top+31,w-4,{labelW:87,maxLines:2});
     labelValue(doc,'Permitted exceptions / risk assessment',display(f.permittedExceptions,worksheet),x+2,top+38,145,{labelW:46,maxLines:2});
     checkbox(doc,x+w-42,top+38,yes(f.riskAssessmentAttached,'Yes')&&!worksheet,'Risk assessment attached',{fontSize:5.8,labelWidth:37});
     labelValue(doc,'Comments / defects observed in existing installation',display(f.existingDefects,worksheet),x+2,top+45,w-4,{labelW:55,maxLines:1});
@@ -472,8 +517,12 @@
     top=box(doc,x,y,w,39,'SECTION B: PRESENCE AND ADEQUACY OF INSTALLATION EARTHING AND BONDING ARRANGEMENTS');
     labelValue(doc,'System earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+7,w-4,{labelW:36});
     labelValue(doc,'Earth fault loop impedance at distribution board Zdb (Ω)',display(f.zdb,worksheet),x+2,top+16,w-4,{labelW:62});
-    labelValue(doc,'Adequate main protective conductors',display(f.earthingConductorAdequate,worksheet),x+2,top+25,w-4,{labelW:46});
-    labelValue(doc,'Main protective bonding conductor(s) to',display(f.bondingPresent,worksheet),x+2,top+33,w-4,{labelW:48});
+    labelValue(doc,'Adequate earthing conductor present',display(f.earthingConductorAdequate,worksheet),x+2,top+25,w-4,{labelW:54});
+    write(doc,'Main bonding to:',x+2,top+33,33,{size:5.9,bold:true});
+    const legacyBonding=String(f.bondingPresent||'').toLowerCase();
+    const bondItems=[['Water','bondingWater',38],['Gas','bondingGas',69],['Oil','bondingOil',94],['Steel','bondingSteel',118],['Other','bondingOther',150]];
+    bondItems.forEach(([label,key,offset])=>checkbox(doc,x+offset,top+33,!worksheet&&(yes(f[key],'Yes')||(!f[key]&&legacyBonding.includes(label.toLowerCase()))),label,{size:2.8,fontSize:5.3,labelWidth:20}));
+    write(doc,display(f.bondingOtherDetail||(!f.bondingOther?f.bondingPresent:''),worksheet),x+171,top+33,17,{size:5.3,maxLines:1});
     y+=40;
 
     top=box(doc,x,y,w,58,'SECTION C: CIRCUIT DETAILS');
@@ -517,13 +566,14 @@
     y+=55;
 
     top=box(doc,x,y,w,56,'SECTION E: DECLARATION');
-    write(doc,'I certify that the work covered by this certificate does not impair the safety of the existing installation and that the work has been designed, constructed, inspected and tested in accordance with BS 7671 except as recorded in Section A.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
+    write(doc,'I certify that the work covered by this certificate does not impair the safety of the existing installation and has been designed, constructed, inspected and tested in accordance with BS 7671:2018 amended to '+(worksheet?'........':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'........'))+' (date), and that to the best of my knowledge and belief it complied at the time of inspection, except as stated in Section A.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
     labelValue(doc,'Name',display(f.engineerName,worksheet),x+2,top+23,91,{labelW:15});
     labelValue(doc,'For/on behalf of',display(f.forOnBehalfOf,worksheet),x+95,top+23,93,{labelW:28});
     labelValue(doc,'Address',display(f.address,worksheet),x+2,top+32,91,{labelW:18,maxLines:2});
     labelValue(doc,'Position',display(f.position,worksheet),x+95,top+32,93,{labelW:18});
     labelValue(doc,'Signature',display(f.signature,worksheet),x+2,top+45,91,{labelW:18});
     labelValue(doc,'Date',worksheet?'':fmtDate(f.declarationDate),x+95,top+45,93,{labelW:12});
+    renderElectricalRecipientGuidance(doc,cert,schema,'minor');
   }
 
   // v1.9.6: EICR uses LANDSCAPE A4 on every page. Do not mix portrait
