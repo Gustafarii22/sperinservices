@@ -1273,6 +1273,33 @@
   }
 
 
+
+  // Recipient information for occupiers and landlords, in the role of the
+  // BS 5839-6:2019+A1:2020 Annex F model guidance.
+  function renderSmokeRecipientGuidance(doc,cert,schema){
+    const heading='HOUSEHOLD SMOKE AND HEAT ALARM CERTIFICATE';
+    const frame=()=>pageFrame(doc,heading,display(cert.number,false,true),schema.standard);
+    const items=[
+      'Keep this certificate, detector locations and manufacturer instructions. Pass them to future occupiers and responsible persons.',
+      'The system grade and category identify the recorded extent of fire detection. Do not assume protection extends to an unlisted room or area.',
+      'Test each detector and alarm at the intervals and by the method in the manufacturer instructions. Confirm that warning devices operate as intended. Never use an open flame to test.',
+      'Do not paint over, cover, move or disable alarms. Keep devices clear of dust and obstructions in accordance with manufacturer instructions.',
+      'Follow manufacturer instructions for batteries, low-battery warnings, mains faults, end-of-life replacement and servicing.',
+      'Arrange prompt remedial work for faults, failed devices, faulty interconnections or inadequate warning. Arrange competent maintenance where required by the system grade.',
+      'Fire detection is an early-warning measure. Maintain fire precautions, escape routes and an escape plan, and arrange a fire risk assessment where required.',
+      'Give the certificate, installation/test records, instructions and relevant drawings to the named recipient and retain evidence of handover.'
+    ];
+    doc.addPage('a4','portrait');frame();
+    doc.autoTable({
+      startY:32,
+      head:[[{content:'GUIDANCE FOR OCCUPIERS AND LANDLORDS',styles:{fontStyle:'bold',fillColor:PALE,textColor:INK}}]],
+      body:items.map((item,i)=>[String(i+1)+'. '+item]),
+      margin:{left:10,right:10,top:29,bottom:14},tableWidth:190,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:8,cellPadding:2.7,minCellHeight:9.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+      didDrawPage:frame
+    });
+  }
+
   function specialistPartVisiblePdf(cert,part){
     if(cert.type!=='emergency')return true;
     const type=String(cert.fields?.certificateType||'');
@@ -1381,6 +1408,7 @@
         y=doc.lastAutoTable.finalY+4;
       }
     });
+    if(cert.type==='smoke')renderSmokeRecipientGuidance(doc,cert,schema);
   }
 
   function build({cert,schema,settings={},worksheet=false,editable=false}){
