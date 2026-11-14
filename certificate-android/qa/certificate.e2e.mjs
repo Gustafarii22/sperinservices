@@ -1413,10 +1413,13 @@ for (const type of certificateTypeOrder) {
         .count()) === 1,
       "Minor Works missing 33 kA breaking capacity",
     );
-    await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();
+    // Current Minor Works Appendix 6 form records bonding to each service
+    // independently; the previous free-text "bondingPresent" chip is legacy.
+    const waterBonding=page.locator(".combo-field").filter({has:page.locator('[data-field="bondingWater"]')});
+    await waterBonding.locator('[data-value="Yes"]').click();
     assert(
-      (await page.locator('[data-field="bondingPresent"]').inputValue()).includes("Water"),
-      "Minor Works bonding chip did not save Water",
+      (await page.locator('[data-field="bondingWater"]').inputValue()) === "Yes",
+      "Minor Works bonding to water did not save Yes",
     );
   }
 
