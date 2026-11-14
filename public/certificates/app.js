@@ -1421,6 +1421,60 @@
   SCHEMAS.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.push(
     f('instructionsRecipient','Instructions supplied to'));
 
+  // Owner-supplied certificate checklist (14 November). These entries implement
+  // the requested content; they do not assert a completed standards audit.
+  const el=SCHEMAS.emergency.sections;
+  OPTIONS.emergencyType.push('Verification of existing installation');
+  const elPart=title=>el.find(p=>p.title===title);
+  elPart('Certificate & premises').fields=elPart('Certificate & premises').fields.filter(f=>f.key!=='premisesType');
+  elPart('Certificate & premises').fields.push(
+    f('areasCovered','Areas covered / extent of system','textarea',{span:'full'}),
+    f('previousCertificate','Previous certificate reference (where available)'));
+  elPart('System design information').fields.push(
+    select('supplySystem','System arrangement',['','Self-contained','Central battery','Mixed']),
+    f('photometricData','Photometric design data reference','textarea',{span:'full'}),
+    select('deratingApplied','Appropriate photometric de-rating factors applied',OPTIONS.yesNoNA),
+    f('variationClauses','Variation clause references and corresponding details','textarea',{span:'full'}),
+    f('designDeclaration','Design conformity declaration — standards, scope and recorded variations','textarea',{span:'full'}));
+  elPart('Installation & supply').fields.push(
+    f('installationDeclaration','Installation conformity declaration — standards, scope and recorded variations','textarea',{span:'full'}));
+  elPart('Verification / test').fields.push(
+    f('verificationDeclaration','Verification conformity declaration — standards, scope and recorded variations','textarea',{span:'full'}),
+    select('overallCondition','Overall condition',['','Satisfactory','Unsatisfactory','Unable to determine']),
+    f('actionsTaken','Faults rectified / actions taken','textarea',{span:'full'}));
+  el.push(section('Certificate declaration and supporting records',[
+    f('generalDeclaration','General declaration — conformity to the recorded standards except listed variations','textarea',{span:'full'}),
+    f('supportingDocuments','Certificate valid only with accompanying signed declarations and photometric data — references','textarea',{span:'full'}),
+    select('supportingDocumentsComplete','Required signed declarations and photometric data accompany this certificate',OPTIONS.yesNoNA),
+    f('generalName','Responsible person name'),f('generalCompany','For/on behalf of'),
+    f('generalSignature','Signature / typed name'),f('generalDate','Date','date'),
+    select('smallInstallationConfirmed','No more than 25 self-contained luminaires',OPTIONS.yesNoNA,{showWhen:{key:'certificateType',value:'Small installation certificate'}}),
+    f('combinedDeclaration','Combined conformity declaration — design, installation and verification','textarea',{span:'full',showWhen:{key:'certificateType',value:'Small installation certificate'}}),
+    f('existingChecklist','Existing-installation checklist / findings and report reference','textarea',{span:'full',showWhen:{key:'certificateType',value:'Verification of existing installation'}})
+  ]));
+  const fire=SCHEMAS.commercialFire.sections;
+  fire[0].fields.find(f=>f.key==='certificateType').options.push('Acceptance','Verification');
+  fire.find(p=>p.title==='Design and installation particulars').fields.push(
+    select('designDocumentationProduced','Required design documentation produced',OPTIONS.yesNoNA),
+    select('matchesDesign','Installation matches agreed design',OPTIONS.yesNoNA),
+    f('designDifferences','Differences from agreed design','textarea',{span:'full'}),
+    f('verificationScope','Scope and extent of verification','textarea',{span:'full',showWhen:{key:'certificateType',value:'Verification'}}),
+    f('firmwareChanges','Firmware changes included in modification (if applicable)','textarea',{span:'full',showWhen:{key:'certificateType',value:'Modification / extension'}}),
+    select('compatibilityChecked','Whole-system compatibility checked where necessary',OPTIONS.yesNoNA,{showWhen:{key:'certificateType',value:'Modification / extension'}}));
+  fire.find(p=>p.title==='Commissioning / servicing / faults').fields.push(
+    f('workCarriedOut','Work carried out and actions taken','textarea',{span:'full'}),
+    select('overallCondition','Overall condition',['','Satisfactory','Unsatisfactory','Unable to determine']));
+  fire.find(p=>p.title==='Non-domestic fire safety acceptance and handover').fields.push(
+    select('documentsReceived','Required documentation received',OPTIONS.yesNoNA,{showWhen:{key:'certificateType',value:'Acceptance'}}),
+    f('acceptanceIssues','Outstanding acceptance issues','textarea',{span:'full',showWhen:{key:'certificateType',value:'Acceptance'}}),
+    f('acceptanceStatement','Purchaser / responsible person acceptance statement','textarea',{span:'full',showWhen:{key:'certificateType',value:'Acceptance'}}),
+    f('acceptanceSignature','Accepting party signature / typed name','text',{showWhen:{key:'certificateType',value:'Acceptance'}}));
+  fire.find(p=>p.title==='Responsibility / declaration / handover').fields.push(
+    f('responsibleName','Person responsible for the selected certificate'),f('responsibleOrganisation','Responsible organisation'),
+    f('selectedDeclaration','Declaration for selected certificate — scope, applicable BS 5839-1:2025 recommendations and listed variations / non-conformities','textarea',{span:'full'}));
+  // Retain useful evidence and device schedules. Do not add speculative battery
+  // age or duplicate equipment-count prompts; saved legacy answers are untouched.
+
   // Original wording based on the D/F Annex E-derived Aico Issue 8 model.
   // Never apply these declarations to unverified grades or historical editions.
   for(const [title,role] of [['System classification & design','design'],['Installation checks','installation'],['Commissioning & handover','commissioning']]){

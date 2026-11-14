@@ -1,16 +1,16 @@
 /* Local-first certificate UI cache; never cache customer handovers or API data. */
 const CACHE="sperin-certificates-section-pages-20261114-1";
 const SHELL=[
- "./","./index.html","./styles.css?v=2026.11.14.1",
- "./vendor/jspdf.umd.min.js?v=2026.11.14.1",
- "./vendor/jspdf.plugin.autotable.min.js?v=2026.11.14.1",
- "./iet-forms.js?v=2026.11.14.1","./scan-core.js?v=2026.11.14.1",
- "./board-scan.js?v=2026.11.14.1",
- "./team-workspace.js?v=2026.11.14.1","./ai-assistance.js?v=2026.11.14.1",
- "./instrument-import.js?v=2026.11.14.1","./vendor/qrcode.min.js?v=2026.11.14.1",
- "./job-centre.js?v=2026.11.14.1","./speed-suite.js?v=2026.11.14.1",
- "./live-editing.js?v=2026.11.14.1","./certificate-view.js?v=2026.11.14.1","./app.js?v=2026.11.14.1",
- "./pdf-edit-map.js?v=2026.11.14.1","./vendor/pdf.min.mjs","./vendor/pdf.worker.min.mjs",
+ "./","./index.html","./styles.css?v=2026.11.14.2",
+ "./vendor/jspdf.umd.min.js?v=2026.11.14.2",
+ "./vendor/jspdf.plugin.autotable.min.js?v=2026.11.14.2",
+ "./iet-forms.js?v=2026.11.14.2","./scan-core.js?v=2026.11.14.2",
+ "./board-scan.js?v=2026.11.14.2",
+ "./team-workspace.js?v=2026.11.14.2","./ai-assistance.js?v=2026.11.14.2",
+ "./instrument-import.js?v=2026.11.14.2","./vendor/qrcode.min.js?v=2026.11.14.2",
+ "./job-centre.js?v=2026.11.14.2","./speed-suite.js?v=2026.11.14.2",
+ "./live-editing.js?v=2026.11.14.2","./certificate-view.js?v=2026.11.14.2","./app.js?v=2026.11.14.2",
+ "./pdf-edit-map.js?v=2026.11.14.2","./vendor/pdf.min.mjs","./vendor/pdf.worker.min.mjs",
  "./manifest.webmanifest","./icon.svg"
 ];
 self.addEventListener("install",e=>e.waitUntil(

@@ -48,3 +48,29 @@ for(const [type,schema] of Object.entries(schemaCtx.window.schemas)){
  writeFileSync(output+'/'+type+'.pdf',Buffer.from(doc.output('arraybuffer')));
  console.log('ALL_FORMS_RENDER_PRESERVATION_PASS',type,doc.getNumberOfPages());
 }
+
+// Each owner-requested specialist certificate choice must preserve its answers
+// in the real PDF, including conditionally visible acceptance/verification fields.
+for(const type of ['emergency','commercialFire']){
+ const schema=schemas[type];
+ const choices=schema.sections.flatMap(p=>p.fields||[]).find(f=>f.key==='certificateType').options.filter(Boolean);
+ for(const certificateType of choices){
+  const cert={type,number:'CHECKLIST-QA',fields:{certificateType},tables:{}};
+  for(const p of schema.sections)for(const f of p.fields||[]){
+   if(f.key==='certificateType')continue;
+   if(f.showWhen && f.showWhen.value!==certificateType)continue;
+   cert.fields[f.key]=f.type==='select'?(f.options.find(Boolean)||''):f.type==='date'?'2026-11-14':'EVIDENCE_'+f.key;
+  }
+  const before=JSON.stringify(cert);
+  const doc=ctx.SperinIetForms.build({cert,schema,settings:{}});
+  const raw=doc.internal.pages.slice(1).flat().join('\n');
+  const required=type==='emergency'?['photometricData','generalDeclaration','verificationDeclaration']:['responsibleName','selectedDeclaration'];
+  if(certificateType==='Acceptance')required.push('acceptanceStatement','acceptanceSignature');
+  if(certificateType==='Verification')required.push('verificationScope');
+  if(certificateType==='Verification of existing installation')required.push('existingChecklist');
+  if(certificateType==='Small installation certificate')required.push('combinedDeclaration');
+  for(const key of required)assert(raw.includes('EVIDENCE_'+key),type+' '+certificateType+' missing '+key);
+  assert.equal(JSON.stringify(cert),before);
+  console.log('SPECIALIST_CHECKLIST_PDF_PASS',type,certificateType);
+ }
+}
