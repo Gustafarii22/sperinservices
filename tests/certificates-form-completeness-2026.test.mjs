@@ -101,5 +101,6 @@ test('Domestic Grade C/D/F model includes Annex E roles and handover but rejects
    assert(fields.has(key),'Domestic fire alarm missing '+key);
  const {text}=render(makeCert('smoke',{fields:{grade:'Grade D1'}}));
  assert(text.includes('DECLARATION'),'Missing smoke alarm certificates declarations');
+ assert(text.includes('GUIDANCE FOR OCCUPIERS AND LANDLORDS'),'Missing BS 5839-6 Annex F-style recipient guidance');
  assert.throws(()=>render(makeCert('smoke',{fields:{grade:'Grade A'}})),/Grade A requires separate/);
 });
