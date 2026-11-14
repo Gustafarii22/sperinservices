@@ -1101,16 +1101,16 @@
       code: 'EL',
       name: 'Emergency Lighting Certificate',
       icon: '🟩',
-      standard: 'BS 5266:2025 · BS EN 1838:2024 · BS EN 50172:2024',
+      standard: 'BS 5266-1:2025 · BS EN 1838:2024 · BS EN 50172:2024',
       description: 'Completion, periodic inspection/test or small-installation record with design/installation/verification information.',
       sections: [
         section('Certificate & premises', [select('certificateType', 'Certificate type', OPTIONS.emergencyType), f('certificateNo', 'Certificate number'), f('issueDate', 'Issue date', 'date'), f('clientName', 'Client / responsible person'), f('responsibleSignature', 'Owner / responsible person declaration signature'), f('responsibleDate', 'Owner / responsible person declaration date', 'date'), f('premisesName', 'Premises name'), f('premisesPostcode', 'Premises postcode'), f('premisesAddress', 'Premises address', 'textarea', { span: 'full' }), select('premisesType', 'Premises type', OPTIONS.premises), f('systemRef', 'System / drawing reference')]),
-        section('System design information', [f('standard', 'Standards applied', 'text', { span: 'full', defaultValue: 'BS 5266:2025; BS EN 1838:2024; BS EN 50172:2024' }), select('operatingMode', 'Emergency lighting operating mode', OPTIONS.emergencyMode), select('ratedDuration', 'Rated emergency duration', OPTIONS.testDuration), f('designIlluminance', 'Design illuminance / design criteria', 'textarea', { span: 'full' }), f('riskAssessmentRef', 'Fire risk assessment / design risk reference'), f('drawingRef', 'Emergency lighting layout drawing reference'), f('photometricEvidenceRef', 'Photometric design data / illuminance evidence reference'), f('logbookRef', 'Emergency lighting test logbook reference'), f('deviations', 'Variations / deviations from standards or design', 'textarea', { span: 'full' }), f('deviationsAgreedWith', 'Variations agreed with / responsible person'), f('designerName', 'Designer name'), f('designerCompany', 'Designer company'), f('designerSignature', 'Design declaration signature / typed name'), f('designerDate', 'Design declaration date', 'date')]),
+        section('System design information', [f('standard', 'Standards applied', 'text', { span: 'full', defaultValue: 'BS 5266-1:2025; BS EN 1838:2024; BS EN 50172:2024' }), select('operatingMode', 'Emergency lighting operating mode', OPTIONS.emergencyMode), select('ratedDuration', 'Rated emergency duration', OPTIONS.testDuration), f('designIlluminance', 'Design illuminance / design criteria', 'textarea', { span: 'full' }), f('riskAssessmentRef', 'Fire risk assessment / design risk reference'), f('drawingRef', 'Emergency lighting layout drawing reference'), f('photometricEvidenceRef', 'Photometric design data / illuminance evidence reference'), f('logbookRef', 'Emergency lighting test logbook reference'), f('deviations', 'Variations / deviations from standards or design', 'textarea', { span: 'full' }), f('deviationsAgreedWith', 'Variations agreed with / responsible person'), f('designerName', 'Designer name'), f('designerCompany', 'Designer company'), f('designerSignature', 'Design declaration signature / typed name'), f('designerDate', 'Design declaration date', 'date')]),
         section('Installation & supply', [f('installerName', 'Installer name'), f('installerCompany', 'Installer company'), f('supplyOrigin', 'Emergency lighting supply / distribution reference'), f('protectiveDevice', 'Protective device details'), f('testFacility', 'Test/key-switch/automatic test facility details', 'textarea', { span: 'full' }), f('installationNotes', 'Installation notes / cable / fire-resistance information', 'textarea', { span: 'full' }), f('installerSignature', 'Installation declaration signature / typed name'), f('installerDate', 'Installation declaration date', 'date')]),
         table('luminaires', 'Luminaire / sign / device schedule', [
           { key: 'ref', label: 'Ref.' }, { key: 'location', label: 'Location' }, { key: 'device', label: 'Luminaire / sign type' }, { key: 'mode', label: 'Mode', type: 'select', options: OPTIONS.emergencyMode }, { key: 'duration', label: 'Duration', type: 'select', options: OPTIONS.testDuration }, { key: 'battery', label: 'Battery / source' }, { key: 'result', label: 'Result', type: 'select', options: OPTIONS.testResult }, { key: 'remarks', label: 'Remarks' }
         ], [{ ref: 'EL1' }]),
-        section('Verification / test', [f('verificationDate', 'Verification / test date', 'date'), f('mainsFailureTest', 'Mains failure / functional test result'), f('durationTest', 'Full duration test result'), f('luxTest', 'Illuminance / lux test details', 'textarea', { span: 'full' }), select('signsCorrect', 'Exit / safety signs correct and visible', OPTIONS.yesNoNA), select('chargingIndicators', 'Charging/status indicators satisfactory', OPTIONS.yesNoNA), select('autoTest', 'Automatic test system satisfactory / N/A', OPTIONS.yesNoNA), f('defects', 'Defects / remedial work required', 'textarea', { span: 'full' }), f('nextTestDate', 'Next periodic test / service due', 'date'), f('verifierName', 'Verifier / competent person'), f('verifierCompany', 'For/on behalf of'), f('verifierSignature', 'Verification signature / typed name'), f('verifierDate', 'Verification declaration date', 'date')]),
+        section('Verification / test', [select('periodicTestType', 'Periodic test type (where applicable)', ['Monthly functional', 'Annual full duration', 'Other']), f('faultActionRecordRef', 'Fault action / remedial work record reference'), f('verificationDate', 'Verification / test date', 'date'), f('mainsFailureTest', 'Mains failure / functional test result'), f('durationTest', 'Full duration test result'), f('luxTest', 'Illuminance / lux test details', 'textarea', { span: 'full' }), select('signsCorrect', 'Exit / safety signs correct and visible', OPTIONS.yesNoNA), select('chargingIndicators', 'Charging/status indicators satisfactory', OPTIONS.yesNoNA), select('autoTest', 'Automatic test system satisfactory / N/A', OPTIONS.yesNoNA), f('defects', 'Defects / remedial work required', 'textarea', { span: 'full' }), f('nextTestDate', 'Next periodic test / service due', 'date'), f('verifierName', 'Verifier / competent person'), f('verifierCompany', 'For/on behalf of'), f('verifierSignature', 'Verification signature / typed name'), f('verifierDate', 'Verification declaration date', 'date')]),
         section('Handover documentation', [select('logbookProvided', 'Logbook / test record provided', OPTIONS.yesNoNA), select('drawingsProvided', 'As-fitted drawings / location plan provided', OPTIONS.yesNoNA), select('instructionsProvided', 'User / maintenance instructions provided', OPTIONS.yesNoNA), f('handoverNotes', 'Handover notes', 'textarea', { span: 'full' })])
       ]
     },
@@ -1934,8 +1934,24 @@
     return String(cert.fields[field.showWhen.key]||'')===String(field.showWhen.value);
   }
 
+  function specialistSectionVisible(part,cert){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test')return !['System design information','Installation & supply','Handover documentation'].includes(part.title);
+    if(type==='Verification of existing installation')return part.title!=='Installation & supply';
+    return true;
+  }
+  function specialistFieldVisible(field,cert){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test' && ['responsibleSignature','responsibleDate'].includes(field.key))return false;
+    if(type==='Verification of existing installation' && ['designerName','designerCompany','designerSignature','designerDate'].includes(field.key))return false;
+    if(type!=='Periodic inspection & test' && ['periodicTestType','faultActionRecordRef'].includes(field.key))return false;
+    return true;
+  }
   function renderSection(part, cert) {
-    const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
+    if(!specialistSectionVisible(part,cert))return '';
+    const fields = part.fields.filter(field=>fieldVisible(field,cert)&&specialistFieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'
       : '';
