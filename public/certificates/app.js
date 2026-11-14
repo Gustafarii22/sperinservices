@@ -1544,6 +1544,24 @@
   scopeFields(fire,['commissionDeclaration'],'Commissioning');
   scopeFields(fire,['acceptanceBy','acceptanceDate'],'Acceptance');
   scopeFields(el,['designerName','designerCompany','designerSignature','designerDate','designDeclaration','installerName','installerCompany','installerSignature','installerDate','installationDeclaration'],completion);
+  // G.1-derived current publisher specimen: distinct design evidence previously missing.
+  const designEvidence=section('Fire design — false-alarm precautions and follow-up',[
+    f('falseAlarmMeasures','False-alarm precautions: call points, detector choice/siting, analogue or multi-sensor design, and other measures','textarea',{span:'full'}),
+    f('timeRelatedDesign','Time-dependent operation and staff-alarm / transmission delays, including minutes','textarea',{span:'full'}),
+    f('falseAlarmUserGuidance','User guidance for limiting unwanted alarms','textarea',{span:'full'}),
+    f('soakTestArrangement','Soak-test duration or recorded basis for no soak test','textarea',{span:'full'}),
+    select('independentVerification','Independent verification requested',['','Yes','No','Purchaser / user to decide']),
+    f('maintenanceRecommendation','Maintenance recommendation / arrangements','textarea',{span:'full'}),
+    f('userManagement','Person appointed to manage the system / user responsibility advice','textarea',{span:'full'})
+  ]);
+  designEvidence.fields.forEach(f=>f.showWhen={key:'certificateType',value:'Design'});
+  fire.splice(2,0,designEvidence);
+  fire[0].fields.push(f('responsibleAddress','Responsible organisation address and postcode','textarea',{span:'full'}));
+  fire.find(p=>p.title==='Design and installation particulars').fields.push(
+    f('designSpecificationRef','Design specification reference','text',{showWhen:{key:'certificateType',value:'Design'}}));
+  SCHEMAS.smoke.sections.find(p=>p.title==='Commissioning & handover').fields.push(
+    f('relatedElectricalCertificate','Associated EIC / Minor Works certificate reference (where applicable)'));
+
   // Certsure Annex E-derived form independently confirms Grade C applicability.
   SCHEMAS.smoke.sections.forEach(p=>{if(p.declaration)p.declaration.grades.push('Grade C');});
 

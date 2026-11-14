@@ -65,6 +65,7 @@ for(const type of ['emergency','commercialFire']){
   const doc=ctx.SperinIetForms.build({cert,schema,settings:{}});
   const raw=doc.internal.pages.slice(1).flat().join('\n');
   const required=type==='emergency'?['photometricData','generalDeclaration','verificationDeclaration']:['responsibleName','selectedDeclaration'];
+  if(certificateType==='Design')required.push('falseAlarmMeasures','soakTestArrangement','designSpecificationRef');
   if(certificateType==='Acceptance')required.push('acceptanceStatement','acceptanceSignature');
   if(certificateType==='Verification')required.push('verificationScope');
   if(certificateType==='Verification of existing installation')required.push('existingChecklist');
