@@ -131,9 +131,15 @@
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
     doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
-    doc.setFont('helvetica','bold');doc.setFontSize(w<230&&String(title||'').length>38?9:11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
     const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
+    const meta=(number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:'');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);const metaWidth=doc.getTextWidth(meta);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);
+    const titleWidth=Math.max(1,doc.getTextWidth(String(title||'')));
+    const titleAvailable=Math.max(42,w-20-metaWidth-4);
+    doc.setFontSize(Math.max(7.5,Math.min(11,11*titleAvailable/titleWidth)));
+    doc.setTextColor(...INK);doc.text(String(title||''),10,20);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text(meta,w-10,20,{align:'right'});
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);
     return 24;
   }
@@ -1351,6 +1357,15 @@
     const x=10,w=190;
     schema.sections.forEach(part=>{
       if(!specialistPartVisiblePdf(cert,part))return;
+      // Balance the declaration and commissioning sections across two A4
+      // pages. Otherwise the last 15–20 form fields can be orphaned on a
+      // mostly blank second page even though both pages are printable.
+      const balanceBreak=(cert.type==='emergency'&&part.title==='Installation & supply')||
+                         (cert.type==='smoke'&&part.title==='Installation checks');
+      if(balanceBreak&&y>155){
+        doc.addPage('a4','portrait');
+        y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
+      }
       if(part.type==='section'){
         const rows=part.fields.filter(field=>specialistFieldVisiblePdf(cert,field)).map(field=>{
           const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||'');
