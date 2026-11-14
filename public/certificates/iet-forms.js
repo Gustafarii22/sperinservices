@@ -1287,7 +1287,7 @@
   // Recipient information for occupiers and landlords, in the role of the
   // BS 5839-6:2019+A1:2020 Annex F model guidance.
   function renderSmokeRecipientGuidance(doc,cert,schema){
-    const heading='HOUSEHOLD SMOKE AND HEAT ALARM CERTIFICATE';
+    const heading='DOMESTIC SMOKE AND HEAT ALARM CERTIFICATE';
     const frame=()=>pageFrame(doc,heading,display(cert.number,false,true),schema.standard);
     const items=[
       'Keep this certificate, detector locations and manufacturer instructions. Pass them to future occupiers and responsible persons.',
