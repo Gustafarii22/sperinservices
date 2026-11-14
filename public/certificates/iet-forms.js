@@ -425,7 +425,7 @@
       ['External earth fault loop impedance Ze (Ohms)',f.ze,'Supply protective device BS (EN)',f.supplyDeviceBs],
       ['Supply protective device type',f.supplyDeviceType,'Rated current (A)',f.supplyDeviceRating],
       ['Breaking capacity (kA)',f.supplyBreakingCapacity,'Supply polarity confirmed',f.supplyPolarity],
-      ['Other sources of supply',f.otherSources,'','']
+      ['Other sources of supply',f.otherSources,'Continuation sheet reference',f.otherSourcesRef]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     sectionTable('SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE',pairRows([
@@ -747,29 +747,27 @@
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
       doc.autoTable({
         startY:y,
-        head:[[{content:group.title,colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
-              ['Item No.','Observations','Location','Classification code']],
-        // Keep the C1/C2 or C3/FI explanation with its observation table,
-        // not alone on a new sheet after an automatic page break.
+        head:[[{content:group.title,colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
+              ['Item No.','Observation(s), including schedule reference(s) where relevant','Classification code']],
+        // Match the Appendix 6 Section K three-column structure; legacy
+        // locations remain in the observation narrative and stored record.
         body:(selected.length?selected.map(({row})=>[
-          pdfText(String(row.item||'').trim()||'N/A'),
-          pdfText(String(row.observation||'').trim()||'N/A'),
-          pdfText(String(row.location||'').trim()||'N/A'),
-          pdfText(String(row.code||'').trim()||'N/A')
-        ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+          pdfText(String(row.item||'').trim()),
+          pdfText([String(row.observation||'').trim(),row.location?'Location: '+row.location:'',row.scheduleRef?'Schedule ref: '+row.scheduleRef:''].filter(Boolean).join(' | ')),
+          pdfText(String(row.code||'').trim())
+        ]):[['','','']]).concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         // Reserve the lower strip for the outcomes legend on Section K, page 4.
         // AutoTable must never flow into this strip.
         margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
-        columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
+        columnStyles:{0:{cellWidth:27},1:{cellWidth:w-68},2:{cellWidth:41}},
         editResolve:(r,c)=>{
           const index=selected[r]?.index;
           if(index===undefined)return [];
           if(c===0)return [{scope:'table',kind:'observations',index,key:'item'}];
           if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'}];
-          if(c===2)return [{scope:'table',kind:'observations',index,key:'location'}];
-          if(c===3)return [{scope:'table',kind:'observations',index,key:'code'}];
+          if(c===2)return [{scope:'table',kind:'observations',index,key:'code'}];
           return [];
         },
         didDrawPage:()=>frame()
@@ -785,7 +783,7 @@
     write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,190,w,{size:7.4,maxLines:2});
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
-    if(!worksheet)renderEicrRecipientGuidance(doc,cert,schema);
+    renderEicrRecipientGuidance(doc,cert,schema);
   }
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
