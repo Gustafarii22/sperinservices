@@ -1415,8 +1415,8 @@ for (const type of certificateTypeOrder) {
     );
     // Current Minor Works Appendix 6 form records bonding to each service
     // independently; the previous free-text "bondingPresent" chip is legacy.
-    const waterBonding=page.locator(".combo-field").filter({has:page.locator('[data-field="bondingWater"]')});
-    await waterBonding.locator('[data-value="Yes"]').click();
+    // This is an ordinary Yes / No / N/A select, not the numeric combo.
+    await page.locator('[data-field="bondingWater"]').selectOption("Yes");
     assert(
       (await page.locator('[data-field="bondingWater"]').inputValue()) === "Yes",
       "Minor Works bonding to water did not save Yes",
