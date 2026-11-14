@@ -1213,9 +1213,9 @@
             : (worksheet?'':pdfText(current));
           return [pdfText(field.label),value];
         });
-        if(part.declaration && part.declaration.grades.includes(cert.fields?.grade) && cert.fields?.standard===part.declaration.standard){
-          rows.unshift([{content:pdfText(part.declaration.text),colSpan:2,styles:{fontStyle:'normal'}}]);
-        }
+        const declarations=[part.declaration,...(part.declarations||[])].filter(d=>d && (!d.grades||d.grades.includes(cert.fields?.grade)) && (!d.types||d.types.includes(cert.fields?.certificateType)) && cert.fields?.standard===d.standard);
+        for(const d of declarations.slice().reverse())rows.unshift([{content:pdfText(d.text),colSpan:2,styles:{fontStyle:'normal'}}]);
+        if(!rows.length)return;
         const needed=9+rows.length*7;
         if(y+Math.min(needed,55)>281){
           doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);

@@ -1487,6 +1487,66 @@
     };
   }
 
+  // Printed, original declarations: never prefill a result or a signature.
+  // Keep historic free-text declarations as supplementary notes, preserving data.
+  for(const schema of [SCHEMAS.emergency,SCHEMAS.commercialFire])for(const part of schema.sections){
+    for(const field of part.fields||[])if(/Declaration$/.test(field.key)||field.key==='acceptanceStatement')
+      field.label='Additional declaration details / qualifications — '+field.label;
+  }
+  const completion='Completion certificate', small='Small installation certificate', existing='Verification of existing installation', periodic='Periodic inspection & test';
+  const declaration=(text,types,standard)=>({text,types,standard});
+  const elStandard='BS 5266-1:2025; BS EN 1838:2024; BS EN 50172:2024';
+  elPart('System design information').declarations=[declaration(
+    'By signing below, I certify the design within the recorded scope against the stated emergency-lighting standards, except for the documented variations. The referenced design and photometric evidence form part of this declaration.',[completion],elStandard)];
+  elPart('Installation & supply').declarations=[declaration(
+    'By signing below, I certify that the installation work for which I am responsible follows the recorded design and applicable installation recommendations of the stated standards, except for documented variations.',[completion],elStandard)];
+  elPart('Verification / test').declarations=[
+    declaration('By signing below, I certify that I verified the installation within the recorded scope. The inspection, test and photometric evidence, findings and variations accompanying this certificate record the basis and outcome of that verification.',[completion,existing],elStandard),
+    declaration('By signing below, I certify that I carried out the recorded periodic inspection and tests. The stated condition reflects the recorded results, limitations and outstanding faults; this does not certify uninspected work.',[periodic],elStandard)];
+  el.find(p=>p.title==='Certificate declaration and supporting records').declarations=[declaration(
+    'As the responsible person signing below, I acknowledge receipt of the completion documentation for the recorded premises and scope. This certificate is complete only with the applicable signed conformity declarations and referenced photometric evidence.',[completion,small],elStandard)];
+  el.push(section('Small installation — competent person declaration',[
+    f('smallName','Competent person name'),f('smallCompany','For/on behalf of'),
+    f('smallSignature','Signature / typed name'),f('smallDate','Date','date')
+  ]));
+  const smallPart=el[el.length-1];
+  smallPart.fields.forEach(f=>f.showWhen={key:'certificateType',value:small});
+  smallPart.declarations=[declaration('By signing below, I certify the design, installation and verification work for which I am responsible for the recorded small installation against the stated standards, subject to recorded variations and accompanying evidence. The system contains no more than 25 self-contained luminaires.',[small],elStandard)];
+  el.push(table('inspectionRecords','Inspection and test records',[
+    {key:'date',label:'Date'},{key:'scope',label:'Device / area / test scope'},
+    {key:'test',label:'Inspection / test performed'},{key:'result',label:'Result / measurement'},
+    {key:'faultRef',label:'Fault reference'},{key:'engineer',label:'Tested by'}
+  ],[]));
+  el.push(table('faultActions','Fault action record',[
+    {key:'ref',label:'Fault reference'},{key:'location',label:'Device / location'},
+    {key:'fault',label:'Fault found'},{key:'action',label:'Action required / taken'},
+    {key:'date',label:'Action date'},{key:'person',label:'Person responsible'},
+    {key:'status',label:'Outstanding / resolved'}
+  ],[]));
+  const fireDeclarationPart=fire.find(p=>p.title==='Responsibility / declaration / handover');
+  const fireStatements={
+    'Design':'I certify the design for the recorded category and scope against the applicable recommendations of BS 5839-1:2025, except for the listed variations. The referenced design documentation forms part of this certification.',
+    'Installation':'I certify my installation work against the agreed design and applicable recommendations of BS 5839-1:2025, except for the recorded differences and variations.',
+    'Commissioning':'I certify commissioning within the recorded scope against the applicable recommendations of BS 5839-1:2025. The recorded tests, evidence, outstanding items and variations qualify this declaration.',
+    'Verification':'I certify that I performed the stated verification against the applicable recommendations of BS 5839-1:2025. Its extent, limitations, findings and non-conformities are recorded in this certificate and referenced reports.',
+    'Periodic inspection / service':'I certify that I carried out the described inspection and servicing against the applicable recommendations of BS 5839-1:2025. The recorded condition, defects, actions and limitations form part of this declaration.',
+    'Modification / extension':'I certify the described extension or modification against the applicable recommendations of BS 5839-1:2025, subject to recorded variations. Compatibility checks and their results are recorded; this declaration does not certify unrelated existing work.'
+  };
+  // Commercial standard is schema metadata; store the edition on new records too.
+  fire[0].fields.push(f('standard','Standard applied','text',{defaultValue:'BS 5839-1:2025'}));
+  fireDeclarationPart.declarations=Object.entries(fireStatements).map(([type,text])=>declaration('By signing below, '+text,[type],'BS 5839-1:2025'));
+  fire.find(p=>p.title==='Non-domestic fire safety acceptance and handover').declarations=[declaration(
+    'By signing as the accepting party, I accept the recorded system on behalf of the purchaser or user, subject to the listed outstanding issues. Receipt of documentation, instructions and demonstration is recorded above.', ['Acceptance'],'BS 5839-1:2025')];
+  // Limit role-only prompts to their certificate, retaining all stored answers.
+  const scopeFields=(parts,keys,type)=>parts.forEach(p=>(p.fields||[]).forEach(f=>{if(keys.includes(f.key))f.showWhen={key:'certificateType',value:type};}));
+  scopeFields(fire,['designDeclaration','designDocumentationProduced'],'Design');
+  scopeFields(fire,['installationDeclaration','matchesDesign','designDifferences'],'Installation');
+  scopeFields(fire,['commissionDeclaration'],'Commissioning');
+  scopeFields(fire,['acceptanceBy','acceptanceDate'],'Acceptance');
+  scopeFields(el,['designerName','designerCompany','designerSignature','designerDate','designDeclaration','installerName','installerCompany','installerSignature','installerDate','installationDeclaration'],completion);
+  // Certsure Annex E-derived form independently confirms Grade C applicability.
+  SCHEMAS.smoke.sections.forEach(p=>{if(p.declaration)p.declaration.grades.push('Grade C');});
+
   try{editMode=localStorage.getItem(EDIT_MODE_KEY)==='certificate'?'certificate':'quick';}catch{}
   let settings = loadSettings();
   let state = loadState();
@@ -2023,7 +2083,7 @@
   }
 
   function renderSection(part, cert) {
-    const declaration=part.declaration && part.declaration.grades.includes(cert.fields.grade) && cert.fields.standard===part.declaration.standard ? part.declaration.text : '';
+    const declaration=[part.declaration,...(part.declarations||[])].filter(d=>d && (!d.grades||d.grades.includes(cert.fields.grade)) && (!d.types||d.types.includes(cert.fields.certificateType)) && cert.fields.standard===d.standard).map(d=>d.text).join('\n\n');
     const fields = part.fields.filter(field=>fieldVisible(field,cert)).map(field => renderField(field, cert.fields[field.key] ?? '',cert)).join('');
     const sameClient=(part.title.includes('Installation details') && 'clientAddress' in cert.fields && 'installationAddress' in cert.fields)
       ? '<div class="section-quick-actions"><button class="btn same-details-btn" type="button" data-action="copy-client-installation">Same as client</button><span>Copies address and postcode.</span></div>'

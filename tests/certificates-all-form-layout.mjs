@@ -59,7 +59,7 @@ for(const type of ['emergency','commercialFire']){
   for(const p of schema.sections)for(const f of p.fields||[]){
    if(f.key==='certificateType')continue;
    if(f.showWhen && f.showWhen.value!==certificateType)continue;
-   cert.fields[f.key]=f.type==='select'?(f.options.find(Boolean)||''):f.type==='date'?'2026-11-14':'EVIDENCE_'+f.key;
+   cert.fields[f.key]=f.defaultValue??(f.type==='select'?(f.options.find(Boolean)||''):f.type==='date'?'2026-11-14':'EVIDENCE_'+f.key);
   }
   const before=JSON.stringify(cert);
   const doc=ctx.SperinIetForms.build({cert,schema,settings:{}});
@@ -71,6 +71,12 @@ for(const type of ['emergency','commercialFire']){
   if(certificateType==='Small installation certificate')required.push('combinedDeclaration');
   for(const key of required)assert(raw.includes('EVIDENCE_'+key),type+' '+certificateType+' missing '+key);
   assert.equal(JSON.stringify(cert),before);
+  assert(raw.includes('By signing')||raw.includes('As the responsible person'),'Missing printed declaration '+certificateType);
+  if(certificateType==='Acceptance')assert(!raw.includes('I certify the design'),'Wrong role declaration');
+  const historical=JSON.parse(JSON.stringify(cert));historical.fields.standard='Historical edition';
+  const historicalPdf=ctx.SperinIetForms.build({cert:historical,schema,settings:{}});
+  assert(!historicalPdf.internal.pages.slice(1).flat().join('\n').includes('By signing'),'New wording applied to historical edition');
+  writeFileSync(output+'/'+type+'-'+choices.indexOf(certificateType)+'.pdf',Buffer.from(doc.output('arraybuffer')));
   console.log('SPECIALIST_CHECKLIST_PDF_PASS',type,certificateType);
  }
 }
