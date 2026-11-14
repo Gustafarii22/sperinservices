@@ -1117,7 +1117,7 @@
 
     smoke: {
       code: 'FDAS',
-      name: 'Household Smoke Alarm Certificate',
+      name: 'Domestic Smoke and Heat Alarm Certificate',
       icon: '🚨',
       standard: 'BS 5839-6:2019+A1:2020',
       description: 'Domestic fire detection and alarm design / installation / commissioning record for household systems.',
