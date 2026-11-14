@@ -745,17 +745,21 @@
     ]){
       if(y>164){fresh();y=Math.max(y,32);}
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
+      // Keep enough ruled space for handwriting on a blank report. Empty rows
+      // must never be assigned fabricated observation numbers or outcomes.
+      const observationRows=selected.map(({row})=>[
+        pdfText(String(row.item||'').trim()),
+        pdfText([String(row.observation||'').trim(),row.location?'Location: '+row.location:'',row.scheduleRef?'Schedule ref: '+row.scheduleRef:''].filter(Boolean).join(' | ')),
+        pdfText(String(row.code||'').trim())
+      ]);
+      while(observationRows.length<3)observationRows.push(['','','']);
       doc.autoTable({
         startY:y,
         head:[[{content:group.title,colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
               ['Item No.','Observation(s), including schedule reference(s) where relevant','Classification code']],
         // Match the Appendix 6 Section K three-column structure; legacy
         // locations remain in the observation narrative and stored record.
-        body:(selected.length?selected.map(({row})=>[
-          pdfText(String(row.item||'').trim()),
-          pdfText([String(row.observation||'').trim(),row.location?'Location: '+row.location:'',row.scheduleRef?'Schedule ref: '+row.scheduleRef:''].filter(Boolean).join(' | ')),
-          pdfText(String(row.code||'').trim())
-        ]):[['','','']]).concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+        body:observationRows.concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         // Reserve the lower strip for the outcomes legend on Section K, page 4.
         // AutoTable must never flow into this strip.
         margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
