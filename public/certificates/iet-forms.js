@@ -1272,19 +1272,64 @@
     });
   }
 
+
+  function specialistPartVisiblePdf(cert,part){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test')return !['System design information','Installation & supply','Handover documentation'].includes(part.title);
+    if(type==='Verification of existing installation')return part.title!=='Installation & supply';
+    return true;
+  }
+  function specialistFieldVisiblePdf(cert,field){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test' && ['responsibleSignature','responsibleDate'].includes(field.key))return false;
+    if(type==='Verification of existing installation' && ['designerName','designerCompany','designerSignature','designerDate'].includes(field.key))return false;
+    if(type!=='Periodic inspection & test' && ['periodicTestType','faultActionRecordRef'].includes(field.key))return false;
+    return true;
+  }
+  function specialistDeclaration(cert,part){
+    const title=part.title,kind=String(cert.fields?.certificateType||'');
+    if(cert.type==='emergency'){
+      const standards='BS 5266-1:2025, BS EN 1838:2024 and BS EN 50172:2024';
+      if(title==='Certificate & premises' && kind!=='Periodic inspection & test')
+        return 'General declaration by the owner/responsible person: I accept the accompanying applicable design, installation and verification declarations, drawings, photometric evidence and logbook, and record any agreed deviations. The emergency lighting installation or part described is declared to conform to '+standards+' except as recorded.';
+      if(title==='System design information' && kind!=='Verification of existing installation')
+        return 'Design declaration: I certify that I have designed the emergency lighting installation described here with appropriate skill and care in accordance with '+standards+', except for the specified agreed deviations.';
+      if(title==='Installation & supply')
+        return 'Installation declaration: I certify that the emergency lighting installation described has been installed with appropriate skill and care in accordance with the agreed design and '+standards+', except for the recorded deviations.';
+      if(title==='Verification / test' && kind==='Periodic inspection & test')
+        return 'Periodic inspection and test declaration: I certify that the stated emergency lighting devices and records were inspected and tested on the stated date, and that the test results, defects, actions and next due date are recorded below.';
+      if(title==='Verification / test' && kind==='Verification of existing installation')
+        return 'Existing installation verification declaration: I certify that the stated existing emergency lighting installation was examined and verified against the applicable requirements of '+standards+', subject to the stated limitations, defects and agreed deviations.';
+      if(title==='Verification / test')
+        return 'Verification declaration: I certify that the completed emergency lighting installation was inspected and tested against the agreed design, including functional operation, rated duration and applicable illumination checks, with results and deviations recorded below.';
+      return '';
+    }
+    if(cert.type==='smoke'){
+      if(title==='System classification & design')return 'Design declaration: I certify that the recorded Grade C, D or F domestic fire detection and alarm system has been designed for the stated grade, category, extent and areas protected in accordance with BS 5839-6:2019+A1:2020, except for recorded variations.';
+      if(title==='Installation checks')return 'Installation declaration: I certify that the work for which I am responsible was installed in accordance with the documented design and BS 5839-6:2019+A1:2020, except for the recorded variations.';
+      if(title==='Commissioning & handover')return 'Commissioning declaration: I certify that the recorded system was tested for satisfactory operation, including interconnection, warning devices and standby functions where applicable, and instructions were handed to the named recipient. The recipient acknowledgement records receipt, not independent technical verification.';
+    }
+    return '';
+  }
+
   function renderGeneric(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet;
     let y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
     const x=10,w=190;
     schema.sections.forEach(part=>{
+      if(!specialistPartVisiblePdf(cert,part))return;
       if(part.type==='section'){
-        const rows=part.fields.map(field=>{
+        const rows=part.fields.filter(field=>specialistFieldVisiblePdf(cert,field)).map(field=>{
           const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||'');
           const value=worksheet && field.type==='select' && Array.isArray(field.options) && field.options.length<=8
             ? field.options.map(o=>'[ ] '+pdfText(o)).join('   ')
             : (worksheet?'':pdfText(current));
           return [pdfText(field.label),value];
         });
+        const declaration=specialistDeclaration(cert,part);
+        if(declaration)rows.unshift(['DECLARATION',pdfText(declaration)]);
         const needed=9+rows.length*7;
         if(y+Math.min(needed,55)>281){
           doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
@@ -1343,6 +1388,15 @@
     const colour=/^#[0-9a-f]{6}$/i.test(settings.reportAccent||'')?settings.reportAccent:'#1869d3';
     const rgb=[parseInt(colour.slice(1,3),16),parseInt(colour.slice(3,5),16),parseInt(colour.slice(5,7),16)];
     BLUE.splice(0,3,...rgb);
+    // Do not misissue the combined BS 5839-6 Annex E record as a Grade A
+    // certificate. Grade A requires the distinct Annex D certificate suite.
+    if(cert.type==='smoke' && String(cert.fields?.grade||'').trim()==='Grade A'){
+      throw new Error('Grade A requires separate BS 5839-6 Annex D design, installation and commissioning certificates; this domestic Grade C/D/F certificate cannot be issued for Grade A.');
+    }
+    if(cert.type==='emergency' && cert.fields?.certificateType==='Small installation certificate' &&
+       safeRows(cert.tables?.luminaires).length>25){
+      throw new Error('The BS 5266-1:2025 small-installation completion certificate is limited to 25 self-contained luminaires; select the full completion certificate.');
+    }
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
