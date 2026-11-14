@@ -190,6 +190,7 @@ jobs:
           done
           if grep -E "Device manufacturer|Device model|Device kind" certificate-android/qa-output/minor-iet-a4.txt; then exit 1; fi
           pdftoppm -f 1 -l 1 -png -scale-to 1350 "$PDF" certificate-android/qa-output/minor-a4
+          python3 certificate-android/qa/check-minor-layout.py "$PDF"
 
       - name: Board workflow regressions
         run: |
