@@ -594,14 +594,14 @@ assert(
   "Apply-all N/A control did not update the inspection schedule",
 );
 await inspection
-  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]')
+  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✓"]')
   .click();
 inspectionStored2 = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
 );
 assert(
-  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✕",
-  "Direct inspection cross control did not save",
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✓",
+  "Direct IET EIC inspection tick did not save",
 );
 await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
 console.log("INSPECTION_DIRECT_CONTROLS_PASS");
