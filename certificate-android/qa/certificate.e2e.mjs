@@ -574,8 +574,8 @@ assert(
   "IET EIC inspection categories incomplete",
 );
 assert(
-  (await inspection.locator('[data-action="inspection-outcome"]').count()) >= 42,
-  "Direct tick/cross/N/A inspection buttons missing",
+  (await inspection.locator('[data-action="inspection-outcome"]').count()) >= 28,
+  "IET A4 direct tick/N/A inspection buttons missing",
 );
 await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
 const inspectionStored = await page.evaluate(() =>
