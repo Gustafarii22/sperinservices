@@ -123,7 +123,7 @@ test('Archive blank and filled specialist PDF exemplars for independent visual r
 test('IET A4 electrical certificate required input fields are present',()=>{
  const eic=schemaFields('eic');
  for(const key of ['supplyDeviceType','supplyDeviceBs','supplyDeviceRating','supplyBreakingCapacity',
-   'earthElectrodeMeasurementType','earthElectrodeResistance','designer2','designer2Signature',
+   'earthElectrodeMeasurementType','earthElectrodeResistance','intakeCondition','designer2','designer2Signature',
    'mainSwitchDeviceType','mainSwitchDeviceSetting','mainRcdType','mainRcdIdn','mainRcdTime','mainRcdBreaking'])
    assert(eic.has(key),'IET EIC requires '+key);
  for(const type of ['eic','eicr']){
@@ -168,6 +168,7 @@ test('IET EIC worksheet keeps optional second designer and does not fabricate fi
  assert(rendererText.includes("worksheet||f.designer2||f.designer2Signature"),'Blank model must retain the optional second designer rows');
  assert(text.includes('Supply protective device type'),'EIC supply-device type absent from printed PDF');
  assert(text.includes('RA/Ze'),'EIC electrode measurement type absent from printed PDF');
+ assert(rendererText.includes('Consumer’s intake equipment condition (visual only)'),'IET EIC consumer intake condition must be printable');
 });
 test('IET EICR print leaves unanswered fields and classifications unselected',()=>{
  const f={...makeCert('eicr').fields,overallAssessment:'',remedialActionStatus:'',
