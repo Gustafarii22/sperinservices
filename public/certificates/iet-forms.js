@@ -431,7 +431,8 @@
       ['External earth fault loop impedance Ze (Ohms)',f.ze,'Supply protective device BS (EN)',f.supplyDeviceBs],
       ['Supply protective device type',f.supplyDeviceType,'Rated current (A)',f.supplyDeviceRating],
       ['Breaking capacity (kA)',f.supplyBreakingCapacity,'Supply polarity confirmed',f.supplyPolarity],
-      ['Other sources of supply',f.otherSources,'Continuation sheet reference',f.otherSourcesRef]
+      ['Consumer’s intake equipment condition (visual only)',f.intakeCondition,'Other sources of supply',f.otherSources],
+      ['Additional supply continuation sheet reference',f.otherSourcesRef,'',null]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     sectionTable('SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE',pairRows([
