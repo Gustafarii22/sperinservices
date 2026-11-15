@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
-import { canClaim, summaryStatus } from './channels';
-import { messagingConfig, sendGmail, sendSms } from './providers.server';
+import { canClaim, summaryStatus, withBusinessSignature } from './channels';
+import { messagingConfig, sendGmail } from './providers.server';
 
 export async function dispatchChannel(db: SupabaseClient<Database>, outboundId: string, channel: 'gmail' | 'sms', retry: boolean) {
+  // SMS is prepared for the owner's own phone, not dispatched by a paid gateway.
+  if (channel === 'sms') throw new Error('Use the Samsung SMS composer; Twilio dispatch is disabled.');
   const { data: row, error: readError } = await db.from('outbound_channels').select('*').eq('outbound_id', outboundId).eq('channel', channel).single();
   if (readError || !row) throw new Error('Channel not found');
   if (!canClaim(row.status, retry)) return;
@@ -14,9 +16,7 @@ export async function dispatchChannel(db: SupabaseClient<Database>, outboundId: 
   if (!claimed) return;
   const { data: outbound, error: outError } = await db.from('outbound_messages').select('*').eq('id', outboundId).single();
   if (outError || !outbound) throw new Error('Approved message not found; retry is locked for safety');
-  const result = channel === 'gmail'
-    ? await sendGmail({ to: outbound.to_email, subject: outbound.subject, body: claimed.body, key: `${outbound.id}-${token}` }, messagingConfig())
-    : await sendSms({ to: claimed.recipient ?? '', body: claimed.body, channelId: claimed.id, attempt: token }, messagingConfig());
+  const result = await sendGmail({ to: outbound.to_email, subject: outbound.subject, body: withBusinessSignature(claimed.body), key: `${outbound.id}-${token}` }, messagingConfig());
   // A callback can beat the HTTP response. Never overwrite callback delivery state.
   const { error: finishError } = await db.from('outbound_channels').update({ status: result.status, provider_id: result.providerId ?? null, error: result.error ?? null, updated_at: new Date().toISOString() }).eq('id', row.id).eq('attempt_token', token).eq('status', 'sending').is('provider_id', null);
   if (finishError) throw new Error('Provider outcome could not be saved. Retry is locked; check provider history.');
