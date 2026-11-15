@@ -6,9 +6,9 @@ import { withBusinessSignature } from '@/lib/server/channels';
 const cfg={smsGateUser:'gateway-user',smsGatePassword:'private-password'};
 describe('free Samsung SMS gateway and Gmail integration (mocked, no live messages)',()=>{
  it('creates an SMS composer URL only for a valid UK mobile',()=>{
-  expect(smsComposeLink('07700 900123','Hello £160')).toBe('sms:+447700900123?body=Hello%20%C2%A3160');
+  expect(smsComposeLink('07911 123456','Hello £160')).toBe('sms:+447911123456?body=Hello%20%C2%A3160');
   expect(smsComposeLink('0121 555 1234','Hello')).toBeNull();
-  expect(smsComposeLink('07700 900123','')).toBeNull();
+  expect(smsComposeLink('07911 123456','')).toBeNull();
  });
  it('prepares a proper Gmail compose URL without sending',()=>{
   const link=gmailComposeLink('a@example.com','Quote £160','Hello from Sperin');
@@ -29,11 +29,11 @@ describe('free Samsung SMS gateway and Gmail integration (mocked, no live messag
  });
  it('sends approved text ONLY to free SMSGate, via owner's phone SIM',async()=>{
   const spy=vi.fn().mockResolvedValue(Response.json({id:'f633a903-08ee-4b98-a77b-05c7bc4eaa09',state:'Pending'}));
-  const result=await sendPhoneSms({to:'+447700900123',body:'Job quote sent by email',channelId:'f633a903-08ee-4b98-a77b-05c7bc4eaa09'},cfg,spy);
+  const result=await sendPhoneSms({to:'+447911123456',body:'Job quote sent by email',channelId:'f633a903-08ee-4b98-a77b-05c7bc4eaa09'},cfg,spy);
   expect(result.status).toBe('sending');
   const [url,options]=spy.mock.calls[0];
   expect(url).toBe('https://api.sms-gate.app/3rdparty/v1/messages');
-  expect(options.body).toContain('+447700900123');
+  expect(options.body).toContain('+447911123456');
   expect(options.body).toContain('f633a903-08ee-4b98-a77b-05c7bc4eaa09');
   expect(options.headers.Authorization).toMatch(/^Basic /);
  });
@@ -44,7 +44,7 @@ describe('free Samsung SMS gateway and Gmail integration (mocked, no live messag
  });
  it('does not retry an uncertain accepted gateway response as a safe failure',async()=>{
   const spy=vi.fn().mockRejectedValue(new Error('Timeout'));
-  const result=await sendPhoneSms({to:'+447700900123',body:'Hello',channelId:'abcdef234567'},cfg,spy);
+  const result=await sendPhoneSms({to:'+447911123456',body:'Hello',channelId:'abcdef234567'},cfg,spy);
   expect(result.status).toBe('unknown');
  });
  it('reads actual carrier-reported states from the free gateway',async()=>{
