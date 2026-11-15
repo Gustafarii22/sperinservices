@@ -115,3 +115,73 @@ test('Archive blank and filled specialist PDF exemplars for independent visual r
    }
  }
 });
+
+
+// Normative field inventory independently transcribed from the free IET
+// BS 7671:2018+A4:2026 model forms (15 April 2026):
+// https://electrical.theiet.org/media/vasih5wg/bs7671_all_forms_a4.pdf
+test('IET A4 electrical certificate required input fields are present',()=>{
+ const eic=schemaFields('eic');
+ for(const key of ['supplyDeviceType','supplyDeviceBs','supplyDeviceRating','supplyBreakingCapacity',
+   'earthElectrodeMeasurementType','earthElectrodeResistance','designer2','designer2Signature',
+   'mainSwitchDeviceType','mainSwitchDeviceSetting','mainRcdType','mainRcdIdn','mainRcdTime','mainRcdBreaking'])
+   assert(eic.has(key),'IET EIC requires '+key);
+ for(const type of ['eic','eicr']){
+   for(const key of ['testedBy','testedSignature','testedDate'])
+     assert(schemaFields(type).has(key),type+' requires a separately recordable schedule tester '+key);
+ }
+ const minor=schemaFields('minor');
+ for(const key of ['standardAmendedTo','ocpdBs','ocpdType','ocpdRating','breakingCapacity',
+  'rcdBs','rcdType','rcdRating','rcdIdn','rcdDelay','afddBs','afddRating','spdBs','spdType',
+  'r1r2','r2','ringR1','ringRn','ringR2','irVoltage','irLL','irLE','zs','rcdTime','rcdButton','afddButton','spdFunction',
+  'engineerName','forOnBehalfOf','address','position','signature','declarationDate'])
+  assert(minor.has(key),'IET Minor Works missing '+key);
+});
+test('IET A4 inspection and circuit/test schedules have the exact numbered model items',()=>{
+ const eicInspect=schemas.eic.sections.find(x=>x.key==='eicInspection')?.defaultRows||[];
+ assert.equal(eicInspect.length,14,'EIC inspection requires 14 model items');
+ assert.deepEqual(Array.from(eicInspect,x=>String(x.item)),
+   Array.from({length:14},(_,i)=>String(i+1)+'.0'));
+ const eicrInspect=schemas.eicr.sections.find(x=>x.key==='eicrInspection')?.defaultRows||[];
+ const expected=['1.1','1.2','1.3','2.0',
+   ...Array.from({length:8},(_,i)=>'3.'+(i+1)),
+   ...Array.from({length:23},(_,i)=>'4.'+(i+1)),
+   ...Array.from({length:21},(_,i)=>'5.'+(i+1)),
+   ...Array.from({length:8},(_,i)=>'6.'+(i+1)),'7.1','8.1'];
+ assert.equal(eicrInspect.length,66,'EICR IET schedule has 66 numbered individual checks');
+ assert.deepEqual(Array.from(eicrInspect,x=>String(x.item)),expected);
+ const models=schemas.eic.sections;
+ const circuit=models.find(x=>x.key==='circuits')?.columns||[];
+ const tests=models.find(x=>x.key==='tests')?.columns||[];
+ for(const key of ['circuitNo','description','wiringType','refMethod','points','liveCsa','cpcCsa',
+   'ocpdBs','ocpdType','ocpdRating','breakingCapacity','maxZs','rcdBs','rcdType','rcdIdn','rcdRating'])
+   assert(circuit.some(x=>x.key===key),'Circuit schedule missing '+key);
+ for(const key of ['circuitNo','r1','rn','r2','r1r2','r2only','irVoltage','irLL','irLE',
+   'polarity','zs','rcdTime','rcdButton','afddButton','remarks'])
+   assert(tests.some(x=>x.key===key),'Test schedule missing '+key);
+ const source=rendererText.slice(rendererText.indexOf('function renderCircuitSchedules('));
+ for(let number=1;number<=31;number++)
+   assert(source.includes("['"+number+"',"),'IET printed schedule lacks numbered column '+number);
+});
+test('IET EIC worksheet keeps optional second designer and does not fabricate fields',()=>{
+ const {text}=render(makeCert('eic'),true);
+ assert(text.includes('Designer (No 2)'),'Blank model must show the optional second designer');
+ assert(text.includes('Supply protective device type'),'EIC supply-device type absent from printed PDF');
+ assert(text.includes('RA/Ze'),'EIC electrode measurement type absent from printed PDF');
+});
+test('IET EICR print leaves unanswered fields and classifications unselected',()=>{
+ const f={...makeCert('eicr').fields,overallAssessment:'',remedialActionStatus:'',
+   standardAmendedTo:'',inspectedBy:'',inspectorSignature:'',testedBy:'',testedDate:''};
+ const {doc,text}=render(makeCert('eicr',{fields:f,tables:{observations:[]}}),false);
+ assert(text.includes('No remedial action is required'),'Both model choice labels must be present');
+ // Regression source guard: never mark missing test outcomes/installation
+ // measurements as 'N/A' or 'No remedial action is required' automatically.
+ const eicrSource=rendererText.slice(rendererText.indexOf('function renderEicrLandscape('),
+     rendererText.indexOf('function renderEicrInspectionLandscape('));
+ assert(!eicrSource.includes("observations.length?'The following observations are made':'No remedial action is required'"));
+ assert(!eicrSource.includes("String(format(a,da)??'').trim()||'N/A'"));
+ const inspectionSource=rendererText.slice(rendererText.indexOf('function renderEicrInspectionLandscape('),
+     rendererText.indexOf('function renderEicrRecipientGuidance('));
+ assert(!inspectionSource.includes("String(r.outcome||'').trim()||'N/A'"));
+ assert(doc.getNumberOfPages()>=4);
+});
