@@ -27,7 +27,7 @@ describe('free Samsung SMS gateway and Gmail integration (mocked, no live messag
   expect(missingConfig('sms',cfg)).toBeNull();
   expect(missingConfig('sms',{})).toMatch(/SMSGATE_USERNAME/);
  });
- it('sends approved text ONLY to free SMSGate, via owner's phone SIM',async()=>{
+ it("sends approved text ONLY to free SMSGate via owner's phone SIM",async()=>{
   const spy=vi.fn().mockResolvedValue(Response.json({id:'f633a903-08ee-4b98-a77b-05c7bc4eaa09',state:'Pending'}));
   const result=await sendPhoneSms({to:'+447911123456',body:'Job quote sent by email',channelId:'f633a903-08ee-4b98-a77b-05c7bc4eaa09'},cfg,spy);
   expect(result.status).toBe('sending');
