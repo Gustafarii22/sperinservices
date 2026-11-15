@@ -18,16 +18,6 @@ export function missingConfig(channel: string, c: Config): string | null {
   if (channel === 'gmail') return c.gmailClientId && c.gmailClientSecret && c.gmailRefreshToken ? null : 'Gmail OAuth credentials are not configured (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN).';
   if (!c.smsGateUser || !c.smsGatePassword) return 'Install SMSGate Cloud on your Samsung, then securely set SMSGATE_USERNAME and SMSGATE_PASSWORD in Vercel. SMS composer remains available without them.';
   return null;
-  /* Legacy Twilio configuration is intentionally disabled for new sends.
-  if (!c.twilioAccountSid || !/^AC[0-9a-f]{32}$/i.test(c.twilioAccountSid)) return 'Set TWILIO_ACCOUNT_SID.';
-  if (!c.twilioAuthToken) return 'Set TWILIO_AUTH_TOKEN.';
-  if (!c.smsFrom || !/^\+[1-9]\d{7,14}$/.test(c.smsFrom)) return 'Set a valid TWILIO_FROM_NUMBER.';
-  try {
-    const url = new URL(c.callbackUrl || '');
-    if (url.protocol !== 'https:' || url.pathname !== '/api/public/twilio-status' || url.search) return 'Set TWILIO_STATUS_CALLBACK_URL to the deployed HTTPS callback.';
-  } catch { return 'Set a valid TWILIO_STATUS_CALLBACK_URL.'; }
-  return null;
-  */
 }
 async function parseResponse(response: Response) {
   let data: Record<string, unknown> = {};
@@ -65,28 +55,6 @@ export async function sendGmail(input: { to: string; subject: string; body: stri
     return typeof data['id'] === 'string' ? { status: 'sent', providerId: data['id'] } : { status: 'unknown', error: 'Gmail response had no message ID; check Sent before retrying.' };
   } catch { return { status: 'unknown', error: 'Gmail send outcome uncertain; check Sent before retrying.' }; }
 }
-export async function sendSms(input: { to: string; body: string; channelId: string; attempt: string }, c: Config, fetcher: typeof fetch = fetch): Promise<ProviderResult> {
-  const missing = missingConfig('sms', c);
-  if (missing) return { status: 'failed', error: missing };
-  const callback = `${c.callbackUrl}?channel=${encodeURIComponent(input.channelId)}&attempt=${encodeURIComponent(input.attempt)}`;
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${c.twilioAccountSid}/Messages.json`;
-  try {
-    const response = await fetcher(url, {
-      method: 'POST', headers: {
-        Authorization: `Basic ${btoa(`${c.twilioAccountSid}:${c.twilioAuthToken}`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ To: input.to, From: c.smsFrom!, Body: input.body, StatusCallback: callback }),
-      signal: AbortSignal.timeout(20000),
-    });
-    const data = await parseResponse(response);
-    if (!response.ok) return { status: response.status >= 500 || response.status === 408 ? 'unknown' : 'failed', error: `Twilio HTTP ${response.status}` };
-    if (typeof data['sid'] !== 'string') return { status: 'unknown', error: 'Twilio returned no message SID; check message logs.' };
-    const status = String(data['status'] ?? '');
-    return { status: status === 'delivered' ? 'delivered' : ['failed','undelivered','canceled'].includes(status) ? 'failed' : status === 'sent' ? 'sent' : 'sending', providerId: data['sid'] };
-  } catch { return { status: 'unknown', error: 'SMS outcome uncertain; check Twilio logs before retrying.' }; }
-}
-
 /** Free SMSGate cloud relay: phone and SMS allowance belong to the owner.
  * Credentials never appear in browser bundles or GitHub. The remote gateway
  * queues to the authorised Android app; accepted != carrier delivered.
