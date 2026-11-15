@@ -392,7 +392,7 @@
       [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet),colSpan:2}],
       [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
       sigCells(d),
-      ...(f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
+      ...(worksheet||f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
       [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationConstruction,colSpan:3}],
       [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet),colSpan:2}],
@@ -409,7 +409,7 @@
       [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
-    const parties=[['Designer (No 1)',d],...(f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
+    const parties=[['Designer (No 1)',d],...(worksheet||f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
     sectionTable('SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',
       parties.map(([role,p])=>[
         {content:role,styles:{fontStyle:'bold'}},
@@ -437,7 +437,7 @@
     sectionTable('SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE',pairRows([
       ['Means of earthing',f.meansOfEarthing,'Maximum demand',[f.maximumDemand,f.maximumDemandUnit].filter(Boolean).join(' ')],
       ['Earth electrode type',f.earthElectrodeType,'Earth electrode location',f.earthElectrodeLocation],
-      ['RA/Ze (Ohms)',f.earthElectrodeResistance,'Earthing conductor material',f.earthingConductorMaterial],
+      ['RA/Ze (Ohms)',[f.earthElectrodeMeasurementType,f.earthElectrodeResistance].filter(Boolean).join(' '),'Earthing conductor material',f.earthingConductorMaterial],
       ['Earthing conductor csa mm2',f.earthingConductorCsa,'Earthing continuity verified',f.earthingContinuity],
       ['Bonding conductor material',f.bondingMaterial,'Bonding conductor csa mm2',f.bondingCsa],
       ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
@@ -661,7 +661,7 @@
       const body=[];
       const format=(key,def)=>{
         if(worksheet)return '';
-        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
+        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+(String(f.maximumDemandUnit||'').trim()?' '+String(f.maximumDemandUnit).trim():''):'';
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
@@ -677,7 +677,7 @@
         if(key==='earthElectrodeResistance'){
           const reading=String(f.earthElectrodeResistance??'').trim();
           const method=String(f.earthElectrodeMeasurementType||'').trim();
-          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'N/A';
+          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'';
         }
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
@@ -692,9 +692,9 @@
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
-          pdfText(worksheet?'':String(format(a,da)??'').trim()||'N/A'),
+          pdfText(worksheet?'':String(format(a,da)??'').trim()),
           {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
-          b?pdfText(worksheet?'':String(format(b,db)??'').trim()||'N/A'):''
+          b?pdfText(worksheet?'':String(format(b,db)??'').trim()):''
         ]);
         rowBindings.push([a,b]);
       }
@@ -736,13 +736,13 @@
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim()||String(row.location||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
-    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
+    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':''));
     checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
     checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:7.3,labelWidth:130});
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
     const limitationsY=y;
-    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
     y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
     for(const group of [
@@ -831,12 +831,12 @@
         rowMap.push(-1);lastGroup=group;
       }
       const isIntake=String(r.item||'')==='1.1';
-      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim()||'N/A')]);
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim())]);
       rowMap.push(index);
       if(isIntake){
         intakeRows.forEach(([key,description],subIndex)=>{
           const raw=String(cert.fields?.[key]||'').trim();
-          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw||'N/A')]);
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw)]);
           rowMap.push(-3-subIndex);
         });
         body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
@@ -844,7 +844,7 @@
         body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
         rowMap.push(-10);
         const notification=String(cert.fields?.intakeNotified||'');
-        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification||'N/A']);
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
         rowMap.push(-2);
       }
     });
@@ -1247,8 +1247,8 @@
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
-        const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
-        const signatureLine=worksheet?'':String(testedSignature||'').trim()||'N/A';
+        const testedSignature=ff.testedSignature||ff.inspectorSignature||ff.singleSignatorySignature||'';
+        const signatureLine=worksheet?'':String(testedSignature||'').trim();
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
           ['Multifunction: ',ff.testerSerial],
@@ -1263,12 +1263,12 @@
           const xx=x+col*(w/3);
           writeRuns(doc,[
             {text:label,bold:true},
-            {text:worksheet?'':String(value??'').trim()||'N/A',bold:false}
+            {text:worksheet?'':String(value??'').trim(),bold:false}
           ],xx,ty+5+row*5.1,w/3-3,6.7,3.5,2);
         });
         writeRuns(doc,[
           {text:'Tested by name (Capitals): ',bold:true},
-          {text:worksheet?'':String(testedBy||'').trim().toUpperCase()||'N/A',bold:false}
+          {text:worksheet?'':String(testedBy||'').trim().toUpperCase(),bold:false}
         ],x,ty+17,107,7.2,4,2);
         writeRuns(doc,[
           {text:'Signature: ',bold:true},
@@ -1276,7 +1276,7 @@
         ],x+110,ty+17,95,7.2,4,2);
         writeRuns(doc,[
           {text:'Date: ',bold:true},
-          {text:worksheet?'':fmtDate(testedDate)||'N/A',bold:false}
+          {text:worksheet?'':fmtDate(testedDate),bold:false}
         ],x+207,ty+17,w-207,7.2,4,2);
       });
     });
