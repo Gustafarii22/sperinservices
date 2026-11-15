@@ -440,10 +440,10 @@
       ['RA/Ze (Ohms)',[f.earthElectrodeMeasurementType,f.earthElectrodeResistance].filter(Boolean).join(' '),'Earthing conductor material',f.earthingConductorMaterial],
       ['Earthing conductor csa mm2',f.earthingConductorCsa,'Earthing continuity verified',f.earthingContinuity],
       ['Bonding conductor material',f.bondingMaterial,'Bonding conductor csa mm2',f.bondingCsa],
-      ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
+      ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',[f.bondingTo,f.bondingToOtherDetail?'Other: '+f.bondingToOtherDetail:''].filter(Boolean).join(' / ')],
       ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
-      ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
-      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
+      ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',[f.mainSwitchDeviceType,f.mainSwitchDeviceType==='Other'&&f.mainSwitchDeviceOther?'('+f.mainSwitchDeviceOther+')':''].filter(Boolean).join(' ')],
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdType==='Other'&&f.mainRcdOther?'('+f.mainRcdOther+')':'',f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
       ['Main switch OCPD rating/setting (A)',f.mainSwitchDeviceSetting,'Main RCD measured operating time (ms)',f.mainRcdTime],
       ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'Protective device settings attachment (where applicable)',f.protectiveDeviceSettingsRef]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
