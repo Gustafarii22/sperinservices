@@ -115,33 +115,35 @@ export const approveAndSend = createServerFn({ method: "POST" })
     if (error || !outboundId) return { ok: false as const, reason: error?.message ?? 'Approval failed' };
 
     const { messagingConfig, missingConfig } = await import('@/lib/server/providers.server');
-    const gmailMissing = missingConfig('gmail', messagingConfig());
-    let warning: string | null = null;
-    let gmailStatus = 'pending';
-    // Only Gmail is eligible for server-side sending. The SMS must be sent
-    // by the owner's own phone and stays pending until explicit confirmation.
-    if (!gmailMissing) {
-      const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-      const { dispatchChannel } = await import('@/lib/server/dispatch.server');
-      try {
-        await dispatchChannel(supabaseAdmin, outboundId, 'gmail', false);
-        const { data: sent } = await supabaseAdmin.from('outbound_channels')
-          .select('status').eq('outbound_id', outboundId).eq('channel', 'gmail').single();
-        gmailStatus = sent?.status ?? 'unknown';
-      } catch {
-        gmailStatus = 'unknown';
-        warning = 'Gmail delivery could not be confirmed. Check Gmail Sent before attempting any manual send.';
-      }
-    } else {
-      warning = 'Gmail OAuth is not connected. Open the prepared Gmail message and send it manually.';
-    }
+    const config = messagingConfig();
+    const gmailMissing = missingConfig('gmail', config);
+    const smsGatewayMissing = missingConfig('sms', config);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { dispatchChannel } = await import('@/lib/server/dispatch.server');
+    // Send both approved channels through Gmail and the owner's phone SIM
+    // when the respective credentials are available. No Twilio.
+    const attempts: Promise<unknown>[] = [];
+    if(!gmailMissing)attempts.push(dispatchChannel(supabaseAdmin, outboundId, 'gmail', false));
+    if(mobile&&!smsGatewayMissing)attempts.push(dispatchChannel(supabaseAdmin, outboundId, 'sms', false));
+    const outcomes=await Promise.allSettled(attempts);
+    const uncertain=outcomes.some(x=>x.status==='rejected');
+    const { data:states } = await supabaseAdmin.from('outbound_channels')
+      .select('channel,status').eq('outbound_id',outboundId);
+    const gmailStatus=states?.find(x=>x.channel==='gmail')?.status ?? 'unknown';
+    const smsStatus=states?.find(x=>x.channel==='sms')?.status ?? (mobile?'unknown':'skipped');
+    const warning=uncertain?'One channel outcome could not be recorded. Check Sent before retrying.'
+       : gmailMissing?'Gmail OAuth is not connected. Open the prepared Gmail quotation and send it manually.'
+       : mobile&&smsGatewayMissing?'SMS gateway not yet connected. Send the prepared SMS from your Samsung.'
+       : null;
     return {
       ok: true as const,
       outboundId,
       gmailStatus,
+      smsStatus,
       warning,
       emailCompose: { to: data.to, subject: data.subject, body: withBusinessSignature(data.body) },
-      smsCompose: mobile ? { to: mobile, body: data.sms } : null,
+      // Never offer manual sending when SMS may already be queued or sent.
+      smsCompose: mobile && (smsStatus==='pending'||smsStatus==='failed') ? { to: mobile, body: data.sms } : null,
     };
   });
 
@@ -181,7 +183,10 @@ export const retryChannel = createServerFn({ method: 'POST' }).middleware([requi
     if (error || !out) throw new Error('Approved message not found');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const { dispatchChannel } = await import('@/lib/server/dispatch.server');
-    if (data.channel === 'sms') throw new Error('SMS is sent from your Samsung, not Twilio. Open the prepared SMS in Sent history.');
+    if (data.channel === 'sms') {
+      const { messagingConfig, missingConfig } = await import('@/lib/server/providers.server');
+      if (missingConfig('sms', messagingConfig())) throw new Error('Connect free SMSGate on your Samsung first, or use manual SMS in Sent history.');
+    }
     await dispatchChannel(supabaseAdmin, out.id, data.channel, true);
     return { ok: true };
   });
@@ -201,7 +206,11 @@ export const saveDraft = createServerFn({ method: 'POST' }).middleware([requireS
 export const getWorkspace = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertOwner(context);
-    const [leads, sent, channels] = await Promise.all([
+    // Poll provider message IDs for actual Sent/Delivered/Failed outcomes.
+    const { supabaseAdmin }=await import('@/integrations/supabase/client.server');
+    const { syncSamsungSmsStatuses }=await import('@/lib/server/dispatch.server');
+    await syncSamsungSmsStatuses(supabaseAdmin).catch(()=>{});
+        const [leads, sent, channels] = await Promise.all([
       context.supabase.from('leads').select('*').order('created_at', { ascending: false }),
       context.supabase.from('outbound_messages').select('*').order('created_at', { ascending: false }),
       context.supabase.from('outbound_channels').select('*'),
@@ -209,7 +218,7 @@ export const getWorkspace = createServerFn({ method: 'POST' }).middleware([requi
     if (leads.error || sent.error || channels.error) throw new Error('Unable to load private workspace');
     const { messagingConfig, missingConfig } = await import('@/lib/server/providers.server');
     const config = messagingConfig();
-    return { leads: leads.data ?? [], sent: sent.data ?? [], channels: channels.data ?? [], gmailMissing: missingConfig('gmail', config), smsMissing: null, smsDrafts: Object.fromEntries((leads.data ?? []).map(l => [l.id, smsDraft(l.customer_name, l.job_title)])) };
+    return { leads: leads.data ?? [], sent: sent.data ?? [], channels: channels.data ?? [], gmailMissing: missingConfig('gmail', config), smsMissing: missingConfig('sms', config), smsDrafts: Object.fromEntries((leads.data ?? []).map(l => [l.id, smsDraft(l.customer_name, l.job_title)])) };
   });
 
 export const getConnectionStatus = createServerFn({ method: "POST" })
