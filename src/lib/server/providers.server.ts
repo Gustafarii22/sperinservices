@@ -46,7 +46,8 @@ export async function sendGmail(input: { to: string; subject: string; body: stri
   try {
     const profile = await fetcher('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
     const data = await parseResponse(profile);
-    if (!profile.ok || String(data['emailAddress']).toLowerCase() !== 'info@sperinservices.co.uk') return { status: 'failed', error: 'Gmail account must be info@sperinservices.co.uk; no message sent.' };
+    if (!profile.ok || !['sperinservices@gmail.com', 'info@sperinservices.co.uk'].includes(String(data['emailAddress']).toLowerCase())) return { status: 'failed', error: 'Wrong Gmail account; no message sent.' };
+    // Gmail's send endpoint must also accept info@sperinservices.co.uk as a verified Send mail as alias.
   } catch { return { status: 'failed', error: 'Unable to verify Gmail sender; no message sent.' }; }
   try {
     const response = await fetcher('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
