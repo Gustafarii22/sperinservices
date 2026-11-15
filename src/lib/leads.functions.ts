@@ -5,28 +5,11 @@ import { analyseText, analyse } from "@/lib/leads/analyse";
 import { mergeRates } from "@/lib/leads/rates";
 import { SAMPLE_LEADS } from "@/lib/leads/samples";
 import { idempotencyKey } from "@/lib/server/send-guard";
-import { ukMobile, smsDraft } from "@/lib/server/channels";
+import { ukMobile, smsDraft, withBusinessSignature } from "@/lib/server/channels";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 type Ctx = { supabase: SupabaseClient<Database>; userId: string };
-
-const BUSINESS_SIGNATURE = [
-  'Augustine Sperin',
-  'Electrical Contractor',
-  'Sperin Services',
-  'M: 07817 360 156',
-  'E: info@sperinservices.co.uk',
-  'W: sperinservices.co.uk',
-].join('\\n');
-
-function withBusinessSignature(body: string): string {
-  const normalized = body.replace(/\\r\\n/g, '\\n').trimEnd();
-  // Existing manually signed drafts must not receive a second copy.
-  if (/Augustine Sperin[\\s\\S]*info@sperinservices\\.co\\.uk/i.test(normalized)) return normalized;
-  return normalized + '\\n\\n' + BUSINESS_SIGNATURE;
-}
-
 
 async function assertOwner(ctx: Ctx) {
   const { data, error } = await ctx.supabase.rpc("is_owner");
@@ -121,15 +104,75 @@ export const approveAndSend = createServerFn({ method: "POST" })
     await assertOwner(context);
     const { data: lead, error: leadError } = await context.supabase.from('leads').select('customer_phone').eq('id', data.leadId).single();
     if (leadError || !lead) throw new Error('Lead not found');
-    const emailBody = withBusinessSignature(data.body);
-    const key = await idempotencyKey({ ...data, body: emailBody });
-    const { data: outboundId, error } = await context.supabase.rpc('approve_quote', { p_lead: data.leadId, p_to: data.to, p_subject: data.subject, p_body: emailBody, p_sms: data.sms, p_mobile: ukMobile(lead.customer_phone) ?? '', p_confirmed: data.confirmed, p_key: key });
+    const mobile = ukMobile(lead.customer_phone);
+    // The DB guard compares the saved draft exactly. Add the signature at
+    // delivery time, not to the unapproved draft or the approve_quote RPC.
+    const key = await idempotencyKey(data);
+    const { data: outboundId, error } = await context.supabase.rpc('approve_quote', {
+      p_lead: data.leadId, p_to: data.to, p_subject: data.subject,
+      p_body: data.body, p_sms: data.sms, p_mobile: mobile, p_confirmed: data.confirmed, p_key: key,
+    });
     if (error || !outboundId) return { ok: false as const, reason: error?.message ?? 'Approval failed' };
+
+    const { messagingConfig, missingConfig } = await import('@/lib/server/providers.server');
+    const config = messagingConfig();
+    const gmailMissing = missingConfig('gmail', config);
+    const smsGatewayMissing = missingConfig('sms', config);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const { dispatchChannel } = await import('@/lib/server/dispatch.server');
-    const outcomes = await Promise.allSettled([dispatchChannel(supabaseAdmin, outboundId, 'gmail', false), dispatchChannel(supabaseAdmin, outboundId, 'sms', false)]);
-    const uncertain = outcomes.some(o => o.status === 'rejected');
-    return { ok: true as const, outboundId, warning: uncertain ? 'One result could not be recorded. Check Sent history; do not send again.' : null };
+    // Send both approved channels through Gmail and the owner's phone SIM
+    // when the respective credentials are available. No Twilio.
+    const attempts: Promise<unknown>[] = [];
+    if(!gmailMissing)attempts.push(dispatchChannel(supabaseAdmin, outboundId, 'gmail', false));
+    if(mobile&&!smsGatewayMissing)attempts.push(dispatchChannel(supabaseAdmin, outboundId, 'sms', false));
+    const outcomes=await Promise.allSettled(attempts);
+    const uncertain=outcomes.some(x=>x.status==='rejected');
+    const { data:states } = await supabaseAdmin.from('outbound_channels')
+      .select('channel,status').eq('outbound_id',outboundId);
+    const gmailStatus=states?.find(x=>x.channel==='gmail')?.status ?? 'unknown';
+    const smsStatus=states?.find(x=>x.channel==='sms')?.status ?? (mobile?'unknown':'skipped');
+    const warning=uncertain?'One channel outcome could not be recorded. Check Sent before retrying.'
+       : gmailMissing?'Gmail OAuth is not connected. Open the prepared Gmail quotation and send it manually.'
+       : mobile&&smsGatewayMissing?'SMS gateway not yet connected. Send the prepared SMS from your Samsung.'
+       : null;
+    return {
+      ok: true as const,
+      outboundId,
+      gmailStatus,
+      smsStatus,
+      warning,
+      emailCompose: { to: data.to, subject: data.subject, body: withBusinessSignature(data.body) },
+      // Never offer manual sending when SMS may already be queued or sent.
+      smsCompose: mobile && (smsStatus==='pending'||smsStatus==='failed') ? { to: mobile, body: data.sms } : null,
+    };
+  });
+
+/**
+ * Sender confirmation is NOT carrier delivery proof. Only the verified owner
+ * may mark an approved, pending manual channel as sent after pressing Send in
+ * the corresponding phone/Gmail application. Never mark it sent on link-open.
+ */
+export const confirmManualChannel = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({
+    outboundId: z.string().uuid(), channel: z.enum(['gmail','sms']), confirmed: z.literal(true)
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    await assertOwner(context);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { refreshDispatch } = await import('@/lib/server/dispatch.server');
+    const { data: outbound, error: outErr } = await supabaseAdmin.from('outbound_messages')
+      .select('id,lead_id').eq('id', data.outboundId).single();
+    if (outErr || !outbound) throw new Error('Approved message not found');
+    const { data: updated, error } = await supabaseAdmin.from('outbound_channels')
+      .update({ status: 'sent', provider_id: 'manual-owner-confirmation', error: null, updated_at: new Date().toISOString() })
+      .eq('outbound_id', outbound.id).eq('channel', data.channel).eq('status', 'pending')
+      .select('id').maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error('No pending manual channel. Check Sent history before trying again.');
+    await refreshDispatch(supabaseAdmin, outbound.id);
+    await audit(context, 'manual_channel_confirmed', outbound.lead_id, { outbound_id: outbound.id, channel: data.channel });
+    return { ok: true as const };
   });
 
 export const retryChannel = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
@@ -140,6 +183,10 @@ export const retryChannel = createServerFn({ method: 'POST' }).middleware([requi
     if (error || !out) throw new Error('Approved message not found');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const { dispatchChannel } = await import('@/lib/server/dispatch.server');
+    if (data.channel === 'sms') {
+      const { messagingConfig, missingConfig } = await import('@/lib/server/providers.server');
+      if (missingConfig('sms', messagingConfig())) throw new Error('Connect free SMSGate on your Samsung first, or use manual SMS in Sent history.');
+    }
     await dispatchChannel(supabaseAdmin, out.id, data.channel, true);
     return { ok: true };
   });
@@ -159,7 +206,11 @@ export const saveDraft = createServerFn({ method: 'POST' }).middleware([requireS
 export const getWorkspace = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertOwner(context);
-    const [leads, sent, channels] = await Promise.all([
+    // Poll provider message IDs for actual Sent/Delivered/Failed outcomes.
+    const { supabaseAdmin }=await import('@/integrations/supabase/client.server');
+    const { syncSamsungSmsStatuses }=await import('@/lib/server/dispatch.server');
+    await syncSamsungSmsStatuses(supabaseAdmin).catch(()=>{});
+        const [leads, sent, channels] = await Promise.all([
       context.supabase.from('leads').select('*').order('created_at', { ascending: false }),
       context.supabase.from('outbound_messages').select('*').order('created_at', { ascending: false }),
       context.supabase.from('outbound_channels').select('*'),

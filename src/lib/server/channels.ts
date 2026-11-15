@@ -1,18 +1,15 @@
-import { parsePhoneNumberFromString, findPhoneNumbersInText } from 'libphonenumber-js/max';
-
 export type ChannelStatus = 'pending' | 'sending' | 'sent' | 'delivered' | 'failed' | 'unknown' | 'skipped';
 export type ProviderResult = { status: ChannelStatus; providerId?: string; error?: string };
 
-export function ukMobile(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const cleaned = raw.trim().replace(/^0044/, '+44').replace(/\+44\s*\(0\)/, '+44');
-  const phone = parsePhoneNumberFromString(cleaned, 'GB');
-  return phone?.country === 'GB' && phone.isValid() && phone.getType() === 'MOBILE' ? phone.number : null;
-}
+export { ukMobile } from '@/lib/leads/mobile';
+import { ukMobile } from '@/lib/leads/mobile';
 
-export function extractUkPhone(text: string): string | null {
-  const numbers = findPhoneNumbersInText(text.replace(/0044/g, '+44'), 'GB');
-  return numbers.find(n => ukMobile(n.number.number))?.number.number ?? numbers[0]?.number.number ?? null;
+export function extractUkPhone(text:string):string|null {
+  // Do not depend exclusively on carrier allocation metadata: a plausible
+  // customer mobile may not yet be mapped by the libphonenumber database.
+  const candidates=text.match(/(?:\+44(?:\s*\(0\))?|0044|0)[\s().-]*7(?:[\s().-]*\d){9}/g) || [];
+  for(const value of candidates){const mobile=ukMobile(value);if(mobile)return mobile;}
+  return null;
 }
 
 export function smsDraft(name: string | null, job: string): string {
@@ -59,3 +56,4 @@ export async function verifyTwilio(token: string, url: string, params: Record<st
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
 }
+export { BUSINESS_SIGNATURE, withBusinessSignature } from '@/lib/leads/signature';
