@@ -54,7 +54,7 @@ describe('approved multichannel sends (mocked only)', () => {
   });
   it('missing configuration makes no network calls', async () => {
     const f = vi.fn();
-    expect((await sendSms({ to:'+447911123456',body:'Approved SMS',channelId:'c',attempt:'a' },{},f)).status).toBe('failed');
+    expect((await sendPhoneSms({ to:'+447911123456',body:'Approved SMS',channelId:'abcdef123456' },{},f)).status).toBe('failed');
     expect(f).not.toHaveBeenCalled();
   });
   it('accepts signed delivery and rejects tampered body or URL', async () => {
