@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { approveAndSend, getWorkspace, retryChannel, saveDraft, createLeadFromText, confirmManualChannel } from '@/lib/leads.functions';
 import { ukMobile, smsComposeLink, gmailComposeLink } from '@/lib/leads/mobile';
-import { withBusinessSignature } from '@/lib/server/channels';
+import { withBusinessSignature } from '@/lib/leads/signature';
 import { statusLabel } from '@/lib/leads/status';
 import type { Tables } from '@/integrations/supabase/types';
 
