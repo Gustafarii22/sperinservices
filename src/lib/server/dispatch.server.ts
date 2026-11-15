@@ -1,11 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { canClaim, summaryStatus, withBusinessSignature } from './channels';
-import { messagingConfig, sendGmail } from './providers.server';
+import { messagingConfig, sendGmail, sendPhoneSms, phoneSmsStatus, missingConfig } from './providers.server';
 
 export async function dispatchChannel(db: SupabaseClient<Database>, outboundId: string, channel: 'gmail' | 'sms', retry: boolean) {
-  // SMS is prepared for the owner's own phone, not dispatched by a paid gateway.
-  if (channel === 'sms') throw new Error('Use the Samsung SMS composer; Twilio dispatch is disabled.');
+  // SMS is sent through the owner's Android SIM via free SMSGate, never Twilio.
   const { data: row, error: readError } = await db.from('outbound_channels').select('*').eq('outbound_id', outboundId).eq('channel', channel).single();
   if (readError || !row) throw new Error('Channel not found');
   if (!canClaim(row.status, retry)) return;
@@ -16,7 +15,9 @@ export async function dispatchChannel(db: SupabaseClient<Database>, outboundId: 
   if (!claimed) return;
   const { data: outbound, error: outError } = await db.from('outbound_messages').select('*').eq('id', outboundId).single();
   if (outError || !outbound) throw new Error('Approved message not found; retry is locked for safety');
-  const result = await sendGmail({ to: outbound.to_email, subject: outbound.subject, body: withBusinessSignature(claimed.body), key: `${outbound.id}-${token}` }, messagingConfig());
+  const result = channel==='gmail'
+    ? await sendGmail({ to: outbound.to_email, subject: outbound.subject, body: withBusinessSignature(claimed.body), key: `${outbound.id}-${token}` }, messagingConfig())
+    : await sendPhoneSms({to:claimed.recipient ?? '',body:claimed.body,channelId:claimed.id},messagingConfig());
   // A callback can beat the HTTP response. Never overwrite callback delivery state.
   const { error: finishError } = await db.from('outbound_channels').update({ status: result.status, provider_id: result.providerId ?? null, error: result.error ?? null, updated_at: new Date().toISOString() }).eq('id', row.id).eq('attempt_token', token).eq('status', 'sending').is('provider_id', null);
   if (finishError) throw new Error('Provider outcome could not be saved. Retry is locked; check provider history.');
@@ -37,4 +38,23 @@ export async function refreshDispatch(db: SupabaseClient<Database>, id: string) 
     const { data: out } = await db.from('outbound_messages').select('lead_id').eq('id', id).single();
     if (out) await db.from('leads').update({ status: 'approved_sent' }).eq('id', out.lead_id).in('status', ['received','needs_info','ready_for_review']);
   }
+}
+/** Lazy status reconciliation when the owner opens Sent history. No paid API. */
+export async function syncSamsungSmsStatuses(db:SupabaseClient<Database>):Promise<void>{
+ const config=messagingConfig();
+ if(missingConfig('sms',config))return;
+ const {data:rows,error}=await db.from('outbound_channels').select('*')
+  .eq('channel','sms').in('status',['sending','sent']).not('provider_id','is',null)
+  .order('updated_at',{ascending:false}).limit(20);
+ if(error || !rows?.length)return;
+ for(const row of rows){
+  if(!row.provider_id||row.provider_id==='manual-owner-confirmation')continue;
+  const result=await phoneSmsStatus(row.provider_id,config);
+  if(!['delivered','sent','failed'].includes(result.status))continue;
+  if(row.status===result.status || row.status==='delivered' || (row.status==='sent'&&result.status==='failed'))continue;
+  const {data:updated}=await db.from('outbound_channels')
+   .update({status:result.status,error:result.error??null,updated_at:new Date().toISOString()})
+   .eq('id',row.id).eq('status',row.status).eq('provider_id',row.provider_id).select('id').maybeSingle();
+  if(updated)await refreshDispatch(db,row.outbound_id);
+ }
 }
