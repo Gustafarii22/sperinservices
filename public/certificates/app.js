@@ -19,7 +19,7 @@
   const OPTIONS = {
     yesNo: ['Yes', 'No'],
     yesNoNA: ['Yes', 'No', 'N/A'],
-    passNA: ['✓', '✕', 'N/A'],
+    passNA: ['✓', 'N/A'],
     eicrOutcome: ['✓', 'C1', 'C2', 'C3', 'FI', 'N/V', 'LIM', 'N/A'],
     earthing: ['TN-C', 'TN-S', 'TN-C-S (PME)', 'TN-C-S (PNB)', 'TT', 'IT', 'Other'],
     liveConductors: ['1-phase, 2-wire', '2-phase, 3-wire', '3-phase, 3-wire', '3-phase, 4-wire', 'DC 2-wire', 'DC 3-wire', 'Other'],
