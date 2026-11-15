@@ -1,9 +1,12 @@
-import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
+/** Validate the structure of ordinary UK 07 mobile numbers for customer SMS.
+ * Excludes 070 personal numbering and 076 paging numbers, not a carrier lookup.
+ * The SMS gateway returns a separate final carrier delivery outcome.
+ */
 export function ukMobile(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const cleaned = raw.trim().replace(/^0044/, '+44').replace(/\+44\s*\(0\)/, '+44');
-  const phone = parsePhoneNumberFromString(cleaned, 'GB');
-  return phone?.country === 'GB' && phone.isValid() && phone.getType() === 'MOBILE' ? phone.number : null;
+  const digits=raw.trim().replace(/[\s().-]/g,'').replace(/^0044/,'+44').replace(/^\+440/,'+44');
+  const e164=digits.startsWith('07')?'+44'+digits.slice(1):digits;
+  return /^\+447[1-57-9]\d{8}$/.test(e164)?e164:null;
 }
 
 /** Opens the phone's own SMS composer; neither sends nor incurs a provider fee. */
