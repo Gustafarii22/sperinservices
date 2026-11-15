@@ -11,6 +11,23 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Ctx = { supabase: SupabaseClient<Database>; userId: string };
 
+const BUSINESS_SIGNATURE = [
+  'Augustine Sperin',
+  'Electrical Contractor',
+  'Sperin Services',
+  'M: 07817 360 156',
+  'E: info@sperinservices.co.uk',
+  'W: sperinservices.co.uk',
+].join('\\n');
+
+function withBusinessSignature(body: string): string {
+  const normalized = body.replace(/\\r\\n/g, '\\n').trimEnd();
+  // Existing manually signed drafts must not receive a second copy.
+  if (/Augustine Sperin[\\s\\S]*info@sperinservices\\.co\\.uk/i.test(normalized)) return normalized;
+  return normalized + '\\n\\n' + BUSINESS_SIGNATURE;
+}
+
+
 async function assertOwner(ctx: Ctx) {
   const { data, error } = await ctx.supabase.rpc("is_owner");
   if (error || data !== true) throw new Error("Forbidden: owner account only");
@@ -104,8 +121,9 @@ export const approveAndSend = createServerFn({ method: "POST" })
     await assertOwner(context);
     const { data: lead, error: leadError } = await context.supabase.from('leads').select('customer_phone').eq('id', data.leadId).single();
     if (leadError || !lead) throw new Error('Lead not found');
-    const key = await idempotencyKey(data);
-    const { data: outboundId, error } = await context.supabase.rpc('approve_quote', { p_lead: data.leadId, p_to: data.to, p_subject: data.subject, p_body: data.body, p_sms: data.sms, p_mobile: ukMobile(lead.customer_phone) ?? '', p_confirmed: data.confirmed, p_key: key });
+    const emailBody = withBusinessSignature(data.body);
+    const key = await idempotencyKey({ ...data, body: emailBody });
+    const { data: outboundId, error } = await context.supabase.rpc('approve_quote', { p_lead: data.leadId, p_to: data.to, p_subject: data.subject, p_body: emailBody, p_sms: data.sms, p_mobile: ukMobile(lead.customer_phone) ?? '', p_confirmed: data.confirmed, p_key: key });
     if (error || !outboundId) return { ok: false as const, reason: error?.message ?? 'Approval failed' };
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const { dispatchChannel } = await import('@/lib/server/dispatch.server');
