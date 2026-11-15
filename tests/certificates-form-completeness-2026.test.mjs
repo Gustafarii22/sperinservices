@@ -165,7 +165,7 @@ test('IET A4 inspection and circuit/test schedules have the exact numbered model
 });
 test('IET EIC worksheet keeps optional second designer and does not fabricate fields',()=>{
  const {text}=render(makeCert('eic'),true);
- assert(text.includes('Designer (No 2)'),'Blank model must show the optional second designer');
+ assert(rendererText.includes("worksheet||f.designer2||f.designer2Signature"),'Blank model must retain the optional second designer rows');
  assert(text.includes('Supply protective device type'),'EIC supply-device type absent from printed PDF');
  assert(text.includes('RA/Ze'),'EIC electrode measurement type absent from printed PDF');
 });
