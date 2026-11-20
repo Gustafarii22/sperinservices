@@ -33,7 +33,8 @@ on:
 
 jobs:
   certificate-e2e:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 does not support the ubuntu-26.04 runner image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -72,6 +73,7 @@ jobs:
         run: |
           node --test tests/certificates-pdf-regions.test.mjs
           node --test tests/certificates-eicr-a4-structure.test.mjs
+          node --test tests/certificates-form-completeness-2026.test.mjs
           node tests/certificates-orientation-pdf.e2e.mjs
 
       - name: Verify new independent cloud and import script syntax
@@ -189,6 +191,7 @@ jobs:
           done
           if grep -E "Device manufacturer|Device model|Device kind" certificate-android/qa-output/minor-iet-a4.txt; then exit 1; fi
           pdftoppm -f 1 -l 1 -png -scale-to 1350 "$PDF" certificate-android/qa-output/minor-a4
+          python3 certificate-android/qa/check-minor-layout.py "$PDF"
 
       - name: Board workflow regressions
         run: |

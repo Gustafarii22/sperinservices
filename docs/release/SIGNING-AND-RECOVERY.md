@@ -1,5 +1,59 @@
 # Sperin Certificates signing and recovery
 
+## Current owner-confirmed installed signing identity (15 November 2026)
+
+**Use this section as the source of truth in future Sperin Certificates release
+work. Do not make the owner repeat the APK fingerprint check.**
+
+The owner directly supplied a screenshot from Android's installed-app
+**Signature details** on the Samsung S23 Ultra:
+
+| Property | Owner-confirmed installed value |
+| --- | --- |
+| App | Sperin Certificates |
+| Version displayed | `1.9.9-dev · 215` (version code **215**) |
+| Installed package | `uk.co.sperinservices.certificates.stable.permanent` |
+| Certificate SHA-256 | `200881370fa891c1747063d117476567a571835b9fdf5c69c590f26386c205b1` |
+| Fingerprint pin | `certificate-android/signing/permanent.sha256` — exact match |
+| Owner's certificate backup | **Owner confirms completed**; independent validation of full source/photos and restoration is **not** evidenced here |
+
+**Permanent Android signing private key:** Do not place the key, passwords,
+keystore bytes, or secret values in this document or chat memory. The established
+GitHub Actions workflow `.github/workflows/certificate-apk.yml`, protected
+environment `certificates-production`, uses the retained keystore from
+`SPERIN_PERMANENT_JKS_BASE64`, plus `SPERIN_STORE_PASSWORD`,
+`SPERIN_KEY_PASSWORD`, `SPERIN_KEY_ALIAS` and
+`SPERIN_BACKUP_VERIFIED_SHA256`. The Gradle
+`:app:verifyPermanentSigner` task rejects a fingerprint mismatch and an
+Android Debug signer. A permanent candidate run successfully passed the
+key-restore and signer checks on 14 November 2026 (GitHub Actions
+[43650321551](https://github.com/Gustafarii22/sperinservices/actions/runs/43650321551)),
+which supports that the secure signing workflow has working credentials;
+the exact secret values are appropriately not available to the assistant.
+
+**Next compatible release must:** build the `permanent` variant with *this*
+retained private key, unchanged package ID, version code **greater than 215**,
+the current correct certificate web assets, and the full in-place-upgrade and
+PDF/regulatory checks. Do **not** distribute the separately packaged
+`*.preview.team.v197` debug-signed APK as an update; it cannot replace the
+owner's permanent app. Confirm the built APK's full SHA-256 signing certificate
+matches the above pin before publication.
+
+**Previous unrelated signing identities (not to use for phone upgrades):**
+- Historical `stable` signing certificate SHA-256:
+  `68d9f4926edc07657183de10039c110329d894d3c6874f5314dfcc7cd16bf573`
+- Old `preview.team.v196` Android Debug signing certificate SHA-256:
+  `d68e83847f45b75170ce43271d3a7e882eb2dfb70ad71c3ecf7432b6ca4d1d9e`
+
+**Interaction rule:** Do not ask the owner to extract the installed APK,
+re-identify its signer, or re-prove the stated backup merely because a new
+chat started. These facts change only if the owner replaces the installed app
+or a tested update demonstrates a material identity/data difference.
+Preserve the distinctions between an owner-confirmed backup and an independently
+tested restore of the actual dataset.
+
+---
+
 ## Evidence at 4 November 2026
 
 PR #45 remains draft. The installed phone APK has not been accessed; no claim of

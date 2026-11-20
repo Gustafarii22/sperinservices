@@ -101,10 +101,10 @@ test('IET electrode and bonding choices, intake notification, and printed values
   for(const key of ['earthElectrodeLocation','earthElectrodeMeasurementType','earthElectrodeResistance','mainRcdOther','bondingToWater','bondingToGas','intakeNotified'])
     assert(editable.__editRegions.some(region=>region.key===key),key+' not editable on PDF');
 });
-test('IET test instrument section has only serial/asset number fields',()=>{
+test('IET test instrument section has serial/asset numbers and tester sign-off',()=>{
   const instrument=schema.sections.find(p=>p.title?.startsWith('Test instruments used'));
   const keys=instrument.fields.map(f=>f.key);
-  assert.deepEqual(Array.from(keys),['testerSerial','instrumentContinuity','instrumentInsulation','instrumentLoop','instrumentRcd','instrumentEarth','testedBy','testedDate']);
+  assert.deepEqual(Array.from(keys),['testerSerial','instrumentContinuity','instrumentInsulation','instrumentLoop','instrumentRcd','instrumentEarth','testedBy','testedSignature','testedDate']);
   assert(drawing.includes('MFT12345'),'Multifunction serial/asset number missing');
   assert(!drawing.includes('EXTRA_MAKE_NOT_IN_IET'),'Extra manufacturer printed');
   assert(!drawing.includes('EXTRA_MODEL_NOT_IN_IET'),'Extra model printed');

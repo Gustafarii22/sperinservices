@@ -574,8 +574,8 @@ assert(
   "IET EIC inspection categories incomplete",
 );
 assert(
-  (await inspection.locator('[data-action="inspection-outcome"]').count()) >= 42,
-  "Direct tick/cross/N/A inspection buttons missing",
+  (await inspection.locator('[data-action="inspection-outcome"]').count()) >= 28,
+  "IET A4 direct tick/N/A inspection buttons missing",
 );
 await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
 const inspectionStored = await page.evaluate(() =>
@@ -594,14 +594,14 @@ assert(
   "Apply-all N/A control did not update the inspection schedule",
 );
 await inspection
-  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✕"]')
+  .locator('[data-action="inspection-outcome"][data-row="0"][data-value="✓"]')
   .click();
 inspectionStored2 = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("sperin-certificates-data-v1") || "{}"),
 );
 assert(
-  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✕",
-  "Direct inspection cross control did not save",
+  inspectionStored2.certificates?.[0]?.tables?.eicInspection?.[0]?.outcome === "✓",
+  "Direct IET EIC inspection tick did not save",
 );
 await inspection.locator('[data-action="inspection-bulk"][data-value="✓"]').click();
 console.log("INSPECTION_DIRECT_CONTROLS_PASS");
@@ -1413,10 +1413,13 @@ for (const type of certificateTypeOrder) {
         .count()) === 1,
       "Minor Works missing 33 kA breaking capacity",
     );
-    await page.locator('[data-action="bonding-toggle"][data-value="Water"]').click();
+    // Current Minor Works Appendix 6 form records bonding to each service
+    // independently; the previous free-text "bondingPresent" chip is legacy.
+    // This is an ordinary Yes / No / N/A select, not the numeric combo.
+    await page.locator('[data-field="bondingWater"]').selectOption("Yes");
     assert(
-      (await page.locator('[data-field="bondingPresent"]').inputValue()).includes("Water"),
-      "Minor Works bonding chip did not save Water",
+      (await page.locator('[data-field="bondingWater"]').inputValue()) === "Yes",
+      "Minor Works bonding to water did not save Yes",
     );
   }
 

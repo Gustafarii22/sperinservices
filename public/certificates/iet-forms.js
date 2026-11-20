@@ -131,9 +131,15 @@
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(BRAND.toUpperCase(),brandX,9.4);
     doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);doc.text('ELECTRICAL CERTIFICATION',brandX,12.8);
     doc.setDrawColor(...BLUE);doc.setLineWidth(.25);doc.line(10,14,w-10,14);
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(String(title||''),10,20);
     const reportOnly=/^(?:ELECTRICAL INSTALLATION CONDITION REPORT|CONDITION REPORT SCHEDULE OF INSPECTION|CONDITION REPORT -)/.test(String(title||''));
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text((number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:''),w-10,20,{align:'right'});
+    const meta=(number?(reportOnly?'Report No.: ':'Certificate/Report No.: ')+number:'')+(standard?'   ·   '+standard:'');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);const metaWidth=doc.getTextWidth(meta);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);
+    const titleWidth=Math.max(1,doc.getTextWidth(String(title||'')));
+    const titleAvailable=Math.max(42,w-20-metaWidth-4);
+    doc.setFontSize(Math.max(7.5,Math.min(11,11*titleAvailable/titleWidth)));
+    doc.setTextColor(...INK);doc.text(String(title||''),10,20);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.text(meta,w-10,20,{align:'right'});
     doc.setDrawColor(...LINE);doc.setLineWidth(.16);
     return 24;
   }
@@ -281,6 +287,49 @@
     for(let i=1;i<=n;i++){doc.setPage(i);footer(doc,i,n);}
   }
 
+
+  // Customer guidance is appended to the issued certificate, as required by the
+  // Appendix 6 model forms. This is a fresh plain-English rendering, not an IET logo.
+  function renderElectricalRecipientGuidance(doc,cert,schema,kind){
+    const minor=kind==='minor';
+    const pageTitle=minor?'MINOR ELECTRICAL INSTALLATION WORKS CERTIFICATE':'ELECTRICAL INSTALLATION CERTIFICATE';
+    const guidance=minor?[
+      'This certificate confirms that the minor alteration or addition described in Section A has been designed, constructed, inspected and tested in accordance with BS 7671, subject to the recorded departures.',
+      'The certificate is intended for work on an existing circuit; it must not be used for a new circuit, consumer-unit replacement or a wider installation requiring an Electrical Installation Certificate. A separate Minor Works certificate is appropriate for each existing circuit affected.',
+      'Keep the certificate for the owner and pass it to the owner if you commissioned the work on another person’s behalf. The issuing contractor should keep a duplicate.',
+      'The person signing is responsible for the design, installation, inspection and testing work covered by the declaration. A certificate should be retained and shown to anyone later inspecting or altering the installation.',
+      'Arrange periodic inspection by a skilled person competent in this work.',
+      'Where an RCD has a user test button, operate it every six months in accordance with the manufacturer’s instructions. If it fails to trip, seek competent advice.',
+      'Where an AFDD has a manual test button, follow the manufacturer’s testing instructions, normally every six months. Consider its automatic test function when applicable.',
+      'Inspect any SPD status indicator as instructed by the manufacturer. If it indicates a failure, obtain competent advice.',
+      'Where another source of supply is present, check that suitable warning notices are provided at relevant origins, distribution boards and points of isolation.'
+    ]:[
+      'This certificate records the design, construction, inspection and testing of the new work described in Section B, subject to any departures stated in Section C.',
+      'The original certificate and all schedules should be given to the installation owner, and a copy retained by the issuing contractor. Keep them securely for future inspection, maintenance or property transfer.',
+      'For projects subject to the Construction (Design and Management) Regulations, retain the certificate and schedules with the project health and safety documentation.',
+      'The recommended interval before further inspection is stated in Section D. Arrange inspection and testing by a skilled person competent in the work.',
+      'This certificate covers a new installation, a new circuit, or an addition/alteration. It does not replace an Electrical Installation Condition Report for an assessment of an existing installation.',
+      'The certificate is only complete with its schedule of inspections, schedule(s) of circuit details and schedule(s) of test results, and any listed continuation sheets or risk assessments.',
+      'Test an RCD with a user test button every six months in accordance with the manufacturer’s instructions. If the device does not trip, seek competent advice.',
+      'Test any AFDD with a manual test facility as instructed by the manufacturer, normally every six months; account for automatic self-tests where fitted.',
+      'Inspect any SPD status indicator in accordance with the manufacturer’s information. If its indication is not satisfactory, obtain competent advice.',
+      'For alternative or additional sources of supply, warning notices should be displayed at the origin, distribution board and relevant points of isolation.'
+    ];
+    doc.addPage('a4',minor?'portrait':'landscape');
+    const title=()=>pageFrame(doc,pageTitle,display(cert.number,false,true),schema.standard);
+    title();
+    const width=doc.internal.pageSize.getWidth()-20;
+    doc.autoTable({
+      startY:31,
+      head:[[{content:'GUIDANCE FOR RECIPIENTS - APPEND TO THE CERTIFICATE',styles:{fontStyle:'bold',fillColor:PALE,textColor:INK}}]],
+      body:guidance.map((g,i)=>[String(i+1)+'. '+g]),
+      margin:{left:10,right:10,top:30,bottom:14},
+      tableWidth:width,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:minor?8.0:8.7,cellPadding:minor?2.5:3.1,minCellHeight:minor?9:11,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+      didDrawPage:title
+    });
+  }
+
   function renderEic(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,f=cert.fields||{};
     const frame=()=>pageFrame(doc,'ELECTRICAL INSTALLATION CERTIFICATE',display(cert.number,worksheet,true),schema.standard);
@@ -327,9 +376,10 @@
     ],{0:{cellWidth:58},1:{cellWidth:w-58}},{colSpan:2});
 
     const d=signatory(cert,'designer'),c=signatory(cert,'constructor'),i=signatory(cert,'inspector');
-    const declarationDesign='I/We certify that the design work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationConstruction='I certify that the construction work described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
-    const declarationInspection='I certify that the inspection and testing described above has been carried out with reasonable skill and care and, except for any departures recorded below, is in accordance with BS 7671:2018 as amended.';
+    const amended=worksheet?'...............':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'...............');
+    const declarationDesign='I/We certify that the design of the work described above has been carried out with reasonable skill and care, to the best of my/our knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
+    const declarationConstruction='I certify that the construction of the work described above has been carried out with reasonable skill and care, to the best of my knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
+    const declarationInspection='I certify that the inspection and testing of the work described above has been carried out with reasonable skill and care, to the best of my knowledge and belief, in accordance with BS 7671:2018 amended to '+amended+' (date), except for the departures recorded below. Liability is limited to the work described in Section B.';
     const sigCells=(party)=>[
       {content:'Signature\n'+display(party.signature,worksheet),styles:{fontStyle:'bold'}},
       {content:'Date\n'+(worksheet?'':fmtDate(party.date)),styles:{fontStyle:'bold'}},
@@ -338,18 +388,18 @@
     const cBody=[
       [{content:'FOR DESIGN',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationDesign,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.designDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
-      [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet)||(!worksheet?'N/A':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.designDepartures,worksheet),colSpan:2}],
+      [{content:'Permitted exceptions / risk assessment',styles:{fontStyle:'bold'}},{content:display(f.permittedExceptions,worksheet),colSpan:2}],
       [{content:'Risk assessment attached',styles:{fontStyle:'bold'}},{content:display(f.riskAssessmentAttached,worksheet),colSpan:2}],
       sigCells(d),
-      ...(f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
+      ...(worksheet||f.designer2||f.designer2Signature?[sigCells(signatory(cert,'designer2'))]:[]),
       [{content:'FOR CONSTRUCTION',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationConstruction,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.constructionDepartures,worksheet),colSpan:2}],
       sigCells(c),
       [{content:'FOR INSPECTION AND TESTING',colSpan:3,styles:{fontStyle:'bold',fillColor:[248,250,253]}}],
       [{content:declarationInspection,colSpan:3}],
-      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.inspectionDepartures,worksheet)||(!worksheet?'None':''),colSpan:2}],
+      [{content:'Details of departures from BS 7671',styles:{fontStyle:'bold'}},{content:display(f.inspectionDepartures,worksheet),colSpan:2}],
       sigCells(i)
     ];
     sectionTable('SECTION C: CERTIFICATION SIGNATORIES',cBody,{0:{cellWidth:92},1:{cellWidth:45},2:{cellWidth:w-137}},{colSpan:3});
@@ -359,7 +409,7 @@
       [{content:'Recommended interval before further inspection and testing',styles:{fontStyle:'bold'}},display(f.nextInspectionInterval,worksheet)]
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
-    const parties=[['Designer (No 1)',d],...(f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
+    const parties=[['Designer (No 1)',d],...(worksheet||f.designer2||f.designer2Signature?[['Designer (No 2)',signatory(cert,'designer2')]]:[]),['Constructor',c],['Inspector',i]];
     sectionTable('SECTION E: PARTICULARS OF SIGNATORIES IN SECTION C',
       parties.map(([role,p])=>[
         {content:role,styles:{fontStyle:'bold'}},
@@ -381,21 +431,22 @@
       ['External earth fault loop impedance Ze (Ohms)',f.ze,'Supply protective device BS (EN)',f.supplyDeviceBs],
       ['Supply protective device type',f.supplyDeviceType,'Rated current (A)',f.supplyDeviceRating],
       ['Breaking capacity (kA)',f.supplyBreakingCapacity,'Supply polarity confirmed',f.supplyPolarity],
-      ['Other sources of supply',f.otherSources,'','']
+      ['Consumer’s intake equipment condition (visual only)',f.intakeCondition,'Other sources of supply',f.otherSources],
+      ['Additional supply continuation sheet reference',f.otherSourcesRef,'',null]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     sectionTable('SECTION G: PARTICULARS OF INSTALLATION REFERRED TO IN THE CERTIFICATE',pairRows([
       ['Means of earthing',f.meansOfEarthing,'Maximum demand',[f.maximumDemand,f.maximumDemandUnit].filter(Boolean).join(' ')],
       ['Earth electrode type',f.earthElectrodeType,'Earth electrode location',f.earthElectrodeLocation],
-      ['RA/Ze (Ohms)',f.earthElectrodeResistance,'Earthing conductor material',f.earthingConductorMaterial],
+      ['RA/Ze (Ohms)',[f.earthElectrodeMeasurementType,f.earthElectrodeResistance].filter(Boolean).join(' '),'Earthing conductor material',f.earthingConductorMaterial],
       ['Earthing conductor csa mm2',f.earthingConductorCsa,'Earthing continuity verified',f.earthingContinuity],
       ['Bonding conductor material',f.bondingMaterial,'Bonding conductor csa mm2',f.bondingCsa],
-      ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',f.bondingTo],
+      ['Bonding continuity verified',f.bondingContinuity,'Main protective bonding to',[f.bondingTo,f.bondingToOtherDetail?'Other: '+f.bondingToOtherDetail:''].filter(Boolean).join(' / ')],
       ['Main switch location',f.mainSwitchLocation,'Main switch BS (EN)',f.mainSwitchBs],
-      ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',f.mainSwitchDeviceType],
-      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
+      ['Main switch poles / current / voltage',[f.mainSwitchPoles&&f.mainSwitchPoles+' pole',f.mainSwitchCurrent&&f.mainSwitchCurrent+' A',f.mainSwitchVoltage&&f.mainSwitchVoltage+' V'].filter(Boolean).join(' / '),'Main switch OCPD type/setting',[f.mainSwitchDeviceType,f.mainSwitchDeviceType==='Other'&&f.mainSwitchDeviceOther?'('+f.mainSwitchDeviceOther+')':''].filter(Boolean).join(' ')],
+      ['Main switch breaking capacity (kA)',f.mainSwitchBreaking,'Main RCD type / mA / delay',[f.mainRcdType,f.mainRcdType==='Other'&&f.mainRcdOther?'('+f.mainRcdOther+')':'',f.mainRcdIdn&&f.mainRcdIdn+' mA',f.mainRcdDelay&&f.mainRcdDelay+' ms'].filter(Boolean).join(' / ')],
       ['Main switch OCPD rating/setting (A)',f.mainSwitchDeviceSetting,'Main RCD measured operating time (ms)',f.mainRcdTime],
-      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'','']
+      ['Main RCD breaking capacity (kA)',f.mainRcdBreaking,'Protective device settings attachment (where applicable)',f.protectiveDeviceSettingsRef]
     ]),{0:{cellWidth:47},1:{cellWidth:(w-94)/2},2:{cellWidth:47},3:{cellWidth:(w-94)/2}},{colSpan:4});
 
     addLandscapePage();
@@ -444,13 +495,14 @@
     const boards=boardRows(cert);
     const scheduleSets=boards.reduce((count,b,bi)=>count+Math.max(1,Math.ceil(circuitsForBoard(cert,b.ref,bi===0).length/8)),0);
     sectionTable('SECTION J: SCHEDULES',[
-      [{content:'Continuation sheet(s)',styles:{fontStyle:'bold'}},display(f.continuationSheets,worksheet)||(!worksheet?'0':'')],
+      [{content:'Continuation sheet(s) / Section(s)',styles:{fontStyle:'bold'}},[display(f.continuationSheets,worksheet),display(f.continuationSheetSections,worksheet)].filter(Boolean).join(' / ')],
       [{content:'Schedule(s) of Inspection',styles:{fontStyle:'bold'}},worksheet?'':'1'],
       [{content:'Schedule(s) of Circuit Details / Test Results',styles:{fontStyle:'bold'}},worksheet?'':String(Math.max(1,scheduleSets))],
       [{content:'Statement',styles:{fontStyle:'bold'}},'The schedules and continuation sheets listed form part of this certificate.']
     ],{0:{cellWidth:78},1:{cellWidth:w-78}},{colSpan:2});
 
     renderCircuitSchedules(doc,cert,schema,opts);
+    renderElectricalRecipientGuidance(doc,cert,schema,'eic');
   }
 
   function renderMinor(doc,cert,schema,opts){
@@ -459,44 +511,48 @@
     write(doc,'To be used only for minor electrical work which does not include the provision of a new circuit',10,y-1,190,{size:6.2});
     y+=3;
     let top=box(doc,x,y,w,48,'SECTION A: DESCRIPTION OF THE MINOR WORKS');
-    labelValue(doc,'Details of the Client',display(f.clientName,worksheet),x+2,top+6,105,{labelW:28});
-    labelValue(doc,'Date minor works completed',worksheet?'':fmtDate(f.completionDate),x+109,top+6,79,{labelW:39});
-    labelValue(doc,'Installation location/address',display(f.installationAddress,worksheet),x+2,top+13,w-4,{labelW:36,maxLines:2});
-    labelValue(doc,'Description of the minor works',display(f.description,worksheet),x+2,top+22,w-4,{labelW:39,maxLines:2});
-    labelValue(doc,'Departures from BS 7671',display(f.departures,worksheet),x+2,top+31,w-4,{labelW:31,maxLines:2});
-    labelValue(doc,'Permitted exceptions / risk assessment',display(f.permittedExceptions,worksheet),x+2,top+38,145,{labelW:46,maxLines:2});
-    checkbox(doc,x+w-42,top+38,yes(f.riskAssessmentAttached,'Yes')&&!worksheet,'Risk assessment attached',{fontSize:5.8,labelWidth:37});
-    labelValue(doc,'Comments / defects observed in existing installation',display(f.existingDefects,worksheet),x+2,top+45,w-4,{labelW:55,maxLines:1});
+    labelValue(doc,'Details of the Client',display(f.clientName,worksheet),x+2,top+5,105,{labelW:28});
+    labelValue(doc,'Date minor works completed',worksheet?'':fmtDate(f.completionDate),x+109,top+5,79,{labelW:39});
+    labelValue(doc,'Installation location/address',display(f.installationAddress,worksheet),x+2,top+11,w-4,{labelW:36,maxLines:2});
+    labelValue(doc,'Description of the minor works',display(f.description,worksheet),x+2,top+18,w-4,{labelW:39,maxLines:2});
+    labelValue(doc,'Departures - BS 7671 amended '+(worksheet?'........':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'........'))+' (date)',display(f.departures,worksheet),x+2,top+25,w-4,{labelW:87,maxLines:2});
+    labelValue(doc,'Permitted exceptions / risk assessment',display(f.permittedExceptions,worksheet),x+2,top+31,145,{labelW:46,maxLines:2});
+    checkbox(doc,x+w-42,top+31,yes(f.riskAssessmentAttached,'Yes')&&!worksheet,'Risk assessment attached',{fontSize:5.8,labelWidth:37});
+    labelValue(doc,'Comments / defects observed in existing installation',display(f.existingDefects,worksheet),x+2,top+37,w-4,{labelW:55,maxLines:1});
     y+=49;
 
     top=box(doc,x,y,w,39,'SECTION B: PRESENCE AND ADEQUACY OF INSTALLATION EARTHING AND BONDING ARRANGEMENTS');
-    labelValue(doc,'System earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+7,w-4,{labelW:36});
-    labelValue(doc,'Earth fault loop impedance at distribution board Zdb (Ω)',display(f.zdb,worksheet),x+2,top+16,w-4,{labelW:62});
-    labelValue(doc,'Adequate main protective conductors',display(f.earthingConductorAdequate,worksheet),x+2,top+25,w-4,{labelW:46});
-    labelValue(doc,'Main protective bonding conductor(s) to',display(f.bondingPresent,worksheet),x+2,top+33,w-4,{labelW:48});
+    labelValue(doc,'System earthing arrangement',display(f.earthingArrangement,worksheet),x+2,top+6,w-4,{labelW:36});
+    labelValue(doc,'Earth fault loop impedance at distribution board Zdb (Ω)',display(f.zdb,worksheet),x+2,top+13,w-4,{labelW:62});
+    labelValue(doc,'Adequate earthing conductor present',display(f.earthingConductorAdequate,worksheet),x+2,top+20,w-4,{labelW:54});
+    write(doc,'Main bonding to:',x+2,top+27,33,{size:5.9,bold:true});
+    const legacyBonding=String(f.bondingPresent||'').toLowerCase();
+    const bondItems=[['Water','bondingWater',38],['Gas','bondingGas',69],['Oil','bondingOil',94],['Steel','bondingSteel',118],['Other','bondingOther',150]];
+    bondItems.forEach(([label,key,offset])=>checkbox(doc,x+offset,top+27,!worksheet&&(yes(f[key],'Yes')||(!f[key]&&legacyBonding.includes(label.toLowerCase()))),label,{size:2.8,fontSize:5.3,labelWidth:20}));
+    write(doc,display(f.bondingOtherDetail||(!f.bondingOther?f.bondingPresent:''),worksheet),x+171,top+27,17,{size:5.3,maxLines:1});
     y+=40;
 
     top=box(doc,x,y,w,58,'SECTION C: CIRCUIT DETAILS');
-    labelValue(doc,'DB Reference No.',display(f.dbReference,worksheet),x+2,top+6,55,{labelW:24});
-    labelValue(doc,'DB Location and type',display(f.dbLocationType,worksheet),x+59,top+6,129,{labelW:32});
-    labelValue(doc,'Circuit No.',display(f.circuitNo,worksheet),x+2,top+14,38,{labelW:18});
-    labelValue(doc,'Circuit description',display(f.circuitDescription,worksheet),x+42,top+14,91,{labelW:28});
-    labelValue(doc,'Reference method',display(f.referenceMethod,worksheet),x+135,top+14,53,{labelW:26});
-    labelValue(doc,'Live csa mm²',display(f.liveCsa,worksheet),x+2,top+22,54,{labelW:22});
-    labelValue(doc,'CPC csa mm²',display(f.cpcCsa,worksheet),x+58,top+22,54,{labelW:22});
-    write(doc,'Circuit overcurrent protective device',x+2,top+31,56,{size:6.3,bold:true});
-    labelValue(doc,'BS (EN)',display(f.ocpdBs,worksheet),x+2,top+37,45,{labelW:14});
-    labelValue(doc,'Type',display(f.ocpdType,worksheet),x+49,top+37,34,{labelW:10});
-    labelValue(doc,'Rating A',display(f.ocpdRating,worksheet),x+85,top+37,35,{labelW:14});
-    labelValue(doc,'Breaking kA',display(f.breakingCapacity,worksheet),x+122,top+37,43,{labelW:19});
-    write(doc,'RCD',x+2,top+45,12,{size:6.2,bold:true});
-    labelValue(doc,'BS (EN)',display(f.rcdBs,worksheet),x+15,top+45,42,{labelW:14});
-    labelValue(doc,'Type',display(f.rcdType,worksheet),x+59,top+45,31,{labelW:10});
-    labelValue(doc,'Rating A',display(f.rcdRating,worksheet),x+92,top+45,31,{labelW:14});
-    labelValue(doc,'IΔn mA',display(f.rcdIdn,worksheet),x+125,top+45,31,{labelW:14});
-    labelValue(doc,'Delay ms',display(f.rcdDelay,worksheet),x+158,top+45,30,{labelW:15});
-    labelValue(doc,'AFDD BS (EN) / rating',display((f.afddBs||'')+' '+(f.afddRating||''),worksheet),x+2,top+53,92,{labelW:35});
-    labelValue(doc,'SPD BS (EN) / type',display((f.spdBs||'')+' '+(f.spdType||''),worksheet),x+96,top+53,92,{labelW:31});
+    labelValue(doc,'DB Reference No.',display(f.dbReference,worksheet),x+2,top+5,55,{labelW:24});
+    labelValue(doc,'DB Location and type',display(f.dbLocationType,worksheet),x+59,top+5,129,{labelW:32});
+    labelValue(doc,'Circuit No.',display(f.circuitNo,worksheet),x+2,top+12,38,{labelW:18});
+    labelValue(doc,'Circuit description',display(f.circuitDescription,worksheet),x+42,top+12,91,{labelW:28});
+    labelValue(doc,'Reference method',display(f.referenceMethod,worksheet),x+135,top+12,53,{labelW:26});
+    labelValue(doc,'Live csa mm²',display(f.liveCsa,worksheet),x+2,top+19,54,{labelW:22});
+    labelValue(doc,'CPC csa mm²',display(f.cpcCsa,worksheet),x+58,top+19,54,{labelW:22});
+    write(doc,'Circuit overcurrent protective device',x+2,top+26,56,{size:6.3,bold:true});
+    labelValue(doc,'BS (EN)',display(f.ocpdBs,worksheet),x+2,top+32,45,{labelW:14});
+    labelValue(doc,'Type',display(f.ocpdType,worksheet),x+49,top+32,34,{labelW:10});
+    labelValue(doc,'Rating A',display(f.ocpdRating,worksheet),x+85,top+32,35,{labelW:14});
+    labelValue(doc,'Breaking kA',display(f.breakingCapacity,worksheet),x+122,top+32,43,{labelW:19});
+    write(doc,'RCD',x+2,top+39,12,{size:6.2,bold:true});
+    labelValue(doc,'BS (EN)',display(f.rcdBs,worksheet),x+15,top+39,42,{labelW:14});
+    labelValue(doc,'Type',display(f.rcdType,worksheet),x+59,top+39,31,{labelW:10});
+    labelValue(doc,'Rating A',display(f.rcdRating,worksheet),x+92,top+39,31,{labelW:14});
+    labelValue(doc,'IΔn mA',display(f.rcdIdn,worksheet),x+125,top+39,31,{labelW:14});
+    labelValue(doc,'Delay ms',display(f.rcdDelay,worksheet),x+158,top+39,30,{labelW:15});
+    labelValue(doc,'AFDD BS (EN) / rating',display((f.afddBs||'')+' '+(f.afddRating||''),worksheet),x+2,top+46,92,{labelW:35});
+    labelValue(doc,'SPD BS (EN) / type',display((f.spdBs||'')+' '+(f.spdType||''),worksheet),x+96,top+46,92,{labelW:31});
     y+=59;
 
     top=box(doc,x,y,w,54,'SECTION D: TEST RESULTS FOR THE ALTERED OR EXTENDED CIRCUIT');
@@ -510,20 +566,32 @@
     labelValue(doc,'Live-Earth MΩ',display(f.irLE,worksheet),x+108,top+23,51,{labelW:25});
     labelValue(doc,'Polarity satisfactory',display(f.polarity,worksheet),x+2,top+31,57,{labelW:30});
     labelValue(doc,'Maximum measured Zs Ω',display(f.zs,worksheet),x+61,top+31,64,{labelW:35});
-    labelValue(doc,'RCD disconnection time ms',display(f.rcdTime,worksheet),x+127,top+31,61,{labelW:37});
+    // The built-in Helvetica font has no Greek delta. Use PDF Symbol for that glyph.
+    const timeLabelX=x+127, timeLabelY=top+31;
+    const timePrefix='RCD disconnection time at I';
+    write(doc,timePrefix,timeLabelX,timeLabelY,45,{size:6.4,bold:true});
+    const deltaX=timeLabelX+doc.getTextWidth(timePrefix);
+    doc.setFont('symbol','normal');
+    doc.text('D',deltaX,timeLabelY);
+    const suffixX=deltaX+doc.getTextWidth('D');
+    write(doc,'n (ms)',suffixX,timeLabelY,12,{size:6.4,bold:true});
+    const timeValue=display(f.rcdTime,worksheet);
+    if(timeValue)write(doc,timeValue,timeLabelX+44,timeLabelY,17,{size:6.5,maxLines:2});
+    else dotted(doc,timeLabelX+44,timeLabelY+.8,timeLabelX+60);
     labelValue(doc,'RCD test button',display(f.rcdButton,worksheet),x+2,top+39,57,{labelW:25});
     labelValue(doc,'AFDD test button',display(f.afddButton,worksheet),x+61,top+39,57,{labelW:28});
     labelValue(doc,'SPD functionality',display(f.spdFunction,worksheet),x+120,top+39,68,{labelW:29});
     y+=55;
 
     top=box(doc,x,y,w,56,'SECTION E: DECLARATION');
-    write(doc,'I certify that the work covered by this certificate does not impair the safety of the existing installation and that the work has been designed, constructed, inspected and tested in accordance with BS 7671 except as recorded in Section A.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
+    write(doc,'I certify that the work covered by this certificate does not impair the safety of the existing installation and has been designed, constructed, inspected and tested in accordance with BS 7671:2018 amended to '+(worksheet?'........':(f.standardAmendedTo?fmtDate(f.standardAmendedTo):'........'))+' (date), and that to the best of my knowledge and belief it complied at the time of inspection, except as stated in Section A.',x+2,top+7,w-4,{size:6.2,lineHeight:3,maxLines:4});
     labelValue(doc,'Name',display(f.engineerName,worksheet),x+2,top+23,91,{labelW:15});
     labelValue(doc,'For/on behalf of',display(f.forOnBehalfOf,worksheet),x+95,top+23,93,{labelW:28});
     labelValue(doc,'Address',display(f.address,worksheet),x+2,top+32,91,{labelW:18,maxLines:2});
     labelValue(doc,'Position',display(f.position,worksheet),x+95,top+32,93,{labelW:18});
     labelValue(doc,'Signature',display(f.signature,worksheet),x+2,top+45,91,{labelW:18});
     labelValue(doc,'Date',worksheet?'':fmtDate(f.declarationDate),x+95,top+45,93,{labelW:12});
+    renderElectricalRecipientGuidance(doc,cert,schema,'minor');
   }
 
   // v1.9.6: EICR uses LANDSCAPE A4 on every page. Do not mix portrait
@@ -605,7 +673,7 @@
       const body=[];
       const format=(key,def)=>{
         if(worksheet)return '';
-        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+' '+(String(f.maximumDemandUnit||'').trim()||'N/A'):'N/A';
+        if(key==='maximumDemand')return String(f.maximumDemand??'').trim()?display(f.maximumDemand,worksheet)+(String(f.maximumDemandUnit||'').trim()?' '+String(f.maximumDemandUnit).trim():''):'';
         if(key==='continuationSheetCount')return display(f.continuationSheetCount||f.continuationSheets,worksheet);
         if(key==='earthingDistributor')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Distributor’s facility','Both'].includes(f.meansOfEarthing)?'Yes':'');
         if(key==='earthingElectrode')return Object.hasOwn(f,key)?(f[key]?'Yes':''):(['Installation earth electrode','Both'].includes(f.meansOfEarthing)?'Yes':'');
@@ -621,7 +689,7 @@
         if(key==='earthElectrodeResistance'){
           const reading=String(f.earthElectrodeResistance??'').trim();
           const method=String(f.earthElectrodeMeasurementType||'').trim();
-          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'N/A';
+          return reading?(method&&method.toUpperCase()!=='N/A'?method+' = ':'')+reading:'';
         }
         const legacyBond=String(f.bondingTo||'').toLowerCase();
         const matchLegacy={bondingToWater:/water/,bondingToGas:/gas/,bondingToOil:/oil/,bondingToSteel:/steel/,bondingToLightning:/lightning/};
@@ -636,9 +704,9 @@
         const da=definitions.find(q=>q.key===a),db=definitions.find(q=>q.key===b);
         body.push([
           {content:pdfText(labels[a]||da?.label||a),styles:{fontStyle:'bold'}},
-          pdfText(worksheet?'':String(format(a,da)??'').trim()||'N/A'),
+          pdfText(worksheet?'':String(format(a,da)??'').trim()),
           {content:b?pdfText(labels[b]||db?.label||b):'',styles:{fontStyle:'bold'}},
-          b?pdfText(worksheet?'':String(format(b,db)??'').trim()||'N/A'):''
+          b?pdfText(worksheet?'':String(format(b,db)??'').trim()):''
         ]);
         rowBindings.push([a,b]);
       }
@@ -680,13 +748,13 @@
       .map((row,index)=>({row,index}))
       .filter(({row})=>String(row.observation||'').trim()||String(row.code||'').trim()||String(row.location||'').trim());
     write(doc,'SECTION K: OBSERVATIONS',x,y,w,{size:9.3,bold:true});y+=7;
-    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':'No remedial action is required'));
+    const observationsSelection=String(f.remedialActionStatus|| (observations.length?'The following observations are made':''));
     checkbox(doc,x,y,observationsSelection==='No remedial action is required','No remedial action is required',{fontSize:7.3,labelWidth:95});
     checkbox(doc,x+111,y,observationsSelection==='The following observations are made','The following observations are made',{fontSize:7.3,labelWidth:130});
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'remedialActionStatus',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:y-4,width:w,height:6});
     y+=7;
     const limitationsY=y;
-    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()||'N/A'),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
+    y=write(doc,'Referring to the attached inspection and test schedules, subject to Section D extent and limitations: '+(worksheet?'':String(f.limitationsReference||'').trim()),x,y,w,{size:7.2,maxLines:12,lineHeight:4.3})+3;
     if(doc.__editRegions)doc.__editRegions.push({scope:'field',key:'limitationsReference',page:doc.internal.getCurrentPageInfo().pageNumber,x,y:limitationsY-3,width:w,height:y-limitationsY+3});
     y=write(doc,'NOTE: Photographic and/or thermographic images can be attached to support observations made in this Section.',x,y,w,{size:7.0,lineHeight:4.1})+5;
     for(const group of [
@@ -695,31 +763,33 @@
     ]){
       if(y>164){fresh();y=Math.max(y,32);}
       const selected=observations.filter(({row})=>group.codes.includes(String(row.code||'').trim()) || (group.codes.includes('FI')&&!['C1','C2','C3','FI'].includes(String(row.code||'').trim())));
+      // Keep enough ruled space for handwriting on a blank report. Empty rows
+      // must never be assigned fabricated observation numbers or outcomes.
+      const observationRows=selected.map(({row})=>[
+        pdfText(String(row.item||'').trim()),
+        pdfText([String(row.observation||'').trim(),row.location?'Location: '+row.location:'',row.scheduleRef?'Schedule ref: '+row.scheduleRef:''].filter(Boolean).join(' | ')),
+        pdfText(String(row.code||'').trim())
+      ]);
+      while(observationRows.length<3)observationRows.push(['','','']);
       doc.autoTable({
         startY:y,
-        head:[[{content:group.title,colSpan:4,styles:{fontStyle:'bold',fillColor:PALE}}],
-              ['Item No.','Observations','Location','Classification code']],
-        // Keep the C1/C2 or C3/FI explanation with its observation table,
-        // not alone on a new sheet after an automatic page break.
-        body:(selected.length?selected.map(({row})=>[
-          pdfText(String(row.item||'').trim()||'N/A'),
-          pdfText(String(row.observation||'').trim()||'N/A'),
-          pdfText(String(row.location||'').trim()||'N/A'),
-          pdfText(String(row.code||'').trim()||'N/A')
-        ]):[['N/A','N/A','N/A','N/A']]).concat([[{content:group.note,colSpan:4,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
+        head:[[{content:group.title,colSpan:3,styles:{fontStyle:'bold',fillColor:PALE}}],
+              ['Item No.','Observation(s), including schedule reference(s) where relevant','Classification code']],
+        // Match the Appendix 6 Section K three-column structure; legacy
+        // locations remain in the observation narrative and stored record.
+        body:observationRows.concat([[{content:group.note,colSpan:3,styles:{fontStyle:'italic',fontSize:7.0,minCellHeight:9}}]]),
         // Reserve the lower strip for the outcomes legend on Section K, page 4.
         // AutoTable must never flow into this strip.
         margin:{left:x,right:10,top:32,bottom:40},tableWidth:w,theme:'grid',rowPageBreak:'avoid',pageBreak:'avoid',
         styles:{fontSize:7.3,cellPadding:1.35,minCellHeight:8.3,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
         headStyles:{fillColor:PALE,textColor:INK,lineColor:LINE,lineWidth:.12},
-        columnStyles:{0:{cellWidth:24},1:{cellWidth:151},2:{cellWidth:58},3:{cellWidth:w-233}},
+        columnStyles:{0:{cellWidth:27},1:{cellWidth:w-68},2:{cellWidth:41}},
         editResolve:(r,c)=>{
           const index=selected[r]?.index;
           if(index===undefined)return [];
           if(c===0)return [{scope:'table',kind:'observations',index,key:'item'}];
           if(c===1)return [{scope:'table',kind:'observations',index,key:'observation'}];
-          if(c===2)return [{scope:'table',kind:'observations',index,key:'location'}];
-          if(c===3)return [{scope:'table',kind:'observations',index,key:'code'}];
+          if(c===2)return [{scope:'table',kind:'observations',index,key:'code'}];
           return [];
         },
         didDrawPage:()=>frame()
@@ -735,7 +805,7 @@
     write(doc,'C1, C2, C3 and FI coded inspection items are to be recorded in Section K.',x,190,w,{size:7.4,maxLines:2});
     renderEicrInspectionLandscape(doc,cert,schema,opts);
     renderCircuitSchedules(doc,cert,schema,opts);
-    if(!worksheet)renderEicrRecipientGuidance(doc,cert,schema);
+    renderEicrRecipientGuidance(doc,cert,schema);
   }
   function renderEicrInspectionLandscape(doc,cert,schema,opts){
     const worksheet=!!opts.worksheet,rows=safeRows(cert.tables?.eicrInspection),x=10,w=277;
@@ -773,12 +843,12 @@
         rowMap.push(-1);lastGroup=group;
       }
       const isIntake=String(r.item||'')==='1.1';
-      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim()||'N/A')]);
+      body.push([pdfText(r.item||''),pdfText(isIntake?'Distributor/supplier intake equipment':canonicalDescription.get(String(r.item||''))||r.description||''),isIntake||worksheet||String(r.outcome||'').trim()==='✓'?'':pdfText(String(r.outcome||'').trim())]);
       rowMap.push(index);
       if(isIntake){
         intakeRows.forEach(([key,description],subIndex)=>{
           const raw=String(cert.fields?.[key]||'').trim();
-          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw||'N/A')]);
+          body.push(['',pdfText('– '+description),worksheet||raw==='✓'?'':pdfText(raw)]);
           rowMap.push(-3-subIndex);
         });
         body.push(['','NOTE: Distributor intake equipment should be visually assessed; report concerns in Section K as appropriate.','']);
@@ -786,7 +856,7 @@
         body.push(['','NOTE: Where dangerous intake conditions are identified, inform the person ordering the inspection.','']);
         rowMap.push(-10);
         const notification=String(cert.fields?.intakeNotified||'');
-        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification||'N/A']);
+        body.push(['', 'Person ordering inspection notified of dangerous or potentially dangerous situations', worksheet?'':notification]);
         rowMap.push(-2);
       }
     });
@@ -1189,8 +1259,8 @@
         const ff=cert.fields||{};
         const testedBy=ff.testedBy||ff.inspector||ff.singleSignatoryName||'';
         const testedDate=ff.testedDate||ff.inspectionDate||ff.singleSignatoryDate||'';
-        const testedSignature=ff.inspectorSignature||ff.singleSignatorySignature||'';
-        const signatureLine=worksheet?'':String(testedSignature||'').trim()||'N/A';
+        const testedSignature=ff.testedSignature||ff.inspectorSignature||ff.singleSignatorySignature||'';
+        const signatureLine=worksheet?'':String(testedSignature||'').trim();
         write(doc,'Details of test instruments used (serial and/or asset numbers)',x,ty,w,{size:7.2,bold:true});
         const instrumentDetails=[
           ['Multifunction: ',ff.testerSerial],
@@ -1205,12 +1275,12 @@
           const xx=x+col*(w/3);
           writeRuns(doc,[
             {text:label,bold:true},
-            {text:worksheet?'':String(value??'').trim()||'N/A',bold:false}
+            {text:worksheet?'':String(value??'').trim(),bold:false}
           ],xx,ty+5+row*5.1,w/3-3,6.7,3.5,2);
         });
         writeRuns(doc,[
           {text:'Tested by name (Capitals): ',bold:true},
-          {text:worksheet?'':String(testedBy||'').trim().toUpperCase()||'N/A',bold:false}
+          {text:worksheet?'':String(testedBy||'').trim().toUpperCase(),bold:false}
         ],x,ty+17,107,7.2,4,2);
         writeRuns(doc,[
           {text:'Signature: ',bold:true},
@@ -1218,10 +1288,79 @@
         ],x+110,ty+17,95,7.2,4,2);
         writeRuns(doc,[
           {text:'Date: ',bold:true},
-          {text:worksheet?'':fmtDate(testedDate)||'N/A',bold:false}
+          {text:worksheet?'':fmtDate(testedDate),bold:false}
         ],x+207,ty+17,w-207,7.2,4,2);
       });
     });
+  }
+
+
+
+  // Recipient information for occupiers and landlords, in the role of the
+  // BS 5839-6:2019+A1:2020 Annex F model guidance.
+  function renderSmokeRecipientGuidance(doc,cert,schema){
+    const heading='DOMESTIC SMOKE AND HEAT ALARM CERTIFICATE';
+    const frame=()=>pageFrame(doc,heading,display(cert.number,false,true),schema.standard);
+    const items=[
+      'Keep this certificate, detector locations and manufacturer instructions. Pass them to future occupiers and responsible persons.',
+      'The system grade and category identify the recorded extent of fire detection. Do not assume protection extends to an unlisted room or area.',
+      'Test each detector and alarm at the intervals and by the method in the manufacturer instructions. Confirm that warning devices operate as intended. Never use an open flame to test.',
+      'Do not paint over, cover, move or disable alarms. Keep devices clear of dust and obstructions in accordance with manufacturer instructions.',
+      'Follow manufacturer instructions for batteries, low-battery warnings, mains faults, end-of-life replacement and servicing.',
+      'Arrange prompt remedial work for faults, failed devices, faulty interconnections or inadequate warning. Arrange competent maintenance where required by the system grade.',
+      'Fire detection is an early-warning measure. Maintain fire precautions, escape routes and an escape plan, and arrange a fire risk assessment where required.',
+      'Give the certificate, installation/test records, instructions and relevant drawings to the named recipient and retain evidence of handover.'
+    ];
+    doc.addPage('a4','portrait');frame();
+    doc.autoTable({
+      startY:32,
+      head:[[{content:'GUIDANCE FOR OCCUPIERS AND LANDLORDS',styles:{fontStyle:'bold',fillColor:PALE,textColor:INK}}]],
+      body:items.map((item,i)=>[String(i+1)+'. '+item]),
+      margin:{left:10,right:10,top:29,bottom:14},tableWidth:190,theme:'grid',rowPageBreak:'avoid',
+      styles:{fontSize:8,cellPadding:2.7,minCellHeight:9.5,lineColor:LINE,lineWidth:.12,textColor:INK,overflow:'linebreak'},
+      didDrawPage:frame
+    });
+  }
+
+  function specialistPartVisiblePdf(cert,part){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test')return !['System design information','Installation & supply','Handover documentation'].includes(part.title);
+    if(type==='Verification of existing installation')return part.title!=='Installation & supply';
+    return true;
+  }
+  function specialistFieldVisiblePdf(cert,field){
+    if(cert.type!=='emergency')return true;
+    const type=String(cert.fields?.certificateType||'');
+    if(type==='Periodic inspection & test' && ['responsibleSignature','responsibleDate'].includes(field.key))return false;
+    if(type==='Verification of existing installation' && ['designerName','designerCompany','designerSignature','designerDate'].includes(field.key))return false;
+    if(type!=='Periodic inspection & test' && ['periodicTestType','faultActionRecordRef'].includes(field.key))return false;
+    return true;
+  }
+  function specialistDeclaration(cert,part){
+    const title=part.title,kind=String(cert.fields?.certificateType||'');
+    if(cert.type==='emergency'){
+      const standards='BS 5266-1:2025, BS EN 1838:2024 and BS EN 50172:2024';
+      if(title==='Certificate & premises' && kind!=='Periodic inspection & test')
+        return 'General declaration by the owner/responsible person: I accept the accompanying applicable design, installation and verification declarations, drawings, photometric evidence and logbook, and record any agreed deviations. The emergency lighting installation or part described is declared to conform to '+standards+' except as recorded.';
+      if(title==='System design information' && kind!=='Verification of existing installation')
+        return 'Design declaration: I certify that I have designed the emergency lighting installation described here with appropriate skill and care in accordance with '+standards+', except for the specified agreed deviations.';
+      if(title==='Installation & supply')
+        return 'Installation declaration: I certify that the emergency lighting installation described has been installed with appropriate skill and care in accordance with the agreed design and '+standards+', except for the recorded deviations.';
+      if(title==='Verification / test' && kind==='Periodic inspection & test')
+        return 'Periodic inspection and test declaration: I certify that the stated emergency lighting devices and records were inspected and tested on the stated date, and that the test results, defects, actions and next due date are recorded below.';
+      if(title==='Verification / test' && kind==='Verification of existing installation')
+        return 'Existing installation verification declaration: I certify that the stated existing emergency lighting installation was examined and verified against the applicable requirements of '+standards+', subject to the stated limitations, defects and agreed deviations.';
+      if(title==='Verification / test')
+        return 'Verification declaration: I certify that the completed emergency lighting installation was inspected and tested against the agreed design, including functional operation, rated duration and applicable illumination checks, with results and deviations recorded below.';
+      return '';
+    }
+    if(cert.type==='smoke'){
+      if(title==='System classification & design')return 'Design declaration: I certify that the recorded Grade C, D or F domestic fire detection and alarm system has been designed for the stated grade, category, extent and areas protected in accordance with BS 5839-6:2019+A1:2020, except for recorded variations.';
+      if(title==='Installation checks')return 'Installation declaration: I certify that the work for which I am responsible was installed in accordance with the documented design and BS 5839-6:2019+A1:2020, except for the recorded variations.';
+      if(title==='Commissioning & handover')return 'Commissioning declaration: I certify that the recorded system was tested for satisfactory operation, including interconnection, warning devices and standby functions where applicable, and instructions were handed to the named recipient. The recipient acknowledgement records receipt, not independent technical verification.';
+    }
+    return '';
   }
 
   function renderGeneric(doc,cert,schema,opts){
@@ -1229,14 +1368,26 @@
     let y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
     const x=10,w=190;
     schema.sections.forEach(part=>{
+      if(!specialistPartVisiblePdf(cert,part))return;
+      // Balance the declaration and commissioning sections across two A4
+      // pages. Otherwise the last 15–20 form fields can be orphaned on a
+      // mostly blank second page even though both pages are printable.
+      const balanceBreak=(cert.type==='emergency'&&part.title==='Installation & supply')||
+                         (cert.type==='smoke'&&part.title==='Installation checks');
+      if(balanceBreak&&y>155){
+        doc.addPage('a4','portrait');
+        y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
+      }
       if(part.type==='section'){
-        const rows=part.fields.map(field=>{
+        const rows=part.fields.filter(field=>specialistFieldVisiblePdf(cert,field)).map(field=>{
           const current=field.type==='date'?fmtDate(cert.fields?.[field.key]):String(cert.fields?.[field.key]||'');
           const value=worksheet && field.type==='select' && Array.isArray(field.options) && field.options.length<=8
             ? field.options.map(o=>'[ ] '+pdfText(o)).join('   ')
             : (worksheet?'':pdfText(current));
           return [pdfText(field.label),value];
         });
+        const declaration=specialistDeclaration(cert,part);
+        if(declaration)rows.unshift(['DECLARATION',pdfText(declaration)]);
         const needed=9+rows.length*7;
         if(y+Math.min(needed,55)>281){
           doc.addPage('a4','portrait');y=pageFrame(doc,schema.name.toUpperCase(),display(cert.number,worksheet,true),schema.standard);
@@ -1288,6 +1439,7 @@
         y=doc.lastAutoTable.finalY+4;
       }
     });
+    if(cert.type==='smoke')renderSmokeRecipientGuidance(doc,cert,schema);
   }
 
   function build({cert,schema,settings={},worksheet=false,editable=false}){
@@ -1295,6 +1447,15 @@
     const colour=/^#[0-9a-f]{6}$/i.test(settings.reportAccent||'')?settings.reportAccent:'#1869d3';
     const rgb=[parseInt(colour.slice(1,3),16),parseInt(colour.slice(3,5),16),parseInt(colour.slice(5,7),16)];
     BLUE.splice(0,3,...rgb);
+    // Do not misissue the combined BS 5839-6 Annex E record as a Grade A
+    // certificate. Grade A requires the distinct Annex D certificate suite.
+    if(cert.type==='smoke' && String(cert.fields?.grade||'').trim()==='Grade A'){
+      throw new Error('Grade A requires separate BS 5839-6 Annex D design, installation and commissioning certificates; this domestic Grade C/D/F certificate cannot be issued for Grade A.');
+    }
+    if(cert.type==='emergency' && cert.fields?.certificateType==='Small installation certificate' &&
+       safeRows(cert.tables?.luminaires).length>25){
+      throw new Error('The BS 5266-1:2025 small-installation completion certificate is limited to 25 self-contained luminaires; select the full completion certificate.');
+    }
     const C=window.jspdf?.jsPDF;
     if(!C) throw new Error('PDF engine unavailable');
     const doc=new C({unit:'mm',format:'a4',orientation:['eic','eicr'].includes(cert.type)?'landscape':'portrait'});
