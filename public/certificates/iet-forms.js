@@ -566,7 +566,18 @@
     labelValue(doc,'Live-Earth MΩ',display(f.irLE,worksheet),x+108,top+23,51,{labelW:25});
     labelValue(doc,'Polarity satisfactory',display(f.polarity,worksheet),x+2,top+31,57,{labelW:30});
     labelValue(doc,'Maximum measured Zs Ω',display(f.zs,worksheet),x+61,top+31,64,{labelW:35});
-    labelValue(doc,'RCD disconnection time ms',display(f.rcdTime,worksheet),x+127,top+31,61,{labelW:37});
+    // The built-in Helvetica font has no Greek delta. Use PDF Symbol for that glyph.
+    const timeLabelX=x+127, timeLabelY=top+31;
+    const timePrefix='RCD disconnection time at I';
+    write(doc,timePrefix,timeLabelX,timeLabelY,45,{size:6.4,bold:true});
+    const deltaX=timeLabelX+doc.getTextWidth(timePrefix);
+    doc.setFont('symbol','normal');
+    doc.text('D',deltaX,timeLabelY);
+    const suffixX=deltaX+doc.getTextWidth('D');
+    write(doc,'n (ms)',suffixX,timeLabelY,12,{size:6.4,bold:true});
+    const timeValue=display(f.rcdTime,worksheet);
+    if(timeValue)write(doc,timeValue,timeLabelX+44,timeLabelY,17,{size:6.5,maxLines:2});
+    else dotted(doc,timeLabelX+44,timeLabelY+.8,timeLabelX+60);
     labelValue(doc,'RCD test button',display(f.rcdButton,worksheet),x+2,top+39,57,{labelW:25});
     labelValue(doc,'AFDD test button',display(f.afddButton,worksheet),x+61,top+39,57,{labelW:28});
     labelValue(doc,'SPD functionality',display(f.spdFunction,worksheet),x+120,top+39,68,{labelW:29});
